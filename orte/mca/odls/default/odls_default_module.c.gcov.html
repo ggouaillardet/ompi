@@ -1,0 +1,875 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/odls/default/odls_default_module.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/odls/default</a> - odls_default_module.c<span style="font-size: 80%;"> (source / <a href="odls_default_module.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">71</td>
+            <td class="headerCovTableEntry">244</td>
+            <td class="headerCovTableEntryLo">29.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">46.2 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2007 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2008 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2007-2010 Oracle and/or its affiliates.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2007      Evergrid, Inc. All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2008-2013 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2010      IBM Corporation.  All rights reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.  All rights
+<span class="lineNum">      17 </span>            :  *                         reserved.
+<span class="lineNum">      18 </span>            :  * Copyright (c) 2013-2014 Intel, Inc. All rights reserved
+<span class="lineNum">      19 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      20 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      21 </span>            :  *
+<span class="lineNum">      22 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      23 </span>            :  *
+<span class="lineNum">      24 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      25 </span>            :  *
+<span class="lineNum">      26 </span>            :  * $HEADER$
+<span class="lineNum">      27 </span>            :  */
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : /*
+<span class="lineNum">      30 </span>            :  * There is a complicated sequence of events that occurs when the
+<span class="lineNum">      31 </span>            :  * parent forks a child process that is intended to launch the target
+<span class="lineNum">      32 </span>            :  * executable.
+<span class="lineNum">      33 </span>            :  *
+<span class="lineNum">      34 </span>            :  * Before the child process exec's the target executable, it might tri
+<span class="lineNum">      35 </span>            :  * to set the affinity of that new child process according to a
+<span class="lineNum">      36 </span>            :  * complex series of rules.  This binding may fail in a myriad of
+<span class="lineNum">      37 </span>            :  * different ways.  A lot of this code deals with reporting that error
+<span class="lineNum">      38 </span>            :  * occurately to the end user.  This is a complex task in itself
+<span class="lineNum">      39 </span>            :  * because the child process is not &quot;really&quot; an ORTE process -- all
+<span class="lineNum">      40 </span>            :  * error reporting must be proxied up to the parent who can use normal
+<span class="lineNum">      41 </span>            :  * ORTE error reporting mechanisms.
+<span class="lineNum">      42 </span>            :  *
+<span class="lineNum">      43 </span>            :  * Here's a high-level description of what is occurring in this file:
+<span class="lineNum">      44 </span>            :  *
+<span class="lineNum">      45 </span>            :  * - parent opens a pipe
+<span class="lineNum">      46 </span>            :  * - parent forks a child
+<span class="lineNum">      47 </span>            :  * - parent blocks reading on the pipe: the pipe will either close
+<span class="lineNum">      48 </span>            :  *   (indicating that the child successfully exec'ed) or the child will
+<span class="lineNum">      49 </span>            :  *   write some proxied error data up the pipe
+<span class="lineNum">      50 </span>            :  *
+<span class="lineNum">      51 </span>            :  * - the child tries to set affinity and do other housekeeping in
+<span class="lineNum">      52 </span>            :  *   preparation of exec'ing the target executable
+<span class="lineNum">      53 </span>            :  * - if the child fails anywhere along the way, it sends a message up
+<span class="lineNum">      54 </span>            :  *   the pipe to the parent indicating what happened -- including a
+<span class="lineNum">      55 </span>            :  *   rendered error message detailing the problem (i.e., human-readable).
+<span class="lineNum">      56 </span>            :  * - it is important that the child renders the error message: there
+<span class="lineNum">      57 </span>            :  *   are so many errors that are possible that the child is really the
+<span class="lineNum">      58 </span>            :  *   only entity that has enough information to make an accuate error string
+<span class="lineNum">      59 </span>            :  *   to report back to the user.
+<span class="lineNum">      60 </span>            :  * - the parent reads this message + rendered string in and uses ORTE
+<span class="lineNum">      61 </span>            :  *   reporting mechanisms to display it to the user
+<span class="lineNum">      62 </span>            :  * - if the problem was only a warning, the child continues processing
+<span class="lineNum">      63 </span>            :  *   (potentially eventually exec'ing the target executable).
+<span class="lineNum">      64 </span>            :  * - if the problem was an error, the child exits and the parent
+<span class="lineNum">      65 </span>            :  *   handles the death of the child as appropriate (i.e., this ODLS
+<span class="lineNum">      66 </span>            :  *   simply reports the error -- other things decide what to do).
+<span class="lineNum">      67 </span>            :  */
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      70 </span>            : #include &quot;orte/constants.h&quot;
+<span class="lineNum">      71 </span>            : #include &quot;orte/types.h&quot;
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      74 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      75 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      76 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      77 </span>            : #endif
+<span class="lineNum">      78 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      79 </span>            : #ifdef HAVE_SYS_TYPES_H
+<span class="lineNum">      80 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      81 </span>            : #endif
+<span class="lineNum">      82 </span>            : #ifdef HAVE_SYS_WAIT_H
+<span class="lineNum">      83 </span>            : #include &lt;sys/wait.h&gt;
+<span class="lineNum">      84 </span>            : #endif
+<span class="lineNum">      85 </span>            : #include &lt;signal.h&gt;
+<span class="lineNum">      86 </span>            : #ifdef HAVE_FCNTL_H
+<span class="lineNum">      87 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      88 </span>            : #endif
+<span class="lineNum">      89 </span>            : #ifdef HAVE_SYS_TIME_H
+<span class="lineNum">      90 </span>            : #include &lt;sys/time.h&gt;
+<span class="lineNum">      91 </span>            : #endif
+<span class="lineNum">      92 </span>            : #ifdef HAVE_SYS_PARAM_H
+<span class="lineNum">      93 </span>            : #include &lt;sys/param.h&gt;
+<span class="lineNum">      94 </span>            : #endif
+<span class="lineNum">      95 </span>            : #ifdef HAVE_NETDB_H
+<span class="lineNum">      96 </span>            : #include &lt;netdb.h&gt;
+<span class="lineNum">      97 </span>            : #endif
+<span class="lineNum">      98 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      99 </span>            : #ifdef HAVE_SYS_STAT_H
+<span class="lineNum">     100 </span>            : #include &lt;sys/stat.h&gt;
+<span class="lineNum">     101 </span>            : #endif  /* HAVE_SYS_STAT_H */
+<span class="lineNum">     102 </span>            : #include &lt;stdarg.h&gt;
+<span class="lineNum">     103 </span>            : #ifdef HAVE_SYS_SELECT_H
+<span class="lineNum">     104 </span>            : #include &lt;sys/select.h&gt;
+<span class="lineNum">     105 </span>            : #endif
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            : #include &quot;opal/mca/hwloc/hwloc.h&quot;
+<span class="lineNum">     108 </span>            : #include &quot;opal/mca/hwloc/base/base.h&quot;
+<span class="lineNum">     109 </span>            : #include &quot;opal/class/opal_pointer_array.h&quot;
+<span class="lineNum">     110 </span>            : #include &quot;opal/util/opal_environ.h&quot;
+<span class="lineNum">     111 </span>            : #include &quot;opal/util/show_help.h&quot;
+<span class="lineNum">     112 </span>            : #include &quot;opal/util/sys_limits.h&quot;
+<span class="lineNum">     113 </span>            : #include &quot;opal/util/fd.h&quot;
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            : #include &quot;orte/util/show_help.h&quot;
+<span class="lineNum">     116 </span>            : #include &quot;orte/runtime/orte_wait.h&quot;
+<span class="lineNum">     117 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">     118 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">     119 </span>            : #include &quot;orte/mca/ess/ess.h&quot;
+<span class="lineNum">     120 </span>            : #include &quot;orte/mca/iof/base/iof_base_setup.h&quot;
+<span class="lineNum">     121 </span>            : #include &quot;orte/mca/plm/plm.h&quot;
+<span class="lineNum">     122 </span>            : #include &quot;orte/mca/rtc/rtc.h&quot;
+<span class="lineNum">     123 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            : #include &quot;orte/mca/odls/base/base.h&quot;
+<span class="lineNum">     126 </span>            : #include &quot;orte/mca/odls/base/odls_private.h&quot;
+<span class="lineNum">     127 </span>            : #include &quot;orte/mca/odls/default/odls_default.h&quot;
+<span class="lineNum">     128 </span>            : #include &quot;orte/orted/pmix/pmix_server.h&quot;
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            : /*
+<span class="lineNum">     131 </span>            :  * Module functions (function pointers used in a struct)
+<span class="lineNum">     132 </span>            :  */
+<span class="lineNum">     133 </span>            : static int orte_odls_default_launch_local_procs(opal_buffer_t *data);
+<span class="lineNum">     134 </span>            : static int orte_odls_default_kill_local_procs(opal_pointer_array_t *procs);
+<span class="lineNum">     135 </span>            : static int orte_odls_default_signal_local_procs(const orte_process_name_t *proc, int32_t signal);
+<span class="lineNum">     136 </span>            : static int orte_odls_default_restart_proc(orte_proc_t *child);
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            : /*
+<span class="lineNum">     139 </span>            :  * Explicitly declared functions so that we can get the noreturn
+<span class="lineNum">     140 </span>            :  * attribute registered with the compiler.
+<span class="lineNum">     141 </span>            :  */
+<span class="lineNum">     142 </span>            : static void send_error_show_help(int fd, int exit_status,
+<span class="lineNum">     143 </span>            :                                  const char *file, const char *topic, ...)
+<span class="lineNum">     144 </span>            :     __opal_attribute_noreturn__;
+<span class="lineNum">     145 </span>            : static int do_child(orte_app_context_t* context,
+<span class="lineNum">     146 </span>            :                     orte_proc_t *child,
+<span class="lineNum">     147 </span>            :                     char **environ_copy,
+<span class="lineNum">     148 </span>            :                     orte_job_t *jobdat, int write_fd,
+<span class="lineNum">     149 </span>            :                     orte_iof_base_io_conf_t opts)
+<span class="lineNum">     150 </span>            :     __opal_attribute_noreturn__;
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            : /*
+<span class="lineNum">     154 </span>            :  * Module
+<span class="lineNum">     155 </span>            :  */
+<span class="lineNum">     156 </span>            : orte_odls_base_module_t orte_odls_default_module = {
+<span class="lineNum">     157 </span>            :     orte_odls_base_default_get_add_procs_data,
+<span class="lineNum">     158 </span>            :     orte_odls_default_launch_local_procs,
+<span class="lineNum">     159 </span>            :     orte_odls_default_kill_local_procs,
+<span class="lineNum">     160 </span>            :     orte_odls_default_signal_local_procs,
+<span class="lineNum">     161 </span>            :     orte_odls_base_default_deliver_message,
+<a name="162"><span class="lineNum">     162 </span>            :     orte_odls_default_restart_proc</a>
+<span class="lineNum">     163 </span>            : };
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            : static bool odls_default_child_died(orte_proc_t *child)
+<span class="lineNum">     167 </span>            : {
+<span class="lineNum">     168 </span>            :     time_t end;
+<span class="lineNum">     169 </span>            :     pid_t ret;
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            :     /* Because of rounding in time (which returns whole seconds) we
+<span class="lineNum">     172 </span>            :      * have to add 1 to our wait number: this means that we wait
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :      * somewhere between (target) and (target)+1 seconds.  Otherwise,</span>
+<span class="lineNum">     174 </span>            :      * the default 1s actually means 'somwhere between 0 and 1s'. */
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     end = time(NULL) + orte_odls_globals.timeout_before_sigkill + 1;</span>
+<span class="lineNum">     176 </span>            :     do {
+<span class="lineNum">     177 </span>            :         OPAL_OUTPUT_VERBOSE((20, orte_odls_base_framework.framework_output,
+<span class="lineNum">     178 </span>            :                              &quot;%s odls:default:WAITPID CHECKING PID %d WITH TIMEOUT %d SECONDS&quot;,
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), (int)(child-&gt;pid),</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :                              orte_odls_globals.timeout_before_sigkill + 1));</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         ret = waitpid(child-&gt;pid, &amp;child-&gt;exit_code, WNOHANG);</span>
+<span class="lineNum">     182 </span>            :         if (child-&gt;pid == ret) {
+<span class="lineNum">     183 </span>            :             OPAL_OUTPUT_VERBOSE((20, orte_odls_base_framework.framework_output,
+<span class="lineNum">     184 </span>            :                                  &quot;%s odls:default:WAITPID INDICATES PROC %d IS DEAD&quot;,
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), (int)(child-&gt;pid)));</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :             /* It died -- return success */</span>
+<span class="lineNum">     187 </span>            :             return true;
+<span class="lineNum">     188 </span>            :         } else if (0 == ret) {
+<span class="lineNum">     189 </span>            :             /* with NOHANG specified, if a process has already exited
+<span class="lineNum">     190 </span>            :              * while waitpid was registered, then waitpid returns 0
+<span class="lineNum">     191 </span>            :              * as there is no error - this is a race condition problem
+<span class="lineNum">     192 </span>            :              * that occasionally causes us to incorrectly report a proc
+<span class="lineNum">     193 </span>            :              * as refusing to die. Unfortunately, errno may not be reset
+<span class="lineNum">     194 </span>            :              * by waitpid in this case, so we cannot check it.
+<span class="lineNum">     195 </span>            :              *
+<span class="lineNum">     196 </span>            :              * (note the previous fix to this, to return 'process dead'
+<span class="lineNum">     197 </span>            :              * here, fixes the race condition at the cost of reporting
+<span class="lineNum">     198 </span>            :              * all live processes have immediately died!  Better to
+<span class="lineNum">     199 </span>            :              * occasionally report a dead process as still living -
+<span class="lineNum">     200 </span>            :              * which will occasionally trip the timeout for cases that
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :              * are right on the edge.)</span>
+<span class="lineNum">     202 </span>            :              */
+<span class="lineNum">     203 </span>            :             OPAL_OUTPUT_VERBOSE((20, orte_odls_base_framework.framework_output,
+<span class="lineNum">     204 </span>            :                                  &quot;%s odls:default:WAITPID INDICATES PID %d MAY HAVE ALREADY EXITED&quot;,
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), (int)(child-&gt;pid)));</span>
+<span class="lineNum">     206 </span>            :             /* Do nothing, process still alive */
+<span class="lineNum">     207 </span>            :         } else if (-1 == ret &amp;&amp; ECHILD == errno) {
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :             /* The pid no longer exists, so we'll call this &quot;good</span>
+<span class="lineNum">     209 </span>            :                enough for government work&quot; */
+<span class="lineNum">     210 </span>            :             OPAL_OUTPUT_VERBOSE((20, orte_odls_base_framework.framework_output,
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :                                  &quot;%s odls:default:WAITPID INDICATES PID %d NO LONGER EXISTS&quot;,</span>
+<span class="lineNum">     212 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), (int)(child-&gt;pid)));
+<span class="lineNum">     213 </span>            :             return true;
+<span class="lineNum">     214 </span>            :         }
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            :         /* Bogus delay for 1 msec - let's actually give the CPU some time
+<span class="lineNum">     217 </span>            :          * to quit the other process (sched_yield() -- even if we have it
+<span class="lineNum">     218 </span>            :          * -- changed behavior in 2.6.3x Linux flavors to be undesirable)
+<span class="lineNum">     219 </span>            :          * Don't use select on a bogus file descriptor here as it has proven
+<span class="lineNum">     220 </span>            :          * unreliable and sometimes immediately returns - we really, really
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :          * -do- want to wait a bit!</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :          */</span>
+<span class="lineNum">     223 </span>            :         usleep(1000);
+<span class="lineNum">     224 </span>            :     } while (time(NULL) &lt; end);
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 : </span>
+<a name="226"><span class="lineNum">     226 </span>            :     /* The child didn't die, so return false */</a>
+<span class="lineNum">     227 </span>            :     return false;
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span>            : static int odls_default_kill_local(pid_t pid, int signum)
+<span class="lineNum">     231 </span>            : {
+<span class="lineNum">     232 </span>            :     pid_t pgrp;
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 : #if HAVE_SETPGID</span>
+<span class="lineNum">     235 </span>            :     pgrp = getpgid(pid);
+<span class="lineNum">     236 </span>            :     if (-1 != pgrp) {
+<span class="lineNum">     237 </span>            :         /* target the lead process of the process
+<span class="lineNum">     238 </span>            :          * group so we ensure that the signal is
+<span class="lineNum">     239 </span>            :          * seen by all members of that group. This
+<span class="lineNum">     240 </span>            :          * ensures that the signal is seen by any
+<span class="lineNum">     241 </span>            :          * child processes our child may have
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :          * started</span>
+<span class="lineNum">     243 </span>            :          */
+<span class="lineNum">     244 </span>            :         pid = pgrp;
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 : #endif</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     if (0 != kill(pid, signum)) {</span>
+<span class="lineNum">     248 </span>            :         if (ESRCH != errno) {
+<span class="lineNum">     249 </span>            :             OPAL_OUTPUT_VERBOSE((2, orte_odls_base_framework.framework_output,
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :                                  &quot;%s odls:default:SENT KILL %d TO PID %d GOT ERRNO %d&quot;,</span>
+<span class="lineNum">     251 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), signum, (int)pid, errno));
+<span class="lineNum">     252 </span>            :             return errno;
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     254 </span>            :     }
+<span class="lineNum">     255 </span>            :     OPAL_OUTPUT_VERBOSE((2, orte_odls_base_framework.framework_output,
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :                          &quot;%s odls:default:SENT KILL %d TO PID %d SUCCESS&quot;,</span>
+<a name="257"><span class="lineNum">     257 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), signum, (int)pid));</a>
+<span class="lineNum">     258 </span>            :     return 0;
+<span class="lineNum">     259 </span><span class="lineCov">          6 : }</span>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            : int orte_odls_default_kill_local_procs(opal_pointer_array_t *procs)
+<span class="lineNum">     262 </span>            : {
+<span class="lineNum">     263 </span><span class="lineCov">          6 :     int rc;</span>
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = orte_odls_base_default_kill_local_procs(procs,</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :                                     odls_default_kill_local, odls_default_child_died))) {</span>
+<span class="lineNum">     267 </span>            :         ORTE_ERROR_LOG(rc);
+<span class="lineNum">     268 </span><span class="lineCov">          6 :         return rc;</span>
+<span class="lineNum">     269 </span>            :     }
+<a name="270"><span class="lineNum">     270 </span>            :     return ORTE_SUCCESS;</a>
+<span class="lineNum">     271 </span>            : }
+<span class="lineNum">     272 </span><span class="lineCov">         30 : </span>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span>            : static void set_handler_default(int sig)
+<span class="lineNum">     275 </span>            : {
+<span class="lineNum">     276 </span><span class="lineCov">         30 :     struct sigaction act;</span>
+<span class="lineNum">     277 </span><span class="lineCov">         30 : </span>
+<span class="lineNum">     278 </span><span class="lineCov">         30 :     act.sa_handler = SIG_DFL;</span>
+<span class="lineNum">     279 </span>            :     act.sa_flags = 0;
+<span class="lineNum">     280 </span><span class="lineCov">         30 :     sigemptyset(&amp;act.sa_mask);</span>
+<span class="lineNum">     281 </span><span class="lineCov">         30 : </span>
+<span class="lineNum">     282 </span>            :     sigaction(sig, &amp;act, (struct sigaction *)0);
+<span class="lineNum">     283 </span>            : }
+<span class="lineNum">     284 </span>            : 
+<a name="285"><span class="lineNum">     285 </span>            : /*</a>
+<span class="lineNum">     286 </span>            :  * Internal function to write a rendered show_help message back up the
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :  * pipe to the waiting parent.</span>
+<span class="lineNum">     288 </span>            :  */
+<span class="lineNum">     289 </span>            : static int write_help_msg(int fd, orte_odls_pipe_err_msg_t *msg, const char *file,
+<span class="lineNum">     290 </span>            :                           const char *topic, va_list ap)
+<span class="lineNum">     291 </span>            : {
+<span class="lineNum">     292 </span>            :     int ret;
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     char *str;</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     295 </span>            :     if (NULL == file || NULL == topic) {
+<span class="lineNum">     296 </span>            :         return OPAL_ERR_BAD_PARAM;
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :     str = opal_show_help_vstring(file, topic, true, ap);</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :     msg-&gt;file_str_len = (int) strlen(file);</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     if (msg-&gt;file_str_len &gt; ORTE_ODLS_MAX_FILE_LEN) {</span>
+<span class="lineNum">     303 </span>            :         ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         return ORTE_ERR_BAD_PARAM;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     msg-&gt;topic_str_len = (int) strlen(topic);</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     if (msg-&gt;topic_str_len &gt; ORTE_ODLS_MAX_TOPIC_LEN) {</span>
+<span class="lineNum">     308 </span>            :         ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :         return ORTE_ERR_BAD_PARAM;</span>
+<span class="lineNum">     310 </span>            :     }
+<span class="lineNum">     311 </span>            :     msg-&gt;msg_str_len = (int) strlen(str);
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     /* Only keep writing if each write() succeeds */</span>
+<span class="lineNum">     314 </span>            :     if (OPAL_SUCCESS != (ret = opal_fd_write(fd, sizeof(*msg), msg))) {
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :         goto out;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     if (msg-&gt;file_str_len &gt; 0 &amp;&amp;</span>
+<span class="lineNum">     318 </span>            :         OPAL_SUCCESS != (ret = opal_fd_write(fd, msg-&gt;file_str_len, file))) {
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :         goto out;</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     if (msg-&gt;topic_str_len &gt; 0 &amp;&amp;</span>
+<span class="lineNum">     322 </span>            :         OPAL_SUCCESS != (ret = opal_fd_write(fd, msg-&gt;topic_str_len, topic))) {
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :         goto out;</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     if (msg-&gt;msg_str_len &gt; 0 &amp;&amp;</span>
+<span class="lineNum">     326 </span>            :         OPAL_SUCCESS != (ret = opal_fd_write(fd, msg-&gt;msg_str_len, str))) {
+<span class="lineNum">     327 </span>            :         goto out;
+<span class="lineNum">     328 </span>            :     }
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :  out:</span>
+<span class="lineNum">     331 </span>            :     free(str);
+<span class="lineNum">     332 </span>            :     return ret;
+<span class="lineNum">     333 </span>            : }
+<a name="334"><span class="lineNum">     334 </span>            : </a>
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 : /* Called from the child to send an error message up the pipe to the</span>
+<span class="lineNum">     337 </span>            :    waiting parent. */
+<span class="lineNum">     338 </span>            : static void send_error_show_help(int fd, int exit_status,
+<span class="lineNum">     339 </span>            :                                  const char *file, const char *topic, ...)
+<span class="lineNum">     340 </span>            : {
+<span class="lineNum">     341 </span>            :     va_list ap;
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     orte_odls_pipe_err_msg_t msg;</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     344 </span>            :     msg.fatal = true;
+<span class="lineNum">     345 </span>            :     msg.exit_status = exit_status;
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     /* Send it */</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :     va_start(ap, topic);</span>
+<span class="lineNum">     349 </span>            :     write_help_msg(fd, &amp;msg, file, topic, ap);
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     va_end(ap);</span>
+<a name="351"><span class="lineNum">     351 </span>            : </a>
+<span class="lineNum">     352 </span>            :     exit(exit_status);
+<span class="lineNum">     353 </span><span class="lineCov">          6 : }</span>
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span>            : static int do_child(orte_app_context_t* context,
+<span class="lineNum">     356 </span>            :                     orte_proc_t *child,
+<span class="lineNum">     357 </span>            :                     char **environ_copy,
+<span class="lineNum">     358 </span>            :                     orte_job_t *jobdat, int write_fd,
+<span class="lineNum">     359 </span>            :                     orte_iof_base_io_conf_t opts)
+<span class="lineNum">     360 </span>            : {
+<span class="lineNum">     361 </span><span class="lineCov">          6 :     int i, rc;</span>
+<span class="lineNum">     362 </span>            :     sigset_t sigs;
+<span class="lineNum">     363 </span>            :     long fd, fdmax = sysconf(_SC_OPEN_MAX);
+<span class="lineNum">     364 </span><span class="lineCov">          6 :     char *param, *msg;</span>
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            :     if (orte_forward_job_control) {
+<span class="lineNum">     367 </span>            :         /* Set a new process group for this child, so that a
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :            SIGSTOP can be sent to it without being sent to the</span>
+<span class="lineNum">     369 </span>            :            orted. */
+<span class="lineNum">     370 </span>            :         setpgid(0, 0);
+<span class="lineNum">     371 </span>            :     }
+<span class="lineNum">     372 </span><span class="lineCov">          6 : </span>
+<span class="lineNum">     373 </span>            :     /* Setup the pipe to be close-on-exec */
+<span class="lineNum">     374 </span><span class="lineCov">          6 :     opal_fd_set_cloexec(write_fd);</span>
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            :     if (NULL != child) {
+<span class="lineNum">     377 </span>            :         /* setup stdout/stderr so that any error messages that we
+<span class="lineNum">     378 </span>            :            may print out will get displayed back at orterun.
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span>            :            NOTE: Definitely do this AFTER we check contexts so
+<span class="lineNum">     381 </span>            :            that any error message from those two functions doesn't
+<span class="lineNum">     382 </span>            :            come out to the user. IF we didn't do it in this order,
+<span class="lineNum">     383 </span>            :            THEN a user who gives us a bad executable name or
+<span class="lineNum">     384 </span>            :            working directory would get N error messages, where
+<span class="lineNum">     385 </span>            :            N=num_procs. This would be very annoying for large
+<span class="lineNum">     386 </span>            :            jobs, so instead we set things up so that orterun
+<span class="lineNum">     387 </span>            :            always outputs a nice, single message indicating what
+<span class="lineNum">     388 </span><span class="lineCov">          6 :            happened</span>
+<span class="lineNum">     389 </span>            :         */
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (i = orte_iof_base_setup_child(&amp;opts,</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :                                                            &amp;environ_copy))) {</span>
+<span class="lineNum">     392 </span>            :             ORTE_ERROR_LOG(i);
+<span class="lineNum">     393 </span>            :             send_error_show_help(write_fd, 1,
+<span class="lineNum">     394 </span>            :                                  &quot;help-orte-odls-default.txt&quot;,
+<span class="lineNum">     395 </span>            :                                  &quot;iof setup failed&quot;,
+<span class="lineNum">     396 </span>            :                                  orte_process_info.nodename, context-&gt;app);
+<span class="lineNum">     397 </span>            :             /* Does not return */
+<span class="lineNum">     398 </span>            :         }
+<span class="lineNum">     399 </span><span class="lineCov">          6 : </span>
+<span class="lineNum">     400 </span>            :         /* now set any child-level controls such as binding */
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         orte_rtc.set(jobdat, child, &amp;environ_copy, write_fd);</span>
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span>            :     } else if (!ORTE_FLAG_TEST(jobdat, ORTE_JOB_FLAG_FORWARD_OUTPUT)) {
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         /* tie stdin/out/err/internal to /dev/null */</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         int fdnull;</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :         for (i=0; i &lt; 3; i++) {</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :             fdnull = open(&quot;/dev/null&quot;, O_RDONLY, 0);</span>
+<span class="lineNum">     408 </span>            :             if (fdnull &gt; i &amp;&amp; i != write_fd) {
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :                 dup2(fdnull, i);</span>
+<span class="lineNum">     410 </span>            :             }
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :             close(fdnull);</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :         fdnull = open(&quot;/dev/null&quot;, O_RDONLY, 0);</span>
+<span class="lineNum">     414 </span>            :         if (fdnull &gt; opts.p_internal[1]) {
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :             dup2(fdnull, opts.p_internal[1]);</span>
+<span class="lineNum">     416 </span>            :         }
+<span class="lineNum">     417 </span>            :         close(fdnull);
+<span class="lineNum">     418 </span>            :     }
+<span class="lineNum">     419 </span><span class="lineCov">          6 : </span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :     /* if the user requested it, set the system resource limits */</span>
+<span class="lineNum">     421 </span>            :     if (OPAL_SUCCESS != (rc = opal_util_init_sys_limits(&amp;msg))) {
+<span class="lineNum">     422 </span>            :         send_error_show_help(write_fd, 1, &quot;help-orte-odls-default.txt&quot;,
+<span class="lineNum">     423 </span>            :                              &quot;set limit&quot;,
+<span class="lineNum">     424 </span>            :                              orte_process_info.nodename, context-&gt;app,
+<span class="lineNum">     425 </span>            :                              __FILE__, __LINE__, msg);
+<span class="lineNum">     426 </span><span class="lineCov">          6 :     }</span>
+<span class="lineNum">     427 </span><span class="lineCov">          6 :     /* ensure we only do this once */</span>
+<span class="lineNum">     428 </span><span class="lineCov">          6 :     (void) mca_base_var_env_name(&quot;opal_set_max_sys_limits&quot;, &amp;param);</span>
+<span class="lineNum">     429 </span>            :     opal_unsetenv(param, &amp;environ_copy);
+<span class="lineNum">     430 </span>            :     free(param);
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span>            :     /* close all file descriptors w/ exception of stdin/stdout/stderr,
+<span class="lineNum">     433 </span><span class="lineCov">       6132 :        the pipe used for the IOF INTERNAL messages, and the pipe up to</span>
+<span class="lineNum">     434 </span><span class="lineCov">       6126 :        the parent. */</span>
+<span class="lineNum">     435 </span><span class="lineCov">       6114 :     for(fd=3; fd&lt;fdmax; fd++) {</span>
+<span class="lineNum">     436 </span>            :         if (fd != opts.p_internal[1] &amp;&amp; fd != write_fd) {
+<span class="lineNum">     437 </span>            :             close(fd);
+<span class="lineNum">     438 </span>            :         }
+<span class="lineNum">     439 </span><span class="lineCov">          6 :     }</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     if (context-&gt;argv == NULL) {</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :         context-&gt;argv = malloc(sizeof(char*)*2);</span>
+<span class="lineNum">     443 </span>            :         context-&gt;argv[0] = strdup(context-&gt;app);
+<span class="lineNum">     444 </span>            :         context-&gt;argv[1] = NULL;
+<span class="lineNum">     445 </span>            :     }
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span>            :     /* Set signal handlers back to the default.  Do this close to
+<span class="lineNum">     448 </span>            :        the exev() because the event library may (and likely will)
+<span class="lineNum">     449 </span>            :        reset them.  If we don't do this, the event library may
+<span class="lineNum">     450 </span>            :        have left some set that, at least on some OS's, don't get
+<span class="lineNum">     451 </span>            :        reset via fork() or exec().  Hence, the launched process
+<span class="lineNum">     452 </span><span class="lineCov">          6 :        could be unkillable (for example). */</span>
+<span class="lineNum">     453 </span><span class="lineCov">          6 : </span>
+<span class="lineNum">     454 </span><span class="lineCov">          6 :     set_handler_default(SIGTERM);</span>
+<span class="lineNum">     455 </span><span class="lineCov">          6 :     set_handler_default(SIGINT);</span>
+<span class="lineNum">     456 </span><span class="lineCov">          6 :     set_handler_default(SIGHUP);</span>
+<span class="lineNum">     457 </span>            :     set_handler_default(SIGPIPE);
+<span class="lineNum">     458 </span>            :     set_handler_default(SIGCHLD);
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span>            :     /* Unblock all signals, for many of the same reasons that we
+<span class="lineNum">     461 </span>            :        set the default handlers, above.  This is noticable on
+<span class="lineNum">     462 </span><span class="lineCov">          6 :        Linux where the event library blocks SIGTERM, but we don't</span>
+<span class="lineNum">     463 </span><span class="lineCov">          6 :        want that blocked by the launched process. */</span>
+<span class="lineNum">     464 </span>            :     sigprocmask(0, 0, &amp;sigs);
+<span class="lineNum">     465 </span>            :     sigprocmask(SIG_UNBLOCK, &amp;sigs, 0);
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span><span class="lineCov">          6 :     /* Exec the new executable */</span>
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :     if (10 &lt; opal_output_get_verbosity(orte_odls_base_framework.framework_output)) {</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :         int jout;</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;%s STARTING %s&quot;, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), context-&gt;app);</span>
+<span class="lineNum">     472 </span>            :         for (jout=0; NULL != context-&gt;argv[jout]; jout++) {
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;%s\tARGV[%d]: %s&quot;, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), jout, context-&gt;argv[jout]);</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     475 </span>            :         for (jout=0; NULL != environ_copy[jout]; jout++) {
+<span class="lineNum">     476 </span>            :             opal_output(0, &quot;%s\tENVIRON[%d]: %s&quot;, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), jout, environ_copy[jout]);
+<span class="lineNum">     477 </span>            :         }
+<span class="lineNum">     478 </span><span class="lineCov">          6 :     }</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     480 </span>            :     if (NULL == orte_odls_globals.app_wrapper) {
+<span class="lineNum">     481 </span><span class="lineCov">          6 :         execve(context-&gt;app, context-&gt;argv, environ_copy);</span>
+<span class="lineNum">     482 </span>            :         send_error_show_help(write_fd, 1,
+<span class="lineNum">     483 </span>            :                              &quot;help-orte-odls-default.txt&quot;, &quot;execve error&quot;,
+<a name="484"><span class="lineNum">     484 </span>            :                              orte_process_info.nodename, context-&gt;app, strerror(errno));</a>
+<span class="lineNum">     485 </span>            :     } else {
+<span class="lineNum">     486 </span><span class="lineCov">          6 :         opal_argv_prepend_nosize(&amp;context-&gt;argv, context-&gt;app);</span>
+<span class="lineNum">     487 </span>            :         execve(orte_odls_globals.app_wrapper, context-&gt;argv, environ_copy);
+<span class="lineNum">     488 </span>            :         send_error_show_help(write_fd, 1,
+<span class="lineNum">     489 </span>            :                              &quot;help-orte-odls-default.txt&quot;, &quot;execve error&quot;,
+<span class="lineNum">     490 </span>            :                              orte_process_info.nodename, orte_odls_globals.app_wrapper, strerror(errno));
+<span class="lineNum">     491 </span>            :     }
+<span class="lineNum">     492 </span>            :     /* Does not return */
+<span class="lineNum">     493 </span>            : }
+<span class="lineNum">     494 </span><span class="lineCov">          6 : </span>
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span><span class="lineCov">          6 : static int do_parent(orte_app_context_t* context,</span>
+<span class="lineNum">     497 </span>            :                      orte_proc_t *child,
+<span class="lineNum">     498 </span><span class="lineCov">          6 :                      char **environ_copy,</span>
+<span class="lineNum">     499 </span><span class="lineCov">          6 :                      orte_job_t *jobdat, int read_fd,</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :                      orte_iof_base_io_conf_t opts)</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     502 </span>            :     int rc;
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :     orte_odls_pipe_err_msg_t msg;</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :     char file[ORTE_ODLS_MAX_FILE_LEN + 1], topic[ORTE_ODLS_MAX_TOPIC_LEN + 1], *str = NULL;</span>
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :     if (NULL != child &amp;&amp; ORTE_FLAG_TEST(jobdat, ORTE_JOB_FLAG_FORWARD_OUTPUT)) {</span>
+<span class="lineNum">     507 </span>            :         /* connect endpoints IOF */
+<span class="lineNum">     508 </span>            :         rc = orte_iof_base_setup_parent(&amp;child-&gt;name, &amp;opts);
+<span class="lineNum">     509 </span>            :         if (ORTE_SUCCESS != rc) {
+<span class="lineNum">     510 </span>            :             ORTE_ERROR_LOG(rc);
+<span class="lineNum">     511 </span>            :             close(read_fd);
+<span class="lineNum">     512 </span><span class="lineCov">          6 : </span>
+<span class="lineNum">     513 </span>            :             if (NULL != child) {
+<span class="lineNum">     514 </span>            :                 child-&gt;state = ORTE_PROC_STATE_UNDEF;
+<span class="lineNum">     515 </span><span class="lineCov">          6 :             }</span>
+<span class="lineNum">     516 </span><span class="lineCov">          6 :             return rc;</span>
+<span class="lineNum">     517 </span>            :         }
+<span class="lineNum">     518 </span>            :     }
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :     /* Block reading a message from the pipe */</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     while (1) {</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :         rc = opal_fd_read(read_fd, sizeof(msg), &amp;msg);</span>
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :         /* If the pipe closed, then the child successfully launched */</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :         if (OPAL_ERR_TIMEOUT == rc) {</span>
+<span class="lineNum">     526 </span>            :             break;
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span>            :         /* If Something Bad happened in the read, error out */
+<span class="lineNum">     530 </span>            :         if (OPAL_SUCCESS != rc) {
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :             close(read_fd);</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     534 </span>            :             if (NULL != child) {
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :                 child-&gt;state = ORTE_PROC_STATE_UNDEF;</span>
+<span class="lineNum">     536 </span>            :             }
+<span class="lineNum">     537 </span>            :             return rc;
+<span class="lineNum">     538 </span>            :         }
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :         /* Otherwise, we got a warning or error message from the child */</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :         if (NULL != child) {</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :             if (msg.fatal) {</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :                 ORTE_FLAG_UNSET(child, ORTE_PROC_FLAG_ALIVE);</span>
+<span class="lineNum">     544 </span>            :             } else {
+<span class="lineNum">     545 </span>            :                 ORTE_FLAG_SET(child, ORTE_PROC_FLAG_ALIVE);
+<span class="lineNum">     546 </span>            :             }
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     549 </span>            :         /* Read in the strings; ensure to terminate them with \0 */
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :         if (msg.file_str_len &gt; 0) {</span>
+<span class="lineNum">     551 </span>            :             rc = opal_fd_read(read_fd, msg.file_str_len, file);
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     553 </span>            :                 orte_show_help(&quot;help-orte-odls-default.txt&quot;, &quot;syscall fail&quot;,
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :                                true,</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :                                orte_process_info.nodename, context-&gt;app,</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :                                &quot;opal_fd_read&quot;, __FILE__, __LINE__);</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :                 if (NULL != child) {</span>
+<span class="lineNum">     558 </span>            :                     child-&gt;state = ORTE_PROC_STATE_UNDEF;
+<span class="lineNum">     559 </span>            :                 }
+<span class="lineNum">     560 </span>            :                 return rc;
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :             file[msg.file_str_len] = '\0';</span>
+<span class="lineNum">     563 </span>            :         }
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :         if (msg.topic_str_len &gt; 0) {</span>
+<span class="lineNum">     565 </span>            :             rc = opal_fd_read(read_fd, msg.topic_str_len, topic);
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     567 </span>            :                 orte_show_help(&quot;help-orte-odls-default.txt&quot;, &quot;syscall fail&quot;,
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :                                true,</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :                                orte_process_info.nodename, context-&gt;app,</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :                                &quot;opal_fd_read&quot;, __FILE__, __LINE__);</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :                 if (NULL != child) {</span>
+<span class="lineNum">     572 </span>            :                     child-&gt;state = ORTE_PROC_STATE_UNDEF;
+<span class="lineNum">     573 </span>            :                 }
+<span class="lineNum">     574 </span>            :                 return rc;
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :             topic[msg.topic_str_len] = '\0';</span>
+<span class="lineNum">     577 </span>            :         }
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :         if (msg.msg_str_len &gt; 0) {</span>
+<span class="lineNum">     579 </span>            :             str = calloc(1, msg.msg_str_len + 1);
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :             if (NULL == str) {</span>
+<span class="lineNum">     581 </span>            :                 orte_show_help(&quot;help-orte-odls-default.txt&quot;, &quot;syscall fail&quot;,
+<span class="lineNum">     582 </span>            :                                true,
+<span class="lineNum">     583 </span>            :                                orte_process_info.nodename, context-&gt;app,
+<span class="lineNum">     584 </span>            :                                &quot;opal_fd_read&quot;, __FILE__, __LINE__);
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :                 if (NULL != child) {</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :                     child-&gt;state = ORTE_PROC_STATE_UNDEF;</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     589 </span>            :             }
+<span class="lineNum">     590 </span>            :             rc = opal_fd_read(read_fd, msg.msg_str_len, str);
+<span class="lineNum">     591 </span>            :         }
+<span class="lineNum">     592 </span>            : 
+<span class="lineNum">     593 </span>            :         /* Print out what we got.  We already have a rendered string,
+<span class="lineNum">     594 </span>            :            so use orte_show_help_norender(). */
+<span class="lineNum">     595 </span>            :         if (msg.msg_str_len &gt; 0) {
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :             orte_show_help_norender(file, topic, false, str);</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :             free(str);</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :             str = NULL;</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     600 </span>            : 
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :         /* If msg.fatal is true, then the child exited with an error.</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :            Otherwise, whatever we just printed was a warning, so loop</span>
+<span class="lineNum">     603 </span>            :            around and see what else is on the pipe (or if the pipe
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :            closed, indicating that the child launched</span>
+<span class="lineNum">     605 </span>            :            successfully). */
+<span class="lineNum">     606 </span>            :         if (msg.fatal) {
+<span class="lineNum">     607 </span>            :             if (NULL != child) {
+<span class="lineNum">     608 </span>            :                 child-&gt;state = ORTE_PROC_STATE_FAILED_TO_START;
+<span class="lineNum">     609 </span><span class="lineCov">          6 :                 ORTE_FLAG_UNSET(child, ORTE_PROC_FLAG_ALIVE);</span>
+<span class="lineNum">     610 </span><span class="lineCov">          6 :             }</span>
+<span class="lineNum">     611 </span><span class="lineCov">          6 :             close(read_fd);</span>
+<span class="lineNum">     612 </span>            :             return ORTE_ERR_FAILED_TO_START;
+<span class="lineNum">     613 </span><span class="lineCov">          6 :         }</span>
+<span class="lineNum">     614 </span>            :     }
+<span class="lineNum">     615 </span><span class="lineCov">          6 : </span>
+<span class="lineNum">     616 </span>            :     /* If we got here, it means that the pipe closed without
+<span class="lineNum">     617 </span>            :        indication of a fatal error, meaning that the child process
+<span class="lineNum">     618 </span>            :        launched successfully. */
+<span class="lineNum">     619 </span>            :     if (NULL != child) {
+<a name="620"><span class="lineNum">     620 </span>            :         child-&gt;state = ORTE_PROC_STATE_RUNNING;</a>
+<span class="lineNum">     621 </span>            :         ORTE_FLAG_SET(child, ORTE_PROC_FLAG_ALIVE);
+<span class="lineNum">     622 </span><span class="lineCov">          6 :     }</span>
+<span class="lineNum">     623 </span>            :     close(read_fd);
+<span class="lineNum">     624 </span>            : 
+<span class="lineNum">     625 </span>            :     return ORTE_SUCCESS;
+<span class="lineNum">     626 </span>            : }
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span>            : 
+<span class="lineNum">     629 </span>            : /**
+<span class="lineNum">     630 </span>            :  *  Fork/exec the specified processes
+<span class="lineNum">     631 </span><span class="lineCov">          6 :  */</span>
+<span class="lineNum">     632 </span>            : static int odls_default_fork_local_proc(orte_app_context_t* context,
+<span class="lineNum">     633 </span>            :                                         orte_proc_t *child,
+<span class="lineNum">     634 </span><span class="lineCov">          6 :                                         char **environ_copy,</span>
+<span class="lineNum">     635 </span>            :                                         orte_job_t *jobdat)
+<span class="lineNum">     636 </span>            : {
+<span class="lineNum">     637 </span><span class="lineCov">         12 :     orte_iof_base_io_conf_t opts;</span>
+<span class="lineNum">     638 </span><span class="lineCov">         12 :     int rc, p[2];</span>
+<span class="lineNum">     639 </span><span class="lineCov">          6 :     pid_t pid;</span>
+<span class="lineNum">     640 </span><span class="lineCov">          3 : </span>
+<span class="lineNum">     641 </span>            :     if (NULL != child) {
+<span class="lineNum">     642 </span><span class="lineCov">          3 :         /* should pull this information from MPIRUN instead of going with</span>
+<span class="lineNum">     643 </span>            :          default */
+<span class="lineNum">     644 </span>            :         opts.usepty = OPAL_ENABLE_PTY_SUPPORT;
+<span class="lineNum">     645 </span><span class="lineCov">          6 : </span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :         /* do we want to setup stdin? */</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :         if (NULL != child &amp;&amp;</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :             (jobdat-&gt;stdin_target == ORTE_VPID_WILDCARD ||</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :              child-&gt;name.vpid == jobdat-&gt;stdin_target)) {</span>
+<span class="lineNum">     650 </span>            :             opts.connect_stdin = true;
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :         } else {</span>
+<span class="lineNum">     652 </span>            :             opts.connect_stdin = false;
+<span class="lineNum">     653 </span>            :         }
+<span class="lineNum">     654 </span>            : 
+<span class="lineNum">     655 </span>            :         if (ORTE_SUCCESS != (rc = orte_iof_base_setup_prefork(&amp;opts))) {
+<span class="lineNum">     656 </span>            :             ORTE_ERROR_LOG(rc);
+<span class="lineNum">     657 </span>            :             if (NULL != child) {
+<span class="lineNum">     658 </span>            :                 child-&gt;state = ORTE_PROC_STATE_FAILED_TO_START;
+<span class="lineNum">     659 </span>            :                 child-&gt;exit_code = rc;
+<span class="lineNum">     660 </span>            :             }
+<span class="lineNum">     661 </span>            :             return rc;
+<span class="lineNum">     662 </span>            :         }
+<span class="lineNum">     663 </span><span class="lineCov">          6 :     }</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :     /* A pipe is used to communicate between the parent and child to</span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :        indicate whether the exec ultimately succeeded or failed.  The</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :        child sets the pipe to be close-on-exec; the child only ever</span>
+<span class="lineNum">     668 </span>            :        writes anything to the pipe if there is an error (e.g.,
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :        executable not found, exec() fails, etc.).  The parent does a</span>
+<span class="lineNum">     670 </span>            :        blocking read on the pipe; if the pipe closed with no data,
+<span class="lineNum">     671 </span>            :        then the exec() succeeded.  If the parent reads something from
+<span class="lineNum">     672 </span>            :        the pipe, then the child was letting us know why it failed. */
+<span class="lineNum">     673 </span><span class="lineCov">          6 :     if (pipe(p) &lt; 0) {</span>
+<span class="lineNum">     674 </span><span class="lineCov">         12 :         ORTE_ERROR_LOG(ORTE_ERR_SYS_LIMITS_PIPES);</span>
+<span class="lineNum">     675 </span><span class="lineCov">         12 :         if (NULL != child) {</span>
+<span class="lineNum">     676 </span>            :             child-&gt;state = ORTE_PROC_STATE_FAILED_TO_START;
+<span class="lineNum">     677 </span>            :             child-&gt;exit_code = ORTE_ERR_SYS_LIMITS_PIPES;
+<span class="lineNum">     678 </span><span class="lineCov">         12 :         }</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :         return ORTE_ERR_SYS_LIMITS_PIPES;</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :     /* Fork off the child */</span>
+<span class="lineNum">     683 </span>            :     pid = fork();
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :     if (NULL != child) {</span>
+<span class="lineNum">     685 </span>            :         child-&gt;pid = pid;
+<span class="lineNum">     686 </span>            :     }
+<span class="lineNum">     687 </span><span class="lineCov">         12 : </span>
+<span class="lineNum">     688 </span><span class="lineCov">          6 :     if (pid &lt; 0) {</span>
+<span class="lineNum">     689 </span>            :         ORTE_ERROR_LOG(ORTE_ERR_SYS_LIMITS_CHILDREN);
+<span class="lineNum">     690 </span><span class="lineCov">          6 :         if (NULL != child) {</span>
+<span class="lineNum">     691 </span>            :             child-&gt;state = ORTE_PROC_STATE_FAILED_TO_START;
+<span class="lineNum">     692 </span><span class="lineCov">          6 :             child-&gt;exit_code = ORTE_ERR_SYS_LIMITS_CHILDREN;</span>
+<span class="lineNum">     693 </span>            :         }
+<span class="lineNum">     694 </span>            :         return ORTE_ERR_SYS_LIMITS_CHILDREN;
+<span class="lineNum">     695 </span>            :     }
+<span class="lineNum">     696 </span><span class="lineCov">          6 : </span>
+<span class="lineNum">     697 </span><span class="lineCov">          6 :     if (pid == 0) {</span>
+<span class="lineNum">     698 </span>            :         close(p[0]);
+<span class="lineNum">     699 </span>            : #if HAVE_SETPGID
+<span class="lineNum">     700 </span>            :         setpgid(0, 0);
+<span class="lineNum">     701 </span>            : #endif
+<span class="lineNum">     702 </span>            :         do_child(context, child, environ_copy, jobdat, p[1], opts);
+<a name="703"><span class="lineNum">     703 </span>            :         /* Does not return */</a>
+<span class="lineNum">     704 </span>            :     }
+<span class="lineNum">     705 </span><span class="lineCov">          3 : </span>
+<span class="lineNum">     706 </span>            :     close(p[1]);
+<span class="lineNum">     707 </span>            :     return do_parent(context, child, environ_copy, jobdat, p[0], opts);
+<span class="lineNum">     708 </span>            : }
+<span class="lineNum">     709 </span>            : 
+<span class="lineNum">     710 </span>            : 
+<span class="lineNum">     711 </span><span class="lineCov">          3 : /**</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :  * Launch all processes allocated to the current node.</span>
+<span class="lineNum">     713 </span>            :  */
+<span class="lineNum">     714 </span>            : 
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 : int orte_odls_default_launch_local_procs(opal_buffer_t *data)</span>
+<span class="lineNum">     716 </span>            : {
+<span class="lineNum">     717 </span>            :     int rc;
+<span class="lineNum">     718 </span>            :     orte_jobid_t job;
+<span class="lineNum">     719 </span><span class="lineCov">          3 : </span>
+<span class="lineNum">     720 </span>            :     /* construct the list of children we are to launch */
+<span class="lineNum">     721 </span><span class="lineCov">          3 :     if (ORTE_SUCCESS != (rc = orte_odls_base_default_construct_child_list(data, &amp;job))) {</span>
+<span class="lineNum">     722 </span>            :         OPAL_OUTPUT_VERBOSE((2, orte_odls_base_framework.framework_output,
+<span class="lineNum">     723 </span>            :                              &quot;%s odls:default:launch:local failed to construct child list on error %s&quot;,
+<span class="lineNum">     724 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), ORTE_ERROR_NAME(rc)));
+<span class="lineNum">     725 </span>            :         return rc;
+<span class="lineNum">     726 </span>            :     }
+<a name="727"><span class="lineNum">     727 </span>            : </a>
+<span class="lineNum">     728 </span>            :     /* launch the local procs */
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :     ORTE_ACTIVATE_LOCAL_LAUNCH(job, odls_default_fork_local_proc);</span>
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     732 </span>            : }
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     734 </span>            : 
+<span class="lineNum">     735 </span>            : /**
+<span class="lineNum">     736 </span>            :  * Send a signal to a pid.  Note that if we get an error, we set the
+<span class="lineNum">     737 </span>            :  * return value and let the upper layer print out the message.
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :  */</span>
+<span class="lineNum">     739 </span>            : static int send_signal(pid_t pid, int signal)
+<span class="lineNum">     740 </span>            : {
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :     int rc = ORTE_SUCCESS;</span>
+<span class="lineNum">     742 </span>            : 
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, orte_odls_base_framework.framework_output,</span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :                          &quot;%s sending signal %d to pid %ld&quot;,</span>
+<span class="lineNum">     745 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :                          signal, (long)pid));</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     748 </span>            :     if (orte_forward_job_control) {
+<span class="lineNum">     749 </span>            :         /* Send the signal to the process group rather than the
+<span class="lineNum">     750 </span>            :            process.  The child is the leader of its process group. */
+<span class="lineNum">     751 </span>            :         pid = -pid;
+<span class="lineNum">     752 </span>            :     }
+<span class="lineNum">     753 </span>            :     if (kill(pid, signal) != 0) {
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :         switch(errno) {</span>
+<span class="lineNum">     755 </span>            :             case EINVAL:
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :                 rc = ORTE_ERR_BAD_PARAM;</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     758 </span>            :             case ESRCH:
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :                 /* This case can occur when we deliver a signal to a</span>
+<span class="lineNum">     760 </span>            :                    process that is no longer there.  This can happen if
+<span class="lineNum">     761 </span>            :                    we deliver a signal while the job is shutting down.
+<span class="lineNum">     762 </span>            :                    This does not indicate a real problem, so just
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :                    ignore the error.  */</span>
+<a name="764"><span class="lineNum">     764 </span>            :                 break;</a>
+<span class="lineNum">     765 </span>            :             case EPERM:
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :                 rc = ORTE_ERR_PERM;</span>
+<span class="lineNum">     767 </span>            :                 break;
+<span class="lineNum">     768 </span>            :             default:
+<span class="lineNum">     769 </span>            :                 rc = ORTE_ERROR;
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     773 </span>            :     return rc;
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 : }</span>
+<a name="775"><span class="lineNum">     775 </span>            : </a>
+<span class="lineNum">     776 </span>            : static int orte_odls_default_signal_local_procs(const orte_process_name_t *proc, int32_t signal)
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     778 </span>            :     int rc;
+<span class="lineNum">     779 </span>            : 
+<span class="lineNum">     780 </span>            :     if (ORTE_SUCCESS != (rc = orte_odls_base_default_signal_local_procs(proc, signal, send_signal))) {
+<span class="lineNum">     781 </span>            :         ORTE_ERROR_LOG(rc);
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     784 </span>            :     return ORTE_SUCCESS;
+<span class="lineNum">     785 </span>            : }
+<span class="lineNum">     786 </span>            : 
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 : static int orte_odls_default_restart_proc(orte_proc_t *child)</span>
+<span class="lineNum">     788 </span>            : {
+<span class="lineNum">     789 </span>            :     int rc;
+<span class="lineNum">     790 </span>            : 
+<span class="lineNum">     791 </span>            :     /* restart the local proc */
+<span class="lineNum">     792 </span>            :     if (ORTE_SUCCESS != (rc = orte_odls_base_default_restart_proc(child, odls_default_fork_local_proc))) {
+<span class="lineNum">     793 </span>            :         OPAL_OUTPUT_VERBOSE((2, orte_odls_base_framework.framework_output,
+<span class="lineNum">     794 </span>            :                              &quot;%s odls:default:restart_proc failed to launch on error %s&quot;,
+<span class="lineNum">     795 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), ORTE_ERROR_NAME(rc)));
+<span class="lineNum">     796 </span>            :     }
+<span class="lineNum">     797 </span>            :     return rc;
+<span class="lineNum">     798 </span>            : }
+<span class="lineNum">     799 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,688 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/oob/ud/oob_ud_event.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/oob/ud</a> - oob_ud_event.c<span style="font-size: 80%;"> (source / <a href="oob_ud_event.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">260</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2011-2012 Los Alamos National Security, LLC. All rights
+<span class="lineNum">       4 </span>            :  *                         reserved.
+<span class="lineNum">       5 </span>            :  *               2014      Mellanox Technologies, Inc.
+<span class="lineNum">       6 </span>            :  *                         All rights reserved.
+<span class="lineNum">       7 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * $HEADER$
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  */
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : #include &quot;oob_ud_component.h&quot;
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : #define min(a,b) ((a) &lt; (b) ? (a) : (b))
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : static int mca_oob_ud_event_send_ack (mca_oob_ud_port_t *port, mca_oob_ud_peer_t *peer, mca_oob_ud_msg_hdr_t *msg);
+<span class="lineNum">      20 </span>            : static int mca_oob_ud_event_send_nack (mca_oob_ud_port_t *port, mca_oob_ud_peer_t *peer, mca_oob_ud_msg_hdr_t *msg);
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : static int mca_oob_ud_event_handle_ack (mca_oob_ud_port_t *port, mca_oob_ud_peer_t *peer,
+<span class="lineNum">      23 </span>            :                                          mca_oob_ud_msg_hdr_t *msg_hdr);
+<span class="lineNum">      24 </span>            : static int mca_oob_ud_event_handle_nack (mca_oob_ud_port_t *port, mca_oob_ud_peer_t *peer,
+<span class="lineNum">      25 </span>            :                                          mca_oob_ud_msg_hdr_t *msg_hdr);
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : static int mca_oob_ud_event_handle_completion (mca_oob_ud_port_t *port, mca_oob_ud_msg_hdr_t *msg);
+<span class="lineNum">      28 </span>            : static int mca_oob_ud_event_handle_data_ok (mca_oob_ud_port_t *port, mca_oob_ud_msg_hdr_t *msg);
+<span class="lineNum">      29 </span>            : static int mca_oob_ud_event_handle_req (mca_oob_ud_port_t *port, mca_oob_ud_peer_t *peer, mca_oob_ud_msg_hdr_t *msg_hdr);
+<span class="lineNum">      30 </span>            : static int mca_oob_ud_event_handle_rep (mca_oob_ud_port_t *port, mca_oob_ud_msg_hdr_t *msg);
+<span class="lineNum">      31 </span>            : static int mca_oob_ud_event_handle_end (mca_oob_ud_peer_t *peer, mca_oob_ud_msg_hdr_t *msg_hdr);
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : static void *mca_oob_ud_event_dispatch(int fd, int flags, void *context);
+<span class="lineNum">      34 </span>            : static void *mca_oob_ud_complete_dispatch(int fd, int flags, void *context);
+<span class="lineNum">      35 </span>            : 
+<a name="36"><span class="lineNum">      36 </span>            : static void mca_oob_ud_stop_events(mca_oob_ud_device_t *device);</a>
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 : static inline opal_list_item_t *mca_oob_ud_list_get_first (opal_list_t *list)</span>
+<span class="lineNum">      39 </span>            : {
+<span class="lineNum">      40 </span><span class="lineNoCov">          0 :     return (opal_list_get_size (list) == 0) ? NULL : opal_list_get_first (list);</span>
+<a name="41"><span class="lineNum">      41 </span>            : }</a>
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 : static inline opal_list_item_t *mca_oob_ud_list_get_next (opal_list_t *list, opal_list_item_t *item)</span>
+<span class="lineNum">      44 </span>            : {
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :     opal_list_item_t *next = opal_list_get_next (item);</span>
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :     return (opal_list_get_end(list) == next) ? NULL : next;</span>
+<span class="lineNum">      48 </span>            : }
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : static bool event_started = false;
+<a name="51"><span class="lineNum">      51 </span>            : static bool event_completed_set = false;</a>
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 : void mca_oob_ud_event_start_monitor (mca_oob_ud_device_t *device)</span>
+<span class="lineNum">      54 </span>            : {
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :     if (!event_started) {</span>
+<span class="lineNum">      56 </span>            : #if !OPAL_ENABLE_PROGRESS_THREADS
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :         opal_progress_event_users_increment ();</span>
+<span class="lineNum">      58 </span>            : #endif
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :         opal_event_set (orte_event_base, &amp;device-&gt;event, device-&gt;ib_channel-&gt;fd,</span>
+<span class="lineNum">      60 </span>            :                         OPAL_EV_READ, mca_oob_ud_event_dispatch, (void *) device);
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :         opal_event_add (&amp;device-&gt;event, NULL);</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :         event_started = true;</span>
+<span class="lineNum">      63 </span>            :     }
+<a name="64"><span class="lineNum">      64 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 : void mca_oob_ud_event_stop_monitor (mca_oob_ud_device_t *device)</span>
+<span class="lineNum">      67 </span>            : {
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :     if (event_started) {</span>
+<span class="lineNum">      69 </span>            : #if !OPAL_ENABLE_PROGRESS_THREADS
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :         opal_progress_event_users_decrement ();</span>
+<span class="lineNum">      71 </span>            : #endif
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :         opal_event_del (&amp;device-&gt;event);</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :         mca_oob_ud_stop_events (device);</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :         event_started = false;</span>
+<span class="lineNum">      75 </span>            :     }
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : struct mca_oob_ud_msg_item_t {
+<span class="lineNum">      79 </span>            :     opal_list_item_t      super;
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            :     mca_oob_ud_msg_hdr_t *hdr;
+<span class="lineNum">      82 </span>            :     mca_oob_ud_port_t    *port;
+<span class="lineNum">      83 </span>            :     mca_oob_ud_peer_t    *peer;
+<span class="lineNum">      84 </span>            :     int                   msg_num;
+<span class="lineNum">      85 </span>            : };
+<span class="lineNum">      86 </span>            : typedef struct mca_oob_ud_msg_item_t mca_oob_ud_msg_item_t;
+<a name="87"><span class="lineNum">      87 </span>            : OBJ_CLASS_DECLARATION(mca_oob_ud_msg_item_t);</a>
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 : static void mca_oob_ud_msg_item_construct (mca_oob_ud_msg_item_t *item)</span>
+<span class="lineNum">      90 </span>            : {
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     memset ((char *) item + sizeof (item-&gt;super), 0, sizeof (*item) - sizeof (item-&gt;super));</span>
+<a name="92"><span class="lineNum">      92 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 : static void mca_oob_ud_msg_item_destruct (mca_oob_ud_msg_item_t *item)</span>
+<span class="lineNum">      95 </span>            : {
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     if (item-&gt;hdr) {</span>
+<span class="lineNum">      97 </span>            :         /* repost the receive request */
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         mca_oob_ud_port_post_one_recv (item-&gt;port, item-&gt;msg_num);</span>
+<span class="lineNum">      99 </span>            :     }
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            : OBJ_CLASS_INSTANCE(mca_oob_ud_msg_item_t, opal_list_item_t,
+<span class="lineNum">     103 </span>            :                    mca_oob_ud_msg_item_construct,
+<a name="104"><span class="lineNum">     104 </span>            :                    mca_oob_ud_msg_item_destruct);</a>
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 : static int mca_oob_ud_msg_item_cmp (opal_list_item_t **a, opal_list_item_t **b)</span>
+<span class="lineNum">     107 </span>            : {
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :     mca_oob_ud_msg_item_t *aitem = *((mca_oob_ud_msg_item_t **) a);</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :     mca_oob_ud_msg_item_t *bitem = *((mca_oob_ud_msg_item_t **) b);</span>
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     if (aitem-&gt;peer == bitem-&gt;peer) {</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :         return (aitem-&gt;hdr-&gt;msg_id &gt; bitem-&gt;hdr-&gt;msg_id ? 1 : -1);</span>
+<span class="lineNum">     113 </span>            :     } else {
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :         return (aitem-&gt;peer &gt; bitem-&gt;peer) ? 1 : -1;</span>
+<span class="lineNum">     115 </span>            :     }
+<a name="116"><span class="lineNum">     116 </span>            : }</a>
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 : static int mca_oob_ud_process_messages (struct ibv_cq *event_cq, mca_oob_ud_port_t *port)</span>
+<span class="lineNum">     119 </span>            : {
+<span class="lineNum">     120 </span>            :     mca_oob_ud_msg_item_t *msg_item, *next_item;
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     opal_list_t *processing_msgs = &amp;mca_oob_ud_component.ud_event_processing_msgs;</span>
+<span class="lineNum">     122 </span>            :     mca_oob_ud_peer_t *peer;
+<span class="lineNum">     123 </span>            :     mca_oob_ud_msg_hdr_t *msg_hdr;
+<span class="lineNum">     124 </span>            :     int msg_num, i, count;
+<span class="lineNum">     125 </span>            :     struct ibv_wc wc[40];
+<span class="lineNum">     126 </span>            :     bool peer_nacked;
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     count = ibv_poll_cq (event_cq, 40, wc);</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     if (count &lt; 0)</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         return count;</span>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            :     /* acknowlege the events */
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     ibv_ack_cq_events (event_cq, count);</span>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     for (i = 0 ; i &lt; count ; ++i) {</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         msg_num = (int)(wc[i].wr_id &amp; (~MCA_OOB_UD_RECV_WR));</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :         msg_hdr = (mca_oob_ud_msg_hdr_t *) (port-&gt;msg_buf.ptr + msg_num * port-&gt;mtu);</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            :         VALGRIND_MAKE_MEM_DEFINED(msg_hdr, wc[i].byte_len);
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         if (!(wc[i].wr_id &amp; MCA_OOB_UD_RECV_WR) || IBV_WC_SUCCESS != wc[i].status) {</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :             mca_oob_ud_port_post_one_recv (port, msg_num);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     144 </span>            :         }
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         peer = mca_oob_ud_get_peer (port, &amp;msg_hdr-&gt;ra.name, wc[i].src_qp, msg_hdr-&gt;ra.qkey,</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :                                     wc[i].slid, msg_hdr-&gt;ra.port_num);</span>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :         if (peer) {</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :             if (MCA_OOB_UD_MSG_ACK != msg_hdr-&gt;msg_type &amp;&amp; MCA_OOB_UD_MSG_NACK != msg_hdr-&gt;msg_type &amp;&amp;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :                 MCA_OOB_UD_MSG_END != msg_hdr-&gt;msg_type) {</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :                 mca_oob_ud_msg_item_t *msg_item = OBJ_NEW(mca_oob_ud_msg_item_t);</span>
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :                 msg_item-&gt;msg_num = msg_num;</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :                 msg_item-&gt;hdr     = msg_hdr;</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :                 msg_item-&gt;port    = port;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :                 msg_item-&gt;peer    = peer;</span>
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :                 opal_list_append (processing_msgs, (opal_list_item_t *) msg_item);</span>
+<span class="lineNum">     160 </span>            :             } else {
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :                 if (MCA_OOB_UD_MSG_ACK == msg_hdr-&gt;msg_type) {</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                     (void) mca_oob_ud_event_handle_ack (port, peer, msg_hdr);</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :                 } else if (MCA_OOB_UD_MSG_NACK == msg_hdr-&gt;msg_type) {</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :                     (void) mca_oob_ud_event_handle_nack (port, peer, msg_hdr);</span>
+<span class="lineNum">     165 </span>            :                 } else {
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :                     mca_oob_ud_event_handle_end (peer, msg_hdr);</span>
+<span class="lineNum">     167 </span>            :                 }
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :                 mca_oob_ud_port_post_one_recv (port, msg_num);</span>
+<span class="lineNum">     170 </span>            :             }
+<span class="lineNum">     171 </span>            :         } else {
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :             opal_output_verbose(10, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     173 </span>            :                                  &quot;%s oob:ud:process_message got a null peer for message id %&quot;
+<span class="lineNum">     174 </span>            :                                  PRIu64, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), msg_hdr-&gt;msg_id);
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :             mca_oob_ud_port_post_one_recv (port, msg_num);</span>
+<span class="lineNum">     176 </span>            :         }
+<span class="lineNum">     177 </span>            :     }
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            :     /* Sort messages by peer then id */
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :     opal_list_sort (processing_msgs, mca_oob_ud_msg_item_cmp);</span>
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            :     /* Send ACKs/NACKs and throw away out-of-order messages */
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     msg_item = (mca_oob_ud_msg_item_t *) mca_oob_ud_list_get_first (processing_msgs);</span>
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     for (peer = NULL, peer_nacked = false ; NULL != msg_item ; msg_item = next_item) {</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         if (peer != msg_item-&gt;peer) {</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :             peer_nacked = false;</span>
+<span class="lineNum">     188 </span>            :         }
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :         peer = msg_item-&gt;peer;</span>
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         next_item = (mca_oob_ud_msg_item_t *) mca_oob_ud_list_get_next (processing_msgs,</span>
+<span class="lineNum">     193 </span>            :                                                                         (opal_list_item_t *)msg_item);
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :         if (false == peer_nacked) {</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :             if (msg_item-&gt;hdr-&gt;msg_id &gt; peer-&gt;peer_expected_id) {</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :                 (void) mca_oob_ud_event_send_nack (msg_item-&gt;port, peer, msg_item-&gt;hdr);</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :                 peer_nacked = true;</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             } else if (NULL == next_item || (next_item-&gt;peer != msg_item-&gt;peer)) {</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :                 (void) mca_oob_ud_event_send_ack (msg_item-&gt;port, msg_item-&gt;peer, msg_item-&gt;hdr);</span>
+<span class="lineNum">     201 </span>            :             }
+<span class="lineNum">     202 </span>            :         }
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :         if (msg_item-&gt;hdr-&gt;msg_id != peer-&gt;peer_expected_id) {</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :             opal_list_remove_item (processing_msgs, (opal_list_item_t *) msg_item);</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(msg_item);</span>
+<span class="lineNum">     207 </span>            :         } else {
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :             peer-&gt;peer_expected_id++;</span>
+<span class="lineNum">     209 </span>            :         }
+<span class="lineNum">     210 </span>            :     }
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            :     /* Process remaining messages */
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     while (NULL !=</span>
+<span class="lineNum">     214 </span>            :            (msg_item = (mca_oob_ud_msg_item_t *) opal_list_remove_first (processing_msgs))) {
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :         switch (msg_item-&gt;hdr-&gt;msg_type) {</span>
+<span class="lineNum">     217 </span>            :         case MCA_OOB_UD_MSG_REQUEST:
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :             mca_oob_ud_event_handle_req (port, msg_item-&gt;peer, msg_item-&gt;hdr);</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     220 </span>            :         case MCA_OOB_UD_MSG_REPLY:
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :             mca_oob_ud_event_handle_rep (port, msg_item-&gt;hdr);</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     223 </span>            :         case MCA_OOB_UD_MSG_COMPLETE:
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :             mca_oob_ud_event_handle_completion (port, msg_item-&gt;hdr);</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     226 </span>            :         case MCA_OOB_UD_MSG_DATA_OK:
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :             mca_oob_ud_event_handle_data_ok (port, msg_item-&gt;hdr);</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     229 </span>            :         case MCA_OOB_UD_MSG_END:
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :             mca_oob_ud_event_handle_end (peer, msg_item-&gt;hdr);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     232 </span>            :         default:
+<span class="lineNum">     233 </span>            :             /* do nothing */
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     235 </span>            :         }
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(msg_item);</span>
+<span class="lineNum">     238 </span>            :     }
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     return count;</span>
+<a name="241"><span class="lineNum">     241 </span>            : }</a>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 : static int mca_oob_ud_event_handle_ack (mca_oob_ud_port_t *port, mca_oob_ud_peer_t *peer,</span>
+<span class="lineNum">     244 </span>            :                                         mca_oob_ud_msg_hdr_t *msg_hdr)
+<span class="lineNum">     245 </span>            : {
+<span class="lineNum">     246 </span>            :     mca_oob_ud_msg_t *msg;
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     opal_output_verbose(10, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     249 </span>            :                          &quot;%s oob:ud:event_handle_ack got ack for msg id %&quot; PRIu64
+<span class="lineNum">     250 </span>            :                          &quot; from peer %s&quot;, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), msg_hdr-&gt;msg_id,
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :                          ORTE_NAME_PRINT(&amp;peer-&gt;peer_name));</span>
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            :     OPAL_THREAD_LOCK(&amp;peer-&gt;peer_lock);
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     mca_oob_ud_peer_stop_timer (peer);</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     msg = (mca_oob_ud_msg_t *) mca_oob_ud_list_get_first (&amp;peer-&gt;peer_flying_messages);</span>
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     while (NULL != (msg = (mca_oob_ud_msg_t *) mca_oob_ud_list_get_first (&amp;peer-&gt;peer_flying_messages))) {</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         if (msg-&gt;hdr-&gt;msg_id &gt; msg_hdr-&gt;msg_id) {</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     262 </span>            :         }
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :         msg = (mca_oob_ud_msg_t *)opal_list_remove_first (&amp;peer-&gt;peer_flying_messages);</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         (void) mca_oob_ud_msg_status_update (msg, MCA_OOB_UD_MSG_STATUS_COMPLETE);</span>
+<span class="lineNum">     266 </span>            :     }
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     mca_oob_ud_peer_start_timer (peer);</span>
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span>            :     OPAL_THREAD_UNLOCK(&amp;peer-&gt;peer_lock);
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="273"><span class="lineNum">     273 </span>            : }</a>
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 : static int mca_oob_ud_event_handle_nack (mca_oob_ud_port_t *port, mca_oob_ud_peer_t *peer,</span>
+<span class="lineNum">     276 </span>            :                                          mca_oob_ud_msg_hdr_t *msg_hdr)
+<span class="lineNum">     277 </span>            : {
+<span class="lineNum">     278 </span>            :     mca_oob_ud_msg_t *msg;
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     opal_output_verbose(10, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     281 </span>            :                          &quot;%s oob:ud:event_handle_nack got nack for msg id %&quot; PRIu64
+<span class="lineNum">     282 </span>            :                          &quot; from peer %s&quot;, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), msg_hdr-&gt;msg_id,
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :                          ORTE_NAME_PRINT(&amp;peer-&gt;peer_name));</span>
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            :     OPAL_THREAD_LOCK(&amp;peer-&gt;peer_lock);
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     mca_oob_ud_peer_stop_timer (peer);</span>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     while (NULL !=</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :            (msg = (mca_oob_ud_msg_t *) mca_oob_ud_list_get_first (&amp;peer-&gt;peer_flying_messages))) {</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         if (msg-&gt;hdr-&gt;msg_id &gt;= msg_hdr-&gt;msg_id) {</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     293 </span>            :         }
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :         (void) opal_list_remove_first (&amp;peer-&gt;peer_flying_messages);</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :         (void) mca_oob_ud_msg_status_update (msg, MCA_OOB_UD_MSG_STATUS_COMPLETE);</span>
+<span class="lineNum">     297 </span>            :     }
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span>            :     /* repost remaining messages */
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     mca_oob_ud_peer_post_all (peer);</span>
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            :     /* reset and start the timer */
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     mca_oob_ud_peer_reset_timer (peer);</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     mca_oob_ud_peer_start_timer (peer);</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            :     OPAL_THREAD_UNLOCK(&amp;peer-&gt;peer_lock);
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="309"><span class="lineNum">     309 </span>            : }</a>
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 : static int mca_oob_ud_event_handle_end (mca_oob_ud_peer_t *peer, mca_oob_ud_msg_hdr_t *msg_hdr)</span>
+<span class="lineNum">     312 </span>            : {
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     opal_output_verbose(10, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     314 </span>            :                          &quot;%s oob:ud:event_handle_end got end message from peer %s&quot;,
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), ORTE_NAME_PRINT(&amp;peer-&gt;peer_name));</span>
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     mca_oob_ud_peer_lost (peer);</span>
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="320"><span class="lineNum">     320 </span>            : }</a>
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 : static int mca_oob_ud_event_send_ack (mca_oob_ud_port_t *port, mca_oob_ud_peer_t *peer, mca_oob_ud_msg_hdr_t *msg_hdr)</span>
+<span class="lineNum">     323 </span>            : {
+<span class="lineNum">     324 </span>            :     mca_oob_ud_msg_hdr_t tmp_hdr;
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     int rc = ORTE_SUCCESS;</span>
+<span class="lineNum">     326 </span>            :     struct ibv_send_wr wr;
+<span class="lineNum">     327 </span>            :     struct ibv_sge sge;
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     opal_output_verbose(10, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     330 </span>            :                          &quot;%s oob:ud:event_send_ack sending ack for message id %&quot;
+<span class="lineNum">     331 </span>            :                          PRIu64 &quot; peer = %s&quot;, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), msg_hdr-&gt;msg_id,
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :                          ORTE_NAME_PRINT(&amp;peer-&gt;peer_name));</span>
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span>            :     /* reuse registered buffer to send ack (just need to change the type/return address) */
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :     memcpy (&amp;tmp_hdr, msg_hdr, sizeof (tmp_hdr));</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     msg_hdr-&gt;msg_type = MCA_OOB_UD_MSG_ACK;</span>
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span>            :     /* set return address */
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     msg_hdr-&gt;ra.qkey     = 0;</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     msg_hdr-&gt;ra.name     = *ORTE_PROC_MY_NAME;</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     msg_hdr-&gt;ra.port_num = port-&gt;port_num;</span>
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     mca_oob_ud_fill_sge (&amp;sge, msg_hdr, sizeof (*msg_hdr), port-&gt;msg_buf.mr-&gt;lkey);</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     mca_oob_ud_fill_send_wr (&amp;wr, &amp;sge, 1, peer);</span>
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     rc = mca_oob_ud_qp_post_send (&amp;port-&gt;listen_qp, &amp;wr, 1);</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != rc) {</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :         opal_output (0, &quot;oob:ud:event_send_ack error posting ack!&quot;);</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     351 </span>            :     }
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     memcpy (msg_hdr, &amp;tmp_hdr, sizeof (tmp_hdr));</span>
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="356"><span class="lineNum">     356 </span>            : }</a>
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 : static int mca_oob_ud_event_send_nack (mca_oob_ud_port_t *port, mca_oob_ud_peer_t *peer, mca_oob_ud_msg_hdr_t *msg_hdr)</span>
+<span class="lineNum">     359 </span>            : {
+<span class="lineNum">     360 </span>            :     mca_oob_ud_msg_hdr_t tmp_hdr;
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     int rc = ORTE_SUCCESS;</span>
+<span class="lineNum">     362 </span>            :     struct ibv_send_wr wr;
+<span class="lineNum">     363 </span>            :     struct ibv_sge sge;
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     opal_output_verbose(10, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     366 </span>            :                          &quot;%s oob:ud:event_send_nack sending nack for message id %&quot;
+<span class="lineNum">     367 </span>            :                          PRIu64 &quot; peer = %s. msg_id = %&quot; PRIu64, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :                          peer-&gt;peer_expected_id, ORTE_NAME_PRINT(&amp;peer-&gt;peer_name), msg_hdr-&gt;msg_id);</span>
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span>            :     /* reuse registered buffer to send the nack (just need to change the type/return address) */
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     memcpy (&amp;tmp_hdr, msg_hdr, sizeof (tmp_hdr));</span>
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     msg_hdr-&gt;msg_type = MCA_OOB_UD_MSG_NACK;</span>
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span>            :     /* set return address */
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     msg_hdr-&gt;ra.qkey     = 0;</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     msg_hdr-&gt;ra.name     = *ORTE_PROC_MY_NAME;</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     msg_hdr-&gt;ra.port_num = port-&gt;port_num;</span>
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :     msg_hdr-&gt;msg_id = peer-&gt;peer_expected_id;</span>
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     mca_oob_ud_fill_sge (&amp;sge, msg_hdr, sizeof (*msg_hdr), port-&gt;msg_buf.mr-&gt;lkey);</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     mca_oob_ud_fill_send_wr (&amp;wr, &amp;sge, 1, peer);</span>
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     rc = mca_oob_ud_qp_post_send (&amp;port-&gt;listen_qp, &amp;wr, 1);</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != rc) {</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :         opal_output (0, &quot;oob:ud:event_send_ack error posting nack!&quot;);</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     389 </span>            :     }
+<span class="lineNum">     390 </span>            : 
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :     memcpy (msg_hdr, &amp;tmp_hdr, sizeof (tmp_hdr));</span>
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="394"><span class="lineNum">     394 </span>            : }</a>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 : void mca_oob_ud_event_queue_completed (mca_oob_ud_req_t *req)</span>
+<span class="lineNum">     397 </span>            : {
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     struct timeval now = {0, 0};</span>
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :     mca_oob_ud_req_append_to_list (req, &amp;mca_oob_ud_component.ud_event_queued_reqs);</span>
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :     if (!(event_completed_set) ||</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :         !(opal_event_evtimer_pending (&amp;mca_oob_ud_component.ud_complete_event, &amp;now))) {</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         event_completed_set = true;</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         opal_event_evtimer_set (orte_event_base, &amp;mca_oob_ud_component.ud_complete_event,</span>
+<span class="lineNum">     406 </span>            :                                 mca_oob_ud_complete_dispatch, NULL);
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :         opal_event_add (&amp;mca_oob_ud_component.ud_complete_event, &amp;now);</span>
+<span class="lineNum">     408 </span>            :     }
+<a name="409"><span class="lineNum">     409 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 : static int mca_oob_ud_event_handle_completion (mca_oob_ud_port_t *port, mca_oob_ud_msg_hdr_t *msg_hdr)</span>
+<span class="lineNum">     412 </span>            : {
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     mca_oob_ud_req_t *recv_req = msg_hdr-&gt;msg_lcl_ctx;</span>
+<span class="lineNum">     414 </span>            :     bool brc;
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :     if (NULL == recv_req) {</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;%s oob:ud:event_handle_completion msg_hdr-&gt;msg_lcl_ctx is NULL&quot;,</span>
+<span class="lineNum">     418 </span>            :                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :         return ORTE_ERROR;</span>
+<span class="lineNum">     420 </span>            :     }
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     brc = mca_oob_ud_req_is_in_list (recv_req, &amp;mca_oob_ud_component.ud_active_recvs);</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     if (false == brc) {</span>
+<span class="lineNum">     424 </span>            :         /* duplicate completion message? */
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :         opal_output_verbose(0, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     426 </span>            :                              &quot;%s oob:ud:event_handle_completion apparent duplicate completion. &quot;
+<span class="lineNum">     427 </span>            :                              &quot;request %p. req list = %p&quot;, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), (void *) recv_req,
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :                              (void *) recv_req-&gt;req_list);</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     430 </span>            :     }
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     recv_req-&gt;state = MCA_OOB_UD_REQ_COMPLETE;</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     mca_oob_ud_event_queue_completed (recv_req);</span>
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="436"><span class="lineNum">     436 </span>            : }</a>
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 : static int mca_oob_ud_event_handle_data_ok (mca_oob_ud_port_t *port, mca_oob_ud_msg_hdr_t *msg_hdr)</span>
+<span class="lineNum">     439 </span>            : {
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :     mca_oob_ud_req_t *send_req = msg_hdr-&gt;msg_lcl_ctx;</span>
+<span class="lineNum">     441 </span>            :     bool brc;
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     if (NULL == send_req) {</span>
+<span class="lineNum">     444 </span>            :         /* ack! */
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :         return ORTE_ERROR;</span>
+<span class="lineNum">     446 </span>            :     }
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     opal_output_verbose(10, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     449 </span>            :                          &quot;%s oob:ud:event_handle_data_ok got data ok message for request %p&quot;,
+<span class="lineNum">     450 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), (void *) send_req);
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     brc = mca_oob_ud_req_is_in_list (send_req, &amp;mca_oob_ud_component.ud_active_sends);</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :     if (false == brc) {</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :         opal_output_verbose(0, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     455 </span>            :                              &quot;%s oob:ud:event_handle_data_ok apparent duplicate data ok. &quot;
+<span class="lineNum">     456 </span>            :                              &quot;request %p. req list = %p&quot;, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), (void *) send_req,
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                              (void *) send_req-&gt;req_list);</span>
+<span class="lineNum">     458 </span>            :         /* duplicate data ok message? */
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     460 </span>            :     }
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     send_req-&gt;state = MCA_OOB_UD_REQ_COMPLETE;</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :     mca_oob_ud_event_queue_completed (send_req);</span>
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="466"><span class="lineNum">     466 </span>            : }</a>
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 : static int mca_oob_ud_event_handle_req (mca_oob_ud_port_t *port, mca_oob_ud_peer_t *peer, mca_oob_ud_msg_hdr_t *msg_hdr)</span>
+<span class="lineNum">     469 </span>            : {
+<span class="lineNum">     470 </span>            :     mca_oob_ud_req_t *recv_req;
+<span class="lineNum">     471 </span>            :     int rc;
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :     rc = mca_oob_ud_recv_match_send (port, peer, msg_hdr, &amp;recv_req);</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS == rc) {</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :         mca_oob_ud_event_queue_completed (recv_req);</span>
+<span class="lineNum">     476 </span>            :     }
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     return rc;</span>
+<a name="479"><span class="lineNum">     479 </span>            : }</a>
+<span class="lineNum">     480 </span>            : 
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 : static int mca_oob_ud_event_handle_rep (mca_oob_ud_port_t *port, mca_oob_ud_msg_hdr_t *msg_hdr)</span>
+<span class="lineNum">     482 </span>            : {
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     mca_oob_ud_req_t *send_req = (mca_oob_ud_req_t *) msg_hdr-&gt;msg_lcl_ctx;</span>
+<span class="lineNum">     484 </span>            :     bool brc;
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     opal_output_verbose(10, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     487 </span>            :                          &quot;%s oob:ud:event_handle_rep got reply for request %p&quot;,
+<span class="lineNum">     488 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), (void *) send_req);
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :     brc = mca_oob_ud_req_is_in_list (send_req, &amp;mca_oob_ud_component.ud_active_sends);</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     if (false == brc) {</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :         opal_output_verbose(0, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     493 </span>            :                              &quot;%s oob:ud:event_handle_rep no send matches reply&quot;,
+<span class="lineNum">     494 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     495 </span>            :         /* duplicate reply message? */
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     497 </span>            :     }
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     send_req-&gt;req_mtu          = min(send_req-&gt;req_mtu, msg_hdr-&gt;msg_data.rep.mtu);</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     send_req-&gt;req_rem_data_len = msg_hdr-&gt;msg_data.rep.data_len;</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :     send_req-&gt;req_rem_ctx      = msg_hdr-&gt;msg_rem_ctx;</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     send_req-&gt;req_rem_qpn      = msg_hdr-&gt;msg_data.rep.qpn;</span>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :     mca_oob_ud_event_queue_completed (send_req);</span>
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="507"><span class="lineNum">     507 </span>            : }</a>
+<span class="lineNum">     508 </span>            : 
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 : static void *mca_oob_ud_event_dispatch(int fd, int flags, void *context)</span>
+<span class="lineNum">     510 </span>            : {
+<span class="lineNum">     511 </span>            :     int rc;
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :     mca_oob_ud_device_t *device = (mca_oob_ud_device_t *) context;</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     mca_oob_ud_port_t *port = NULL;</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     struct ibv_cq *event_cq = NULL;</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :     void *event_context     = NULL;</span>
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span>            :     do {
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :         rc = ibv_get_cq_event (device-&gt;ib_channel, &amp;event_cq, &amp;event_context);</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     } while (rc &amp;&amp; errno == EINTR);</span>
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     if (NULL == event_cq) {</span>
+<span class="lineNum">     522 </span>            :         /* re-arm the event */
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :         opal_output (0, &quot;%s oob:ud:event_dispatch re-arm the event&quot;,</span>
+<span class="lineNum">     524 </span>            :                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :         opal_event_add (&amp;port-&gt;device-&gt;event, NULL);</span>
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     528 </span>            :     }
+<span class="lineNum">     529 </span>            : 
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :     port = (mca_oob_ud_port_t *) event_context;</span>
+<span class="lineNum">     531 </span>            : 
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :     rc = mca_oob_ud_process_messages (event_cq, port);</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :     if (rc &lt; 0) {</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :         opal_output (0, &quot;%s oob:ud:event_dispatch error processing messages&quot;,</span>
+<span class="lineNum">     535 </span>            :                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     537 </span>            :     }
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :     if (ibv_req_notify_cq(event_cq, 0)) {</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :         opal_output (0, &quot;%s oob:ud:event_dispatch error asking for cq notifications&quot;,</span>
+<span class="lineNum">     541 </span>            :                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     542 </span>            :     }
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span>            :     /* re-arm the event */
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :     opal_event_add (&amp;port-&gt;device-&gt;event, NULL);</span>
+<span class="lineNum">     546 </span>            : 
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<a name="548"><span class="lineNum">     548 </span>            : }</a>
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 : static void *mca_oob_ud_complete_dispatch(int fd, int flags, void *context)</span>
+<span class="lineNum">     551 </span>            : {
+<span class="lineNum">     552 </span>            :     mca_oob_ud_req_t *req;
+<span class="lineNum">     553 </span>            : 
+<span class="lineNum">     554 </span>            :     OPAL_THREAD_LOCK(&amp;mca_oob_ud_component.ud_match_lock);
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :     while (NULL !=</span>
+<span class="lineNum">     556 </span>            :            (req = (mca_oob_ud_req_t *) opal_list_remove_first (&amp;mca_oob_ud_component.ud_event_queued_reqs))) {
+<span class="lineNum">     557 </span>            :         OPAL_THREAD_UNLOCK(&amp;mca_oob_ud_component.ud_match_lock);
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :         opal_output_verbose(10, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     560 </span>            :                              &quot;%s oob:ud:event_process processing request %p&quot;,
+<span class="lineNum">     561 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), (void *) req);
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :         req-&gt;req_list = NULL;</span>
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :         switch (req-&gt;type) {</span>
+<span class="lineNum">     566 </span>            :         case MCA_OOB_UD_REQ_RECV:
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :             if (req-&gt;state == MCA_OOB_UD_REQ_COMPLETE) {</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :                 mca_oob_ud_recv_complete (req);</span>
+<span class="lineNum">     569 </span>            :             } else {
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :                 mca_oob_ud_req_append_to_list (req, &amp;mca_oob_ud_component.ud_active_recvs);</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :                 mca_oob_ud_recv_try (req);</span>
+<span class="lineNum">     572 </span>            :             }
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     574 </span>            :         case MCA_OOB_UD_REQ_SEND:
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :             if (req-&gt;state == MCA_OOB_UD_REQ_COMPLETE) {</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :                 mca_oob_ud_send_complete (req, ORTE_SUCCESS);</span>
+<span class="lineNum">     577 </span>            :             } else {
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :                 mca_oob_ud_req_append_to_list (req, &amp;mca_oob_ud_component.ud_active_sends);</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :                 mca_oob_ud_send_try (req);</span>
+<span class="lineNum">     580 </span>            :             }
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     582 </span>            :         default:
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     584 </span>            :         }
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span>            :         OPAL_THREAD_LOCK(&amp;mca_oob_ud_component.ud_match_lock);
+<span class="lineNum">     587 </span>            :     }
+<span class="lineNum">     588 </span>            : 
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<a name="590"><span class="lineNum">     590 </span>            : }</a>
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 : static void mca_oob_ud_stop_events (mca_oob_ud_device_t *device)</span>
+<span class="lineNum">     593 </span>            : {
+<span class="lineNum">     594 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :     opal_output_verbose(5, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     597 </span>            :                          &quot;%s oob:ud:stop_events stopping event processing&quot;,
+<span class="lineNum">     598 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :     for (item = opal_list_get_first (&amp;device-&gt;ports) ;</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :          item != opal_list_get_end (&amp;device-&gt;ports) ;</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :          item = opal_list_get_next (item)) {</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :         mca_oob_ud_port_t *port = (mca_oob_ud_port_t *) item;</span>
+<span class="lineNum">     604 </span>            : 
+<span class="lineNum">     605 </span>            :         /* flush all receives */
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :         mca_oob_ud_qp_to_reset (&amp;port-&gt;listen_qp);</span>
+<span class="lineNum">     607 </span>            :     }
+<span class="lineNum">     608 </span>            : 
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :     opal_output_verbose(5, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     610 </span>            :                          &quot;%s oob:ud:stop_events events stopped&quot;,
+<span class="lineNum">     611 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

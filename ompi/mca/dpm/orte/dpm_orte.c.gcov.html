@@ -1,0 +1,1840 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - ompi/mca/dpm/orte/dpm_orte.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/dpm/orte</a> - dpm_orte.c<span style="font-size: 80%;"> (source / <a href="dpm_orte.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">20</td>
+            <td class="headerCovTableEntry">697</td>
+            <td class="headerCovTableEntryLo">2.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntryLo">16.7 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2011 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2007-2015 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2006-2009 University of Houston.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2009      Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.  All rights
+<span class="lineNum">      17 </span>            :  *                         reserved.
+<span class="lineNum">      18 </span>            :  * Copyright (c) 2013-2015 Intel, Inc. All rights reserved
+<span class="lineNum">      19 </span>            :  * Copyright (c) 2014-2015 Research Organization for Information Science
+<span class="lineNum">      20 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      21 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      22 </span>            :  *
+<span class="lineNum">      23 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      24 </span>            :  *
+<span class="lineNum">      25 </span>            :  * $HEADER$
+<span class="lineNum">      26 </span>            :  */
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;ompi/constants.h&quot;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;ctype.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;time.h&gt;
+<span class="lineNum">      35 </span>            : #if HAVE_SYS_TIME_H
+<span class="lineNum">      36 </span>            : #include &lt;sys/time.h&gt;
+<span class="lineNum">      37 </span>            : #endif
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;opal/util/opal_getcwd.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;opal/dss/dss.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;opal/mca/dstore/dstore.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;opal/mca/hwloc/base/base.h&quot;
+<span class="lineNum">      44 </span>            : #include &quot;opal/mca/pmix/pmix.h&quot;
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      47 </span>            : #include &quot;orte/mca/grpcomm/base/base.h&quot;
+<span class="lineNum">      48 </span>            : #include &quot;orte/mca/plm/base/base.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;orte/mca/rml/rml.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;orte/mca/rml/rml_types.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;orte/mca/rmaps/rmaps.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;orte/mca/rmaps/rmaps_types.h&quot;
+<span class="lineNum">      53 </span>            : #include &quot;orte/mca/rmaps/base/base.h&quot;
+<span class="lineNum">      54 </span>            : #include &quot;orte/mca/rml/base/rml_contact.h&quot;
+<span class="lineNum">      55 </span>            : #include &quot;orte/mca/routed/routed.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      57 </span>            : #include &quot;orte/util/show_help.h&quot;
+<span class="lineNum">      58 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      59 </span>            : #include &quot;orte/runtime/orte_wait.h&quot;
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            : #include &quot;ompi/communicator/communicator.h&quot;
+<span class="lineNum">      62 </span>            : #include &quot;ompi/group/group.h&quot;
+<span class="lineNum">      63 </span>            : #include &quot;ompi/proc/proc.h&quot;
+<span class="lineNum">      64 </span>            : #include &quot;ompi/mca/pml/pml.h&quot;
+<span class="lineNum">      65 </span>            : #include &quot;ompi/mca/rte/rte.h&quot;
+<span class="lineNum">      66 </span>            : #include &quot;ompi/info/info.h&quot;
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : #include &quot;ompi/mca/dpm/base/base.h&quot;
+<span class="lineNum">      69 </span>            : #include &quot;dpm_orte.h&quot;
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : /* Local static variables */
+<span class="lineNum">      72 </span>            : static opal_mutex_t ompi_dpm_port_mutex;
+<span class="lineNum">      73 </span>            : static orte_rml_tag_t next_tag;
+<span class="lineNum">      74 </span>            : static opal_list_t orte_dpm_acceptors, orte_dpm_connectors, dynamics;
+<span class="lineNum">      75 </span>            : static uint32_t next_preq=0;
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : /* API functions */
+<span class="lineNum">      78 </span>            : static int init(void);
+<span class="lineNum">      79 </span>            : static int connect_accept (ompi_communicator_t *comm, int root,
+<span class="lineNum">      80 </span>            :                            const char *port_string, bool send_first,
+<span class="lineNum">      81 </span>            :                            ompi_communicator_t **newcomm);
+<span class="lineNum">      82 </span>            : static int disconnect(ompi_communicator_t *comm);
+<span class="lineNum">      83 </span>            : static int spawn(int count, const char *array_of_commands[],
+<span class="lineNum">      84 </span>            :                  char **array_of_argv[],
+<span class="lineNum">      85 </span>            :                  const int array_of_maxprocs[],
+<span class="lineNum">      86 </span>            :                  const MPI_Info array_of_info[],
+<span class="lineNum">      87 </span>            :                  const char *port_name);
+<span class="lineNum">      88 </span>            : static int dyn_init(void);
+<span class="lineNum">      89 </span>            : static int open_port(char *port_name, orte_rml_tag_t given_tag);
+<span class="lineNum">      90 </span>            : static int parse_port_name(const char *port_name, char **hnp_uri, char **rml_uri,
+<span class="lineNum">      91 </span>            :                            orte_rml_tag_t *tag);
+<span class="lineNum">      92 </span>            : static int route_to_port(char *rml_uri, orte_process_name_t *rproc);
+<span class="lineNum">      93 </span>            : static int close_port(const char *port_name);
+<span class="lineNum">      94 </span>            : static int finalize(void);
+<span class="lineNum">      95 </span>            : static int dpm_pconnect(char *port,
+<span class="lineNum">      96 </span>            :                         struct timeval *timeout,
+<span class="lineNum">      97 </span>            :                         ompi_dpm_base_paccept_connect_callback_fn_t cbfunc,
+<span class="lineNum">      98 </span>            :                         void *cbdata);
+<span class="lineNum">      99 </span>            : static int dpm_paccept(char *port,
+<span class="lineNum">     100 </span>            :                        ompi_dpm_base_paccept_connect_callback_fn_t cbfunc,
+<span class="lineNum">     101 </span>            :                        void *cbdata);
+<span class="lineNum">     102 </span>            : static void dpm_pclose(char *port);
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            : /*
+<span class="lineNum">     105 </span>            :  * instantiate the module
+<span class="lineNum">     106 </span>            :  */
+<span class="lineNum">     107 </span>            : ompi_dpm_base_module_t ompi_dpm_orte_module = {
+<span class="lineNum">     108 </span>            :     init,
+<span class="lineNum">     109 </span>            :     connect_accept,
+<span class="lineNum">     110 </span>            :     disconnect,
+<span class="lineNum">     111 </span>            :     spawn,
+<span class="lineNum">     112 </span>            :     dyn_init,
+<span class="lineNum">     113 </span>            :     ompi_dpm_base_dyn_finalize,
+<span class="lineNum">     114 </span>            :     ompi_dpm_base_mark_dyncomm,
+<span class="lineNum">     115 </span>            :     open_port,
+<span class="lineNum">     116 </span>            :     parse_port_name,
+<span class="lineNum">     117 </span>            :     route_to_port,
+<span class="lineNum">     118 </span>            :     close_port,
+<span class="lineNum">     119 </span>            :     finalize,
+<span class="lineNum">     120 </span>            :     dpm_pconnect,
+<span class="lineNum">     121 </span>            :     dpm_paccept,
+<span class="lineNum">     122 </span>            :     dpm_pclose
+<span class="lineNum">     123 </span>            : };
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            : typedef struct {
+<span class="lineNum">     126 </span>            :     opal_list_item_t super;
+<span class="lineNum">     127 </span>            :     opal_event_t ev;
+<span class="lineNum">     128 </span>            :     bool event_active;
+<span class="lineNum">     129 </span>            :     uint32_t id;
+<span class="lineNum">     130 </span>            :     uint32_t cid;
+<span class="lineNum">     131 </span>            :     orte_rml_tag_t tag;
+<span class="lineNum">     132 </span>            :     ompi_dpm_base_paccept_connect_callback_fn_t cbfunc;
+<span class="lineNum">     133 </span>            :     void *cbdata;
+<span class="lineNum">     134 </span>            : } orte_dpm_prequest_t;
+<span class="lineNum">     135 </span>            : OBJ_CLASS_INSTANCE(orte_dpm_prequest_t,
+<span class="lineNum">     136 </span>            :                    opal_list_item_t,
+<span class="lineNum">     137 </span>            :                    NULL, NULL);
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            : static void connect_complete(int status, orte_process_name_t* sender,
+<span class="lineNum">     141 </span>            :                              opal_buffer_t* buffer, orte_rml_tag_t tag,
+<span class="lineNum">     142 </span>            :                              void* cbdata);
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            : /*
+<a name="145"><span class="lineNum">     145 </span>            :  * Init the module</a>
+<span class="lineNum">     146 </span>            :  */
+<span class="lineNum">     147 </span><span class="lineCov">          2 : static int init(void)</span>
+<span class="lineNum">     148 </span>            : {
+<span class="lineNum">     149 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;ompi_dpm_port_mutex, opal_mutex_t);</span>
+<span class="lineNum">     150 </span><span class="lineCov">          2 :     next_tag = OMPI_RML_TAG_DYNAMIC;</span>
+<span class="lineNum">     151 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;orte_dpm_acceptors, opal_list_t);</span>
+<span class="lineNum">     152 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;orte_dpm_connectors, opal_list_t);</span>
+<span class="lineNum">     153 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;dynamics, opal_list_t);</span>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            :     /* post a receive for pconnect request responses */
+<span class="lineNum">     156 </span><span class="lineCov">          2 :     orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD,</span>
+<span class="lineNum">     157 </span>            :                             OMPI_RML_PCONNECT_TAG,
+<span class="lineNum">     158 </span>            :                             ORTE_RML_PERSISTENT,
+<span class="lineNum">     159 </span>            :                             connect_complete, NULL);
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineCov">          2 :     return OMPI_SUCCESS;</span>
+<a name="163"><span class="lineNum">     163 </span>            : }</a>
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 : static int connect_accept(ompi_communicator_t *comm, int root,</span>
+<span class="lineNum">     166 </span>            :                           const char *port_string, bool send_first,
+<span class="lineNum">     167 </span>            :                           ompi_communicator_t **newcomm)
+<span class="lineNum">     168 </span>            : {
+<span class="lineNum">     169 </span>            :     int size, rsize, rank, rc;
+<span class="lineNum">     170 </span>            :     orte_std_cntr_t num_vals;
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     orte_std_cntr_t rnamebuflen = 0;</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     int rnamebuflen_int = 0;</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     void *rnamebuf=NULL;</span>
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     ompi_communicator_t *newcomp=MPI_COMM_NULL;</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     ompi_proc_t **rprocs=NULL;</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     ompi_group_t *group=comm-&gt;c_local_group;</span>
+<span class="lineNum">     178 </span>            :     orte_process_name_t port;
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     orte_rml_tag_t tag=ORTE_RML_TAG_INVALID;</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :     opal_buffer_t *nbuf=NULL, *nrbuf=NULL;</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     ompi_proc_t **proc_list=NULL, **new_proc_list = NULL;</span>
+<span class="lineNum">     182 </span>            :     int32_t i,j, new_proc_len;
+<span class="lineNum">     183 </span>            :     ompi_group_t *new_group_pointer;
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            :     orte_namelist_t *nm;
+<span class="lineNum">     186 </span>            :     orte_rml_recv_cb_t xfer;
+<span class="lineNum">     187 </span>            :     orte_process_name_t carport;
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     190 </span>            :                          &quot;%s dpm:orte:connect_accept with port %s %s&quot;,
+<span class="lineNum">     191 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     192 </span>            :                          port_string, send_first ? &quot;sending first&quot; : &quot;recv first&quot;));
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :     /* set default error return */
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     *newcomm = MPI_COMM_NULL;</span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :     size = ompi_comm_size ( comm );</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank ( comm );</span>
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span>            :     /* extract the process name from the port string, if given, and
+<span class="lineNum">     201 </span>            :      * set us up to communicate with it
+<span class="lineNum">     202 </span>            :      */
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :     if (NULL != port_string &amp;&amp; 0 &lt; strlen(port_string)) {</span>
+<span class="lineNum">     204 </span>            :         char *hnp_uri, *rml_uri;
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span>            :         /* separate the string into the HNP and RML URI and tag */
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = parse_port_name(port_string, &amp;hnp_uri, &amp;rml_uri, &amp;tag))) {</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     210 </span>            :         }
+<span class="lineNum">     211 </span>            :         /* extract the originating proc's name */
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = orte_rml_base_parse_uris(rml_uri, &amp;port, NULL))) {</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :             free(hnp_uri); free(rml_uri);</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     216 </span>            :         }
+<span class="lineNum">     217 </span>            :         /* make sure we can route rml messages to the destination job */
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = route_to_port(hnp_uri, &amp;port))) {</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :             free(hnp_uri); free(rml_uri);</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     222 </span>            :         }
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :         free(hnp_uri); free(rml_uri);</span>
+<span class="lineNum">     224 </span>            :     }
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :     if ( rank == root ) {</span>
+<span class="lineNum">     227 </span>            :         /* Generate the message buffer containing the number of processes and the list of
+<span class="lineNum">     228 </span>            :            participating processes */
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :         nbuf = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         if (NULL == nbuf) {</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :             return OMPI_ERROR;</span>
+<span class="lineNum">     232 </span>            :         }
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.pack(nbuf, &amp;size, 1, OPAL_INT))) {</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :             goto exit;</span>
+<span class="lineNum">     237 </span>            :         }
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         if (OMPI_GROUP_IS_DENSE(group)) {</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :             ompi_proc_pack(group-&gt;grp_proc_pointers, size, false, nbuf);</span>
+<span class="lineNum">     241 </span>            :         } else {
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :             proc_list = (ompi_proc_t **) calloc (group-&gt;grp_proc_count,</span>
+<span class="lineNum">     243 </span>            :                                                  sizeof (ompi_proc_t *));
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :             for (i=0 ; i&lt;group-&gt;grp_proc_count ; i++) {</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :                 if (NULL == (proc_list[i] = ompi_group_peer_lookup(group,i))) {</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :                     rc = ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :                     goto exit;</span>
+<span class="lineNum">     249 </span>            :                 }
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     252 </span>            :                                      &quot;%s dpm:orte:connect_accept adding %s to proc list&quot;,
+<span class="lineNum">     253 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     254 </span>            :                                      OMPI_NAME_PRINT(&amp;proc_list[i]-&gt;super.proc_name)));
+<span class="lineNum">     255 </span>            :             }
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :             ompi_proc_pack(proc_list, size, false, nbuf);</span>
+<span class="lineNum">     257 </span>            :         }
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            :         /* pack wireup info - this is required so that all involved parties can
+<span class="lineNum">     260 </span>            :          * discover how to talk to each other. For example, consider the case
+<span class="lineNum">     261 </span>            :          * where we connect_accept to one independent job (B), and then connect_accept
+<span class="lineNum">     262 </span>            :          * to another one (C) to wire all three of us together. Job B will not know
+<span class="lineNum">     263 </span>            :          * how to talk to job C at the OOB level because the two of them didn't
+<span class="lineNum">     264 </span>            :          * directly connect_accept to each other. Hence, we include the required
+<span class="lineNum">     265 </span>            :          * wireup info at this first exchange
+<span class="lineNum">     266 </span>            :          */
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = orte_routed.get_wireup_info(nbuf))) {</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :             goto exit;</span>
+<span class="lineNum">     270 </span>            :         }
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :         OBJ_CONSTRUCT(&amp;xfer, orte_rml_recv_cb_t);</span>
+<span class="lineNum">     273 </span>            :         /* Exchange the number and the list of processes in the groups */
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         if ( send_first ) {</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     276 </span>            :                                  &quot;%s dpm:orte:connect_accept sending first to %s&quot;,
+<span class="lineNum">     277 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     278 </span>            :                                  ORTE_NAME_PRINT(&amp;port)));
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :             rc = orte_rml.send_buffer_nb(&amp;port, nbuf, tag, orte_rml_send_callback, NULL);</span>
+<span class="lineNum">     280 </span>            :             /* setup to recv */
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     282 </span>            :                                  &quot;%s dpm:orte:connect_accept waiting for response&quot;,
+<span class="lineNum">     283 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :             xfer.active = true;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :             orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, tag,</span>
+<span class="lineNum">     286 </span>            :                                     ORTE_RML_NON_PERSISTENT,
+<span class="lineNum">     287 </span>            :                                     orte_rml_recv_callback, &amp;xfer);
+<span class="lineNum">     288 </span>            :             /* wait for response */
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :             OMPI_WAIT_FOR_COMPLETION(xfer.active);</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     291 </span>            :                                  &quot;%s dpm:orte:connect_accept got data from %s&quot;,
+<span class="lineNum">     292 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     293 </span>            :                                  ORTE_NAME_PRINT(&amp;xfer.name)));
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            :         } else {
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     297 </span>            :                                  &quot;%s dpm:orte:connect_accept recving first&quot;,
+<span class="lineNum">     298 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     299 </span>            :             /* setup to recv */
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :             xfer.active = true;</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :             orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, tag,</span>
+<span class="lineNum">     302 </span>            :                                     ORTE_RML_NON_PERSISTENT,
+<span class="lineNum">     303 </span>            :                                     orte_rml_recv_callback, &amp;xfer);
+<span class="lineNum">     304 </span>            :             /* wait for response */
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :             OMPI_WAIT_FOR_COMPLETION(xfer.active);</span>
+<span class="lineNum">     306 </span>            :             /* now send our info */
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     308 </span>            :                                  &quot;%s dpm:orte:connect_accept sending info to %s&quot;,
+<span class="lineNum">     309 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     310 </span>            :                                  ORTE_NAME_PRINT(&amp;xfer.name)));
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :             rc = orte_rml.send_buffer_nb(&amp;xfer.name, nbuf, tag, orte_rml_send_callback, NULL);</span>
+<span class="lineNum">     312 </span>            :         }
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unload(&amp;xfer.data, &amp;rnamebuf, &amp;rnamebuflen))) {</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :             OBJ_DESTRUCT(&amp;xfer.data);</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :             goto exit;</span>
+<span class="lineNum">     318 </span>            :         }
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :         carport.jobid = xfer.name.jobid;</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :         carport.vpid = xfer.name.vpid;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;xfer);</span>
+<span class="lineNum">     322 </span>            :     }
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            :     /* First convert the size_t to an int so we can cast in the bcast to a void *
+<span class="lineNum">     325 </span>            :      * if we don't then we will get badness when using big vs little endian
+<span class="lineNum">     326 </span>            :      * THIS IS NO LONGER REQUIRED AS THE LENGTH IS NOW A STD_CNTR_T, WHICH
+<span class="lineNum">     327 </span>            :      * CORRELATES TO AN INT32
+<span class="lineNum">     328 </span>            :      */
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     rnamebuflen_int = (int)rnamebuflen;</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            :     /* bcast the buffer-length to all processes in the local comm */
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     333 </span>            :                          &quot;%s dpm:orte:connect_accept bcast buffer length&quot;,
+<span class="lineNum">     334 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :     rc = comm-&gt;c_coll.coll_bcast (&amp;rnamebuflen_int, 1, MPI_INT, root, comm,</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :                                   comm-&gt;c_coll.coll_bcast_module);</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     if ( OMPI_SUCCESS != rc ) {</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         goto exit;</span>
+<span class="lineNum">     339 </span>            :     }
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     rnamebuflen = rnamebuflen_int;</span>
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     if ( rank != root ) {</span>
+<span class="lineNum">     343 </span>            :         /* non root processes need to allocate the buffer manually */
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :         rnamebuf = (char *) malloc(rnamebuflen);</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :         if ( NULL == rnamebuf ) {</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :             rc = OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :             goto exit;</span>
+<span class="lineNum">     348 </span>            :         }
+<span class="lineNum">     349 </span>            :     }
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span>            :     /* bcast list of processes to all procs in local group
+<span class="lineNum">     352 </span>            :        and reconstruct the data. Note that proc_get_proclist
+<span class="lineNum">     353 </span>            :        adds processes, which were not known yet to our
+<span class="lineNum">     354 </span>            :        process pool.
+<span class="lineNum">     355 </span>            :     */
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     357 </span>            :                          &quot;%s dpm:orte:connect_accept bcast proc list&quot;,
+<span class="lineNum">     358 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     rc = comm-&gt;c_coll.coll_bcast (rnamebuf, rnamebuflen_int, MPI_BYTE, root, comm,</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :                                   comm-&gt;c_coll.coll_bcast_module);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     if ( OMPI_SUCCESS != rc ) {</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         goto exit;</span>
+<span class="lineNum">     363 </span>            :     }
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     nrbuf = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     if (NULL == nrbuf) {</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :         goto exit;</span>
+<span class="lineNum">     368 </span>            :     }
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     if ( OPAL_SUCCESS != ( rc = opal_dss.load(nrbuf, rnamebuf, rnamebuflen))) {</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         goto exit;</span>
+<span class="lineNum">     372 </span>            :     }
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     num_vals = 1;</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.unpack(nrbuf, &amp;rsize, &amp;num_vals, OPAL_INT))) {</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :         goto exit;</span>
+<span class="lineNum">     377 </span>            :     }
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     rc = ompi_proc_unpack(nrbuf, rsize, &amp;rprocs, false, &amp;new_proc_len, &amp;new_proc_list);</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :     if ( OMPI_SUCCESS != rc ) {</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :         goto exit;</span>
+<span class="lineNum">     381 </span>            :     }
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     384 </span>            :                          &quot;%s dpm:orte:connect_accept unpacked %d new procs&quot;,
+<span class="lineNum">     385 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), new_proc_len));
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span>            :     /* If we added new procs, we need to do the modex and then call
+<span class="lineNum">     388 </span>            :        PML add_procs */
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     if (new_proc_len &gt; 0) {</span>
+<span class="lineNum">     390 </span>            :         opal_list_t all_procs;
+<span class="lineNum">     391 </span>            :         orte_namelist_t *name;
+<span class="lineNum">     392 </span>            :         opal_process_name_t *ids;
+<span class="lineNum">     393 </span>            :         opal_list_t myvals;
+<span class="lineNum">     394 </span>            :         opal_value_t *kv;
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span>            :         /* we first need to give the wireup info to our routed module.
+<span class="lineNum">     397 </span>            :          * Not every routed module will need it, but some do require
+<span class="lineNum">     398 </span>            :          * this info before we can do any comm
+<span class="lineNum">     399 </span>            :          */
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = orte_routed.init_routes(OMPI_CAST_RTE_NAME(&amp;rprocs[0]-&gt;super.proc_name)-&gt;jobid, nrbuf))) {</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :             goto exit;</span>
+<span class="lineNum">     403 </span>            :         }
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         OBJ_CONSTRUCT(&amp;all_procs, opal_list_t);</span>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :         if (send_first) {</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :             for (i = 0 ; i &lt; rsize ; ++i) {</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :                 name = OBJ_NEW(orte_namelist_t);</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :                 name-&gt;name = *OMPI_CAST_RTE_NAME(&amp;rprocs[i]-&gt;super.proc_name);</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :                 opal_list_append(&amp;all_procs, &amp;name-&gt;super);</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     413 </span>            :                                      &quot;%s dpm:orte:connect_accept send first adding %s to allgather list&quot;,
+<span class="lineNum">     414 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     415 </span>            :                                      ORTE_NAME_PRINT(&amp;name-&gt;name)));
+<span class="lineNum">     416 </span>            :             }
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :             for (i = 0 ; i &lt; group-&gt;grp_proc_count ; ++i) {</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :                 name = OBJ_NEW(orte_namelist_t);</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :                 name-&gt;name = *OMPI_CAST_RTE_NAME(&amp;(ompi_group_peer_lookup(group, i)-&gt;super.proc_name));</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :                 opal_list_append(&amp;all_procs, &amp;name-&gt;super);</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     422 </span>            :                                      &quot;%s dpm:orte:connect_accept send first adding %s to allgather list&quot;,
+<span class="lineNum">     423 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     424 </span>            :                                      ORTE_NAME_PRINT(&amp;name-&gt;name)));
+<span class="lineNum">     425 </span>            :             }
+<span class="lineNum">     426 </span>            : 
+<span class="lineNum">     427 </span>            :         } else {
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :             for (i = 0 ; i &lt; group-&gt;grp_proc_count ; ++i) {</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :                 name = OBJ_NEW(orte_namelist_t);</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :                 name-&gt;name = *OMPI_CAST_RTE_NAME(&amp;(ompi_group_peer_lookup(group, i)-&gt;super.proc_name));</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :                 opal_list_append(&amp;all_procs, &amp;name-&gt;super);</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     433 </span>            :                                      &quot;%s dpm:orte:connect_accept recv first adding %s to allgather list&quot;,
+<span class="lineNum">     434 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     435 </span>            :                                      ORTE_NAME_PRINT(&amp;name-&gt;name)));
+<span class="lineNum">     436 </span>            :             }
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :             for (i = 0 ; i &lt; rsize ; ++i) {</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :                 name = OBJ_NEW(orte_namelist_t);</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :                 name-&gt;name = *OMPI_CAST_RTE_NAME(&amp;rprocs[i]-&gt;super.proc_name);</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :                 opal_list_append(&amp;all_procs, &amp;name-&gt;super);</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     442 </span>            :                                      &quot;%s dpm:orte:connect_accept recv first adding %s to allgather list&quot;,
+<span class="lineNum">     443 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     444 </span>            :                                      ORTE_NAME_PRINT(&amp;name-&gt;name)));
+<span class="lineNum">     445 </span>            :             }
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span>            :         }
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     450 </span>            :                              &quot;%s dpm:orte:connect_accept executing modex&quot;,
+<span class="lineNum">     451 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span>            :         /* setup the modex */
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :         ids = (opal_process_name_t*)malloc(opal_list_get_size(&amp;all_procs) * sizeof(opal_process_name_t));</span>
+<span class="lineNum">     455 </span>            :         /* copy across the list of participants */
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :         i=0;</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :         OPAL_LIST_FOREACH(nm, &amp;all_procs, orte_namelist_t) {</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :             ids[i++] = nm-&gt;name;</span>
+<span class="lineNum">     459 </span>            :         }
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :         OPAL_LIST_DESTRUCT(&amp;all_procs);</span>
+<span class="lineNum">     461 </span>            :         /* perform it */
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :         opal_pmix.fence(ids, i);</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :         free(ids);</span>
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     466 </span>            :                              &quot;%s dpm:orte:connect_accept adding procs&quot;,
+<span class="lineNum">     467 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span>            :         /* set the locality of the new procs - the required info should
+<span class="lineNum">     470 </span>            :          * have been included in the data exchange */
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :         for (j=0; j &lt; new_proc_len; j++) {</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :             OBJ_CONSTRUCT(&amp;myvals, opal_list_t);</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :             if (OMPI_SUCCESS != (rc = opal_dstore.fetch(opal_dstore_internal,</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :                                                          &amp;new_proc_list[j]-&gt;super.proc_name,</span>
+<span class="lineNum">     475 </span>            :                                                          OPAL_DSTORE_LOCALITY, &amp;myvals))) {
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :                 new_proc_list[j]-&gt;super.proc_flags = OPAL_PROC_NON_LOCAL;</span>
+<span class="lineNum">     477 </span>            :             } else {
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :                 kv = (opal_value_t*)opal_list_get_first(&amp;myvals);</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :                 new_proc_list[j]-&gt;super.proc_flags = kv-&gt;data.uint16;</span>
+<span class="lineNum">     480 </span>            :             }
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :             OPAL_LIST_DESTRUCT(&amp;myvals);</span>
+<span class="lineNum">     482 </span>            :         }
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :         if (OMPI_SUCCESS != (rc = MCA_PML_CALL(add_procs(new_proc_list, new_proc_len)))) {</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :             goto exit;</span>
+<span class="lineNum">     487 </span>            :         }
+<span class="lineNum">     488 </span>            : 
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     490 </span>            :                              &quot;%s dpm:orte:connect_accept new procs added&quot;,
+<span class="lineNum">     491 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     492 </span>            : 
+<span class="lineNum">     493 </span>            :     }
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(nrbuf);</span>
+<span class="lineNum">     496 </span>            : 
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     498 </span>            :                          &quot;%s dpm:orte:connect_accept allocating group size %d&quot;,
+<span class="lineNum">     499 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), rsize));
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :     new_group_pointer=ompi_group_allocate(rsize);</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     if( NULL == new_group_pointer ) {</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :         rc = OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :         goto exit;</span>
+<span class="lineNum">     505 </span>            :     }
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span>            :     /* put group elements in the list */
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     for (j = 0; j &lt; rsize; j++) {</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :         new_group_pointer-&gt;grp_proc_pointers[j] = rprocs[j];</span>
+<span class="lineNum">     510 </span>            :     }                           /* end proc loop */
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span>            :     /* increment proc reference counters */
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     ompi_group_increment_proc_count(new_group_pointer);</span>
+<span class="lineNum">     514 </span>            : 
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     516 </span>            :                          &quot;%s dpm:orte:connect_accept setting up communicator&quot;,
+<span class="lineNum">     517 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span>            :     /* set up communicator structure */
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :     rc = ompi_comm_set ( &amp;newcomp,                 /* new comm */</span>
+<span class="lineNum">     521 </span>            :                          comm,                     /* old comm */
+<span class="lineNum">     522 </span>            :                          group-&gt;grp_proc_count,    /* local_size */
+<span class="lineNum">     523 </span>            :                          NULL,                     /* local_procs */
+<span class="lineNum">     524 </span>            :                          rsize,                    /* remote_size */
+<span class="lineNum">     525 </span>            :                          NULL  ,                   /* remote_procs */
+<span class="lineNum">     526 </span>            :                          NULL,                     /* attrs */
+<span class="lineNum">     527 </span>            :                          comm-&gt;error_handler,      /* error handler */
+<span class="lineNum">     528 </span>            :                          NULL,                     /* topo component */
+<span class="lineNum">     529 </span>            :                          group,                    /* local group */
+<span class="lineNum">     530 </span>            :                          new_group_pointer         /* remote group */
+<span class="lineNum">     531 </span>            :                          );
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :     if ( NULL == newcomp ) {</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :         rc = OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :         goto exit;</span>
+<span class="lineNum">     535 </span>            :     }
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :     ompi_group_decrement_proc_count (new_group_pointer);</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(new_group_pointer);</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :     new_group_pointer = MPI_GROUP_NULL;</span>
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     542 </span>            :                          &quot;%s dpm:orte:connect_accept allocate comm_cid&quot;,
+<span class="lineNum">     543 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     544 </span>            : 
+<span class="lineNum">     545 </span>            :     /* allocate comm_cid */
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :     rc = ompi_comm_nextcid ( newcomp,                 /* new communicator */</span>
+<span class="lineNum">     547 </span>            :                              comm,                    /* old communicator */
+<span class="lineNum">     548 </span>            :                              NULL,                    /* bridge comm */
+<span class="lineNum">     549 </span>            :                              &amp;root,                   /* local leader */
+<span class="lineNum">     550 </span>            :                              &amp;carport,                /* remote leader */
+<span class="lineNum">     551 </span>            :                              OMPI_COMM_CID_INTRA_OOB, /* mode */
+<span class="lineNum">     552 </span>            :                              send_first );            /* send or recv first */
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :     if ( OMPI_SUCCESS != rc ) {</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :         goto exit;</span>
+<span class="lineNum">     555 </span>            :     }
+<span class="lineNum">     556 </span>            : 
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     558 </span>            :                          &quot;%s dpm:orte:connect_accept activate comm&quot;,
+<span class="lineNum">     559 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span>            :     /* activate comm and init coll-component */
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :     rc = ompi_comm_activate ( &amp;newcomp,               /* new communicator */</span>
+<span class="lineNum">     563 </span>            :                               comm,                    /* old communicator */
+<span class="lineNum">     564 </span>            :                               NULL,                    /* bridge comm */
+<span class="lineNum">     565 </span>            :                               &amp;root,                   /* local leader */
+<span class="lineNum">     566 </span>            :                               &amp;carport,                /* remote leader */
+<span class="lineNum">     567 </span>            :                               OMPI_COMM_CID_INTRA_OOB, /* mode */
+<span class="lineNum">     568 </span>            :                               send_first );            /* send or recv first */
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :     if ( OMPI_SUCCESS != rc ) {</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :         goto exit;</span>
+<span class="lineNum">     571 </span>            :     }
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span>            :     /* Question: do we have to re-start some low level stuff
+<span class="lineNum">     574 </span>            :        to enable the usage of fast communication devices
+<span class="lineNum">     575 </span>            :        between the two worlds ?
+<span class="lineNum">     576 </span>            :     */
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span>            :  exit:
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :     if ( NULL != rprocs ) {</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :         free ( rprocs );</span>
+<span class="lineNum">     581 </span>            :     }
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :     if ( NULL != proc_list ) {</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :         free ( proc_list );</span>
+<span class="lineNum">     584 </span>            :     }
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :     if ( NULL != new_proc_list ) {</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :         free ( new_proc_list );</span>
+<span class="lineNum">     587 </span>            :     }
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :     if ( OMPI_SUCCESS != rc ) {</span>
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :         if ( MPI_COMM_NULL != newcomp &amp;&amp; NULL != newcomp ) {</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :             OBJ_RETAIN(newcomp);</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :             newcomp = MPI_COMM_NULL;</span>
+<span class="lineNum">     592 </span>            :         }
+<span class="lineNum">     593 </span>            :     }
+<span class="lineNum">     594 </span>            : 
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :     *newcomm = newcomp;</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     597 </span>            :                          &quot;%s dpm:orte:connect_accept complete&quot;,
+<span class="lineNum">     598 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :     return rc;</span>
+<a name="601"><span class="lineNum">     601 </span>            : }</a>
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 : static int construct_peers(ompi_group_t *group, opal_list_t *peers)</span>
+<span class="lineNum">     604 </span>            : {
+<span class="lineNum">     605 </span>            :     int i;
+<span class="lineNum">     606 </span>            :     orte_namelist_t *nm, *n2;
+<span class="lineNum">     607 </span>            :     ompi_proc_t *proct;
+<span class="lineNum">     608 </span>            : 
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :     if (OMPI_GROUP_IS_DENSE(group)) {</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     611 </span>            :                              &quot;%s dpm:orte:disconnect group is dense&quot;,
+<span class="lineNum">     612 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :         for (i=0; i &lt; group-&gt;grp_proc_count; i++) {</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :             if (NULL == (proct = group-&gt;grp_proc_pointers[i])) {</span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     617 </span>            :             }
+<span class="lineNum">     618 </span>            :             /* add to the list of peers */
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     620 </span>            :                                  &quot;%s dpm:orte:disconnect adding participant %s&quot;,
+<span class="lineNum">     621 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     622 </span>            :                                  ORTE_NAME_PRINT((const orte_process_name_t *)&amp;proct-&gt;super.proc_name)));
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :             nm = OBJ_NEW(orte_namelist_t);</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :             nm-&gt;name = *(orte_process_name_t*)&amp;proct-&gt;super.proc_name;</span>
+<span class="lineNum">     625 </span>            :             /* need to maintain an ordered list to ensure the tracker signatures
+<span class="lineNum">     626 </span>            :              * match across all procs */
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :             OPAL_LIST_FOREACH(n2, peers, orte_namelist_t) {</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :                 if (opal_compare_proc(nm-&gt;name, n2-&gt;name) &lt; 0) {</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :                     opal_list_insert_pos(peers, &amp;n2-&gt;super, &amp;nm-&gt;super);</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :                     nm = NULL;</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     632 </span>            :                 }
+<span class="lineNum">     633 </span>            :             }
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :             if (NULL != nm) {</span>
+<span class="lineNum">     635 </span>            :                 /* append to the end */
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :                 opal_list_append(peers, &amp;nm-&gt;super);</span>
+<span class="lineNum">     637 </span>            :             }
+<span class="lineNum">     638 </span>            :         }
+<span class="lineNum">     639 </span>            :     } else {
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :         for (i=0; i &lt; group-&gt;grp_proc_count; i++) {</span>
+<span class="lineNum">     641 </span>            :             /* lookup this proc_t to get the process name */
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :             if (NULL == (proct = ompi_group_peer_lookup(group, i))) {</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     645 </span>            :             }
+<span class="lineNum">     646 </span>            :             /* add to the list of peers */
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     648 </span>            :                                  &quot;%s dpm:orte:disconnect adding participant %s&quot;,
+<span class="lineNum">     649 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     650 </span>            :                                  ORTE_NAME_PRINT((const orte_process_name_t *)&amp;proct-&gt;super.proc_name)));
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :             nm = OBJ_NEW(orte_namelist_t);</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :             nm-&gt;name = *(orte_process_name_t*)&amp;proct-&gt;super.proc_name;</span>
+<span class="lineNum">     653 </span>            :             /* need to maintain an ordered list to ensure the tracker signatures
+<span class="lineNum">     654 </span>            :              * match across all procs */
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :             OPAL_LIST_FOREACH(n2, peers, orte_namelist_t) {</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :                 if (opal_compare_proc(nm-&gt;name, n2-&gt;name) &lt; 0) {</span>
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :                     opal_list_insert_pos(peers, &amp;n2-&gt;super, &amp;nm-&gt;super);</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :                     nm = NULL;</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     660 </span>            :                 }
+<span class="lineNum">     661 </span>            :             }
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :             if (NULL != nm) {</span>
+<span class="lineNum">     663 </span>            :                 /* append to the end */
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :                 opal_list_append(peers, &amp;nm-&gt;super);</span>
+<span class="lineNum">     665 </span>            :             }
+<span class="lineNum">     666 </span>            :         }
+<span class="lineNum">     667 </span>            :     }
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="669"><span class="lineNum">     669 </span>            : }</a>
+<span class="lineNum">     670 </span>            : 
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 : static int disconnect(ompi_communicator_t *comm)</span>
+<span class="lineNum">     672 </span>            : {
+<span class="lineNum">     673 </span>            :     int ret, i;
+<span class="lineNum">     674 </span>            :     ompi_group_t *group;
+<span class="lineNum">     675 </span>            :     opal_list_t coll;
+<span class="lineNum">     676 </span>            :     orte_namelist_t *nm;
+<span class="lineNum">     677 </span>            :     opal_process_name_t *ids;
+<span class="lineNum">     678 </span>            : 
+<span class="lineNum">     679 </span>            :     /* Note that we explicitly use an RTE-based barrier (vs. an MPI
+<span class="lineNum">     680 </span>            :        barrier).  See a lengthy comment in
+<span class="lineNum">     681 </span>            :        ompi/runtime/ompi_mpi_finalize.c for a much more detailed
+<span class="lineNum">     682 </span>            :        rationale. */
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     685 </span>            :                          &quot;%s dpm:orte:disconnect comm_cid %d&quot;,
+<span class="lineNum">     686 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), comm-&gt;c_contextid));
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span>            :     /* setup the collective */
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;coll, opal_list_t);</span>
+<span class="lineNum">     690 </span>            :     /* RHC: assuming for now that this must flow across all
+<span class="lineNum">     691 </span>            :      * local and remote group members */
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :     group = comm-&gt;c_local_group;</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (ret = construct_peers(group, &amp;coll))) {</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :         OPAL_LIST_DESTRUCT(&amp;coll);</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :         return ret;</span>
+<span class="lineNum">     697 </span>            :     }
+<span class="lineNum">     698 </span>            :     /* do the same for the remote group */
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :     group = comm-&gt;c_remote_group;</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (ret = construct_peers(group, &amp;coll))) {</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :         OPAL_LIST_DESTRUCT(&amp;coll);</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :         return ret;</span>
+<span class="lineNum">     704 </span>            :     }
+<span class="lineNum">     705 </span>            : 
+<span class="lineNum">     706 </span>            :     /* setup the ids */
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :     ids = (opal_process_name_t*)malloc(opal_list_get_size(&amp;coll) * sizeof(opal_process_name_t));</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :     i=0;</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :     OPAL_LIST_FOREACH(nm, &amp;coll, orte_namelist_t) {</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :         ids[i++] = nm-&gt;name;</span>
+<span class="lineNum">     711 </span>            :     }
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :     OPAL_LIST_DESTRUCT(&amp;coll);</span>
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     715 </span>            :                          &quot;%s dpm:orte:disconnect calling barrier on comm_cid %d with %d participants&quot;,
+<span class="lineNum">     716 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), comm-&gt;c_contextid, i));
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :     opal_pmix.fence(ids, i);</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :     free(ids);</span>
+<span class="lineNum">     719 </span>            : 
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">     721 </span>            :                          &quot;%s dpm:orte:disconnect barrier complete for comm_cid %d&quot;,
+<span class="lineNum">     722 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), comm-&gt;c_contextid));
+<span class="lineNum">     723 </span>            : 
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<a name="725"><span class="lineNum">     725 </span>            : }</a>
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 : static int spawn(int count, const char *array_of_commands[],</span>
+<span class="lineNum">     728 </span>            :                  char **array_of_argv[],
+<span class="lineNum">     729 </span>            :                  const int array_of_maxprocs[],
+<span class="lineNum">     730 </span>            :                  const MPI_Info array_of_info[],
+<span class="lineNum">     731 </span>            :                  const char *port_name)
+<span class="lineNum">     732 </span>            : {
+<span class="lineNum">     733 </span>            :     int rc, i, j, counter;
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :     int have_wdir=0;</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :     int flag=0;</span>
+<span class="lineNum">     736 </span>            :     char cwd[OPAL_PATH_MAX];
+<span class="lineNum">     737 </span>            :     char host[OPAL_MAX_INFO_VAL];  /*** should define OMPI_HOST_MAX ***/
+<span class="lineNum">     738 </span>            :     char prefix[OPAL_MAX_INFO_VAL];
+<span class="lineNum">     739 </span>            :     char stdin_target[OPAL_MAX_INFO_VAL];
+<span class="lineNum">     740 </span>            :     char params[OPAL_MAX_INFO_VAL];
+<span class="lineNum">     741 </span>            :     char mapper[OPAL_MAX_INFO_VAL];
+<span class="lineNum">     742 </span>            :     int npernode;
+<span class="lineNum">     743 </span>            :     char slot_list[OPAL_MAX_INFO_VAL];
+<span class="lineNum">     744 </span>            : 
+<span class="lineNum">     745 </span>            :     orte_job_t *jdata;
+<span class="lineNum">     746 </span>            :     orte_app_context_t *app;
+<span class="lineNum">     747 </span>            :     bool local_spawn, non_mpi;
+<span class="lineNum">     748 </span>            :     char **envars;
+<span class="lineNum">     749 </span>            : 
+<span class="lineNum">     750 </span>            :     /* parse the info object */
+<span class="lineNum">     751 </span>            :     /* check potentially for:
+<span class="lineNum">     752 </span>            :        - &quot;host&quot;: desired host where to spawn the processes
+<span class="lineNum">     753 </span>            :        - &quot;hostfile&quot;: hostfile containing hosts where procs are
+<span class="lineNum">     754 </span>            :        to be spawned
+<span class="lineNum">     755 </span>            :        - &quot;add-host&quot;: add the specified hosts to the known list
+<span class="lineNum">     756 </span>            :        of available resources and spawn these
+<span class="lineNum">     757 </span>            :        procs on them
+<span class="lineNum">     758 </span>            :        - &quot;add-hostfile&quot;: add the hosts in the hostfile to the
+<span class="lineNum">     759 </span>            :        known list of available resources and spawn
+<span class="lineNum">     760 </span>            :        these procs on them
+<span class="lineNum">     761 </span>            :        - &quot;env&quot;: a newline-delimited list of envar values to be
+<span class="lineNum">     762 </span>            :        placed into the app's environment (of form &quot;foo=bar&quot;)
+<span class="lineNum">     763 </span>            :        - &quot;ompi_prefix&quot;: the path to the root of the directory tree where ompi
+<span class="lineNum">     764 </span>            :        executables and libraries can be found on all nodes
+<span class="lineNum">     765 </span>            :        used to spawn these procs
+<span class="lineNum">     766 </span>            :        - &quot;arch&quot;: desired architecture
+<span class="lineNum">     767 </span>            :        - &quot;wdir&quot;: directory, where executable can be found
+<span class="lineNum">     768 </span>            :        - &quot;path&quot;: list of directories where to look for the executable
+<span class="lineNum">     769 </span>            :        - &quot;file&quot;: filename, where additional information is provided.
+<span class="lineNum">     770 </span>            :        - &quot;soft&quot;: see page 92 of MPI-2.
+<span class="lineNum">     771 </span>            :        - &quot;mapper&quot;: indicate the mapper to be used for the job
+<span class="lineNum">     772 </span>            :        - &quot;display_map&quot;: display the map of the spawned job
+<span class="lineNum">     773 </span>            :        - &quot;npernode&quot;: number of procs/node to spawn
+<span class="lineNum">     774 </span>            :        - &quot;pernode&quot;: spawn one proc/node
+<span class="lineNum">     775 </span>            :        - &quot;ppr&quot;: spawn specified number of procs per specified object
+<span class="lineNum">     776 </span>            :        - &quot;map_by&quot;: specify object by which the procs should be mapped
+<span class="lineNum">     777 </span>            :        - &quot;rank_by&quot;: specify object by which the procs should be ranked
+<span class="lineNum">     778 </span>            :        - &quot;bind_to&quot;: specify object to which the procs should be bound
+<span class="lineNum">     779 </span>            :        - &quot;ompi_preload_binary&quot;: move binaries to nodes prior to execution
+<span class="lineNum">     780 </span>            :        - &quot;ompi_preload_files&quot;: move specified files to nodes prior to execution
+<span class="lineNum">     781 </span>            :        - &quot;ompi_non_mpi&quot;: spawned job will not call MPI_Init
+<span class="lineNum">     782 </span>            :        - &quot;ompi_param&quot;: list of MCA params to be in the spawned job's environment
+<span class="lineNum">     783 </span>            :        - &quot;env&quot;: newline (\n) delimited list of envar values to be passed to spawned procs
+<span class="lineNum">     784 </span>            :     */
+<span class="lineNum">     785 </span>            : 
+<span class="lineNum">     786 </span>            :     /* setup the job object */
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :     jdata = OBJ_NEW(orte_job_t);</span>
+<span class="lineNum">     788 </span>            : 
+<span class="lineNum">     789 </span>            :     /* Convert the list of commands to an array of orte_app_context_t
+<span class="lineNum">     790 </span>            :        pointers */
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; count; ++i) {</span>
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :         app = OBJ_NEW(orte_app_context_t);</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :         if (NULL == app) {</span>
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(jdata);</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :             opal_progress_event_users_decrement();</span>
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     798 </span>            :         }
+<span class="lineNum">     799 </span>            :         /* add the app to the job data */
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :         opal_pointer_array_add(jdata-&gt;apps, app);</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :         app-&gt;idx = i;</span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :         jdata-&gt;num_apps++;</span>
+<span class="lineNum">     803 </span>            : 
+<span class="lineNum">     804 </span>            :         /* copy over the name of the executable */
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :         app-&gt;app = strdup(array_of_commands[i]);</span>
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :         if (NULL == app-&gt;app) {</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(jdata);</span>
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :             opal_progress_event_users_decrement();</span>
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     811 </span>            :         }
+<span class="lineNum">     812 </span>            :         /* record the number of procs to be generated */
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :         app-&gt;num_procs = array_of_maxprocs[i];</span>
+<span class="lineNum">     814 </span>            : 
+<span class="lineNum">     815 </span>            :         /* copy over the argv array */
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :         counter = 1;</span>
+<span class="lineNum">     817 </span>            : 
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :         if (MPI_ARGVS_NULL != array_of_argv &amp;&amp;</span>
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :             MPI_ARGV_NULL != array_of_argv[i]) {</span>
+<span class="lineNum">     820 </span>            :             /* first need to find out how many entries there are */
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :             j=0;</span>
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :             while (NULL != array_of_argv[i][j]) {</span>
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :                 j++;</span>
+<span class="lineNum">     824 </span>            :             }
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :             counter += j;</span>
+<span class="lineNum">     826 </span>            :         }
+<span class="lineNum">     827 </span>            : 
+<span class="lineNum">     828 </span>            :         /* now copy them over, ensuring to NULL terminate the array */
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :         app-&gt;argv = (char**)malloc((1 + counter) * sizeof(char*));</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :         if (NULL == app-&gt;argv) {</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(jdata);</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :             opal_progress_event_users_decrement();</span>
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     835 </span>            :         }
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :         app-&gt;argv[0] = strdup(array_of_commands[i]);</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :         for (j=1; j &lt; counter; j++) {</span>
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :             app-&gt;argv[j] = strdup(array_of_argv[i][j-1]);</span>
+<span class="lineNum">     839 </span>            :         }
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :         app-&gt;argv[counter] = NULL;</span>
+<span class="lineNum">     841 </span>            : 
+<span class="lineNum">     842 </span>            : 
+<span class="lineNum">     843 </span>            :         /* the environment gets set by the launcher
+<span class="lineNum">     844 </span>            :          * all we need to do is add the specific values
+<span class="lineNum">     845 </span>            :          * needed for comm_spawn
+<span class="lineNum">     846 </span>            :          */
+<span class="lineNum">     847 </span>            :         /* Add environment variable with the contact information for the
+<span class="lineNum">     848 </span>            :            child processes.
+<span class="lineNum">     849 </span>            :         */
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :         app-&gt;env = (char**)malloc(2 * sizeof(char*));</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :         if (NULL == app-&gt;env) {</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(jdata);</span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :             opal_progress_event_users_decrement();</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     856 </span>            :         }
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :         asprintf(&amp;(app-&gt;env[0]), &quot;OMPI_PARENT_PORT=%s&quot;, port_name);</span>
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :         app-&gt;env[1] = NULL;</span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :         for (j = 0; NULL != environ[j]; ++j) {</span>
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :             if (0 == strncmp(&quot;OMPI_&quot;, environ[j], 5)) {</span>
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :                 opal_argv_append_nosize(&amp;app-&gt;env, environ[j]);</span>
+<span class="lineNum">     862 </span>            :             }
+<span class="lineNum">     863 </span>            :         }
+<span class="lineNum">     864 </span>            : 
+<span class="lineNum">     865 </span>            :         /* Check for well-known info keys */
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :         have_wdir = 0;</span>
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :         if ( array_of_info != NULL &amp;&amp; array_of_info[i] != MPI_INFO_NULL ) {</span>
+<span class="lineNum">     868 </span>            : 
+<span class="lineNum">     869 </span>            :             /* check for personality */
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;personality&quot;, sizeof(host) - 1, host, &amp;flag);</span>
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :                 jdata-&gt;personality = strdup(host);</span>
+<span class="lineNum">     873 </span>            :             }
+<span class="lineNum">     874 </span>            : 
+<span class="lineNum">     875 </span>            :             /* check for 'host' */
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;host&quot;, sizeof(host) - 1, host, &amp;flag);</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :                 orte_set_attribute(&amp;app-&gt;attributes, ORTE_APP_DASH_HOST, false, host, OPAL_STRING);</span>
+<span class="lineNum">     879 </span>            :             }
+<span class="lineNum">     880 </span>            : 
+<span class="lineNum">     881 </span>            :             /* check for 'hostfile' */
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;hostfile&quot;, sizeof(host) - 1, host, &amp;flag);</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :                 orte_set_attribute(&amp;app-&gt;attributes, ORTE_APP_HOSTFILE, false, host, OPAL_STRING);</span>
+<span class="lineNum">     885 </span>            :             }
+<span class="lineNum">     886 </span>            : 
+<span class="lineNum">     887 </span>            :             /* check for 'add-hostfile' */
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;add-hostfile&quot;, sizeof(host) - 1, host, &amp;flag);</span>
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :                 orte_set_attribute(&amp;app-&gt;attributes, ORTE_APP_ADD_HOSTFILE, false, host, OPAL_STRING);</span>
+<span class="lineNum">     891 </span>            :             }
+<span class="lineNum">     892 </span>            : 
+<span class="lineNum">     893 </span>            :             /* check for 'add-host' */
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;add-host&quot;, sizeof(host) - 1, host, &amp;flag);</span>
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :                 orte_set_attribute(&amp;app-&gt;attributes, ORTE_APP_ADD_HOST, false, host, OPAL_STRING);</span>
+<span class="lineNum">     897 </span>            :             }
+<span class="lineNum">     898 </span>            : 
+<span class="lineNum">     899 </span>            :             /* check for env */
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;env&quot;, sizeof(host)-1, host, &amp;flag);</span>
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :                 envars = opal_argv_split(host, '\n');</span>
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :                 for (j=0; NULL != envars[j]; j++) {</span>
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :                     opal_argv_append_nosize(&amp;app-&gt;env, envars[j]);</span>
+<span class="lineNum">     905 </span>            :                 }
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :                 opal_argv_free(envars);</span>
+<span class="lineNum">     907 </span>            :             }
+<span class="lineNum">     908 </span>            : 
+<span class="lineNum">     909 </span>            :             /* 'path', 'arch', 'file', 'soft'  -- to be implemented */
+<span class="lineNum">     910 </span>            : 
+<span class="lineNum">     911 </span>            :             /* check for 'ompi_prefix' (OMPI-specific -- to effect the same
+<span class="lineNum">     912 </span>            :              * behavior as --prefix option to orterun)
+<span class="lineNum">     913 </span>            :              */
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;ompi_prefix&quot;, sizeof(prefix) - 1, prefix, &amp;flag);</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :                 orte_set_attribute(&amp;app-&gt;attributes, ORTE_APP_PREFIX_DIR, false, prefix, OPAL_STRING);</span>
+<span class="lineNum">     917 </span>            :             }
+<span class="lineNum">     918 </span>            : 
+<span class="lineNum">     919 </span>            :             /* check for 'wdir' */
+<span class="lineNum">     920 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;wdir&quot;, sizeof(cwd) - 1, cwd, &amp;flag);</span>
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :                 app-&gt;cwd = strdup(cwd);</span>
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :                 have_wdir = 1;</span>
+<span class="lineNum">     924 </span>            :             }
+<span class="lineNum">     925 </span>            : 
+<span class="lineNum">     926 </span>            :             /* check for 'mapper' */
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :             ompi_info_get(array_of_info[i], &quot;mapper&quot;, sizeof(mapper) - 1, mapper, &amp;flag);</span>
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :                 if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :                     jdata-&gt;map = OBJ_NEW(orte_job_map_t);</span>
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :                     if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :                         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :                         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     934 </span>            :                     }
+<span class="lineNum">     935 </span>            :                 }
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :                 jdata-&gt;map-&gt;req_mapper = strdup(mapper);</span>
+<span class="lineNum">     937 </span>            :             }
+<span class="lineNum">     938 </span>            : 
+<span class="lineNum">     939 </span>            :             /* check for 'display_map' */
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :             ompi_info_get_bool(array_of_info[i], &quot;display_map&quot;, &amp;local_spawn, &amp;flag);</span>
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :                 if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :                     jdata-&gt;map = OBJ_NEW(orte_job_map_t);</span>
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :                     if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :                         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :                         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     947 </span>            :                     }
+<span class="lineNum">     948 </span>            :                 }
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :                 jdata-&gt;map-&gt;display_map = true;</span>
+<span class="lineNum">     950 </span>            :             }
+<span class="lineNum">     951 </span>            : 
+<span class="lineNum">     952 </span>            :             /* check for 'npernode' and 'ppr' */
+<span class="lineNum">     953 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;npernode&quot;, sizeof(slot_list) - 1, slot_list, &amp;flag);</span>
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :                 if (ORTE_SUCCESS != ompi_info_value_to_int(slot_list, &amp;npernode)) {</span>
+<span class="lineNum">     956 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);</span>
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :                     return ORTE_ERR_BAD_PARAM;</span>
+<span class="lineNum">     958 </span>            :                 }
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :                 if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :                     jdata-&gt;map = OBJ_NEW(orte_job_map_t);</span>
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :                     if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :                         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :                         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     964 </span>            :                     }
+<span class="lineNum">     965 </span>            :                 }
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :                 if (ORTE_MAPPING_POLICY_IS_SET(jdata-&gt;map-&gt;mapping)) {</span>
+<span class="lineNum">     967 </span>            :                     /* not allowed to provide multiple mapping policies */
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :                     return OMPI_ERROR;</span>
+<span class="lineNum">     969 </span>            :                 }
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :                 ORTE_SET_MAPPING_DIRECTIVE(jdata-&gt;map-&gt;mapping, ORTE_MAPPING_PPR);</span>
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :                 asprintf(&amp;(jdata-&gt;map-&gt;ppr), &quot;%d:n&quot;, npernode);</span>
+<span class="lineNum">     972 </span>            :             }
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;pernode&quot;, sizeof(slot_list) - 1, slot_list, &amp;flag);</span>
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :                 if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :                     jdata-&gt;map = OBJ_NEW(orte_job_map_t);</span>
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :                     if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :                         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :                         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     980 </span>            :                     }
+<span class="lineNum">     981 </span>            :                 }
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :                 if (ORTE_MAPPING_POLICY_IS_SET(jdata-&gt;map-&gt;mapping)) {</span>
+<span class="lineNum">     983 </span>            :                     /* not allowed to provide multiple mapping policies */
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :                     return OMPI_ERROR;</span>
+<span class="lineNum">     985 </span>            :                 }
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :                 ORTE_SET_MAPPING_DIRECTIVE(jdata-&gt;map-&gt;mapping, ORTE_MAPPING_PPR);</span>
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :                 jdata-&gt;map-&gt;ppr = strdup(&quot;1:n&quot;);</span>
+<span class="lineNum">     988 </span>            :             }
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;ppr&quot;, sizeof(slot_list) - 1, slot_list, &amp;flag);</span>
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :                 if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :                     jdata-&gt;map = OBJ_NEW(orte_job_map_t);</span>
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :                     if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :                         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :                         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     996 </span>            :                     }
+<span class="lineNum">     997 </span>            :                 }
+<span class="lineNum">     998 </span><span class="lineNoCov">          0 :                 if (ORTE_MAPPING_POLICY_IS_SET(jdata-&gt;map-&gt;mapping)) {</span>
+<span class="lineNum">     999 </span>            :                     /* not allowed to provide multiple mapping policies */
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :                     return OMPI_ERROR;</span>
+<span class="lineNum">    1001 </span>            :                 }
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :                 ORTE_SET_MAPPING_DIRECTIVE(jdata-&gt;map-&gt;mapping, ORTE_MAPPING_PPR);</span>
+<span class="lineNum">    1003 </span><span class="lineNoCov">          0 :                 jdata-&gt;map-&gt;ppr = strdup(slot_list);</span>
+<span class="lineNum">    1004 </span>            :             }
+<span class="lineNum">    1005 </span>            : 
+<span class="lineNum">    1006 </span>            :             /* check for 'map_by' */
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :             ompi_info_get(array_of_info[i], &quot;map_by&quot;, sizeof(slot_list) - 1, slot_list, &amp;flag);</span>
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">    1009 </span><span class="lineNoCov">          0 :                 if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">    1010 </span><span class="lineNoCov">          0 :                     jdata-&gt;map = OBJ_NEW(orte_job_map_t);</span>
+<span class="lineNum">    1011 </span><span class="lineNoCov">          0 :                     if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :                         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :                         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">    1014 </span>            :                     }
+<span class="lineNum">    1015 </span>            :                 }
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :                 if (ORTE_MAPPING_POLICY_IS_SET(jdata-&gt;map-&gt;mapping)) {</span>
+<span class="lineNum">    1017 </span>            :                     /* not allowed to provide multiple mapping policies */
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :                     return OMPI_ERROR;</span>
+<span class="lineNum">    1019 </span>            :                 }
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :                 if (ORTE_SUCCESS != (rc = orte_rmaps_base_set_mapping_policy(&amp;jdata-&gt;map-&gt;mapping,</span>
+<span class="lineNum">    1021 </span>            :                                                                              NULL, slot_list))) {
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :                     return rc;</span>
+<span class="lineNum">    1023 </span>            :                 }
+<span class="lineNum">    1024 </span>            :             }
+<span class="lineNum">    1025 </span>            : 
+<span class="lineNum">    1026 </span>            :             /* check for 'rank_by' */
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :             ompi_info_get(array_of_info[i], &quot;rank_by&quot;, sizeof(slot_list) - 1, slot_list, &amp;flag);</span>
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :                 if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :                     jdata-&gt;map = OBJ_NEW(orte_job_map_t);</span>
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :                     if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :                         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">    1033 </span><span class="lineNoCov">          0 :                         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">    1034 </span>            :                     }
+<span class="lineNum">    1035 </span>            :                 }
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :                 if (ORTE_RANKING_POLICY_IS_SET(jdata-&gt;map-&gt;ranking)) {</span>
+<span class="lineNum">    1037 </span>            :                     /* not allowed to provide multiple ranking policies */
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :                     return OMPI_ERROR;</span>
+<span class="lineNum">    1039 </span>            :                 }
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :                 if (ORTE_SUCCESS != (rc = orte_rmaps_base_set_ranking_policy(&amp;jdata-&gt;map-&gt;ranking,</span>
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :                                                                              jdata-&gt;map-&gt;mapping, slot_list))) {</span>
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :                     return rc;</span>
+<span class="lineNum">    1043 </span>            :                 }
+<span class="lineNum">    1044 </span>            :             }
+<span class="lineNum">    1045 </span>            : 
+<span class="lineNum">    1046 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">    1047 </span>            :             /* check for 'bind_to' */
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :             ompi_info_get(array_of_info[i], &quot;bind_to&quot;, sizeof(slot_list) - 1, slot_list, &amp;flag);</span>
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :                 if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :                     jdata-&gt;map = OBJ_NEW(orte_job_map_t);</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :                     if (NULL == jdata-&gt;map) {</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :                         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :                         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">    1055 </span>            :                     }
+<span class="lineNum">    1056 </span>            :                 }
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :                 if (OPAL_BINDING_POLICY_IS_SET(jdata-&gt;map-&gt;binding)) {</span>
+<span class="lineNum">    1058 </span>            :                     /* not allowed to provide multiple binding policies */
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :                     return OMPI_ERROR;</span>
+<span class="lineNum">    1060 </span>            :                 }
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :                 if (ORTE_SUCCESS != (rc = opal_hwloc_base_set_binding_policy(&amp;jdata-&gt;map-&gt;binding, slot_list))) {</span>
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 :                     return rc;</span>
+<span class="lineNum">    1063 </span>            :                 }
+<span class="lineNum">    1064 </span>            :             }
+<span class="lineNum">    1065 </span>            : #endif
+<span class="lineNum">    1066 </span>            : 
+<span class="lineNum">    1067 </span>            :             /* check for 'preload_binary' */
+<span class="lineNum">    1068 </span><span class="lineNoCov">          0 :             ompi_info_get_bool(array_of_info[i], &quot;ompi_preload_binary&quot;, &amp;local_spawn, &amp;flag);</span>
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :                 orte_set_attribute(&amp;app-&gt;attributes, ORTE_APP_PRELOAD_BIN, false, NULL, OPAL_BOOL);</span>
+<span class="lineNum">    1071 </span>            :             }
+<span class="lineNum">    1072 </span>            : 
+<span class="lineNum">    1073 </span>            :             /* check for 'preload_files' */
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;ompi_preload_files&quot;, sizeof(cwd) - 1, cwd, &amp;flag);</span>
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :                 orte_set_attribute(&amp;app-&gt;attributes, ORTE_APP_PRELOAD_FILES, false, cwd, OPAL_STRING);</span>
+<span class="lineNum">    1077 </span>            :             }
+<span class="lineNum">    1078 </span>            : 
+<span class="lineNum">    1079 </span>            :             /* see if this is a non-mpi job - if so, then set the flag so ORTE
+<span class="lineNum">    1080 </span>            :              * knows what to do
+<span class="lineNum">    1081 </span>            :              */
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :             ompi_info_get_bool(array_of_info[i], &quot;ompi_non_mpi&quot;, &amp;non_mpi, &amp;flag);</span>
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :             if (flag &amp;&amp; non_mpi) {</span>
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :                 orte_set_attribute(&amp;jdata-&gt;attributes, ORTE_JOB_NON_ORTE_JOB, false, NULL, OPAL_BOOL);</span>
+<span class="lineNum">    1085 </span>            :             }
+<span class="lineNum">    1086 </span>            : 
+<span class="lineNum">    1087 </span>            :             /* see if this is an MCA param that the user wants applied to the child job */
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;ompi_param&quot;, sizeof(params) - 1, params, &amp;flag);</span>
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">    1090 </span><span class="lineNoCov">          0 :                 opal_argv_append_unique_nosize(&amp;app-&gt;env, params, true);</span>
+<span class="lineNum">    1091 </span>            :             }
+<span class="lineNum">    1092 </span>            : 
+<span class="lineNum">    1093 </span>            :             /* see if user specified what to do with stdin - defaults to
+<span class="lineNum">    1094 </span>            :              * not forwarding stdin to child processes
+<span class="lineNum">    1095 </span>            :              */
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 :             ompi_info_get (array_of_info[i], &quot;ompi_stdin_target&quot;, sizeof(stdin_target) - 1, stdin_target, &amp;flag);</span>
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :             if ( flag ) {</span>
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :                 if (0 == strcmp(stdin_target, &quot;all&quot;)) {</span>
+<span class="lineNum">    1099 </span><span class="lineNoCov">          0 :                     jdata-&gt;stdin_target = ORTE_VPID_WILDCARD;</span>
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :                 } else if (0 == strcmp(stdin_target, &quot;none&quot;)) {</span>
+<span class="lineNum">    1101 </span><span class="lineNoCov">          0 :                     jdata-&gt;stdin_target = ORTE_VPID_INVALID;</span>
+<span class="lineNum">    1102 </span>            :                 } else {
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :                     jdata-&gt;stdin_target = strtoul(stdin_target, NULL, 10);</span>
+<span class="lineNum">    1104 </span>            :                 }
+<span class="lineNum">    1105 </span>            :             }
+<span class="lineNum">    1106 </span>            :         }
+<span class="lineNum">    1107 </span>            : 
+<span class="lineNum">    1108 </span>            :         /* default value: If the user did not tell us where to look for the
+<span class="lineNum">    1109 </span>            :          * executable, we assume the current working directory
+<span class="lineNum">    1110 </span>            :          */
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 :         if ( !have_wdir ) {</span>
+<span class="lineNum">    1112 </span><span class="lineNoCov">          0 :             if (OMPI_SUCCESS != (rc = opal_getcwd(cwd, OPAL_PATH_MAX))) {</span>
+<span class="lineNum">    1113 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(jdata);</span>
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :                 opal_progress_event_users_decrement();</span>
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">    1117 </span>            :             }
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :             app-&gt;cwd = strdup(cwd);</span>
+<span class="lineNum">    1119 </span>            :         }
+<span class="lineNum">    1120 </span>            : 
+<span class="lineNum">    1121 </span>            :         /* leave the map info alone - the launcher will
+<span class="lineNum">    1122 </span>            :          * decide where to put things
+<span class="lineNum">    1123 </span>            :          */
+<span class="lineNum">    1124 </span>            :     } /* for (i = 0 ; i &lt; count ; ++i) */
+<span class="lineNum">    1125 </span>            : 
+<span class="lineNum">    1126 </span>            :     /* default the personality */
+<span class="lineNum">    1127 </span><span class="lineNoCov">          0 :     if (NULL == jdata-&gt;personality) {</span>
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :         jdata-&gt;personality = strdup(&quot;ompi&quot;);</span>
+<span class="lineNum">    1129 </span>            :     }
+<span class="lineNum">    1130 </span>            : 
+<span class="lineNum">    1131 </span>            :     /* spawn procs */
+<span class="lineNum">    1132 </span><span class="lineNoCov">          0 :     rc = orte_plm.spawn(jdata);</span>
+<span class="lineNum">    1133 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(jdata);</span>
+<span class="lineNum">    1134 </span>            : 
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != rc) {</span>
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :         opal_progress_event_users_decrement();</span>
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :         return MPI_ERR_SPAWN;</span>
+<span class="lineNum">    1139 </span>            :     }
+<span class="lineNum">    1140 </span>            : 
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">    1142 </span>            : }
+<span class="lineNum">    1143 </span>            : 
+<span class="lineNum">    1144 </span>            : /*
+<span class="lineNum">    1145 </span>            :  * The port_name is constructed to support the ability
+<span class="lineNum">    1146 </span>            :  * to route messages between different jobs. Messages
+<span class="lineNum">    1147 </span>            :  * between job families are routed via their respective HNPs
+<span class="lineNum">    1148 </span>            :  * to reduce connection count and to support connect/accept.
+<span class="lineNum">    1149 </span>            :  * Thus, the port_name consists of three fields:
+<span class="lineNum">    1150 </span>            :  * (a) the contact info of the process opening the port. This
+<span class="lineNum">    1151 </span>            :  *     is provided in case the routed module wants to communicate
+<span class="lineNum">    1152 </span>            :  *     directly between the procs.
+<span class="lineNum">    1153 </span>            :  * (b) the tag of the port. The reason for adding the tag is
+<span class="lineNum">    1154 </span>            :  *     to make the port unique for multi-threaded scenarios.
+<span class="lineNum">    1155 </span>            :  * (c) the contact info for the job's HNP. This will be
+<span class="lineNum">    1156 </span>            :  *     used to route messages between job families
+<span class="lineNum">    1157 </span>            :  *
+<span class="lineNum">    1158 </span>            :  * Construction of the port name is done here - as opposed to
+<span class="lineNum">    1159 </span>            :  * in the routed module itself - because two mpiruns using different
+<span class="lineNum">    1160 </span>            :  * routed modules could exchange the port name (via pubsub). The
+<span class="lineNum">    1161 </span>            :  * format of the port name must, therefore, be universal.
+<span class="lineNum">    1162 </span>            :  *
+<span class="lineNum">    1163 </span>            :  * Optionally can provide a tag to be used - otherwise, we supply the
+<a name="1164"><span class="lineNum">    1164 </span>            :  * next dynamically assigned tag</a>
+<span class="lineNum">    1165 </span>            :  */
+<span class="lineNum">    1166 </span><span class="lineNoCov">          0 : static int open_port(char *port_name, orte_rml_tag_t given_tag)</span>
+<span class="lineNum">    1167 </span>            : {
+<span class="lineNum">    1168 </span><span class="lineNoCov">          0 :     char *rml_uri=NULL;</span>
+<span class="lineNum">    1169 </span>            :     int rc, len;
+<span class="lineNum">    1170 </span>            :     char tag[12];
+<span class="lineNum">    1171 </span>            : 
+<span class="lineNum">    1172 </span>            :     /* if we are a singleton and the supporting HNP hasn't
+<span class="lineNum">    1173 </span>            :      * been spawned, then do so now
+<span class="lineNum">    1174 </span>            :      */
+<span class="lineNum">    1175 </span><span class="lineNoCov">          0 :     if ((orte_process_info.proc_type &amp; ORTE_PROC_SINGLETON) &amp;&amp;</span>
+<span class="lineNum">    1176 </span><span class="lineNoCov">          0 :         !orte_routing_is_enabled) {</span>
+<span class="lineNum">    1177 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = orte_plm_base_fork_hnp())) {</span>
+<span class="lineNum">    1178 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1179 </span><span class="lineNoCov">          0 :             return OMPI_ERROR;</span>
+<span class="lineNum">    1180 </span>            :         }
+<span class="lineNum">    1181 </span><span class="lineNoCov">          0 :         orte_routing_is_enabled = true;</span>
+<span class="lineNum">    1182 </span>            :         /* need to init_routes again to redirect messages
+<span class="lineNum">    1183 </span>            :          * thru the HNP
+<span class="lineNum">    1184 </span>            :          */
+<span class="lineNum">    1185 </span><span class="lineNoCov">          0 :         orte_routed.init_routes(ORTE_PROC_MY_NAME-&gt;jobid, NULL);</span>
+<span class="lineNum">    1186 </span>            :     }
+<span class="lineNum">    1187 </span>            : 
+<span class="lineNum">    1188 </span><span class="lineNoCov">          0 :     if (NULL == orte_process_info.my_hnp_uri) {</span>
+<span class="lineNum">    1189 </span><span class="lineNoCov">          0 :         rc = OMPI_ERR_NOT_AVAILABLE;</span>
+<span class="lineNum">    1190 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1191 </span><span class="lineNoCov">          0 :         goto cleanup;</span>
+<span class="lineNum">    1192 </span>            :     }
+<span class="lineNum">    1193 </span>            : 
+<span class="lineNum">    1194 </span><span class="lineNoCov">          0 :     if (NULL == (rml_uri = orte_rml.get_contact_info())) {</span>
+<span class="lineNum">    1195 </span><span class="lineNoCov">          0 :         rc = OMPI_ERROR;</span>
+<span class="lineNum">    1196 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1197 </span><span class="lineNoCov">          0 :         goto cleanup;</span>
+<span class="lineNum">    1198 </span>            :     }
+<span class="lineNum">    1199 </span>            : 
+<span class="lineNum">    1200 </span><span class="lineNoCov">          0 :     if (ORTE_RML_TAG_INVALID == given_tag) {</span>
+<span class="lineNum">    1201 </span>            :         OPAL_THREAD_LOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1202 </span><span class="lineNoCov">          0 :         snprintf(tag, 12, &quot;%d&quot;, next_tag);</span>
+<span class="lineNum">    1203 </span><span class="lineNoCov">          0 :         next_tag++;</span>
+<span class="lineNum">    1204 </span>            :         OPAL_THREAD_UNLOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1205 </span>            :     } else {
+<span class="lineNum">    1206 </span><span class="lineNoCov">          0 :         snprintf(tag, 12, &quot;%d&quot;, given_tag);</span>
+<span class="lineNum">    1207 </span>            :     }
+<span class="lineNum">    1208 </span>            : 
+<span class="lineNum">    1209 </span>            : 
+<span class="lineNum">    1210 </span><span class="lineNoCov">          0 :     len = strlen(orte_process_info.my_hnp_uri) + strlen(rml_uri) + strlen(tag);</span>
+<span class="lineNum">    1211 </span>            : 
+<span class="lineNum">    1212 </span>            :     /* if the overall port name is too long, we abort */
+<span class="lineNum">    1213 </span><span class="lineNoCov">          0 :     if (len &gt; (MPI_MAX_PORT_NAME-1)) {</span>
+<span class="lineNum">    1214 </span><span class="lineNoCov">          0 :         rc = OMPI_ERR_VALUE_OUT_OF_BOUNDS;</span>
+<span class="lineNum">    1215 </span><span class="lineNoCov">          0 :         goto cleanup;</span>
+<span class="lineNum">    1216 </span>            :     }
+<span class="lineNum">    1217 </span>            : 
+<span class="lineNum">    1218 </span>            :     /* assemble the port name */
+<span class="lineNum">    1219 </span><span class="lineNoCov">          0 :     snprintf(port_name, MPI_MAX_PORT_NAME, &quot;%s+%s:%s&quot;, orte_process_info.my_hnp_uri, rml_uri, tag);</span>
+<span class="lineNum">    1220 </span><span class="lineNoCov">          0 :     rc = OMPI_SUCCESS;</span>
+<span class="lineNum">    1221 </span>            : 
+<span class="lineNum">    1222 </span>            : cleanup:
+<span class="lineNum">    1223 </span><span class="lineNoCov">          0 :     if (NULL != rml_uri) {</span>
+<span class="lineNum">    1224 </span><span class="lineNoCov">          0 :         free(rml_uri);</span>
+<span class="lineNum">    1225 </span>            :     }
+<span class="lineNum">    1226 </span>            : 
+<span class="lineNum">    1227 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">    1228 </span>            : }
+<a name="1229"><span class="lineNum">    1229 </span>            : </a>
+<span class="lineNum">    1230 </span>            : 
+<span class="lineNum">    1231 </span><span class="lineNoCov">          0 : static int route_to_port(char *rml_uri, orte_process_name_t *rproc)</span>
+<span class="lineNum">    1232 </span>            : {
+<span class="lineNum">    1233 </span>            :     opal_buffer_t route;
+<span class="lineNum">    1234 </span>            :     int rc;
+<span class="lineNum">    1235 </span>            : 
+<span class="lineNum">    1236 </span>            :     /* We need to ask the routed module to init_routes so it can do the
+<span class="lineNum">    1237 </span>            :      * right thing. In most cases, it will route any messages to the
+<span class="lineNum">    1238 </span>            :      * proc through our HNP - however, this is NOT the case in all
+<span class="lineNum">    1239 </span>            :      * circumstances, so we need to let the routed module decide what
+<span class="lineNum">    1240 </span>            :      * to do.
+<span class="lineNum">    1241 </span>            :      */
+<span class="lineNum">    1242 </span>            :     /* pack a cmd so the buffer can be unpacked correctly */
+<span class="lineNum">    1243 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;route, opal_buffer_t);</span>
+<span class="lineNum">    1244 </span>            : 
+<span class="lineNum">    1245 </span>            :     /* pack the provided uri */
+<span class="lineNum">    1246 </span><span class="lineNoCov">          0 :     opal_dss.pack(&amp;route, &amp;rml_uri, 1, OPAL_STRING);</span>
+<span class="lineNum">    1247 </span>            : 
+<span class="lineNum">    1248 </span>            :     /* init the route */
+<span class="lineNum">    1249 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = orte_routed.init_routes(rproc-&gt;jobid, &amp;route))) {</span>
+<span class="lineNum">    1250 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1251 </span>            :     }
+<span class="lineNum">    1252 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;route);</span>
+<span class="lineNum">    1253 </span>            : 
+<span class="lineNum">    1254 </span>            :     /* nothing more to do here */
+<span class="lineNum">    1255 </span><span class="lineNoCov">          0 :     return rc;</span>
+<a name="1256"><span class="lineNum">    1256 </span>            : }</a>
+<span class="lineNum">    1257 </span>            : 
+<span class="lineNum">    1258 </span><span class="lineNoCov">          0 : static int parse_port_name(const char *port_name,</span>
+<span class="lineNum">    1259 </span>            :                            char **hnp_uri,
+<span class="lineNum">    1260 </span>            :                            char **rml_uri,
+<span class="lineNum">    1261 </span>            :                            orte_rml_tag_t *ptag)
+<span class="lineNum">    1262 </span>            : {
+<span class="lineNum">    1263 </span><span class="lineNoCov">          0 :     char *tmpstring=NULL, *ptr;</span>
+<span class="lineNum">    1264 </span>            :     int tag;
+<span class="lineNum">    1265 </span>            :     int rc;
+<span class="lineNum">    1266 </span>            : 
+<span class="lineNum">    1267 </span>            :     /* don't mangle the port name */
+<span class="lineNum">    1268 </span><span class="lineNoCov">          0 :     tmpstring = strdup(port_name);</span>
+<span class="lineNum">    1269 </span><span class="lineNoCov">          0 :     if (NULL == tmpstring) {</span>
+<span class="lineNum">    1270 </span><span class="lineNoCov">          0 :         return OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">    1271 </span>            :     }
+<span class="lineNum">    1272 </span>            : 
+<span class="lineNum">    1273 </span>            :     /* find the ':' demarking the RML tag we added to the end */
+<span class="lineNum">    1274 </span><span class="lineNoCov">          0 :     if (NULL == (ptr = strrchr(tmpstring, ':'))) {</span>
+<span class="lineNum">    1275 </span><span class="lineNoCov">          0 :         rc = OMPI_ERR_NOT_FOUND;</span>
+<span class="lineNum">    1276 </span><span class="lineNoCov">          0 :         goto cleanup;</span>
+<span class="lineNum">    1277 </span>            :     }
+<span class="lineNum">    1278 </span>            : 
+<span class="lineNum">    1279 </span>            :     /* terminate the port_name at that location */
+<span class="lineNum">    1280 </span><span class="lineNoCov">          0 :     *ptr = '\0';</span>
+<span class="lineNum">    1281 </span><span class="lineNoCov">          0 :     ptr++;</span>
+<span class="lineNum">    1282 </span>            : 
+<span class="lineNum">    1283 </span>            :     /* convert the RML tag */
+<span class="lineNum">    1284 </span><span class="lineNoCov">          0 :     (void)sscanf(ptr,&quot;%d&quot;, &amp;tag);</span>
+<span class="lineNum">    1285 </span>            : 
+<span class="lineNum">    1286 </span>            :     /* now split out the second field - the uri of the remote proc */
+<span class="lineNum">    1287 </span><span class="lineNoCov">          0 :     if (NULL == (ptr = strchr(tmpstring, '+'))) {</span>
+<span class="lineNum">    1288 </span><span class="lineNoCov">          0 :         rc = OMPI_ERR_NOT_FOUND;</span>
+<span class="lineNum">    1289 </span><span class="lineNoCov">          0 :         goto cleanup;</span>
+<span class="lineNum">    1290 </span>            :     }
+<span class="lineNum">    1291 </span><span class="lineNoCov">          0 :     *ptr = '\0';</span>
+<span class="lineNum">    1292 </span><span class="lineNoCov">          0 :     ptr++;</span>
+<span class="lineNum">    1293 </span>            : 
+<span class="lineNum">    1294 </span>            :     /* save that info */
+<span class="lineNum">    1295 </span><span class="lineNoCov">          0 :     if(NULL != hnp_uri) *hnp_uri = tmpstring;</span>
+<span class="lineNum">    1296 </span><span class="lineNoCov">          0 :     else free(tmpstring);</span>
+<span class="lineNum">    1297 </span><span class="lineNoCov">          0 :     if(NULL != rml_uri) *rml_uri = strdup(ptr);</span>
+<span class="lineNum">    1298 </span><span class="lineNoCov">          0 :     if(NULL != ptag) *ptag = tag;</span>
+<span class="lineNum">    1299 </span>            : 
+<span class="lineNum">    1300 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">    1301 </span>            : 
+<span class="lineNum">    1302 </span>            : cleanup:
+<span class="lineNum">    1303 </span>            :     /* release the tmp storage */
+<span class="lineNum">    1304 </span><span class="lineNoCov">          0 :     free(tmpstring);</span>
+<span class="lineNum">    1305 </span><span class="lineNoCov">          0 :     return rc;</span>
+<a name="1306"><span class="lineNum">    1306 </span>            : }</a>
+<span class="lineNum">    1307 </span>            : 
+<span class="lineNum">    1308 </span><span class="lineNoCov">          0 : static int close_port(const char *port_name)</span>
+<span class="lineNum">    1309 </span>            : {
+<span class="lineNum">    1310 </span>            :     /* nothing to do here - user is responsible for the memory */
+<span class="lineNum">    1311 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<a name="1312"><span class="lineNum">    1312 </span>            : }</a>
+<span class="lineNum">    1313 </span>            : 
+<span class="lineNum">    1314 </span><span class="lineCov">          2 : static int dyn_init(void)</span>
+<span class="lineNum">    1315 </span>            : {
+<span class="lineNum">    1316 </span><span class="lineCov">          2 :     char *port_name=NULL;</span>
+<span class="lineNum">    1317 </span><span class="lineCov">          2 :     int root=0, rc;</span>
+<span class="lineNum">    1318 </span><span class="lineCov">          2 :     bool send_first = true;</span>
+<span class="lineNum">    1319 </span><span class="lineCov">          2 :     ompi_communicator_t *newcomm=NULL;</span>
+<span class="lineNum">    1320 </span>            : 
+<span class="lineNum">    1321 </span>            :     /* if env-variable is set, we are a dynamically spawned
+<span class="lineNum">    1322 </span>            :         * child - parse port and call comm_connect_accept */
+<span class="lineNum">    1323 </span><span class="lineCov">          2 :     if (NULL == (port_name = ompi_dpm_base_dyn_init())) {</span>
+<span class="lineNum">    1324 </span>            :         /* nothing to do */
+<span class="lineNum">    1325 </span><span class="lineCov">          2 :         return OMPI_SUCCESS;</span>
+<span class="lineNum">    1326 </span>            :     }
+<span class="lineNum">    1327 </span>            : 
+<span class="lineNum">    1328 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">    1329 </span>            :                          &quot;%s dpm:orte:dyn_init with port %s&quot;,
+<span class="lineNum">    1330 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">    1331 </span>            :                          port_name));
+<span class="lineNum">    1332 </span>            : 
+<span class="lineNum">    1333 </span><span class="lineNoCov">          0 :     rc = connect_accept (MPI_COMM_WORLD, root, port_name, send_first, &amp;newcomm);</span>
+<span class="lineNum">    1334 </span><span class="lineNoCov">          0 :     free(port_name);</span>
+<span class="lineNum">    1335 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != rc) {</span>
+<span class="lineNum">    1336 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">    1337 </span>            :     }
+<span class="lineNum">    1338 </span>            : 
+<span class="lineNum">    1339 </span>            :     /* originally, we set comm_parent to comm_null (in comm_init),
+<span class="lineNum">    1340 </span>            :      * now we have to decrease the reference counters to the according
+<span class="lineNum">    1341 </span>            :      * objects
+<span class="lineNum">    1342 </span>            :      */
+<span class="lineNum">    1343 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(ompi_mpi_comm_parent-&gt;c_local_group);</span>
+<span class="lineNum">    1344 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(ompi_mpi_comm_parent-&gt;error_handler);</span>
+<span class="lineNum">    1345 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(ompi_mpi_comm_parent);</span>
+<span class="lineNum">    1346 </span>            : 
+<span class="lineNum">    1347 </span>            :     /* Set the parent communicator */
+<span class="lineNum">    1348 </span><span class="lineNoCov">          0 :     ompi_mpi_comm_parent = newcomm;</span>
+<span class="lineNum">    1349 </span>            : 
+<span class="lineNum">    1350 </span>            :     /* Set name for debugging purposes */
+<span class="lineNum">    1351 </span><span class="lineNoCov">          0 :     snprintf(newcomm-&gt;c_name, MPI_MAX_OBJECT_NAME, &quot;MPI_COMM_PARENT&quot;);</span>
+<span class="lineNum">    1352 </span><span class="lineNoCov">          0 :     newcomm-&gt;c_flags |= OMPI_COMM_NAMEISSET;</span>
+<span class="lineNum">    1353 </span>            : 
+<span class="lineNum">    1354 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">    1355 </span>            : }
+<span class="lineNum">    1356 </span>            : 
+<span class="lineNum">    1357 </span>            : 
+<span class="lineNum">    1358 </span>            : /*
+<a name="1359"><span class="lineNum">    1359 </span>            :  * finalize the module</a>
+<span class="lineNum">    1360 </span>            :  */
+<span class="lineNum">    1361 </span><span class="lineCov">          2 : static int finalize(void)</span>
+<span class="lineNum">    1362 </span>            : {
+<span class="lineNum">    1363 </span><span class="lineCov">          2 :     OBJ_DESTRUCT(&amp;ompi_dpm_port_mutex);</span>
+<span class="lineNum">    1364 </span><span class="lineCov">          2 :     OPAL_LIST_DESTRUCT(&amp;orte_dpm_acceptors);</span>
+<span class="lineNum">    1365 </span><span class="lineCov">          2 :     OPAL_LIST_DESTRUCT(&amp;orte_dpm_connectors);</span>
+<span class="lineNum">    1366 </span><span class="lineCov">          2 :     return OMPI_SUCCESS;</span>
+<a name="1367"><span class="lineNum">    1367 </span>            : }</a>
+<span class="lineNum">    1368 </span>            : 
+<span class="lineNum">    1369 </span><span class="lineNoCov">          0 : static void timeout_cb(int fd, short args, void *cbdata)</span>
+<span class="lineNum">    1370 </span>            : {
+<span class="lineNum">    1371 </span><span class="lineNoCov">          0 :     orte_dpm_prequest_t *req = (orte_dpm_prequest_t*)cbdata;</span>
+<span class="lineNum">    1372 </span>            : 
+<span class="lineNum">    1373 </span>            :     /* remove the request from the list */
+<span class="lineNum">    1374 </span>            :     OPAL_THREAD_LOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1375 </span><span class="lineNoCov">          0 :     opal_list_remove_item(&amp;orte_dpm_connectors, &amp;req-&gt;super);</span>
+<span class="lineNum">    1376 </span>            :     OPAL_THREAD_UNLOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1377 </span>            : 
+<span class="lineNum">    1378 </span>            :     /* this connection request failed - notify the caller */
+<span class="lineNum">    1379 </span><span class="lineNoCov">          0 :     req-&gt;cbfunc(MPI_COMM_NULL, NULL, req-&gt;cbdata);</span>
+<span class="lineNum">    1380 </span>            : 
+<span class="lineNum">    1381 </span>            :     /* cleanup */
+<span class="lineNum">    1382 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(req);</span>
+<a name="1383"><span class="lineNum">    1383 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1384 </span>            : 
+<span class="lineNum">    1385 </span><span class="lineNoCov">          0 : static void process_request(orte_process_name_t* sender,</span>
+<span class="lineNum">    1386 </span>            :                             opal_buffer_t *buffer,
+<span class="lineNum">    1387 </span>            :                             bool connector,
+<span class="lineNum">    1388 </span>            :                             ompi_communicator_t **newcomm,
+<span class="lineNum">    1389 </span>            :                             ompi_proc_t **proct)
+<span class="lineNum">    1390 </span>            : {
+<span class="lineNum">    1391 </span><span class="lineNoCov">          0 :     ompi_communicator_t *newcomp=MPI_COMM_NULL;</span>
+<span class="lineNum">    1392 </span><span class="lineNoCov">          0 :     ompi_group_t *group=MPI_COMM_SELF-&gt;c_local_group;</span>
+<span class="lineNum">    1393 </span>            :     ompi_group_t *new_group_pointer;
+<span class="lineNum">    1394 </span><span class="lineNoCov">          0 :     ompi_proc_t **rprocs=NULL;</span>
+<span class="lineNum">    1395 </span><span class="lineNoCov">          0 :     ompi_proc_t **new_proc_list=NULL;</span>
+<span class="lineNum">    1396 </span>            :     int new_proc_len;
+<span class="lineNum">    1397 </span>            :     opal_buffer_t *xfer;
+<span class="lineNum">    1398 </span>            :     int cnt, rc;
+<span class="lineNum">    1399 </span>            :     uint32_t id;
+<span class="lineNum">    1400 </span>            : 
+<span class="lineNum">    1401 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((2, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">    1402 </span>            :                          &quot;%s dpm:pconprocess: PROCESS REQUEST: %s&quot;,
+<span class="lineNum">    1403 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">    1404 </span>            :                          connector ? &quot;connector&quot; : &quot;acceptor&quot;));
+<span class="lineNum">    1405 </span>            : 
+<span class="lineNum">    1406 </span>            :     /* if we are the acceptor, unpack the remote peer's request id */
+<span class="lineNum">    1407 </span><span class="lineNoCov">          0 :     if (!connector) {</span>
+<span class="lineNum">    1408 </span><span class="lineNoCov">          0 :         cnt=1;</span>
+<span class="lineNum">    1409 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;id, &amp;cnt, OPAL_UINT32))) {</span>
+<span class="lineNum">    1410 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1411 </span><span class="lineNoCov">          0 :             goto cleanup;</span>
+<span class="lineNum">    1412 </span>            :         }
+<span class="lineNum">    1413 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((2, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">    1414 </span>            :                              &quot;%s dpm:pconprocess: PROCESS REQUEST ID: %d&quot;,
+<span class="lineNum">    1415 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), id));
+<span class="lineNum">    1416 </span>            :     }
+<span class="lineNum">    1417 </span>            : 
+<span class="lineNum">    1418 </span>            :     /* unpack the proc info */
+<span class="lineNum">    1419 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != (rc = ompi_proc_unpack(buffer, 1, &amp;rprocs, false, &amp;new_proc_len, &amp;new_proc_list))) {</span>
+<span class="lineNum">    1420 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1421 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">    1422 </span>            :     }
+<span class="lineNum">    1423 </span>            : 
+<span class="lineNum">    1424 </span>            :     /* If we added new procs, we need to unpack the modex info
+<span class="lineNum">    1425 </span>            :      * and then call PML add_procs
+<span class="lineNum">    1426 </span>            :      */
+<span class="lineNum">    1427 </span><span class="lineNoCov">          0 :     if (0 &lt; new_proc_len) {</span>
+<span class="lineNum">    1428 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">    1429 </span>            :                              &quot;%s dpm:pconprocess: process modex&quot;,
+<span class="lineNum">    1430 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">    1431 </span>            : 
+<span class="lineNum">    1432 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">    1433 </span>            :                              &quot;%s dpm:pconprocess: adding procs&quot;,
+<span class="lineNum">    1434 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">    1435 </span><span class="lineNoCov">          0 :         if (OMPI_SUCCESS != (rc = MCA_PML_CALL(add_procs(new_proc_list, new_proc_len)))) {</span>
+<span class="lineNum">    1436 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1437 </span><span class="lineNoCov">          0 :             goto cleanup;</span>
+<span class="lineNum">    1438 </span>            :         }
+<span class="lineNum">    1439 </span>            : 
+<span class="lineNum">    1440 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">    1441 </span>            :                              &quot;%s dpm:orte:pconnect new procs added&quot;,
+<span class="lineNum">    1442 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">    1443 </span>            : 
+<span class="lineNum">    1444 </span>            :     }
+<span class="lineNum">    1445 </span>            : 
+<span class="lineNum">    1446 </span>            :     /* if we are the acceptor, we now have to send the requestor our
+<span class="lineNum">    1447 </span>            :      * info so we can collaborate on setup of the communicator - we
+<span class="lineNum">    1448 </span>            :      * must wait until this point so the route can be initiated, if
+<span class="lineNum">    1449 </span>            :      * required
+<span class="lineNum">    1450 </span>            :      */
+<span class="lineNum">    1451 </span><span class="lineNoCov">          0 :     if (!connector) {</span>
+<span class="lineNum">    1452 </span><span class="lineNoCov">          0 :         xfer = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">    1453 </span>            :         /* pack the request id */
+<span class="lineNum">    1454 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss.pack(xfer, &amp;id, 1, OPAL_UINT32))) {</span>
+<span class="lineNum">    1455 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1456 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(xfer);</span>
+<span class="lineNum">    1457 </span><span class="lineNoCov">          0 :             goto cleanup;</span>
+<span class="lineNum">    1458 </span>            :         }
+<span class="lineNum">    1459 </span>            :         /* pack the remaining info */
+<span class="lineNum">    1460 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != ompi_proc_pack(group-&gt;grp_proc_pointers, 1, true, xfer)) {</span>
+<span class="lineNum">    1461 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(xfer);</span>
+<span class="lineNum">    1462 </span><span class="lineNoCov">          0 :             goto cleanup;</span>
+<span class="lineNum">    1463 </span>            :         }
+<span class="lineNum">    1464 </span>            :         /* send to requestor */
+<span class="lineNum">    1465 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = orte_rml.send_buffer_nb(sender, xfer, OMPI_RML_PCONNECT_TAG,</span>
+<span class="lineNum">    1466 </span>            :                                                           orte_rml_send_callback, NULL))) {
+<span class="lineNum">    1467 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1468 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(xfer);</span>
+<span class="lineNum">    1469 </span><span class="lineNoCov">          0 :             goto cleanup;</span>
+<span class="lineNum">    1470 </span>            :         }
+<span class="lineNum">    1471 </span>            :     }
+<span class="lineNum">    1472 </span>            : 
+<span class="lineNum">    1473 </span>            :     /* allocate a new group */
+<span class="lineNum">    1474 </span><span class="lineNoCov">          0 :     new_group_pointer=ompi_group_allocate(1);</span>
+<span class="lineNum">    1475 </span><span class="lineNoCov">          0 :     if( NULL == new_group_pointer ) {</span>
+<span class="lineNum">    1476 </span><span class="lineNoCov">          0 :         rc = OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">    1477 </span><span class="lineNoCov">          0 :         goto cleanup;</span>
+<span class="lineNum">    1478 </span>            :     }
+<span class="lineNum">    1479 </span>            : 
+<span class="lineNum">    1480 </span>            :     /* put group element in the list */
+<span class="lineNum">    1481 </span><span class="lineNoCov">          0 :     new_group_pointer-&gt;grp_proc_pointers[0] = rprocs[0];</span>
+<span class="lineNum">    1482 </span>            : 
+<span class="lineNum">    1483 </span>            :     /* increment proc reference counter */
+<span class="lineNum">    1484 </span><span class="lineNoCov">          0 :     ompi_group_increment_proc_count(new_group_pointer);</span>
+<span class="lineNum">    1485 </span>            : 
+<span class="lineNum">    1486 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">    1487 </span>            :                          &quot;%s dpm:pconprocess setting up communicator&quot;,
+<span class="lineNum">    1488 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">    1489 </span>            : 
+<span class="lineNum">    1490 </span>            :     /* set up communicator structure */
+<span class="lineNum">    1491 </span><span class="lineNoCov">          0 :     rc = ompi_comm_set(&amp;newcomp,                       /* new comm */</span>
+<span class="lineNum">    1492 </span>            :                        MPI_COMM_SELF,                  /* old comm */
+<span class="lineNum">    1493 </span>            :                        1,                              /* local_size */
+<span class="lineNum">    1494 </span>            :                        NULL,                           /* local_procs */
+<span class="lineNum">    1495 </span>            :                        1,                              /* remote_size */
+<span class="lineNum">    1496 </span>            :                        NULL,                           /* remote_procs */
+<span class="lineNum">    1497 </span>            :                        NULL,                           /* attrs */
+<span class="lineNum">    1498 </span><span class="lineNoCov">          0 :                        MPI_COMM_SELF-&gt;error_handler,   /* error handler */</span>
+<span class="lineNum">    1499 </span>            :                        NULL,                           /* topo component */
+<span class="lineNum">    1500 </span>            :                        group,                          /* local group */
+<span class="lineNum">    1501 </span>            :                        new_group_pointer               /* remote group */
+<span class="lineNum">    1502 </span>            :                        );
+<span class="lineNum">    1503 </span><span class="lineNoCov">          0 :     if (NULL == newcomp) {</span>
+<span class="lineNum">    1504 </span><span class="lineNoCov">          0 :         rc = OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">    1505 </span><span class="lineNoCov">          0 :         goto cleanup;</span>
+<span class="lineNum">    1506 </span>            :     }
+<span class="lineNum">    1507 </span>            : 
+<span class="lineNum">    1508 </span><span class="lineNoCov">          0 :     ompi_group_decrement_proc_count (new_group_pointer);</span>
+<span class="lineNum">    1509 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(new_group_pointer);</span>
+<span class="lineNum">    1510 </span><span class="lineNoCov">          0 :     new_group_pointer = MPI_GROUP_NULL;</span>
+<span class="lineNum">    1511 </span>            : 
+<span class="lineNum">    1512 </span>            :     /* return the communicator */
+<span class="lineNum">    1513 </span><span class="lineNoCov">          0 :     *newcomm = newcomp;</span>
+<span class="lineNum">    1514 </span><span class="lineNoCov">          0 :     *proct = rprocs[0];</span>
+<span class="lineNum">    1515 </span><span class="lineNoCov">          0 :     rc = OMPI_SUCCESS;</span>
+<span class="lineNum">    1516 </span>            : 
+<span class="lineNum">    1517 </span>            :  cleanup:
+<span class="lineNum">    1518 </span><span class="lineNoCov">          0 :     if (NULL != rprocs) {</span>
+<span class="lineNum">    1519 </span><span class="lineNoCov">          0 :         free(rprocs);</span>
+<span class="lineNum">    1520 </span>            :     }
+<span class="lineNum">    1521 </span><span class="lineNoCov">          0 :     if (NULL != new_proc_list) {</span>
+<span class="lineNum">    1522 </span><span class="lineNoCov">          0 :         free(new_proc_list);</span>
+<span class="lineNum">    1523 </span>            :     }
+<span class="lineNum">    1524 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != rc &amp;&amp; MPI_COMM_NULL != newcomp) {</span>
+<span class="lineNum">    1525 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(newcomp);</span>
+<span class="lineNum">    1526 </span>            :     }
+<a name="1527"><span class="lineNum">    1527 </span>            : }</a>
+<span class="lineNum">    1528 </span>            : 
+<span class="lineNum">    1529 </span><span class="lineNoCov">          0 : static void connect_complete(int status, orte_process_name_t* sender,</span>
+<span class="lineNum">    1530 </span>            :                              opal_buffer_t* buffer, orte_rml_tag_t tag,
+<span class="lineNum">    1531 </span>            :                              void* cbdata)
+<span class="lineNum">    1532 </span>            : {
+<span class="lineNum">    1533 </span><span class="lineNoCov">          0 :     ompi_communicator_t *newcomm=MPI_COMM_NULL;</span>
+<span class="lineNum">    1534 </span><span class="lineNoCov">          0 :     ompi_proc_t *proct=NULL;</span>
+<span class="lineNum">    1535 </span><span class="lineNoCov">          0 :     orte_dpm_prequest_t *req=NULL, *rptr;</span>
+<span class="lineNum">    1536 </span>            :     int rc, cnt;
+<span class="lineNum">    1537 </span>            :     uint32_t id;
+<span class="lineNum">    1538 </span>            : 
+<span class="lineNum">    1539 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">    1540 </span>            :                          &quot;%s dpm:pconnect: starting&quot;,
+<span class="lineNum">    1541 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">    1542 </span>            : 
+<span class="lineNum">    1543 </span>            :     /* unpack the request id */
+<span class="lineNum">    1544 </span><span class="lineNoCov">          0 :     cnt=1;</span>
+<span class="lineNum">    1545 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;id, &amp;cnt, OPAL_UINT32))) {</span>
+<span class="lineNum">    1546 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1547 </span><span class="lineNoCov">          0 :         goto cleanup;</span>
+<span class="lineNum">    1548 </span>            :     }
+<span class="lineNum">    1549 </span>            : 
+<span class="lineNum">    1550 </span>            :     /* find this request on the list */
+<span class="lineNum">    1551 </span><span class="lineNoCov">          0 :     req = NULL;</span>
+<span class="lineNum">    1552 </span>            :     OPAL_THREAD_LOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1553 </span><span class="lineNoCov">          0 :     OPAL_LIST_FOREACH(rptr, &amp;orte_dpm_connectors, orte_dpm_prequest_t) {</span>
+<span class="lineNum">    1554 </span><span class="lineNoCov">          0 :         if (id == rptr-&gt;id) {</span>
+<span class="lineNum">    1555 </span><span class="lineNoCov">          0 :             req = rptr;</span>
+<span class="lineNum">    1556 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">    1557 </span>            :         }
+<span class="lineNum">    1558 </span>            :     }
+<span class="lineNum">    1559 </span><span class="lineNoCov">          0 :     if (NULL == req) {</span>
+<span class="lineNum">    1560 </span>            :         /* unknown request */
+<span class="lineNum">    1561 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;%s dpm:pconnect: received unknown id %u from %s&quot;,</span>
+<span class="lineNum">    1562 </span>            :                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), id,
+<span class="lineNum">    1563 </span>            :                     ORTE_NAME_PRINT(sender));
+<span class="lineNum">    1564 </span>            :         OPAL_THREAD_UNLOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1565 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">    1566 </span>            :     }
+<span class="lineNum">    1567 </span>            :     /* remove the request from the list */
+<span class="lineNum">    1568 </span><span class="lineNoCov">          0 :     opal_list_remove_item(&amp;orte_dpm_connectors, &amp;req-&gt;super);</span>
+<span class="lineNum">    1569 </span>            :     OPAL_THREAD_UNLOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1570 </span>            : 
+<span class="lineNum">    1571 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((3, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">    1572 </span>            :                          &quot;%s dpm:pconnect: found request %d&quot;,
+<span class="lineNum">    1573 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), id));
+<span class="lineNum">    1574 </span>            : 
+<span class="lineNum">    1575 </span><span class="lineNoCov">          0 :     if (req-&gt;event_active) {</span>
+<span class="lineNum">    1576 </span>            :         /* release the timeout */
+<span class="lineNum">    1577 </span><span class="lineNoCov">          0 :         opal_event_del(&amp;req-&gt;ev);</span>
+<span class="lineNum">    1578 </span>            :     }
+<span class="lineNum">    1579 </span>            : 
+<span class="lineNum">    1580 </span>            :     /* process the request - as the initiator, we will send first
+<span class="lineNum">    1581 </span>            :      * for communicator creation
+<span class="lineNum">    1582 </span>            :      */
+<span class="lineNum">    1583 </span><span class="lineNoCov">          0 :     process_request(sender, buffer, true, &amp;newcomm, &amp;proct);</span>
+<span class="lineNum">    1584 </span>            :     /* notify the MPI layer */
+<span class="lineNum">    1585 </span><span class="lineNoCov">          0 :     req-&gt;cbfunc(newcomm, proct, req-&gt;cbdata);</span>
+<span class="lineNum">    1586 </span>            : 
+<span class="lineNum">    1587 </span>            :  cleanup:
+<span class="lineNum">    1588 </span><span class="lineNoCov">          0 :     if (NULL != req) {</span>
+<span class="lineNum">    1589 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(req);</span>
+<span class="lineNum">    1590 </span>            :     }
+<a name="1591"><span class="lineNum">    1591 </span>            : }</a>
+<span class="lineNum">    1592 </span>            : 
+<span class="lineNum">    1593 </span><span class="lineNoCov">          0 : static int dpm_pconnect(char *port,</span>
+<span class="lineNum">    1594 </span>            :                         struct timeval *timeout,
+<span class="lineNum">    1595 </span>            :                         ompi_dpm_base_paccept_connect_callback_fn_t cbfunc,
+<span class="lineNum">    1596 </span>            :                         void *cbdata)
+<span class="lineNum">    1597 </span>            : {
+<span class="lineNum">    1598 </span>            :     char *hnp_uri, *rml_uri;
+<span class="lineNum">    1599 </span>            :     orte_rml_tag_t tag;
+<span class="lineNum">    1600 </span>            :     int rc;
+<span class="lineNum">    1601 </span>            :     orte_dpm_prequest_t *connector;
+<span class="lineNum">    1602 </span>            :     orte_process_name_t peer;
+<span class="lineNum">    1603 </span><span class="lineNoCov">          0 :     ompi_group_t *group=MPI_COMM_SELF-&gt;c_local_group;</span>
+<span class="lineNum">    1604 </span>            :     opal_buffer_t *buf;
+<span class="lineNum">    1605 </span>            : 
+<span class="lineNum">    1606 </span>            :     /* separate the string into the HNP and RML URI and tag */
+<span class="lineNum">    1607 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = parse_port_name(port, &amp;hnp_uri, &amp;rml_uri, &amp;tag))) {</span>
+<span class="lineNum">    1608 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1609 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">    1610 </span>            :     }
+<span class="lineNum">    1611 </span>            :     /* extract the originating proc's name */
+<span class="lineNum">    1612 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = orte_rml_base_parse_uris(rml_uri, &amp;peer, NULL))) {</span>
+<span class="lineNum">    1613 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1614 </span><span class="lineNoCov">          0 :         free(hnp_uri); free(rml_uri);</span>
+<span class="lineNum">    1615 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">    1616 </span>            :     }
+<span class="lineNum">    1617 </span>            :     /* make sure we can route rml messages to the destination job */
+<span class="lineNum">    1618 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = route_to_port(hnp_uri, &amp;peer))) {</span>
+<span class="lineNum">    1619 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1620 </span><span class="lineNoCov">          0 :         free(hnp_uri); free(rml_uri);</span>
+<span class="lineNum">    1621 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">    1622 </span>            :     }
+<span class="lineNum">    1623 </span><span class="lineNoCov">          0 :     opal_output(0, &quot;dpm:pconnect requesting connect to %s on tag %d&quot;,</span>
+<span class="lineNum">    1624 </span>            :                 ORTE_NAME_PRINT(&amp;peer), tag);
+<span class="lineNum">    1625 </span>            : 
+<span class="lineNum">    1626 </span><span class="lineNoCov">          0 :     free(hnp_uri); free(rml_uri);</span>
+<span class="lineNum">    1627 </span>            : 
+<span class="lineNum">    1628 </span>            :     /* create a message to the remote peer */
+<span class="lineNum">    1629 </span><span class="lineNoCov">          0 :     buf = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">    1630 </span>            : 
+<span class="lineNum">    1631 </span>            :     /* track the connection request */
+<span class="lineNum">    1632 </span><span class="lineNoCov">          0 :     connector = OBJ_NEW(orte_dpm_prequest_t);</span>
+<span class="lineNum">    1633 </span><span class="lineNoCov">          0 :     connector-&gt;tag = tag;</span>
+<span class="lineNum">    1634 </span><span class="lineNoCov">          0 :     connector-&gt;cbfunc = cbfunc;</span>
+<span class="lineNum">    1635 </span><span class="lineNoCov">          0 :     connector-&gt;cbdata = cbdata;</span>
+<span class="lineNum">    1636 </span>            :     OPAL_THREAD_LOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1637 </span><span class="lineNoCov">          0 :     connector-&gt;id = next_preq++;</span>
+<span class="lineNum">    1638 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;orte_dpm_connectors, &amp;connector-&gt;super);</span>
+<span class="lineNum">    1639 </span>            :     OPAL_THREAD_UNLOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1640 </span>            : 
+<span class="lineNum">    1641 </span>            :     /* pack my request id */
+<span class="lineNum">    1642 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = opal_dss.pack(buf, &amp;connector-&gt;id, 1, OPAL_UINT32))) {</span>
+<span class="lineNum">    1643 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1644 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buf);</span>
+<span class="lineNum">    1645 </span>            :         OPAL_THREAD_LOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1646 </span><span class="lineNoCov">          0 :         opal_list_remove_item(&amp;orte_dpm_connectors, &amp;connector-&gt;super);</span>
+<span class="lineNum">    1647 </span>            :         OPAL_THREAD_UNLOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1648 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(connector);</span>
+<span class="lineNum">    1649 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">    1650 </span>            :     }
+<span class="lineNum">    1651 </span>            :     /* pack the request info */
+<span class="lineNum">    1652 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != ompi_proc_pack(group-&gt;grp_proc_pointers, 1, true, buf)) {</span>
+<span class="lineNum">    1653 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buf);</span>
+<span class="lineNum">    1654 </span>            :         OPAL_THREAD_LOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1655 </span><span class="lineNoCov">          0 :         opal_list_remove_item(&amp;orte_dpm_connectors, &amp;connector-&gt;super);</span>
+<span class="lineNum">    1656 </span>            :         OPAL_THREAD_UNLOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1657 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(connector);</span>
+<span class="lineNum">    1658 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">    1659 </span>            :     }
+<span class="lineNum">    1660 </span>            : 
+<span class="lineNum">    1661 </span>            :     /* setup the timeout, if requested */
+<span class="lineNum">    1662 </span><span class="lineNoCov">          0 :     if (NULL != timeout) {</span>
+<span class="lineNum">    1663 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;dpm:pconnect setting timeout&quot;);</span>
+<span class="lineNum">    1664 </span><span class="lineNoCov">          0 :         opal_event_evtimer_set(orte_event_base,</span>
+<span class="lineNum">    1665 </span>            :                                &amp;connector-&gt;ev, timeout_cb, connector);
+<span class="lineNum">    1666 </span><span class="lineNoCov">          0 :         opal_event_set_priority(&amp;connector-&gt;ev, ORTE_ERROR_PRI);</span>
+<span class="lineNum">    1667 </span><span class="lineNoCov">          0 :         opal_event_evtimer_add(&amp;connector-&gt;ev, timeout);</span>
+<span class="lineNum">    1668 </span><span class="lineNoCov">          0 :         connector-&gt;event_active = true;</span>
+<span class="lineNum">    1669 </span>            :     } else {
+<span class="lineNum">    1670 </span><span class="lineNoCov">          0 :         connector-&gt;event_active = false;</span>
+<span class="lineNum">    1671 </span>            :     }
+<span class="lineNum">    1672 </span>            : 
+<span class="lineNum">    1673 </span>            :     /* send it to our new friend */
+<span class="lineNum">    1674 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((2, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">    1675 </span>            :                          &quot;%s dpm:pconnect sending connect to %s on tag %d&quot;,
+<span class="lineNum">    1676 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">    1677 </span>            :                          ORTE_NAME_PRINT(&amp;peer), tag));
+<span class="lineNum">    1678 </span>            : 
+<span class="lineNum">    1679 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = orte_rml.send_buffer_nb(&amp;peer, buf, tag,</span>
+<span class="lineNum">    1680 </span>            :                                                       orte_rml_send_callback, NULL))) {
+<span class="lineNum">    1681 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1682 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buf);</span>
+<span class="lineNum">    1683 </span>            :     }
+<span class="lineNum">    1684 </span>            : 
+<span class="lineNum">    1685 </span><span class="lineNoCov">          0 :     return rc;</span>
+<a name="1686"><span class="lineNum">    1686 </span>            : }</a>
+<span class="lineNum">    1687 </span>            : 
+<span class="lineNum">    1688 </span><span class="lineNoCov">          0 : static void paccept_recv(int status,</span>
+<span class="lineNum">    1689 </span>            :                          orte_process_name_t* peer,
+<span class="lineNum">    1690 </span>            :                          struct opal_buffer_t* buffer,
+<span class="lineNum">    1691 </span>            :                          orte_rml_tag_t tag,
+<span class="lineNum">    1692 </span>            :                          void* cbdata)
+<span class="lineNum">    1693 </span>            : {
+<span class="lineNum">    1694 </span><span class="lineNoCov">          0 :     orte_dpm_prequest_t *acceptor = (orte_dpm_prequest_t*)cbdata;</span>
+<span class="lineNum">    1695 </span><span class="lineNoCov">          0 :     ompi_communicator_t *newcomm=MPI_COMM_NULL;</span>
+<span class="lineNum">    1696 </span><span class="lineNoCov">          0 :     ompi_proc_t *proct=NULL;</span>
+<span class="lineNum">    1697 </span>            : 
+<span class="lineNum">    1698 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((2, ompi_dpm_base_framework.framework_output,</span>
+<span class="lineNum">    1699 </span>            :                          &quot;%s dpm:paccept recvd request from %s&quot;,
+<span class="lineNum">    1700 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">    1701 </span>            :                          ORTE_NAME_PRINT(peer)));
+<span class="lineNum">    1702 </span>            : 
+<span class="lineNum">    1703 </span>            :     /* process the request - as the acceptor, we will recv first
+<span class="lineNum">    1704 </span>            :      * on communicator formation
+<span class="lineNum">    1705 </span>            :      */
+<span class="lineNum">    1706 </span><span class="lineNoCov">          0 :     process_request(peer, buffer, false, &amp;newcomm, &amp;proct);</span>
+<span class="lineNum">    1707 </span>            :     /* if we succeeded, notify the MPI layer */
+<span class="lineNum">    1708 </span><span class="lineNoCov">          0 :     if (MPI_COMM_NULL != newcomm) {</span>
+<span class="lineNum">    1709 </span><span class="lineNoCov">          0 :         acceptor-&gt;cbfunc(newcomm, proct, acceptor-&gt;cbdata);</span>
+<span class="lineNum">    1710 </span>            :     }
+<a name="1711"><span class="lineNum">    1711 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1712 </span>            : 
+<span class="lineNum">    1713 </span><span class="lineNoCov">          0 : static int dpm_paccept(char *port,</span>
+<span class="lineNum">    1714 </span>            :                        ompi_dpm_base_paccept_connect_callback_fn_t cbfunc,
+<span class="lineNum">    1715 </span>            :                        void *cbdata)
+<span class="lineNum">    1716 </span>            : {
+<span class="lineNum">    1717 </span>            :     orte_rml_tag_t tag;
+<span class="lineNum">    1718 </span>            :     int rc;
+<span class="lineNum">    1719 </span>            :     orte_dpm_prequest_t *acceptor;
+<span class="lineNum">    1720 </span>            : 
+<span class="lineNum">    1721 </span>            :     /* extract the RML tag from the port name - it's the only part we need */
+<span class="lineNum">    1722 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != (rc = parse_port_name(port, NULL, NULL, &amp;tag))) {</span>
+<span class="lineNum">    1723 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">    1724 </span>            :     }
+<span class="lineNum">    1725 </span>            : 
+<span class="lineNum">    1726 </span>            :     /* track the accept request */
+<span class="lineNum">    1727 </span><span class="lineNoCov">          0 :     acceptor = OBJ_NEW(orte_dpm_prequest_t);</span>
+<span class="lineNum">    1728 </span><span class="lineNoCov">          0 :     acceptor-&gt;tag = tag;</span>
+<span class="lineNum">    1729 </span><span class="lineNoCov">          0 :     acceptor-&gt;cbfunc = cbfunc;</span>
+<span class="lineNum">    1730 </span><span class="lineNoCov">          0 :     acceptor-&gt;cbdata = cbdata;</span>
+<span class="lineNum">    1731 </span>            :     OPAL_THREAD_LOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1732 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;orte_dpm_acceptors, &amp;acceptor-&gt;super);</span>
+<span class="lineNum">    1733 </span>            :     OPAL_THREAD_UNLOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1734 </span>            : 
+<span class="lineNum">    1735 </span>            :     /* register a recv for this tag */
+<span class="lineNum">    1736 </span><span class="lineNoCov">          0 :     orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, tag,</span>
+<span class="lineNum">    1737 </span>            :                             ORTE_RML_PERSISTENT,
+<span class="lineNum">    1738 </span>            :                             paccept_recv, acceptor);
+<span class="lineNum">    1739 </span>            : 
+<span class="lineNum">    1740 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<a name="1741"><span class="lineNum">    1741 </span>            : }</a>
+<span class="lineNum">    1742 </span>            : 
+<span class="lineNum">    1743 </span><span class="lineNoCov">          0 : static void dpm_pclose(char *port)</span>
+<span class="lineNum">    1744 </span>            : {
+<span class="lineNum">    1745 </span>            :     orte_rml_tag_t tag;
+<span class="lineNum">    1746 </span>            :     orte_dpm_prequest_t *rptr;
+<span class="lineNum">    1747 </span>            : 
+<span class="lineNum">    1748 </span>            :     /* extract the RML tag from the port name - it's the only part we need */
+<span class="lineNum">    1749 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != parse_port_name(port, NULL, NULL, &amp;tag)) {</span>
+<span class="lineNum">    1750 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">    1751 </span>            :     }
+<span class="lineNum">    1752 </span>            : 
+<span class="lineNum">    1753 </span>            :     OPAL_THREAD_LOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1754 </span><span class="lineNoCov">          0 :     OPAL_LIST_FOREACH(rptr, &amp;orte_dpm_acceptors, orte_dpm_prequest_t) {</span>
+<span class="lineNum">    1755 </span><span class="lineNoCov">          0 :         if (tag == rptr-&gt;tag) {</span>
+<span class="lineNum">    1756 </span>            :             /* found it */
+<span class="lineNum">    1757 </span><span class="lineNoCov">          0 :             opal_list_remove_item(&amp;orte_dpm_acceptors, &amp;rptr-&gt;super);</span>
+<span class="lineNum">    1758 </span><span class="lineNoCov">          0 :             orte_rml.recv_cancel(ORTE_NAME_WILDCARD, tag);</span>
+<span class="lineNum">    1759 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(rptr);</span>
+<span class="lineNum">    1760 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">    1761 </span>            :         }
+<span class="lineNum">    1762 </span>            :     }
+<span class="lineNum">    1763 </span>            :     OPAL_THREAD_UNLOCK(&amp;ompi_dpm_port_mutex);
+<span class="lineNum">    1764 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

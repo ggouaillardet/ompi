@@ -1,0 +1,412 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/iof/base/iof_base_output.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/iof/base</a> - iof_base_output.c<span style="font-size: 80%;"> (source / <a href="iof_base_output.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">137</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2007 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2006 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2008      Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  * $HEADER$
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * These symbols are in a file by themselves to provide nice linker
+<span class="lineNum">      20 </span>            :  * semantics.  Since linkers generally pull in symbols by object
+<span class="lineNum">      21 </span>            :  * files, keeping these symbols as the only symbols in this file
+<span class="lineNum">      22 </span>            :  * prevents utility programs such as &quot;ompi_info&quot; from having to import
+<span class="lineNum">      23 </span>            :  * entire components just to query their version and parameters.
+<span class="lineNum">      24 </span>            :  */
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;orte/constants.h&quot;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      31 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      32 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      33 </span>            : #endif
+<span class="lineNum">      34 </span>            : #include &lt;time.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;orte/mca/state/state.h&quot;
+<span class="lineNum">      43 </span>            : 
+<a name="44"><span class="lineNum">      44 </span>            : #include &quot;orte/mca/iof/base/base.h&quot;</a>
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 : int orte_iof_base_write_output(orte_process_name_t *name, orte_iof_tag_t stream,</span>
+<span class="lineNum">      47 </span>            :                                 unsigned char *data, int numbytes,
+<span class="lineNum">      48 </span>            :                                orte_iof_write_event_t *channel)
+<span class="lineNum">      49 </span>            : {
+<span class="lineNum">      50 </span>            :     char starttag[ORTE_IOF_BASE_TAG_MAX], endtag[ORTE_IOF_BASE_TAG_MAX], *suffix;
+<span class="lineNum">      51 </span>            :     orte_iof_write_output_t *output;
+<span class="lineNum">      52 </span>            :     int i, j, k, starttaglen, endtaglen, num_buffered;
+<span class="lineNum">      53 </span>            :     bool endtagged;
+<span class="lineNum">      54 </span>            :     char qprint[10];
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,</span>
+<span class="lineNum">      57 </span>            :                          &quot;%s write:output setting up to write %d bytes to %s for %s on fd %d&quot;,
+<span class="lineNum">      58 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), numbytes,
+<span class="lineNum">      59 </span>            :                          (ORTE_IOF_STDIN &amp; stream) ? &quot;stdin&quot; : ((ORTE_IOF_STDOUT &amp; stream) ? &quot;stdout&quot; : ((ORTE_IOF_STDERR &amp; stream) ? &quot;stderr&quot; : &quot;stddiag&quot;)),
+<span class="lineNum">      60 </span>            :                          ORTE_NAME_PRINT(name),
+<span class="lineNum">      61 </span>            :                          (NULL == channel) ? -1 : channel-&gt;fd));
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            :     /* setup output object */
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     output = OBJ_NEW(orte_iof_write_output_t);</span>
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            :     /* write output data to the corresponding tag */
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     if (ORTE_IOF_STDIN &amp; stream) {</span>
+<span class="lineNum">      68 </span>            :         /* copy over the data to be written */
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :         if (0 &lt; numbytes) {</span>
+<span class="lineNum">      70 </span>            :             /* don't copy 0 bytes - we just need to pass
+<span class="lineNum">      71 </span>            :              * the zero bytes so the fd can be closed
+<span class="lineNum">      72 </span>            :              * after it writes everything out
+<span class="lineNum">      73 </span>            :              */
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :             memcpy(output-&gt;data, data, numbytes);</span>
+<span class="lineNum">      75 </span>            :         }
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :         output-&gt;numbytes = numbytes;</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :         goto process;</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     } else if (ORTE_IOF_STDOUT &amp; stream) {</span>
+<span class="lineNum">      79 </span>            :         /* write the bytes to stdout */
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :         suffix = &quot;stdout&quot;;</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     } else if (ORTE_IOF_STDERR &amp; stream) {</span>
+<span class="lineNum">      82 </span>            :         /* write the bytes to stderr */
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :         suffix = &quot;stderr&quot;;</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     } else if (ORTE_IOF_STDDIAG &amp; stream) {</span>
+<span class="lineNum">      85 </span>            :         /* write the bytes to stderr */
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :         suffix = &quot;stddiag&quot;;</span>
+<span class="lineNum">      87 </span>            :     } else {
+<span class="lineNum">      88 </span>            :         /* error - this should never happen */
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_VALUE_OUT_OF_BOUNDS);</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,</span>
+<span class="lineNum">      91 </span>            :                              &quot;%s stream %0x&quot;, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), stream));
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         return ORTE_ERR_VALUE_OUT_OF_BOUNDS;</span>
+<span class="lineNum">      93 </span>            :     }
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            :     /* if this is to be xml tagged, create a tag with the correct syntax - we do not allow
+<span class="lineNum">      96 </span>            :      * timestamping of xml output
+<span class="lineNum">      97 </span>            :      */
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     if (orte_xml_output) {</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :         snprintf(starttag, ORTE_IOF_BASE_TAG_MAX, &quot;&lt;%s rank=\&quot;%s\&quot;&gt;&quot;, suffix, ORTE_VPID_PRINT(name-&gt;vpid));</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :         snprintf(endtag, ORTE_IOF_BASE_TAG_MAX, &quot;&lt;/%s&gt;&quot;, suffix);</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :         goto construct;</span>
+<span class="lineNum">     102 </span>            :     }
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            :     /* if we are to timestamp output, start the tag with that */
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     if (orte_timestamp_output) {</span>
+<span class="lineNum">     106 </span>            :         time_t mytime;
+<span class="lineNum">     107 </span>            :         char *cptr;
+<span class="lineNum">     108 </span>            :         /* get the timestamp */
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         time(&amp;mytime);</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :         cptr = ctime(&amp;mytime);</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :         cptr[strlen(cptr)-1] = '\0';  /* remove trailing newline */</span>
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :         if (orte_tag_output) {</span>
+<span class="lineNum">     114 </span>            :             /* if we want it tagged as well, use both */
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :             snprintf(starttag, ORTE_IOF_BASE_TAG_MAX, &quot;%s[%s,%s]&lt;%s&gt;:&quot;,</span>
+<span class="lineNum">     116 </span>            :                      cptr, ORTE_LOCAL_JOBID_PRINT(name-&gt;jobid),
+<span class="lineNum">     117 </span>            :                      ORTE_VPID_PRINT(name-&gt;vpid), suffix);
+<span class="lineNum">     118 </span>            :         } else {
+<span class="lineNum">     119 </span>            :             /* only use timestamp */
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :             snprintf(starttag, ORTE_IOF_BASE_TAG_MAX, &quot;%s&lt;%s&gt;:&quot;, cptr, suffix);</span>
+<span class="lineNum">     121 </span>            :         }
+<span class="lineNum">     122 </span>            :         /* no endtag for this option */
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :         memset(endtag, '\0', ORTE_IOF_BASE_TAG_MAX);</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :         goto construct;</span>
+<span class="lineNum">     125 </span>            :     }
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     if (orte_tag_output) {</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         snprintf(starttag, ORTE_IOF_BASE_TAG_MAX, &quot;[%s,%s]&lt;%s&gt;:&quot;,</span>
+<span class="lineNum">     129 </span>            :                  ORTE_LOCAL_JOBID_PRINT(name-&gt;jobid),
+<span class="lineNum">     130 </span>            :                  ORTE_VPID_PRINT(name-&gt;vpid), suffix);
+<span class="lineNum">     131 </span>            :         /* no endtag for this option */
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :         memset(endtag, '\0', ORTE_IOF_BASE_TAG_MAX);</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :         goto construct;</span>
+<span class="lineNum">     134 </span>            :     }
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            :     /* if we get here, then the data is not to be tagged - just copy it
+<span class="lineNum">     137 </span>            :      * and move on to processing
+<span class="lineNum">     138 </span>            :      */
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     if (0 &lt; numbytes) {</span>
+<span class="lineNum">     140 </span>            :         /* don't copy 0 bytes - we just need to pass
+<span class="lineNum">     141 </span>            :          * the zero bytes so the fd can be closed
+<span class="lineNum">     142 </span>            :          * after it writes everything out
+<span class="lineNum">     143 </span>            :          */
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         memcpy(output-&gt;data, data, numbytes);</span>
+<span class="lineNum">     145 </span>            :     }
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     output-&gt;numbytes = numbytes;</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :     goto process;</span>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span>            : construct:
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     starttaglen = strlen(starttag);</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     endtaglen = strlen(endtag);</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     endtagged = false;</span>
+<span class="lineNum">     153 </span>            :     /* start with the tag */
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     for (j=0, k=0; j &lt; starttaglen &amp;&amp; k &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX; j++) {</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :         output-&gt;data[k++] = starttag[j];</span>
+<span class="lineNum">     156 </span>            :     }
+<span class="lineNum">     157 </span>            :     /* cycle through the data looking for &lt;cr&gt;
+<span class="lineNum">     158 </span>            :      * and replace those with the tag
+<span class="lineNum">     159 </span>            :      */
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; numbytes &amp;&amp; k &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX; i++) {</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :         if (orte_xml_output) {</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :             if ('&amp;' == data[i]) {</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :                 if (k+5 &gt;= ORTE_IOF_BASE_TAGGED_OUT_MAX) {</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :                     goto process;</span>
+<span class="lineNum">     166 </span>            :                 }
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :                 snprintf(qprint, 10, &quot;&amp;amp;&quot;);</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :                 for (j=0; j &lt; (int)strlen(qprint) &amp;&amp; k &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX; j++) {</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :                     output-&gt;data[k++] = qprint[j];</span>
+<span class="lineNum">     170 </span>            :                 }
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :             } else if ('&lt;' == data[i]) {</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :                 if (k+4 &gt;= ORTE_IOF_BASE_TAGGED_OUT_MAX) {</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :                     goto process;</span>
+<span class="lineNum">     175 </span>            :                 }
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :                 snprintf(qprint, 10, &quot;&amp;lt;&quot;);</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :                 for (j=0; j &lt; (int)strlen(qprint) &amp;&amp; k &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX; j++) {</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :                     output-&gt;data[k++] = qprint[j];</span>
+<span class="lineNum">     179 </span>            :                 }
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :             } else if ('&gt;' == data[i]) {</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :                 if (k+4 &gt;= ORTE_IOF_BASE_TAGGED_OUT_MAX) {</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :                     goto process;</span>
+<span class="lineNum">     184 </span>            :                 }
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :                 snprintf(qprint, 10, &quot;&amp;gt;&quot;);</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :                 for (j=0; j &lt; (int)strlen(qprint) &amp;&amp; k &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX; j++) {</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :                     output-&gt;data[k++] = qprint[j];</span>
+<span class="lineNum">     188 </span>            :                 }
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :             } else if (data[i] &lt; 32 || data[i] &gt; 127) {</span>
+<span class="lineNum">     190 </span>            :                 /* this is a non-printable character, so escape it too */
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :                 if (k+7 &gt;= ORTE_IOF_BASE_TAGGED_OUT_MAX) {</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :                     goto process;</span>
+<span class="lineNum">     194 </span>            :                 }
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :                 snprintf(qprint, 10, &quot;&amp;#%03d;&quot;, (int)data[i]);</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :                 for (j=0; j &lt; (int)strlen(qprint) &amp;&amp; k &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX; j++) {</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :                     output-&gt;data[k++] = qprint[j];</span>
+<span class="lineNum">     198 </span>            :                 }
+<span class="lineNum">     199 </span>            :                 /* if this was a \n, then we also need to break the line with the end tag */
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :                 if ('\n' == data[i] &amp;&amp; (k+endtaglen+1) &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX) {</span>
+<span class="lineNum">     201 </span>            :                     /* we need to break the line with the end tag */
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :                     for (j=0; j &lt; endtaglen &amp;&amp; k &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX-1; j++) {</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :                         output-&gt;data[k++] = endtag[j];</span>
+<span class="lineNum">     204 </span>            :                     }
+<span class="lineNum">     205 </span>            :                     /* move the &lt;cr&gt; over */
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :                     output-&gt;data[k++] = '\n';</span>
+<span class="lineNum">     207 </span>            :                     /* if this isn't the end of the data buffer, add a new start tag */
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :                     if (i &lt; numbytes-1 &amp;&amp; (k+starttaglen) &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX) {</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :                         for (j=0; j &lt; starttaglen &amp;&amp; k &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX; j++) {</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :                             output-&gt;data[k++] = starttag[j];</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :                             endtagged = false;</span>
+<span class="lineNum">     212 </span>            :                         }
+<span class="lineNum">     213 </span>            :                     } else {
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :                         endtagged = true;</span>
+<span class="lineNum">     215 </span>            :                     }
+<span class="lineNum">     216 </span>            :                 }
+<span class="lineNum">     217 </span>            :             } else {
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :                 output-&gt;data[k++] = data[i];</span>
+<span class="lineNum">     219 </span>            :             }
+<span class="lineNum">     220 </span>            :         } else {
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :             if ('\n' == data[i]) {</span>
+<span class="lineNum">     222 </span>            :                 /* we need to break the line with the end tag */
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :                 for (j=0; j &lt; endtaglen &amp;&amp; k &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX-1; j++) {</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :                     output-&gt;data[k++] = endtag[j];</span>
+<span class="lineNum">     225 </span>            :                 }
+<span class="lineNum">     226 </span>            :                 /* move the &lt;cr&gt; over */
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :                 output-&gt;data[k++] = '\n';</span>
+<span class="lineNum">     228 </span>            :                 /* if this isn't the end of the data buffer, add a new start tag */
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :                 if (i &lt; numbytes-1) {</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :                     for (j=0; j &lt; starttaglen &amp;&amp; k &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX; j++) {</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :                         output-&gt;data[k++] = starttag[j];</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :                         endtagged = false;</span>
+<span class="lineNum">     233 </span>            :                     }
+<span class="lineNum">     234 </span>            :                 } else {
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :                     endtagged = true;</span>
+<span class="lineNum">     236 </span>            :                 }
+<span class="lineNum">     237 </span>            :             } else {
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :                 output-&gt;data[k++] = data[i];</span>
+<span class="lineNum">     239 </span>            :             }
+<span class="lineNum">     240 </span>            :         }
+<span class="lineNum">     241 </span>            :     }
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     if (!endtagged &amp;&amp; k &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX) {</span>
+<span class="lineNum">     243 </span>            :         /* need to add an endtag */
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :         for (j=0; j &lt; endtaglen &amp;&amp; k &lt; ORTE_IOF_BASE_TAGGED_OUT_MAX-1; j++) {</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :             output-&gt;data[k++] = endtag[j];</span>
+<span class="lineNum">     246 </span>            :         }
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :         output-&gt;data[k] = '\n';</span>
+<span class="lineNum">     248 </span>            :     }
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :     output-&gt;numbytes = k;</span>
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            : process:
+<span class="lineNum">     252 </span>            :     /* add this data to the write list for this fd */
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;channel-&gt;outputs, &amp;output-&gt;super);</span>
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span>            :     /* record how big the buffer is */
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :     num_buffered = opal_list_get_size(&amp;channel-&gt;outputs);</span>
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            :     /* is the write event issued? */
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     if (!channel-&gt;pending) {</span>
+<span class="lineNum">     260 </span>            :         /* issue it */
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,</span>
+<span class="lineNum">     262 </span>            :                              &quot;%s write:output adding write event&quot;,
+<span class="lineNum">     263 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :         opal_event_add(channel-&gt;ev, 0);</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         channel-&gt;pending = true;</span>
+<span class="lineNum">     266 </span>            :     }
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     return num_buffered;</span>
+<span class="lineNum">     269 </span>            : }
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 : void orte_iof_base_write_handler(int fd, short event, void *cbdata)</span>
+<span class="lineNum">     272 </span>            : {
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     orte_iof_sink_t *sink = (orte_iof_sink_t*)cbdata;</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     orte_iof_write_event_t *wev = sink-&gt;wev;</span>
+<span class="lineNum">     275 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     276 </span>            :     orte_iof_write_output_t *output;
+<span class="lineNum">     277 </span>            :     int num_written;
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,</span>
+<span class="lineNum">     280 </span>            :                          &quot;%s write:handler writing data to %d&quot;,
+<span class="lineNum">     281 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     282 </span>            :                          wev-&gt;fd));
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     while (NULL != (item = opal_list_remove_first(&amp;wev-&gt;outputs))) {</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :         output = (orte_iof_write_output_t*)item;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         if (0 == output-&gt;numbytes) {</span>
+<span class="lineNum">     287 </span>            :             /* indicates we are to close this stream */
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(sink);</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     290 </span>            :         }
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         num_written = write(wev-&gt;fd, output-&gt;data, output-&gt;numbytes);</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :         if (num_written &lt; 0) {</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :             if (EAGAIN == errno || EINTR == errno) {</span>
+<span class="lineNum">     294 </span>            :                 /* push this item back on the front of the list */
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :                 opal_list_prepend(&amp;wev-&gt;outputs, item);</span>
+<span class="lineNum">     296 </span>            :                 /* if the list is getting too large, abort */
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :                 if (orte_iof_base.output_limit &lt; opal_list_get_size(&amp;wev-&gt;outputs)) {</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :                     opal_output(0, &quot;IO Forwarding is running too far behind - something is blocking us from writing&quot;);</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :                     ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :                     goto ABORT;</span>
+<span class="lineNum">     301 </span>            :                 }
+<span class="lineNum">     302 </span>            :                 /* leave the write event running so it will call us again
+<span class="lineNum">     303 </span>            :                  * when the fd is ready.
+<span class="lineNum">     304 </span>            :                  */
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     306 </span>            :             }
+<span class="lineNum">     307 </span>            :             /* otherwise, something bad happened so all we can do is abort
+<span class="lineNum">     308 </span>            :              * this attempt
+<span class="lineNum">     309 </span>            :              */
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(output);</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :             goto ABORT;</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :         } else if (num_written &lt; output-&gt;numbytes) {</span>
+<span class="lineNum">     313 </span>            :             /* incomplete write - adjust data to avoid duplicate output */
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :             memmove(output-&gt;data, &amp;output-&gt;data[num_written], output-&gt;numbytes - num_written);</span>
+<span class="lineNum">     315 </span>            :             /* adjust the number of bytes remaining to be written */
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :             output-&gt;numbytes -= num_written;</span>
+<span class="lineNum">     317 </span>            :             /* push this item back on the front of the list */
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :             opal_list_prepend(&amp;wev-&gt;outputs, item);</span>
+<span class="lineNum">     319 </span>            :             /* if the list is getting too large, abort */
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :             if (orte_iof_base.output_limit &lt; opal_list_get_size(&amp;wev-&gt;outputs)) {</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :                 opal_output(0, &quot;IO Forwarding is running too far behind - something is blocking us from writing&quot;);</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :                 ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :                 goto ABORT;</span>
+<span class="lineNum">     324 </span>            :             }
+<span class="lineNum">     325 </span>            :             /* leave the write event running so it will call us again
+<span class="lineNum">     326 </span>            :              * when the fd is ready
+<span class="lineNum">     327 </span>            :              */
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     329 </span>            :         }
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(output);</span>
+<span class="lineNum">     331 </span>            :     }
+<span class="lineNum">     332 </span>            : ABORT:
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     opal_event_del(wev-&gt;ev);</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :     wev-&gt;pending = false;</span>
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,468 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/allocator/bucket/allocator_bucket_alloc.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/allocator/bucket</a> - allocator_bucket_alloc.c<span style="font-size: 80%;"> (source / <a href="allocator_bucket_alloc.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">49</td>
+            <td class="headerCovTableEntry">165</td>
+            <td class="headerCovTableEntryLo">29.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2005 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2007      IBM Corp.,  All rights reserved.
+<span class="lineNum">      13 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  * $HEADER$
+<span class="lineNum">      18 </span>            :  */
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      21 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;opal/mca/allocator/bucket/allocator_bucket_alloc.h&quot;
+<span class="lineNum">      23 </span>            : /**
+<span class="lineNum">      24 </span>            :   * The define controls the size in bytes of the 1st bucket and hence every one
+<span class="lineNum">      25 </span>            :   * afterwards.
+<span class="lineNum">      26 </span>            :   */
+<span class="lineNum">      27 </span>            : #define MCA_ALLOCATOR_BUCKET_1_SIZE 8
+<span class="lineNum">      28 </span>            : /**
+<span class="lineNum">      29 </span>            :   * This is the number of left bit shifts from 1 needed to get to the number of
+<span class="lineNum">      30 </span>            :   * bytes in the initial memory buckets
+<span class="lineNum">      31 </span>            :   */
+<span class="lineNum">      32 </span>            : #define MCA_ALLOCATOR_BUCKET_1_BITSHIFTS 3
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            :  /*
+<span class="lineNum">      35 </span>            :    * Initializes the mca_allocator_bucket_options_t data structure for the passed
+<a name="36"><span class="lineNum">      36 </span>            :    * parameters.</a>
+<span class="lineNum">      37 </span>            :    */
+<span class="lineNum">      38 </span><span class="lineCov">          4 : mca_allocator_bucket_t * mca_allocator_bucket_init(</span>
+<span class="lineNum">      39 </span>            :     mca_allocator_base_module_t * mem,
+<span class="lineNum">      40 </span>            :     int num_buckets,
+<span class="lineNum">      41 </span>            :     mca_allocator_base_component_segment_alloc_fn_t get_mem_funct,
+<span class="lineNum">      42 </span>            :     mca_allocator_base_component_segment_free_fn_t free_mem_funct)
+<span class="lineNum">      43 </span>            : {
+<span class="lineNum">      44 </span><span class="lineCov">          4 :     mca_allocator_bucket_t * mem_options = (mca_allocator_bucket_t *) mem;</span>
+<span class="lineNum">      45 </span>            :     int i;
+<span class="lineNum">      46 </span>            :     size_t size;
+<span class="lineNum">      47 </span>            :     /* if a bad value is used for the number of buckets, default to 30 */
+<span class="lineNum">      48 </span><span class="lineCov">          4 :     if(num_buckets &lt;= 0) {</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :         num_buckets = 30;</span>
+<span class="lineNum">      50 </span>            :     }
+<span class="lineNum">      51 </span>            :     /* initialize the array of buckets */
+<span class="lineNum">      52 </span><span class="lineCov">          4 :     size = sizeof(mca_allocator_bucket_bucket_t) * num_buckets;</span>
+<span class="lineNum">      53 </span><span class="lineCov">          4 :     mem_options-&gt;buckets = (mca_allocator_bucket_bucket_t*) malloc(size);</span>
+<span class="lineNum">      54 </span><span class="lineCov">          4 :     if(NULL == mem_options-&gt;buckets) {</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :         return(NULL);</span>
+<span class="lineNum">      56 </span>            :     }
+<span class="lineNum">      57 </span><span class="lineCov">        124 :     for(i = 0; i &lt; num_buckets; i++) {</span>
+<span class="lineNum">      58 </span><span class="lineCov">        120 :         mem_options-&gt;buckets[i].free_chunk = NULL;</span>
+<span class="lineNum">      59 </span><span class="lineCov">        120 :         mem_options-&gt;buckets[i].segment_head = NULL;</span>
+<span class="lineNum">      60 </span><span class="lineCov">        120 :         OBJ_CONSTRUCT(&amp;(mem_options-&gt;buckets[i].lock), opal_mutex_t);</span>
+<span class="lineNum">      61 </span>            :     }
+<span class="lineNum">      62 </span><span class="lineCov">          4 :     mem_options-&gt;num_buckets = num_buckets;</span>
+<span class="lineNum">      63 </span><span class="lineCov">          4 :     mem_options-&gt;get_mem_fn = get_mem_funct;</span>
+<span class="lineNum">      64 </span><span class="lineCov">          4 :     mem_options-&gt;free_mem_fn = free_mem_funct;</span>
+<span class="lineNum">      65 </span><span class="lineCov">          4 :     return(mem_options);</span>
+<span class="lineNum">      66 </span>            : }
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : /*
+<span class="lineNum">      69 </span>            :    * Accepts a request for memory in a specific region defined by the
+<span class="lineNum">      70 </span>            :    * mca_allocator_bucket_options_t struct and returns a pointer to memory in that
+<span class="lineNum">      71 </span>            :    * region or NULL if there was an error
+<a name="72"><span class="lineNum">      72 </span>            :    *</a>
+<span class="lineNum">      73 </span>            :    */
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 : void * mca_allocator_bucket_alloc(</span>
+<span class="lineNum">      75 </span>            :     mca_allocator_base_module_t * mem,
+<span class="lineNum">      76 </span>            :     size_t size,
+<span class="lineNum">      77 </span>            :     mca_mpool_base_registration_t** registration)
+<span class="lineNum">      78 </span>            : {
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     mca_allocator_bucket_t * mem_options = (mca_allocator_bucket_t *) mem;</span>
+<span class="lineNum">      80 </span>            :     /* initialize for the later bit shifts */
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     int bucket_num = 0;</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     size_t bucket_size = MCA_ALLOCATOR_BUCKET_1_SIZE;</span>
+<span class="lineNum">      83 </span>            :     size_t allocated_size;
+<span class="lineNum">      84 </span>            :     mca_allocator_bucket_chunk_header_t * chunk;
+<span class="lineNum">      85 </span>            :     mca_allocator_bucket_chunk_header_t * first_chunk;
+<span class="lineNum">      86 </span>            :     mca_allocator_bucket_segment_head_t * segment_header;
+<span class="lineNum">      87 </span>            :     /* add the size of the header into the amount we need to request */
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     size += sizeof(mca_allocator_bucket_chunk_header_t);</span>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :     /* figure out which bucket it will come from. */
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     while(size &gt; bucket_size) {</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         bucket_num++;</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :         bucket_size &lt;&lt;= 1;</span>
+<span class="lineNum">      94 </span>            :     }
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            :     /* now that we know what bucket it will come from, we must get the lock */
+<span class="lineNum">      97 </span>            :     OPAL_THREAD_LOCK(&amp;(mem_options-&gt;buckets[bucket_num].lock));
+<span class="lineNum">      98 </span>            :     /* see if there is already a free chunk */
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     if(NULL != mem_options-&gt;buckets[bucket_num].free_chunk) {</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :         chunk = mem_options-&gt;buckets[bucket_num].free_chunk;</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :         mem_options-&gt;buckets[bucket_num].free_chunk = chunk-&gt;u.next_free;</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :         chunk-&gt;u.bucket = bucket_num;</span>
+<span class="lineNum">     103 </span>            :         /* go past the header */
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :         chunk += 1;</span>
+<span class="lineNum">     105 </span>            :         /*release the lock */
+<span class="lineNum">     106 </span>            :         OPAL_THREAD_UNLOCK(&amp;(mem_options-&gt;buckets[bucket_num].lock));
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :         return((void *) chunk);</span>
+<span class="lineNum">     108 </span>            :     }
+<span class="lineNum">     109 </span>            :     /* figure out the size of bucket we need */
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     allocated_size = bucket_size;</span>
+<span class="lineNum">     111 </span>            :     /* we have to add in the size of the segment header into the
+<span class="lineNum">     112 </span>            :      * amount we need to request */
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     allocated_size += sizeof(mca_allocator_bucket_segment_head_t);</span>
+<span class="lineNum">     114 </span>            :     /* attempt to get the memory */
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     segment_header = (mca_allocator_bucket_segment_head_t *)</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :                    mem_options-&gt;get_mem_fn(mem_options-&gt;super.alc_mpool, &amp;allocated_size, registration);</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     if(NULL == segment_header) {</span>
+<span class="lineNum">     118 </span>            :         /* release the lock */
+<span class="lineNum">     119 </span>            :         OPAL_THREAD_UNLOCK(&amp;(mem_options-&gt;buckets[bucket_num].lock));
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :         return(NULL);</span>
+<span class="lineNum">     121 </span>            :     }
+<span class="lineNum">     122 </span>            :     /* if were allocated more memory then we actually need, then we will try to
+<span class="lineNum">     123 </span>            :      * break it up into multiple chunks in the current bucket */
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     allocated_size -= (sizeof(mca_allocator_bucket_segment_head_t) + bucket_size);</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :     chunk = first_chunk = segment_header-&gt;first_chunk =</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :                   (mca_allocator_bucket_chunk_header_t *) (segment_header + 1);</span>
+<span class="lineNum">     127 </span>            :     /* add the segment into the segment list */
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     segment_header-&gt;next_segment = mem_options-&gt;buckets[bucket_num].segment_head;</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     mem_options-&gt;buckets[bucket_num].segment_head = segment_header;</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :     if(allocated_size &gt;= bucket_size) {</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         mem_options-&gt;buckets[bucket_num].free_chunk =</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :                         (mca_allocator_bucket_chunk_header_t *) ((char *) chunk + bucket_size);</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :         chunk-&gt;next_in_segment = (mca_allocator_bucket_chunk_header_t *)</span>
+<span class="lineNum">     134 </span>            :                                    ((char *)chunk + bucket_size);
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :         while(allocated_size &gt;= bucket_size) {</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :             chunk = (mca_allocator_bucket_chunk_header_t *) ((char *) chunk + bucket_size);</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :             chunk-&gt;u.next_free = (mca_allocator_bucket_chunk_header_t *)</span>
+<span class="lineNum">     138 </span>            :                                  ((char *) chunk + bucket_size);
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :             chunk-&gt;next_in_segment = chunk-&gt;u.next_free;</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :             allocated_size -= bucket_size;</span>
+<span class="lineNum">     141 </span>            :         }
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         chunk-&gt;next_in_segment = first_chunk;</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         chunk-&gt;u.next_free = NULL;</span>
+<span class="lineNum">     144 </span>            :     } else {
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         first_chunk-&gt;next_in_segment = first_chunk;</span>
+<span class="lineNum">     146 </span>            :     }
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :     first_chunk-&gt;u.bucket = bucket_num;</span>
+<span class="lineNum">     148 </span>            :     OPAL_THREAD_UNLOCK(&amp;(mem_options-&gt;buckets[bucket_num].lock));
+<span class="lineNum">     149 </span>            :     /* return the memory moved past the header */
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     return((void *) (first_chunk + 1));</span>
+<span class="lineNum">     151 </span>            : }
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            : /*
+<a name="154"><span class="lineNum">     154 </span>            :   * allocates an aligned region of memory</a>
+<span class="lineNum">     155 </span>            :   */
+<span class="lineNum">     156 </span><span class="lineCov">         10 : void * mca_allocator_bucket_alloc_align(</span>
+<span class="lineNum">     157 </span>            :     mca_allocator_base_module_t * mem,
+<span class="lineNum">     158 </span>            :     size_t size,
+<span class="lineNum">     159 </span>            :     size_t alignment,
+<span class="lineNum">     160 </span>            :     mca_mpool_base_registration_t** registration)
+<span class="lineNum">     161 </span>            : {
+<span class="lineNum">     162 </span><span class="lineCov">         10 :     mca_allocator_bucket_t * mem_options = (mca_allocator_bucket_t *) mem;</span>
+<span class="lineNum">     163 </span><span class="lineCov">         10 :     int bucket_num = 1;</span>
+<span class="lineNum">     164 </span>            :     void * ptr;
+<span class="lineNum">     165 </span>            :     size_t aligned_max_size, bucket_size;
+<span class="lineNum">     166 </span>            :     size_t alignment_off, allocated_size;
+<span class="lineNum">     167 </span>            :     mca_allocator_bucket_chunk_header_t * chunk;
+<span class="lineNum">     168 </span>            :     mca_allocator_bucket_chunk_header_t * first_chunk;
+<span class="lineNum">     169 </span>            :     mca_allocator_bucket_segment_head_t * segment_header;
+<span class="lineNum">     170 </span>            :     char * aligned_memory;
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            :     /* since we do not have a way to get pre aligned memory, we need to request
+<span class="lineNum">     173 </span>            :      * a chunk then return an aligned spot in it. In the worst case we need
+<span class="lineNum">     174 </span>            :      * the requested size plus the alignment and the header size */
+<span class="lineNum">     175 </span><span class="lineCov">         10 :     aligned_max_size = size + alignment + sizeof(mca_allocator_bucket_chunk_header_t)</span>
+<span class="lineNum">     176 </span>            :                        + sizeof(mca_allocator_bucket_segment_head_t);
+<span class="lineNum">     177 </span><span class="lineCov">         10 :     bucket_size = size + sizeof(mca_allocator_bucket_chunk_header_t);</span>
+<span class="lineNum">     178 </span><span class="lineCov">         10 :     allocated_size = aligned_max_size;</span>
+<span class="lineNum">     179 </span>            :     /* get some memory */
+<span class="lineNum">     180 </span><span class="lineCov">         10 :     ptr = mem_options-&gt;get_mem_fn(mem_options-&gt;super.alc_mpool, &amp;allocated_size, registration);</span>
+<span class="lineNum">     181 </span><span class="lineCov">         10 :     if(NULL == ptr) {</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         return(NULL);</span>
+<span class="lineNum">     183 </span>            :     }
+<span class="lineNum">     184 </span>            :     /* the first part of the memory is the segment header */
+<span class="lineNum">     185 </span><span class="lineCov">         10 :     segment_header = (mca_allocator_bucket_segment_head_t *) ptr;</span>
+<span class="lineNum">     186 </span>            :     /* we temporarily define the first chunk to be right after the segment_header */
+<span class="lineNum">     187 </span><span class="lineCov">         10 :     first_chunk = (mca_allocator_bucket_chunk_header_t *) (segment_header + 1);</span>
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span>            :     /* we want to align the memory right after the header, so we go past the header */
+<span class="lineNum">     190 </span><span class="lineCov">         10 :     aligned_memory = (char *) (first_chunk + 1);</span>
+<span class="lineNum">     191 </span>            :     /* figure out how much the alignment is off by */
+<span class="lineNum">     192 </span><span class="lineCov">         10 :     alignment_off = ((size_t)  aligned_memory) % alignment;</span>
+<span class="lineNum">     193 </span><span class="lineCov">         10 :     aligned_memory += (alignment - alignment_off);</span>
+<span class="lineNum">     194 </span>            :     /* we now have an aligned piece of memory. Now we have to put the chunk
+<span class="lineNum">     195 </span>            :      * header right before the aligned memory                           */
+<span class="lineNum">     196 </span><span class="lineCov">         10 :     first_chunk = (mca_allocator_bucket_chunk_header_t *) aligned_memory - 1;</span>
+<span class="lineNum">     197 </span><span class="lineCov">        126 :     while(bucket_size &gt; MCA_ALLOCATOR_BUCKET_1_SIZE) {</span>
+<span class="lineNum">     198 </span><span class="lineCov">        106 :         bucket_size &gt;&gt;= 1;</span>
+<span class="lineNum">     199 </span><span class="lineCov">        106 :         bucket_num++;</span>
+<span class="lineNum">     200 </span>            :     }
+<span class="lineNum">     201 </span><span class="lineCov">         10 :     bucket_size = 1;</span>
+<span class="lineNum">     202 </span><span class="lineCov">         10 :     bucket_size &lt;&lt;= MCA_ALLOCATOR_BUCKET_1_BITSHIFTS + bucket_num;</span>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            :     /* if were allocated more memory then we actually need, then we will try to
+<span class="lineNum">     205 </span>            :      * break it up into multiple chunks in the current bucket */
+<span class="lineNum">     206 </span><span class="lineCov">         10 :     allocated_size -= aligned_max_size;</span>
+<span class="lineNum">     207 </span><span class="lineCov">         10 :     chunk = segment_header-&gt;first_chunk = first_chunk;</span>
+<span class="lineNum">     208 </span>            :     /* we now need to get a lock on the bucket */
+<span class="lineNum">     209 </span>            :     OPAL_THREAD_LOCK(&amp;(mem_options-&gt;buckets[bucket_num].lock));
+<span class="lineNum">     210 </span>            :     /* add the segment into the segment list */
+<span class="lineNum">     211 </span><span class="lineCov">         10 :     segment_header-&gt;next_segment = mem_options-&gt;buckets[bucket_num].segment_head;</span>
+<span class="lineNum">     212 </span><span class="lineCov">         10 :     mem_options-&gt;buckets[bucket_num].segment_head = segment_header;</span>
+<span class="lineNum">     213 </span><span class="lineCov">         10 :     if(allocated_size &gt;= bucket_size) {</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         mem_options-&gt;buckets[bucket_num].free_chunk =</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :                         (mca_allocator_bucket_chunk_header_t *) ((char *) chunk + bucket_size);</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :         chunk-&gt;next_in_segment = (mca_allocator_bucket_chunk_header_t *)</span>
+<span class="lineNum">     217 </span>            :                                    ((char *)chunk + bucket_size);
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         while(allocated_size &gt;= bucket_size) {</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :             chunk = (mca_allocator_bucket_chunk_header_t *) ((char *) chunk + bucket_size);</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :             chunk-&gt;u.next_free = (mca_allocator_bucket_chunk_header_t *)</span>
+<span class="lineNum">     221 </span>            :                                  ((char *) chunk + bucket_size);
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :             chunk-&gt;next_in_segment = chunk-&gt;u.next_free;</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :             allocated_size -= bucket_size;</span>
+<span class="lineNum">     224 </span>            :         }
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :         chunk-&gt;next_in_segment = first_chunk;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         chunk-&gt;u.next_free = NULL;</span>
+<span class="lineNum">     227 </span>            :     } else {
+<span class="lineNum">     228 </span><span class="lineCov">         10 :         first_chunk-&gt;next_in_segment = first_chunk;</span>
+<span class="lineNum">     229 </span>            :     }
+<span class="lineNum">     230 </span><span class="lineCov">         10 :     first_chunk-&gt;u.bucket = bucket_num;</span>
+<span class="lineNum">     231 </span>            :     OPAL_THREAD_UNLOCK(&amp;(mem_options-&gt;buckets[bucket_num].lock));
+<span class="lineNum">     232 </span>            :     /* return the aligned memory */
+<span class="lineNum">     233 </span><span class="lineCov">         10 :     return((void *) (aligned_memory));</span>
+<span class="lineNum">     234 </span>            : }
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            : /*
+<a name="237"><span class="lineNum">     237 </span>            :   * function to reallocate the segment of memory</a>
+<span class="lineNum">     238 </span>            :   */
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 : void * mca_allocator_bucket_realloc(</span>
+<span class="lineNum">     240 </span>            :     mca_allocator_base_module_t * mem,
+<span class="lineNum">     241 </span>            :     void * ptr,
+<span class="lineNum">     242 </span>            :     size_t size,
+<span class="lineNum">     243 </span>            :     mca_mpool_base_registration_t** registration)
+<span class="lineNum">     244 </span>            : {
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     mca_allocator_bucket_t * mem_options = (mca_allocator_bucket_t *) mem;</span>
+<span class="lineNum">     246 </span>            :     /* initialize for later bit shifts */
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     size_t bucket_size = 1;</span>
+<span class="lineNum">     248 </span>            :     int bucket_num;
+<span class="lineNum">     249 </span>            :     void * ret_ptr;
+<span class="lineNum">     250 </span>            :     /* get the header of the chunk */
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :     mca_allocator_bucket_chunk_header_t * chunk = (mca_allocator_bucket_chunk_header_t *) ptr - 1;</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     bucket_num = chunk-&gt;u.bucket;</span>
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     bucket_size &lt;&lt;= (bucket_num + MCA_ALLOCATOR_BUCKET_1_BITSHIFTS);</span>
+<span class="lineNum">     255 </span>            :     /* since the header area is not available to the user, we need to
+<span class="lineNum">     256 </span>            :      * subtract off the header size                 */
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     bucket_size -= sizeof(mca_allocator_bucket_chunk_header_t);</span>
+<span class="lineNum">     258 </span>            :     /* if the requested size is less than or equal to what they ask for,
+<span class="lineNum">     259 </span>            :      * just give them back what they passed in      */
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     if(size &lt;= bucket_size) {</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         return(ptr);</span>
+<span class="lineNum">     262 </span>            :     }
+<span class="lineNum">     263 </span>            :     /* we need a new space in memory, so let's get it */
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :     ret_ptr = mca_allocator_bucket_alloc((mca_allocator_base_module_t *) mem_options, size, registration);</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     if(NULL == ret_ptr) {</span>
+<span class="lineNum">     266 </span>            :         /* we were unable to get a larger area of memory */
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         return(NULL);</span>
+<span class="lineNum">     268 </span>            :     }
+<span class="lineNum">     269 </span>            :     /* copy what they have in memory to the new spot */
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     memcpy(ret_ptr, ptr, bucket_size);</span>
+<span class="lineNum">     271 </span>            :     /* free the old area in memory */
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     mca_allocator_bucket_free((mca_allocator_base_module_t *) mem_options, ptr);</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     return(ret_ptr);</span>
+<span class="lineNum">     274 </span>            : }
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            : /*
+<span class="lineNum">     278 </span>            :    * Frees the passed region of memory
+<a name="279"><span class="lineNum">     279 </span>            :    *</a>
+<span class="lineNum">     280 </span>            :    */
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 : void mca_allocator_bucket_free(mca_allocator_base_module_t * mem, void * ptr)</span>
+<span class="lineNum">     282 </span>            : {
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     mca_allocator_bucket_t * mem_options = (mca_allocator_bucket_t *) mem;</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     mca_allocator_bucket_chunk_header_t * chunk  = (mca_allocator_bucket_chunk_header_t *) ptr - 1;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     int bucket_num = chunk-&gt;u.bucket;</span>
+<span class="lineNum">     286 </span>            :     OPAL_THREAD_LOCK(&amp;(mem_options-&gt;buckets[bucket_num].lock));
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     chunk-&gt;u.next_free = mem_options-&gt;buckets[bucket_num].free_chunk;</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     mem_options-&gt;buckets[bucket_num].free_chunk = chunk;</span>
+<span class="lineNum">     289 </span>            :     OPAL_THREAD_UNLOCK(&amp;(mem_options-&gt;buckets[bucket_num].lock));
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span>            : /*
+<span class="lineNum">     293 </span>            :    * Frees all the memory from all the buckets back to the system. Note that
+<span class="lineNum">     294 </span>            :    * this function only frees memory that was previously freed with
+<span class="lineNum">     295 </span>            :    * mca_allocator_bucket_free().
+<a name="296"><span class="lineNum">     296 </span>            :    *</a>
+<span class="lineNum">     297 </span>            :    */
+<span class="lineNum">     298 </span><span class="lineCov">          2 : int mca_allocator_bucket_cleanup(mca_allocator_base_module_t * mem)</span>
+<span class="lineNum">     299 </span>            : {
+<span class="lineNum">     300 </span><span class="lineCov">          2 :     mca_allocator_bucket_t * mem_options = (mca_allocator_bucket_t *) mem;</span>
+<span class="lineNum">     301 </span>            :     int i;
+<span class="lineNum">     302 </span>            :     mca_allocator_bucket_chunk_header_t * next_chunk;
+<span class="lineNum">     303 </span>            :     mca_allocator_bucket_chunk_header_t * chunk;
+<span class="lineNum">     304 </span>            :     mca_allocator_bucket_chunk_header_t * first_chunk;
+<span class="lineNum">     305 </span>            :     mca_allocator_bucket_segment_head_t ** segment_header;
+<span class="lineNum">     306 </span>            :     mca_allocator_bucket_segment_head_t * segment;
+<span class="lineNum">     307 </span><span class="lineCov">          2 :     bool empty = true;</span>
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span><span class="lineCov">         62 :     for(i = 0; i &lt; mem_options-&gt;num_buckets; i++) {</span>
+<span class="lineNum">     310 </span>            :         OPAL_THREAD_LOCK(&amp;(mem_options-&gt;buckets[i].lock));
+<span class="lineNum">     311 </span><span class="lineCov">         60 :         segment_header = &amp;(mem_options-&gt;buckets[i].segment_head);</span>
+<span class="lineNum">     312 </span><span class="lineCov">         60 :         if( NULL == (*segment_header) ) {</span>
+<span class="lineNum">     313 </span>            :             OPAL_THREAD_UNLOCK(&amp;(mem_options-&gt;buckets[i].lock));
+<span class="lineNum">     314 </span><span class="lineCov">         60 :             continue;</span>
+<span class="lineNum">     315 </span>            :         }
+<span class="lineNum">     316 </span>            :         /* first we suppose the execution is correct and all chunks
+<span class="lineNum">     317 </span>            :          * have been correctly released. Therefore, if we make sure
+<span class="lineNum">     318 </span>            :          * all segments only contain free items then we can release
+<span class="lineNum">     319 </span>            :          * everything in one go.
+<span class="lineNum">     320 </span>            :          */
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         empty = true;</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         segment = mem_options-&gt;buckets[i].segment_head;</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :         while( (true == empty) &amp;&amp; (NULL != segment) ) {</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :             first_chunk = segment-&gt;first_chunk;</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :             chunk = first_chunk;</span>
+<span class="lineNum">     326 </span>            :             /* determine if the segment is free */
+<span class="lineNum">     327 </span>            :             do {
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :                 if(chunk-&gt;u.bucket == i) {</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :                     empty = false;</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     331 </span>            :                 }
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :                 chunk = chunk-&gt;next_in_segment;</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :             } while(chunk != first_chunk);</span>
+<span class="lineNum">     334 </span>            :             /* go to next segment */
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :             segment = segment-&gt;next_segment;</span>
+<span class="lineNum">     336 </span>            :         }
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :         if( true == empty ) {  /* all segments ready for release */</span>
+<span class="lineNum">     338 </span>            :             mca_allocator_bucket_segment_head_t* next_segment;
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :             segment = mem_options-&gt;buckets[i].segment_head;</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :             while( NULL != segment ) {</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :                 next_segment = segment-&gt;next_segment;</span>
+<span class="lineNum">     342 </span>            :                 /* free the memory */
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :                 if(mem_options-&gt;free_mem_fn)</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :                     mem_options-&gt;free_mem_fn(mem-&gt;alc_mpool, segment);</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :                 segment = next_segment;</span>
+<span class="lineNum">     346 </span>            :             }
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :             mem_options-&gt;buckets[i].free_chunk = NULL;</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :             mem_options-&gt;buckets[i].segment_head = NULL;</span>
+<span class="lineNum">     349 </span>            :         } else {
+<span class="lineNum">     350 </span>            :             /* traverse the list of segment headers until we hit NULL */
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :             while(NULL != *segment_header) {</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :                 first_chunk = (*segment_header)-&gt;first_chunk;</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :                 chunk = first_chunk;</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :                 empty = true;</span>
+<span class="lineNum">     355 </span>            :                 /* determine if the segment is free */
+<span class="lineNum">     356 </span>            :                 do {
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :                     if(chunk-&gt;u.bucket == i) {</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :                         empty = false;</span>
+<span class="lineNum">     359 </span>            :                     }
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :                     chunk = chunk-&gt;next_in_segment;</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :                 } while(empty &amp;&amp; (chunk != first_chunk));</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :                 if(empty) {</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :                     chunk = first_chunk;</span>
+<span class="lineNum">     364 </span>            :                     /* remove the chunks from the free list */
+<span class="lineNum">     365 </span>            :                     do {
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :                         if(mem_options-&gt;buckets[i].free_chunk == chunk) {</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :                             mem_options-&gt;buckets[i].free_chunk = chunk-&gt;u.next_free;</span>
+<span class="lineNum">     368 </span>            :                         } else {
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :                             next_chunk = mem_options-&gt;buckets[i].free_chunk;</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :                             while(next_chunk-&gt;u.next_free != chunk) {</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :                                 next_chunk = next_chunk-&gt;u.next_free;</span>
+<span class="lineNum">     372 </span>            :                             }
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :                             next_chunk-&gt;u.next_free = chunk-&gt;u.next_free;</span>
+<span class="lineNum">     374 </span>            :                         }
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :                     } while((chunk = chunk-&gt;next_in_segment) != first_chunk);</span>
+<span class="lineNum">     376 </span>            :                     /* set the segment list to point to the next segment */
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                     segment = *segment_header;</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                     *segment_header = segment-&gt;next_segment;</span>
+<span class="lineNum">     379 </span>            :                     /* free the memory */
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :                     if(mem_options-&gt;free_mem_fn)</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :                         mem_options-&gt;free_mem_fn(mem-&gt;alc_mpool, segment);</span>
+<span class="lineNum">     382 </span>            :                 } else {
+<span class="lineNum">     383 </span>            :                     /* go to next segment */
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :                     segment_header = &amp;((*segment_header)-&gt;next_segment);</span>
+<span class="lineNum">     385 </span>            :                 }
+<span class="lineNum">     386 </span>            :             }
+<span class="lineNum">     387 </span>            :         }
+<span class="lineNum">     388 </span>            :         /* relese the lock on the bucket */
+<span class="lineNum">     389 </span>            :         OPAL_THREAD_UNLOCK(&amp;(mem_options-&gt;buckets[i].lock));
+<span class="lineNum">     390 </span>            :     }
+<span class="lineNum">     391 </span><span class="lineCov">          2 :     return(OPAL_SUCCESS);</span>
+<span class="lineNum">     392 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,1275 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/util/crc.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/util</a> - crc.c<span style="font-size: 80%;"> (source / <a href="crc.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">709</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2006 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+<span class="lineNum">      13 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  * $HEADER$
+<span class="lineNum">      18 </span>            :  */
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      22 </span>            : #ifdef HAVE_STDIO_H
+<span class="lineNum">      23 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      24 </span>            : #endif /* HAVE_STDIO_H */
+<span class="lineNum">      25 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      26 </span>            : #ifdef HAVE_STRINGS_H
+<span class="lineNum">      27 </span>            : #include &lt;strings.h&gt;
+<span class="lineNum">      28 </span>            : #endif  /* HAVE_STRINGS_H */
+<span class="lineNum">      29 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      30 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      31 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      32 </span>            : #endif  /* HAVE_UNISTD_H */
+<span class="lineNum">      33 </span>            : #include &quot;opal/util/crc.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : #if (OPAL_ALIGNMENT_LONG == 8)
+<span class="lineNum">      37 </span>            : #define OPAL_CRC_WORD_MASK_ 0x7
+<span class="lineNum">      38 </span>            : #elif (OPAL_ALIGNMENT_LONG == 4)
+<span class="lineNum">      39 </span>            : #define OPAL_CRC_WORD_MASK_ 0x3
+<span class="lineNum">      40 </span>            : #else
+<span class="lineNum">      41 </span>            : #define OPAL_CRC_WORD_MASK_ 0xFFFF
+<span class="lineNum">      42 </span>            : #endif
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : #define WORDALIGNED(v) \
+<span class="lineNum">      46 </span>            :     (((intptr_t)v &amp; OPAL_CRC_WORD_MASK_) ? false : true)
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : #define INTALIGNED(v) \
+<span class="lineNum">      50 </span>            :     (((intptr_t)v &amp; 3) ? false : true)
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : /*
+<span class="lineNum">      53 </span>            :  * this version of bcopy_csum() looks a little too long, but it
+<span class="lineNum">      54 </span>            :  * handles cumulative checksumming for arbitrary lengths and address
+<span class="lineNum">      55 </span>            :  * alignments as best as it can; the contents of lastPartialLong and
+<span class="lineNum">      56 </span>            :  * lastPartialLength are updated to reflected the last partial word's
+<span class="lineNum">      57 </span>            :  * value and length (in bytes) -- this should allow proper handling of
+<span class="lineNum">      58 </span>            :  * checksumming contiguous or noncontiguous buffers via multiple calls
+<span class="lineNum">      59 </span>            :  * of bcopy_csum() - Mitch
+<span class="lineNum">      60 </span>            :  */
+<a name="61"><span class="lineNum">      61 </span>            : </a>
+<span class="lineNum">      62 </span>            : unsigned long
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 : opal_bcopy_csum_partial (</span>
+<span class="lineNum">      64 </span>            :     const void *  source,
+<span class="lineNum">      65 </span>            :     void *  destination,
+<span class="lineNum">      66 </span>            :     size_t copylen,
+<span class="lineNum">      67 </span>            :     size_t csumlen,
+<span class="lineNum">      68 </span>            :     unsigned long *  lastPartialLong,
+<span class="lineNum">      69 </span>            :     size_t*  lastPartialLength
+<span class="lineNum">      70 </span>            :     )
+<span class="lineNum">      71 </span>            : {
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     unsigned long *  src = (unsigned long *) source;</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     unsigned long *  dest = (unsigned long *) destination;</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     unsigned long csum = 0;</span>
+<span class="lineNum">      75 </span>            :     size_t csumlenresidue;
+<span class="lineNum">      76 </span>            :     unsigned long i, temp;
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     csumlenresidue = (csumlen &gt; copylen) ? (csumlen - copylen) : 0;</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     temp = *lastPartialLong;</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     if (WORDALIGNED(source) &amp;&amp; WORDALIGNED(dest)) {</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">      83 </span>            :             /* do we have enough data to fill out the partial word? */
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :             if (copylen &gt;= (sizeof(unsigned long) - *lastPartialLength)) { /* YES, we do... */</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned long) - *lastPartialLength));</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength),</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned long) - *lastPartialLength));</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :                 src = (unsigned long *)((char *)src + sizeof(unsigned long) - *lastPartialLength);</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :                 dest = (unsigned long *)((char *)dest + sizeof(unsigned long) - *lastPartialLength);</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :                 copylen -= sizeof(unsigned long) - *lastPartialLength;</span>
+<span class="lineNum">      93 </span>            :                 /* now we have an unaligned source and an unaligned destination */
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :                 for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :                     memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :                     src++;</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :                     csum += temp;</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :                     memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :                     dest++;</span>
+<span class="lineNum">     100 </span>            :                 }
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :                 *lastPartialLength = 0;</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :                 *lastPartialLong = 0;</span>
+<span class="lineNum">     103 </span>            :             }
+<span class="lineNum">     104 </span>            :             else { /* NO, we don't... */
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src, copylen);</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength), copylen);</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :                 src = (unsigned long *)((char *)src + copylen);</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :                 dest = (unsigned long *)((char *)dest + copylen);</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :                 *lastPartialLong = temp;</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :                 *lastPartialLength += copylen;</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :                 copylen = 0;</span>
+<span class="lineNum">     113 </span>            :             }
+<span class="lineNum">     114 </span>            :         }
+<span class="lineNum">     115 </span>            :         else { /* fast path... */
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :             size_t numLongs = copylen/sizeof(unsigned long);</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :             for(i = 0; i &lt; numLongs; i++) {</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :                     csum += *src;</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :                     *dest++ = *src++;</span>
+<span class="lineNum">     120 </span>            :             }
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :             *lastPartialLong = 0;</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :             if (WORDALIGNED(copylen) &amp;&amp; (csumlenresidue == 0)) {</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :                     return(csum);</span>
+<span class="lineNum">     125 </span>            :             }
+<span class="lineNum">     126 </span>            :             else {
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :                     copylen -= i * sizeof(unsigned long);</span>
+<span class="lineNum">     128 </span>            :             }
+<span class="lineNum">     129 </span>            :         }
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :     } else if (WORDALIGNED(source)) {</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     132 </span>            :             /* do we have enough data to fill out the partial word? */
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :             if (copylen &gt;= (sizeof(unsigned long) - *lastPartialLength)) { /* YES, we do... */</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned long) - *lastPartialLength));</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength),</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned long) - *lastPartialLength));</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :                 src = (unsigned long *)((char *)src + sizeof(unsigned long) - *lastPartialLength);</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :                 dest = (unsigned long *)((char *)dest + sizeof(unsigned long) - *lastPartialLength);</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :                 copylen -= sizeof(unsigned long) - *lastPartialLength;</span>
+<span class="lineNum">     142 </span>            :                 /* now we have an unaligned source and an unknown alignment for our destination */
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :                 if (WORDALIGNED(dest)) {</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :                     size_t numLongs = copylen/sizeof(unsigned long);</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :                     for(i = 0; i &lt; numLongs; i++) {</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :                             memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :                             src++;</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :                             csum += temp;</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :                             *dest++ = temp;</span>
+<span class="lineNum">     150 </span>            :                     }
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :                     copylen -= i * sizeof(unsigned long);</span>
+<span class="lineNum">     152 </span>            :                 }
+<span class="lineNum">     153 </span>            :                 else {
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :                     for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :                             memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :                             src++;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :                             csum += temp;</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :                             memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :                             dest++;</span>
+<span class="lineNum">     160 </span>            :                     }
+<span class="lineNum">     161 </span>            :                 }
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                 *lastPartialLong = 0;</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :                 *lastPartialLength = 0;</span>
+<span class="lineNum">     164 </span>            :             }
+<span class="lineNum">     165 </span>            :             else { /* NO, we don't... */
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :                     memcpy(((char *)&amp;temp + *lastPartialLength), src, copylen);</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :                     memcpy(dest, ((char *)&amp;temp + *lastPartialLength), copylen);</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :                     src = (unsigned long *)((char *)src + copylen);</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :                     dest = (unsigned long *)((char *)dest + copylen);</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :                     csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :                     *lastPartialLong = temp;</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :                     *lastPartialLength += copylen;</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :                     copylen = 0;</span>
+<span class="lineNum">     174 </span>            :             }
+<span class="lineNum">     175 </span>            :         }
+<span class="lineNum">     176 </span>            :         else {
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :             for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :                 temp = *src++;</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :                 memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :                 dest++;</span>
+<span class="lineNum">     182 </span>            :             }
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :             *lastPartialLong = 0;</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">     185 </span>            :         }
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     } else if (WORDALIGNED(dest)) {</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     188 </span>            :             /* do we have enough data to fill out the partial word? */
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :             if (copylen &gt;= (sizeof(unsigned long) - *lastPartialLength)) { /* YES, we do... */</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned long) - *lastPartialLength));</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength),</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned long) - *lastPartialLength));</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :                 src = (unsigned long *)((char *)src + sizeof(unsigned long) - *lastPartialLength);</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :                 dest = (unsigned long *)((char *)dest + sizeof(unsigned long) - *lastPartialLength);</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :                 copylen -= sizeof(unsigned long) - *lastPartialLength;</span>
+<span class="lineNum">     198 </span>            :                 /* now we have a source of unknown alignment and a unaligned destination */
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :                 if (WORDALIGNED(src)) {</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :                     for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :                         temp = *src++;</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :                         csum += temp;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :                         memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :                         dest++;</span>
+<span class="lineNum">     205 </span>            :                     }
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :                     *lastPartialLong = 0;</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :                     *lastPartialLength = 0;</span>
+<span class="lineNum">     208 </span>            :                 }
+<span class="lineNum">     209 </span>            :                 else {
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :                     for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :                         memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :                         src++;</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :                         csum += temp;</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :                         memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :                         dest++;</span>
+<span class="lineNum">     216 </span>            :                     }
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :                     *lastPartialLength = 0;</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :                     *lastPartialLong = 0;</span>
+<span class="lineNum">     219 </span>            :                 }
+<span class="lineNum">     220 </span>            :             }
+<span class="lineNum">     221 </span>            :             else { /* NO, we don't... */
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src, copylen);</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength), copylen);</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :                 src = (unsigned long *)((char *)src + copylen);</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :                 dest = (unsigned long *)((char *)dest + copylen);</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :                 *lastPartialLong = temp;</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :                 *lastPartialLength += copylen;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :                 copylen = 0;</span>
+<span class="lineNum">     230 </span>            :             }
+<span class="lineNum">     231 </span>            :         }
+<span class="lineNum">     232 </span>            :         else {
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :             for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :                 memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :                 src++;</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :                 *dest++ = temp;</span>
+<span class="lineNum">     238 </span>            :             }
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :             *lastPartialLong = 0;</span>
+<span class="lineNum">     241 </span>            :         }
+<span class="lineNum">     242 </span>            :     } else {
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     244 </span>            :             /* do we have enough data to fill out the partial word? */
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :             if (copylen &gt;= (sizeof(unsigned long) - *lastPartialLength)) { /* YES, we do... */</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned long) - *lastPartialLength));</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength),</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned long) - *lastPartialLength));</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :                 src = (unsigned long *)((char *)src + sizeof(unsigned long) - *lastPartialLength);</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :                 dest = (unsigned long *)((char *)dest + sizeof(unsigned long) - *lastPartialLength);</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :                 copylen -= sizeof(unsigned long) - *lastPartialLength;</span>
+<span class="lineNum">     254 </span>            :                 /* now we have an unknown alignment for our source and destination */
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :                 if (WORDALIGNED(src) &amp;&amp; WORDALIGNED(dest)) {</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :                     size_t numLongs = copylen/sizeof(unsigned long);</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :                     for(i = 0; i &lt; numLongs; i++) {</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :                             csum += *src;</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :                             *dest++ = *src++;</span>
+<span class="lineNum">     260 </span>            :                     }
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :                     copylen -= i * sizeof(unsigned long);</span>
+<span class="lineNum">     262 </span>            :                 }
+<span class="lineNum">     263 </span>            :                 else { /* safe but slower for all other alignments */
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :                     for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :                             memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :                             src++;</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :                             csum += temp;</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :                             memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :                             dest++;</span>
+<span class="lineNum">     270 </span>            :                     }
+<span class="lineNum">     271 </span>            :                 }
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :                 *lastPartialLong = 0;</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :                 *lastPartialLength = 0;</span>
+<span class="lineNum">     274 </span>            :             }
+<span class="lineNum">     275 </span>            :             else { /* NO, we don't... */
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src, copylen);</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength), copylen);</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :                 src = (unsigned long *)((char *)src + copylen);</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :                 dest = (unsigned long *)((char *)dest + copylen);</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :                 *lastPartialLong = temp;</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :                 *lastPartialLength += copylen;</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :                 copylen = 0;</span>
+<span class="lineNum">     284 </span>            :             }
+<span class="lineNum">     285 </span>            :         }
+<span class="lineNum">     286 </span>            :         else {
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :             for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :                 memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :                 src++;</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :                 memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                 dest++;</span>
+<span class="lineNum">     293 </span>            :             }
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :             *lastPartialLong = 0;</span>
+<span class="lineNum">     296 </span>            :         }
+<span class="lineNum">     297 </span>            :     }
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span>            :     /* if copylen is non-zero there was a bit left, less than an unsigned long's worth */
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     if ((copylen != 0) &amp;&amp; (csumlenresidue == 0)) {</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :         temp = *lastPartialLong;</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :             if (copylen &gt;= (sizeof(unsigned long) - *lastPartialLength)) {</span>
+<span class="lineNum">     304 </span>            :                 /* copy all remaining bytes from src to dest */
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :                 unsigned long copytemp = 0;</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :                 memcpy(&amp;copytemp, src, copylen);</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :                 memcpy(dest, &amp;copytemp, copylen);</span>
+<span class="lineNum">     308 </span>            :                 /* fill out rest of partial word and add to checksum */
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned long) - *lastPartialLength));</span>
+<span class="lineNum">     311 </span>            :                 /* avoid unsigned arithmetic overflow by subtracting the old partial
+<span class="lineNum">     312 </span>            :                  * word from the new one before adding to the checksum...
+<span class="lineNum">     313 </span>            :         */
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :                 copylen -= sizeof(unsigned long) - *lastPartialLength;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :                 src = (unsigned long *)((char *)src + sizeof(unsigned long) - *lastPartialLength);</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :                 *lastPartialLength = copylen;</span>
+<span class="lineNum">     318 </span>            :                 /* reset temp, and calculate next partial word */
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :                 temp = 0;</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :                 if (copylen) {</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :                     memcpy(&amp;temp, src, copylen);</span>
+<span class="lineNum">     322 </span>            :                 }
+<span class="lineNum">     323 </span>            :                 /* add it to the the checksum */
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :                 *lastPartialLong = temp;</span>
+<span class="lineNum">     326 </span>            :             }
+<span class="lineNum">     327 </span>            :             else {
+<span class="lineNum">     328 </span>            :                 /* copy all remaining bytes from src to dest */
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :                 unsigned long copytemp = 0;</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :                 memcpy(&amp;copytemp, src, copylen);</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :                 memcpy(dest, &amp;copytemp, copylen);</span>
+<span class="lineNum">     332 </span>            :                 /* fill out rest of partial word and add to checksum */
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     334 </span>            :                        copylen);
+<span class="lineNum">     335 </span>            :                 /* avoid unsigned arithmetic overflow by subtracting the old partial
+<span class="lineNum">     336 </span>            :                  * word from the new one before adding to the checksum...
+<span class="lineNum">     337 </span>            :         */
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :                 csum += temp - *lastPartialLong;</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :                 *lastPartialLong = temp;</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :                 *lastPartialLength += copylen;</span>
+<span class="lineNum">     341 </span>            :             }
+<span class="lineNum">     342 </span>            :         }
+<span class="lineNum">     343 </span>            :         else { /* fast path... */
+<span class="lineNum">     344 </span>            :             /* temp and *lastPartialLong are 0 if *lastPartialLength is 0... */
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :             memcpy(&amp;temp, src, copylen);</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :             csum += temp;</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :             memcpy(dest, &amp;temp, copylen);</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :             *lastPartialLong = temp;</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :             *lastPartialLength = copylen;</span>
+<span class="lineNum">     350 </span>            :             /* done...return the checksum */
+<span class="lineNum">     351 </span>            :         }
+<span class="lineNum">     352 </span>            :     }
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     else if (csumlenresidue != 0) {</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         if (copylen != 0) {</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :             temp = 0;</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :             memcpy(&amp;temp, src, copylen);</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :             memcpy(dest, &amp;temp, copylen);</span>
+<span class="lineNum">     358 </span>            :         }
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :         if (csumlenresidue &lt; (sizeof(unsigned long) - copylen - *lastPartialLength)) {</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :             temp = *lastPartialLong;</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :             memcpy(((char *)&amp;temp + *lastPartialLength), src, (copylen + csumlenresidue));</span>
+<span class="lineNum">     362 </span>            :             /* avoid unsigned arithmetic overflow by subtracting the old partial */
+<span class="lineNum">     363 </span>            :             /* word from the new one before adding to the checksum... */
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :             csum += temp - *lastPartialLong;</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :             src++;</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :             *lastPartialLong = temp;</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :             *lastPartialLength += copylen + csumlenresidue;</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :             csumlenresidue = 0;</span>
+<span class="lineNum">     369 </span>            :         }
+<span class="lineNum">     370 </span>            :         else {
+<span class="lineNum">     371 </span>            :             /* we have enough chksum data to fill out our last partial */
+<span class="lineNum">     372 </span>            :             /* word */
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :             temp = *lastPartialLong;</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :             memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :                    (sizeof(unsigned long) - *lastPartialLength));</span>
+<span class="lineNum">     376 </span>            :             /* avoid unsigned arithmetic overflow by subtracting the old partial */
+<span class="lineNum">     377 </span>            :             /* word from the new one before adding to the checksum... */
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :             csum += temp - *lastPartialLong;</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :             src = (unsigned long *)((char *)src + sizeof(unsigned long) - *lastPartialLength);</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :             csumlenresidue -= sizeof(unsigned long) - *lastPartialLength - copylen;</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :             *lastPartialLong = 0;</span>
+<span class="lineNum">     383 </span>            :         }
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         if (WORDALIGNED(src)) {</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :             for (i = 0; i &lt; csumlenresidue/sizeof(unsigned long); i++) {</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :                 csum += *src++;</span>
+<span class="lineNum">     387 </span>            :             }
+<span class="lineNum">     388 </span>            :         }
+<span class="lineNum">     389 </span>            :         else {
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :             for (i = 0; i &lt; csumlenresidue/sizeof(unsigned long); i++) {</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :                 memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :                 src++;</span>
+<span class="lineNum">     394 </span>            :             }
+<span class="lineNum">     395 </span>            :         }
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :         csumlenresidue -= i * sizeof(unsigned long);</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :         if (csumlenresidue) {</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :             temp = 0;</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :             memcpy(&amp;temp, src, csumlenresidue);</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :             csum += temp;</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :             *lastPartialLong = temp;</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :             *lastPartialLength = csumlenresidue;</span>
+<span class="lineNum">     403 </span>            :         }
+<span class="lineNum">     404 </span>            :     } /* end else if (csumlenresidue != 0) */
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :     return csum;</span>
+<span class="lineNum">     407 </span>            : }
+<a name="408"><span class="lineNum">     408 </span>            : </a>
+<span class="lineNum">     409 </span>            : unsigned int
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 : opal_bcopy_uicsum_partial (</span>
+<span class="lineNum">     411 </span>            :     const void *  source,
+<span class="lineNum">     412 </span>            :     void *  destination,
+<span class="lineNum">     413 </span>            :     size_t copylen,
+<span class="lineNum">     414 </span>            :     size_t csumlen,
+<span class="lineNum">     415 </span>            :     unsigned int*  lastPartialInt,
+<span class="lineNum">     416 </span>            :     size_t*  lastPartialLength
+<span class="lineNum">     417 </span>            :     )
+<span class="lineNum">     418 </span>            : {
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :     unsigned int *  src = (unsigned int *) source;</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :     unsigned int *  dest = (unsigned int *) destination;</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     unsigned int csum = 0;</span>
+<span class="lineNum">     422 </span>            :     size_t csumlenresidue;
+<span class="lineNum">     423 </span>            :     unsigned long i;
+<span class="lineNum">     424 </span>            :     unsigned int temp;
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     csumlenresidue = (csumlen &gt; copylen) ? (csumlen - copylen) : 0;</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     temp = *lastPartialInt;</span>
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :     if (INTALIGNED(source) &amp;&amp; INTALIGNED(dest)) {</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     431 </span>            :             /* do we have enough data to fill out the partial word? */
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :             if (copylen &gt;= (sizeof(unsigned int) - *lastPartialLength)) { /* YES, we do... */</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned int) - *lastPartialLength));</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength),</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned int) - *lastPartialLength));</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + sizeof(unsigned int) - *lastPartialLength);</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :                 dest = (unsigned int *)((char *)dest + sizeof(unsigned int) - *lastPartialLength);</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :                 copylen -= sizeof(unsigned int) - *lastPartialLength;</span>
+<span class="lineNum">     441 </span>            :                 /* now we have an unaligned source and an unaligned destination */
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :                 for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :                     memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :                     src++;</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :                     csum += temp;</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :                     memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :                     dest++;</span>
+<span class="lineNum">     448 </span>            :                 }
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :                 *lastPartialLength = 0;</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :                 *lastPartialInt = 0;</span>
+<span class="lineNum">     451 </span>            :             }
+<span class="lineNum">     452 </span>            :             else { /* NO, we don't... */
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src, copylen);</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength), copylen);</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + copylen);</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :                 dest = (unsigned int *)((char *)dest + copylen);</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :                 *lastPartialInt = temp;</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :                 *lastPartialLength += copylen;</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :                 copylen = 0;</span>
+<span class="lineNum">     461 </span>            :             }
+<span class="lineNum">     462 </span>            :         }
+<span class="lineNum">     463 </span>            :         else { /* fast path... */
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :             size_t numLongs = copylen/sizeof(unsigned int);</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :             for(i = 0; i &lt; numLongs; i++) {</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :                     csum += *src;</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :                     *dest++ = *src++;</span>
+<span class="lineNum">     468 </span>            :             }
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :             *lastPartialInt = 0;</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :             if (INTALIGNED(copylen) &amp;&amp; (csumlenresidue == 0)) {</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :                     return(csum);</span>
+<span class="lineNum">     473 </span>            :             }
+<span class="lineNum">     474 </span>            :             else {
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :                     copylen -= i * sizeof(unsigned int);</span>
+<span class="lineNum">     476 </span>            :             }
+<span class="lineNum">     477 </span>            :         }
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     } else if (INTALIGNED(source)) {</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     480 </span>            :             /* do we have enough data to fill out the partial word? */
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :             if (copylen &gt;= (sizeof(unsigned int) - *lastPartialLength)) { /* YES, we do... */</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned int) - *lastPartialLength));</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength),</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned int) - *lastPartialLength));</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + sizeof(unsigned int) - *lastPartialLength);</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :                 dest = (unsigned int *)((char *)dest + sizeof(unsigned int) - *lastPartialLength);</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :                 copylen -= sizeof(unsigned int) - *lastPartialLength;</span>
+<span class="lineNum">     490 </span>            :                 /* now we have an unaligned source and an unknown alignment for our destination */
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :                 if (INTALIGNED(dest)) {</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :                     size_t numLongs = copylen/sizeof(unsigned int);</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :                     for(i = 0; i &lt; numLongs; i++) {</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :                         memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :                         src++;</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :                         csum += temp;</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :                         *dest++ = temp;</span>
+<span class="lineNum">     498 </span>            :                     }
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :                     copylen -= i * sizeof(unsigned int);</span>
+<span class="lineNum">     500 </span>            :                 }
+<span class="lineNum">     501 </span>            :                 else {
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :                     for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :                         memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :                         src++;</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :                         csum += temp;</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :                         memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :                         dest++;</span>
+<span class="lineNum">     508 </span>            :                     }
+<span class="lineNum">     509 </span>            :                 }
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :                 *lastPartialInt = 0;</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :                 *lastPartialLength = 0;</span>
+<span class="lineNum">     512 </span>            :             }
+<span class="lineNum">     513 </span>            :             else { /* NO, we don't... */
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src, copylen);</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength), copylen);</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + copylen);</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :                 dest = (unsigned int *)((char *)dest + copylen);</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :                 *lastPartialInt = temp;</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :                 *lastPartialLength += copylen;</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :                 copylen = 0;</span>
+<span class="lineNum">     522 </span>            :             }
+<span class="lineNum">     523 </span>            :         }
+<span class="lineNum">     524 </span>            :         else {
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :             for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :                 temp = *src++;</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :                 memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :                 dest++;</span>
+<span class="lineNum">     530 </span>            :             }
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :             *lastPartialInt = 0;</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">     533 </span>            :         }
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :     } else if (INTALIGNED(dest)) {</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     536 </span>            :             /* do we have enough data to fill out the partial word? */
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :             if (copylen &gt;= (sizeof(unsigned int) - *lastPartialLength)) { /* YES, we do... */</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned int) - *lastPartialLength));</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength),</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned int) - *lastPartialLength));</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + sizeof(unsigned int) - *lastPartialLength);</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :                 dest = (unsigned int *)((char *)dest + sizeof(unsigned int) - *lastPartialLength);</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :                 copylen -= sizeof(unsigned int) - *lastPartialLength;</span>
+<span class="lineNum">     546 </span>            :                 /* now we have a source of unknown alignment and a unaligned destination */
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :                 if (INTALIGNED(src)) {</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :                     for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :                         temp = *src++;</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :                         csum += temp;</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :                         memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :                         dest++;</span>
+<span class="lineNum">     553 </span>            :                     }
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :                     *lastPartialInt = 0;</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :                     *lastPartialLength = 0;</span>
+<span class="lineNum">     556 </span>            :                 }
+<span class="lineNum">     557 </span>            :                 else {
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :                     for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :                         memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :                         src++;</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :                         csum += temp;</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :                         memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :                         dest++;</span>
+<span class="lineNum">     564 </span>            :                     }
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :                     *lastPartialLength = 0;</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :                     *lastPartialInt = 0;</span>
+<span class="lineNum">     567 </span>            :                 }
+<span class="lineNum">     568 </span>            :             }
+<span class="lineNum">     569 </span>            :             else { /* NO, we don't... */
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src, copylen);</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength), copylen);</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + copylen);</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :                 dest = (unsigned int *)((char *)dest + copylen);</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :                 *lastPartialInt = temp;</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :                 *lastPartialLength += copylen;</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :                 copylen = 0;</span>
+<span class="lineNum">     578 </span>            :             }
+<span class="lineNum">     579 </span>            :         }
+<span class="lineNum">     580 </span>            :         else {
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :             for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :                 memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :                 src++;</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :                 *dest++ = temp;</span>
+<span class="lineNum">     586 </span>            :             }
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :             *lastPartialInt = 0;</span>
+<span class="lineNum">     589 </span>            :         }
+<span class="lineNum">     590 </span>            :     } else {
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     592 </span>            :             /* do we have enough data to fill out the partial word? */
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :             if (copylen &gt;= (sizeof(unsigned int) - *lastPartialLength)) { /* YES, we do... */</span>
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned int) - *lastPartialLength));</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength),</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned int) - *lastPartialLength));</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + sizeof(unsigned int) - *lastPartialLength);</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :                 dest = (unsigned int *)((char *)dest + sizeof(unsigned int) - *lastPartialLength);</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :                 copylen -= sizeof(unsigned int) - *lastPartialLength;</span>
+<span class="lineNum">     602 </span>            :                 /* now we have an unknown alignment for our source and destination */
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :                 if (INTALIGNED(src) &amp;&amp; INTALIGNED(dest)) {</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :                     size_t numLongs = copylen/sizeof(unsigned int);</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :                     for(i = 0; i &lt; numLongs; i++) {</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :                         csum += *src;</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :                         *dest++ = *src++;</span>
+<span class="lineNum">     608 </span>            :                     }
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :                     copylen -= i * sizeof(unsigned int);</span>
+<span class="lineNum">     610 </span>            :                 }
+<span class="lineNum">     611 </span>            :                 else { /* safe but slower for all other alignments */
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :                     for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :                         memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :                         src++;</span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :                         csum += temp;</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :                         memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :                         dest++;</span>
+<span class="lineNum">     618 </span>            :                     }
+<span class="lineNum">     619 </span>            :                 }
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :                 *lastPartialInt = 0;</span>
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :                 *lastPartialLength = 0;</span>
+<span class="lineNum">     622 </span>            :             }
+<span class="lineNum">     623 </span>            :             else { /* NO, we don't... */
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src, copylen);</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :                 memcpy(dest, ((char *)&amp;temp + *lastPartialLength), copylen);</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + copylen);</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :                 dest = (unsigned int *)((char *)dest + copylen);</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :                 *lastPartialInt = temp;</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :                 *lastPartialLength += copylen;</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :                 copylen = 0;</span>
+<span class="lineNum">     632 </span>            :             }
+<span class="lineNum">     633 </span>            :         }
+<span class="lineNum">     634 </span>            :         else {
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :             for( ;copylen &gt;= sizeof(*src); copylen -= sizeof(*src)) {</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :                 memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :                 src++;</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :                 memcpy(dest, &amp;temp, sizeof(temp));</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :                 dest++;</span>
+<span class="lineNum">     641 </span>            :             }
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :             *lastPartialInt = 0;</span>
+<span class="lineNum">     644 </span>            :         }
+<span class="lineNum">     645 </span>            :     }
+<span class="lineNum">     646 </span>            : 
+<span class="lineNum">     647 </span>            :     /* if copylen is non-zero there was a bit left, less than an unsigned int's worth */
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :     if ((copylen != 0) &amp;&amp; (csumlenresidue == 0)) {</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :         temp = *lastPartialInt;</span>
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :             if (copylen &gt;= (sizeof(unsigned int) - *lastPartialLength)) {</span>
+<span class="lineNum">     652 </span>            :                 /* copy all remaining bytes from src to dest */
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :                 unsigned int copytemp = 0;</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :                 memcpy(&amp;copytemp, src, copylen);</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :                 memcpy(dest, &amp;copytemp, copylen);</span>
+<span class="lineNum">     656 </span>            :                 /* fill out rest of partial word and add to checksum */
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned int) - *lastPartialLength));</span>
+<span class="lineNum">     659 </span>            :                 /* avoid unsigned arithmetic overflow by subtracting the old partial
+<span class="lineNum">     660 </span>            :                  * word from the new one before adding to the checksum...
+<span class="lineNum">     661 </span>            :         */
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :                 copylen -= sizeof(unsigned int) - *lastPartialLength;</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + sizeof(unsigned int) - *lastPartialLength);</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :                 *lastPartialLength = copylen;</span>
+<span class="lineNum">     666 </span>            :                 /* reset temp, and calculate next partial word */
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :                 temp = 0;</span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :                 if (copylen) {</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :                     memcpy(&amp;temp, src, copylen);</span>
+<span class="lineNum">     670 </span>            :                 }
+<span class="lineNum">     671 </span>            :                 /* add it to the the checksum */
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :                 *lastPartialInt = temp;</span>
+<span class="lineNum">     674 </span>            :             }
+<span class="lineNum">     675 </span>            :             else {
+<span class="lineNum">     676 </span>            :                 /* copy all remaining bytes from src to dest */
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :                 unsigned int copytemp = 0;</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :                 memcpy(&amp;copytemp, src, copylen);</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :                 memcpy(dest, &amp;copytemp, copylen);</span>
+<span class="lineNum">     680 </span>            :                 /* fill out rest of partial word and add to checksum */
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     682 </span>            :                        copylen);
+<span class="lineNum">     683 </span>            :                 /* avoid unsigned arithmetic overflow by subtracting the old partial
+<span class="lineNum">     684 </span>            :                  * word from the new one before adding to the checksum...
+<span class="lineNum">     685 </span>            :         */
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :                 csum += temp - *lastPartialInt;</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :                 *lastPartialInt = temp;</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :                 *lastPartialLength += copylen;</span>
+<span class="lineNum">     689 </span>            :             }
+<span class="lineNum">     690 </span>            :         }
+<span class="lineNum">     691 </span>            :         else { /* fast path... */
+<span class="lineNum">     692 </span>            :             /* temp and *lastPartialInt are 0 if *lastPartialLength is 0... */
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :             memcpy(&amp;temp, src, copylen);</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :             csum += temp;</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :             memcpy(dest, &amp;temp, copylen);</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :             *lastPartialInt = temp;</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :             *lastPartialLength = copylen;</span>
+<span class="lineNum">     698 </span>            :             /* done...return the checksum */
+<span class="lineNum">     699 </span>            :         }
+<span class="lineNum">     700 </span>            :     }
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :     else if (csumlenresidue != 0) {</span>
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :         if (copylen != 0) {</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :             temp = 0;</span>
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :             memcpy(&amp;temp, src, copylen);</span>
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :             memcpy(dest, &amp;temp, copylen);</span>
+<span class="lineNum">     706 </span>            :         }
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :         if (csumlenresidue &lt; (sizeof(unsigned int) - copylen - *lastPartialLength)) {</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :             temp = *lastPartialInt;</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :             memcpy(((char *)&amp;temp + *lastPartialLength), src, (copylen + csumlenresidue));</span>
+<span class="lineNum">     710 </span>            :             /* avoid unsigned arithmetic overflow by subtracting the old partial
+<span class="lineNum">     711 </span>            :              * word from the new one before adding to the checksum...
+<span class="lineNum">     712 </span>            :         */
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :             csum += temp - *lastPartialInt;</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :             src++;</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :             *lastPartialInt = temp;</span>
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :             *lastPartialLength += copylen + csumlenresidue;</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :             csumlenresidue = 0;</span>
+<span class="lineNum">     718 </span>            :         }
+<span class="lineNum">     719 </span>            :         else {
+<span class="lineNum">     720 </span>            :             /* we have enough chksum data to fill out our last partial
+<span class="lineNum">     721 </span>            :              * word
+<span class="lineNum">     722 </span>            :         */
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :             temp = *lastPartialInt;</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :             memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :                    (sizeof(unsigned int) - *lastPartialLength));</span>
+<span class="lineNum">     726 </span>            :             /* avoid unsigned arithmetic overflow by subtracting the old partial
+<span class="lineNum">     727 </span>            :              * word from the new one before adding to the checksum...
+<span class="lineNum">     728 </span>            :         */
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :             csum += temp - *lastPartialInt;</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :             src = (unsigned int *)((char *)src + sizeof(unsigned int) - *lastPartialLength);</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :             csumlenresidue -= sizeof(unsigned int) - *lastPartialLength - copylen;</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :             *lastPartialInt = 0;</span>
+<span class="lineNum">     734 </span>            :         }
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :         if (INTALIGNED(src)) {</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :             for (i = 0; i &lt; csumlenresidue/sizeof(unsigned int); i++) {</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :                 csum += *src++;</span>
+<span class="lineNum">     738 </span>            :             }
+<span class="lineNum">     739 </span>            :         }
+<span class="lineNum">     740 </span>            :         else {
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :             for (i = 0; i &lt; csumlenresidue/sizeof(unsigned int); i++) {</span>
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :                 memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :                 src++;</span>
+<span class="lineNum">     745 </span>            :             }
+<span class="lineNum">     746 </span>            :         }
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :         csumlenresidue -= i * sizeof(unsigned int);</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :         if (csumlenresidue) {</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :             temp = 0;</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :             memcpy(&amp;temp, src, csumlenresidue);</span>
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :             csum += temp;</span>
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :             *lastPartialInt = temp;</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :             *lastPartialLength = csumlenresidue;</span>
+<span class="lineNum">     754 </span>            :         }
+<span class="lineNum">     755 </span>            :     } /* end else if (csumlenresidue != 0) */
+<span class="lineNum">     756 </span>            : 
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :     return csum;</span>
+<span class="lineNum">     758 </span>            : }
+<span class="lineNum">     759 </span>            : 
+<span class="lineNum">     760 </span>            : 
+<span class="lineNum">     761 </span>            : /*
+<span class="lineNum">     762 </span>            :  * csum() generates a bcopy_csum() - compatible checksum that can be
+<span class="lineNum">     763 </span>            :  * called multiple times
+<span class="lineNum">     764 </span>            :  */
+<a name="765"><span class="lineNum">     765 </span>            : </a>
+<span class="lineNum">     766 </span>            : unsigned long
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 : opal_csum_partial (</span>
+<span class="lineNum">     768 </span>            :     const void *  source,
+<span class="lineNum">     769 </span>            :     size_t csumlen,
+<span class="lineNum">     770 </span>            :     unsigned long*  lastPartialLong,
+<span class="lineNum">     771 </span>            :     size_t* lastPartialLength
+<span class="lineNum">     772 </span>            :     )
+<span class="lineNum">     773 </span>            : {
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :     unsigned long *  src = (unsigned long *) source;</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :     unsigned long csum = 0;</span>
+<span class="lineNum">     776 </span>            :     unsigned long i, temp;
+<span class="lineNum">     777 </span>            : 
+<span class="lineNum">     778 </span>            : 
+<span class="lineNum">     779 </span>            : 
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :     temp = *lastPartialLong;</span>
+<span class="lineNum">     781 </span>            : 
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :     if (WORDALIGNED(source))  {</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     784 </span>            :             /* do we have enough data to fill out the partial word? */
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :             if (csumlen &gt;= (sizeof(unsigned long) - *lastPartialLength)) { /* YES, we do... */</span>
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned long) - *lastPartialLength));</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :                 src = (unsigned long *)((char *)src + sizeof(unsigned long) - *lastPartialLength);</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :                 csumlen -= sizeof(unsigned long) - *lastPartialLength;</span>
+<span class="lineNum">     791 </span>            :                 /* now we have an unaligned source */
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :                 for(i = 0; i &lt; csumlen/sizeof(unsigned long); i++) {</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :                     memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :                     csum += temp;</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :                     src++;</span>
+<span class="lineNum">     796 </span>            :                 }
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :                 csumlen -= i * sizeof(unsigned long);</span>
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :                 *lastPartialLong = 0;</span>
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :                 *lastPartialLength = 0;</span>
+<span class="lineNum">     800 </span>            :             }
+<span class="lineNum">     801 </span>            :             else { /* NO, we don't... */
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src, csumlen);</span>
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :                 src = (unsigned long *)((char *)src + csumlen);</span>
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :                 *lastPartialLong = temp;</span>
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :                 *lastPartialLength += csumlen;</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :                 csumlen = 0;</span>
+<span class="lineNum">     808 </span>            :             }
+<span class="lineNum">     809 </span>            :         }
+<span class="lineNum">     810 </span>            :         else { /* fast path... */
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :             size_t numLongs = csumlen/sizeof(unsigned long);</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :             for(i = 0; i &lt; numLongs; i++) {</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :                     csum += *src++;</span>
+<span class="lineNum">     814 </span>            :             }
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :             *lastPartialLong = 0;</span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :             if (WORDALIGNED(csumlen)) {</span>
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :                     return(csum);</span>
+<span class="lineNum">     819 </span>            :             }
+<span class="lineNum">     820 </span>            :             else {
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :                     csumlen -= i * sizeof(unsigned long);</span>
+<span class="lineNum">     822 </span>            :             }
+<span class="lineNum">     823 </span>            :         }
+<span class="lineNum">     824 </span>            :     } else {
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     826 </span>            :             /* do we have enough data to fill out the partial word? */
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :             if (csumlen &gt;= (sizeof(unsigned long) - *lastPartialLength)) { /* YES, we do... */</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned long) - *lastPartialLength));</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :                 src = (unsigned long *)((char *)src + sizeof(unsigned long) - *lastPartialLength);</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :                 csumlen -= sizeof(unsigned long) - *lastPartialLength;</span>
+<span class="lineNum">     833 </span>            :                 /* now we have a source of unknown alignment */
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :                 if (WORDALIGNED(src)) {</span>
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :                     for(i = 0; i &lt; csumlen/sizeof(unsigned long); i++) {</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :                         csum += *src++;</span>
+<span class="lineNum">     837 </span>            :                     }
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :                     csumlen -= i * sizeof(unsigned long);</span>
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :                     *lastPartialLong = 0;</span>
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :                     *lastPartialLength = 0;</span>
+<span class="lineNum">     841 </span>            :                 }
+<span class="lineNum">     842 </span>            :                 else {
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :                     for(i = 0; i &lt; csumlen/sizeof(unsigned long); i++) {</span>
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :                         memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :                         csum += temp;</span>
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :                         src++;</span>
+<span class="lineNum">     847 </span>            :                     }
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :                     csumlen -= i * sizeof(unsigned long);</span>
+<span class="lineNum">     849 </span><span class="lineNoCov">          0 :                     *lastPartialLong = 0;</span>
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :                     *lastPartialLength = 0;</span>
+<span class="lineNum">     851 </span>            :                 }
+<span class="lineNum">     852 </span>            :             }
+<span class="lineNum">     853 </span>            :             else { /* NO, we don't... */
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src, csumlen);</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :                 src = (unsigned long *)((char *)src + csumlen);</span>
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :                 *lastPartialLong = temp;</span>
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :                 *lastPartialLength += csumlen;</span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :                 csumlen = 0;</span>
+<span class="lineNum">     860 </span>            :             }
+<span class="lineNum">     861 </span>            :         }
+<span class="lineNum">     862 </span>            :         else {
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :             for( ;csumlen &gt;= sizeof(*src); csumlen -= sizeof(*src)) {</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :                 memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :                 src++;</span>
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">     867 </span>            :             }
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :             *lastPartialLong = 0;</span>
+<span class="lineNum">     870 </span>            :         }
+<span class="lineNum">     871 </span>            :     }
+<span class="lineNum">     872 </span>            : 
+<span class="lineNum">     873 </span>            :     /* if csumlen is non-zero there was a bit left, less than an unsigned long's worth */
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :     if (csumlen != 0) {</span>
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :         temp = *lastPartialLong;</span>
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :             if (csumlen &gt;= (sizeof(unsigned long) - *lastPartialLength)) {</span>
+<span class="lineNum">     878 </span>            :                 /* fill out rest of partial word and add to checksum */
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned long) - *lastPartialLength));</span>
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :                 csumlen -= sizeof(unsigned long) - *lastPartialLength;</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :                 src = (unsigned long *)((char *)src + sizeof(unsigned long) - *lastPartialLength);</span>
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :                 *lastPartialLength = csumlen;</span>
+<span class="lineNum">     885 </span>            :                 /* reset temp, and calculate next partial word */
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :                 temp = 0;</span>
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :                 if (csumlen) {</span>
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :                     memcpy(&amp;temp, src, csumlen);</span>
+<span class="lineNum">     889 </span>            :                 }
+<span class="lineNum">     890 </span>            :                 /* add it to the the checksum */
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :                 *lastPartialLong = temp;</span>
+<span class="lineNum">     893 </span>            :             }
+<span class="lineNum">     894 </span>            :             else {
+<span class="lineNum">     895 </span>            :                 /* fill out rest of partial word and add to checksum */
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     897 </span>            :                        csumlen);
+<span class="lineNum">     898 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialLong);</span>
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :                 *lastPartialLong = temp;</span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :                 *lastPartialLength += csumlen;</span>
+<span class="lineNum">     901 </span>            :             }
+<span class="lineNum">     902 </span>            :         }
+<span class="lineNum">     903 </span>            :         else { /* fast path... */
+<span class="lineNum">     904 </span>            :             /* temp and *lastPartialLong are 0 if *lastPartialLength is 0... */
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :             memcpy(&amp;temp, src, csumlen);</span>
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :             csum += temp;</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :             *lastPartialLong = temp;</span>
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :             *lastPartialLength = csumlen;</span>
+<span class="lineNum">     909 </span>            :             /* done...return the checksum */
+<span class="lineNum">     910 </span>            :         }
+<span class="lineNum">     911 </span>            :     }
+<span class="lineNum">     912 </span>            : 
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :     return csum;</span>
+<span class="lineNum">     914 </span>            : }
+<a name="915"><span class="lineNum">     915 </span>            : </a>
+<span class="lineNum">     916 </span>            : unsigned int
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 : opal_uicsum_partial (</span>
+<span class="lineNum">     918 </span>            :     const void *  source,
+<span class="lineNum">     919 </span>            :     size_t csumlen,
+<span class="lineNum">     920 </span>            :     unsigned int*  lastPartialInt,
+<span class="lineNum">     921 </span>            :     size_t*  lastPartialLength
+<span class="lineNum">     922 </span>            :     )
+<span class="lineNum">     923 </span>            : {
+<span class="lineNum">     924 </span><span class="lineNoCov">          0 :     unsigned int *  src = (unsigned int *) source;</span>
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :     unsigned int csum = 0;</span>
+<span class="lineNum">     926 </span>            :     unsigned int temp;
+<span class="lineNum">     927 </span>            :     unsigned long i;
+<span class="lineNum">     928 </span>            : 
+<span class="lineNum">     929 </span>            : 
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :     temp = *lastPartialInt;</span>
+<span class="lineNum">     931 </span>            : 
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :     if (INTALIGNED(source))  {</span>
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     934 </span>            :             /* do we have enough data to fill out the partial word? */
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :             if (csumlen &gt;= (sizeof(unsigned int) - *lastPartialLength)) { /* YES, we do... */</span>
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned int) - *lastPartialLength));</span>
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + sizeof(unsigned int) - *lastPartialLength);</span>
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :                 csumlen -= sizeof(unsigned int) - *lastPartialLength;</span>
+<span class="lineNum">     941 </span>            :                 /* now we have an unaligned source */
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :                 for(i = 0; i &lt; csumlen/sizeof(unsigned int); i++) {</span>
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :                     memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :                     csum += temp;</span>
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :                     src++;</span>
+<span class="lineNum">     946 </span>            :                 }
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :                 csumlen -= i * sizeof(unsigned int);</span>
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :                 *lastPartialInt = 0;</span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :                 *lastPartialLength = 0;</span>
+<span class="lineNum">     950 </span>            :             }
+<span class="lineNum">     951 </span>            :             else { /* NO, we don't... */
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src, csumlen);</span>
+<span class="lineNum">     953 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + csumlen);</span>
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :                 *lastPartialInt = temp;</span>
+<span class="lineNum">     956 </span><span class="lineNoCov">          0 :                 *lastPartialLength += csumlen;</span>
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :                 csumlen = 0;</span>
+<span class="lineNum">     958 </span>            :             }
+<span class="lineNum">     959 </span>            :         }
+<span class="lineNum">     960 </span>            :         else { /* fast path... */
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :             size_t numLongs = csumlen/sizeof(unsigned int);</span>
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :             for(i = 0; i &lt; numLongs; i++) {</span>
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :                     csum += *src++;</span>
+<span class="lineNum">     964 </span>            :             }
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :             *lastPartialInt = 0;</span>
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">     967 </span><span class="lineNoCov">          0 :             if (INTALIGNED(csumlen)) {</span>
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :                     return(csum);</span>
+<span class="lineNum">     969 </span>            :             }
+<span class="lineNum">     970 </span>            :             else {
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :                     csumlen -= i * sizeof(unsigned int);</span>
+<span class="lineNum">     972 </span>            :             }
+<span class="lineNum">     973 </span>            :         }
+<span class="lineNum">     974 </span>            :     } else {
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">     976 </span>            :             /* do we have enough data to fill out the partial word? */
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :             if (csumlen &gt;= (sizeof(unsigned int) - *lastPartialLength)) { /* YES, we do... */</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned int) - *lastPartialLength));</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + sizeof(unsigned int) - *lastPartialLength);</span>
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :                 csumlen -= sizeof(unsigned int) - *lastPartialLength;</span>
+<span class="lineNum">     983 </span>            :                 /* now we have a source of unknown alignment */
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :                 if (INTALIGNED(src)) {</span>
+<span class="lineNum">     985 </span><span class="lineNoCov">          0 :                     for(i = 0; i &lt; csumlen/sizeof(unsigned int); i++) {</span>
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :                         csum += *src++;</span>
+<span class="lineNum">     987 </span>            :                     }
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :                     csumlen -= i * sizeof(unsigned int);</span>
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :                     *lastPartialInt = 0;</span>
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 :                     *lastPartialLength = 0;</span>
+<span class="lineNum">     991 </span>            :                 }
+<span class="lineNum">     992 </span>            :                 else {
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :                     for(i = 0; i &lt; csumlen/sizeof(unsigned int); i++) {</span>
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :                         memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :                         csum += temp;</span>
+<span class="lineNum">     996 </span><span class="lineNoCov">          0 :                         src++;</span>
+<span class="lineNum">     997 </span>            :                     }
+<span class="lineNum">     998 </span><span class="lineNoCov">          0 :                     csumlen -= i * sizeof(unsigned int);</span>
+<span class="lineNum">     999 </span><span class="lineNoCov">          0 :                     *lastPartialInt = 0;</span>
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :                     *lastPartialLength = 0;</span>
+<span class="lineNum">    1001 </span>            :                 }
+<span class="lineNum">    1002 </span>            :             }
+<span class="lineNum">    1003 </span>            :             else { /* NO, we don't... */
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src, csumlen);</span>
+<span class="lineNum">    1005 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + csumlen);</span>
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :                 *lastPartialInt = temp;</span>
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :                 *lastPartialLength += csumlen;</span>
+<span class="lineNum">    1009 </span><span class="lineNoCov">          0 :                 csumlen = 0;</span>
+<span class="lineNum">    1010 </span>            :             }
+<span class="lineNum">    1011 </span>            :         }
+<span class="lineNum">    1012 </span>            :         else {
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :             for( ;csumlen &gt;= sizeof(*src); csumlen -= sizeof(*src)) {</span>
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :                 memcpy(&amp;temp, src, sizeof(temp));</span>
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :                 src++;</span>
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">    1017 </span>            :             }
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :             *lastPartialLength = 0;</span>
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :             *lastPartialInt = 0;</span>
+<span class="lineNum">    1020 </span>            :         }
+<span class="lineNum">    1021 </span>            :     }
+<span class="lineNum">    1022 </span>            : 
+<span class="lineNum">    1023 </span>            :     /* if csumlen is non-zero there was a bit left, less than an unsigned int's worth */
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :     if (csumlen != 0) {</span>
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :         temp = *lastPartialInt;</span>
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :         if (*lastPartialLength) {</span>
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :             if (csumlen &gt;= (sizeof(unsigned int) - *lastPartialLength)) {</span>
+<span class="lineNum">    1028 </span>            :                 /* fill out rest of partial word and add to checksum */
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :                        (sizeof(unsigned int) - *lastPartialLength));</span>
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :                 csumlen -= sizeof(unsigned int) - *lastPartialLength;</span>
+<span class="lineNum">    1033 </span><span class="lineNoCov">          0 :                 src = (unsigned int *)((char *)src + sizeof(unsigned int) - *lastPartialLength);</span>
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :                 *lastPartialLength = csumlen;</span>
+<span class="lineNum">    1035 </span>            :                 /* reset temp, and calculate next partial word */
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :                 temp = 0;</span>
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :                 if (csumlen) {</span>
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :                     memcpy(&amp;temp, src, csumlen);</span>
+<span class="lineNum">    1039 </span>            :                 }
+<span class="lineNum">    1040 </span>            :                 /* add it to the the checksum */
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :                 csum += temp;</span>
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :                 *lastPartialInt = temp;</span>
+<span class="lineNum">    1043 </span>            :             }
+<span class="lineNum">    1044 </span>            :             else {
+<span class="lineNum">    1045 </span>            :                 /* fill out rest of partial word and add to checksum */
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :                 memcpy(((char *)&amp;temp + *lastPartialLength), src,</span>
+<span class="lineNum">    1047 </span>            :                        csumlen);
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :                 csum += (temp - *lastPartialInt);</span>
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :                 *lastPartialInt = temp;</span>
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :                 *lastPartialLength += csumlen;</span>
+<span class="lineNum">    1051 </span>            :             }
+<span class="lineNum">    1052 </span>            :         }
+<span class="lineNum">    1053 </span>            :         else { /* fast path... */
+<span class="lineNum">    1054 </span>            :             /* temp and *lastPartialInt are 0 if *lastPartialLength is 0... */
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :             memcpy(&amp;temp, src, csumlen);</span>
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :             csum += temp;</span>
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :             *lastPartialInt = temp;</span>
+<span class="lineNum">    1058 </span><span class="lineNoCov">          0 :             *lastPartialLength = csumlen;</span>
+<span class="lineNum">    1059 </span>            :             /* done...return the checksum */
+<span class="lineNum">    1060 </span>            :         }
+<span class="lineNum">    1061 </span>            :     }
+<span class="lineNum">    1062 </span>            : 
+<span class="lineNum">    1063 </span><span class="lineNoCov">          0 :     return csum;</span>
+<span class="lineNum">    1064 </span>            : }
+<span class="lineNum">    1065 </span>            : 
+<span class="lineNum">    1066 </span>            : /* globals for CRC32 bcopy and calculation routines */
+<span class="lineNum">    1067 </span>            : 
+<span class="lineNum">    1068 </span>            : static bool _opal_crc_table_initialized = false;
+<span class="lineNum">    1069 </span>            : static unsigned int _opal_crc_table[256];
+<span class="lineNum">    1070 </span>            : 
+<span class="lineNum">    1071 </span>            : /* CRC32 table generation routine - thanks to Charles Michael Heard for his
+<span class="lineNum">    1072 </span>            :  * optimized CRC32 code...
+<a name="1073"><span class="lineNum">    1073 </span>            :  */</a>
+<span class="lineNum">    1074 </span>            : 
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 : void opal_initialize_crc_table(void)</span>
+<span class="lineNum">    1076 </span>            : {
+<span class="lineNum">    1077 </span>            :     register int i,j;
+<span class="lineNum">    1078 </span>            :     register unsigned int crc_accum;
+<span class="lineNum">    1079 </span>            : 
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; 256; i++) {</span>
+<span class="lineNum">    1081 </span><span class="lineNoCov">          0 :         crc_accum = (i &lt;&lt; 24);</span>
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :         for (j = 0; j &lt; 8; j++) {</span>
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :             if (crc_accum &amp; 0x80000000)</span>
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :                 crc_accum = (crc_accum &lt;&lt; 1) ^ CRC_POLYNOMIAL;</span>
+<span class="lineNum">    1085 </span>            :             else
+<span class="lineNum">    1086 </span><span class="lineNoCov">          0 :                 crc_accum = (crc_accum &lt;&lt; 1);</span>
+<span class="lineNum">    1087 </span>            :         }
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :         _opal_crc_table[i] = crc_accum;</span>
+<span class="lineNum">    1089 </span>            :     }
+<span class="lineNum">    1090 </span>            : 
+<span class="lineNum">    1091 </span>            :     /* set global bool to true to do this work once! */
+<span class="lineNum">    1092 </span><span class="lineNoCov">          0 :     _opal_crc_table_initialized = true;</span>
+<span class="lineNum">    1093 </span><span class="lineNoCov">          0 :     return;</span>
+<a name="1094"><span class="lineNum">    1094 </span>            : }</a>
+<span class="lineNum">    1095 </span>            : 
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 : unsigned int opal_bcopy_uicrc_partial(</span>
+<span class="lineNum">    1097 </span>            :     const void *  source,
+<span class="lineNum">    1098 </span>            :     void *  destination,
+<span class="lineNum">    1099 </span>            :     size_t copylen,
+<span class="lineNum">    1100 </span>            :     size_t crclen,
+<span class="lineNum">    1101 </span>            :     unsigned int partial_crc)
+<span class="lineNum">    1102 </span>            : {
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :     size_t crclenresidue = (crclen &gt; copylen) ? (crclen - copylen) : 0;</span>
+<span class="lineNum">    1104 </span>            :     register int i, j;
+<span class="lineNum">    1105 </span>            :     register unsigned char t;
+<span class="lineNum">    1106 </span>            :     unsigned int tmp;
+<span class="lineNum">    1107 </span>            : 
+<span class="lineNum">    1108 </span><span class="lineNoCov">          0 :     if (!_opal_crc_table_initialized) {</span>
+<span class="lineNum">    1109 </span><span class="lineNoCov">          0 :         opal_initialize_crc_table();</span>
+<span class="lineNum">    1110 </span>            :     }
+<span class="lineNum">    1111 </span>            : 
+<span class="lineNum">    1112 </span><span class="lineNoCov">          0 :     if (INTALIGNED(source) &amp;&amp; INTALIGNED(destination)) {</span>
+<span class="lineNum">    1113 </span><span class="lineNoCov">          0 :         register unsigned int *  src = (unsigned int *)source;</span>
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :         register unsigned int *  dst = (unsigned int *)destination;</span>
+<span class="lineNum">    1115 </span>            :         register unsigned char *ts, *td;
+<span class="lineNum">    1116 </span>            :         /* copy whole integers */
+<span class="lineNum">    1117 </span><span class="lineNoCov">          0 :         while (copylen &gt;= sizeof(unsigned int)) {</span>
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :             tmp = *src++;</span>
+<span class="lineNum">    1119 </span><span class="lineNoCov">          0 :             *dst++ = tmp;</span>
+<span class="lineNum">    1120 </span><span class="lineNoCov">          0 :             ts = (unsigned char *)&amp;tmp;</span>
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :             for (j = 0; j &lt; (int)sizeof(unsigned int); j++) {</span>
+<span class="lineNum">    1122 </span><span class="lineNoCov">          0 :                 i = ((partial_crc &gt;&gt; 24) ^ *ts++) &amp; 0xff;</span>
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :                 partial_crc = (partial_crc &lt;&lt; 8) ^ _opal_crc_table[i];</span>
+<span class="lineNum">    1124 </span>            :             }
+<span class="lineNum">    1125 </span><span class="lineNoCov">          0 :             copylen -= sizeof(unsigned int);</span>
+<span class="lineNum">    1126 </span>            :         }
+<span class="lineNum">    1127 </span><span class="lineNoCov">          0 :         ts = (unsigned char *)src;</span>
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :         td = (unsigned char *)dst;</span>
+<span class="lineNum">    1129 </span>            :         /* copy partial integer */
+<span class="lineNum">    1130 </span><span class="lineNoCov">          0 :         while (copylen--) {</span>
+<span class="lineNum">    1131 </span><span class="lineNoCov">          0 :             t = *ts++;</span>
+<span class="lineNum">    1132 </span><span class="lineNoCov">          0 :             *td++ = t;</span>
+<span class="lineNum">    1133 </span><span class="lineNoCov">          0 :             i = ((partial_crc &gt;&gt; 24) ^ t) &amp; 0xff;</span>
+<span class="lineNum">    1134 </span><span class="lineNoCov">          0 :             partial_crc = (partial_crc &lt;&lt; 8) ^ _opal_crc_table[i];</span>
+<span class="lineNum">    1135 </span>            :         }
+<span class="lineNum">    1136 </span>            :         /* calculate CRC over remaining bytes... */
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :         while (crclenresidue--) {</span>
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :             i = ((partial_crc &gt;&gt; 24) ^ *ts++) &amp; 0xff;</span>
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :             partial_crc = (partial_crc &lt;&lt; 8) ^ _opal_crc_table[i];</span>
+<span class="lineNum">    1140 </span>            :         }
+<span class="lineNum">    1141 </span>            :     }
+<span class="lineNum">    1142 </span>            :     else {
+<span class="lineNum">    1143 </span><span class="lineNoCov">          0 :         register unsigned char *  src = (unsigned char *)source;</span>
+<span class="lineNum">    1144 </span><span class="lineNoCov">          0 :         register unsigned char *  dst = (unsigned char *)destination;</span>
+<span class="lineNum">    1145 </span><span class="lineNoCov">          0 :         while (copylen--) {</span>
+<span class="lineNum">    1146 </span><span class="lineNoCov">          0 :             t = *src++;</span>
+<span class="lineNum">    1147 </span><span class="lineNoCov">          0 :             *dst++ = t;</span>
+<span class="lineNum">    1148 </span><span class="lineNoCov">          0 :             i = ((partial_crc &gt;&gt; 24) ^ t) &amp; 0xff;</span>
+<span class="lineNum">    1149 </span><span class="lineNoCov">          0 :             partial_crc = (partial_crc &lt;&lt; 8) ^ _opal_crc_table[i];</span>
+<span class="lineNum">    1150 </span>            :         }
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 :         while (crclenresidue--) {</span>
+<span class="lineNum">    1152 </span><span class="lineNoCov">          0 :             i = ((partial_crc &gt;&gt; 24) ^ *src++) &amp; 0xff;</span>
+<span class="lineNum">    1153 </span><span class="lineNoCov">          0 :             partial_crc = (partial_crc &lt;&lt; 8) ^ _opal_crc_table[i];</span>
+<span class="lineNum">    1154 </span>            :         }
+<span class="lineNum">    1155 </span>            :     }
+<span class="lineNum">    1156 </span>            : 
+<span class="lineNum">    1157 </span><span class="lineNoCov">          0 :     return partial_crc;</span>
+<span class="lineNum">    1158 </span>            : }
+<a name="1159"><span class="lineNum">    1159 </span>            : </a>
+<span class="lineNum">    1160 </span>            : 
+<span class="lineNum">    1161 </span><span class="lineNoCov">          0 : unsigned int opal_uicrc_partial(</span>
+<span class="lineNum">    1162 </span>            :     const void *  source, size_t crclen, unsigned int partial_crc)
+<span class="lineNum">    1163 </span>            : {
+<span class="lineNum">    1164 </span>            :     register int i, j;
+<span class="lineNum">    1165 </span>            :     register unsigned char * t;
+<span class="lineNum">    1166 </span>            :     unsigned int tmp;
+<span class="lineNum">    1167 </span>            : 
+<span class="lineNum">    1168 </span><span class="lineNoCov">          0 :     if (!_opal_crc_table_initialized) {</span>
+<span class="lineNum">    1169 </span><span class="lineNoCov">          0 :         opal_initialize_crc_table();</span>
+<span class="lineNum">    1170 </span>            :     }
+<span class="lineNum">    1171 </span>            : 
+<span class="lineNum">    1172 </span><span class="lineNoCov">          0 :     if (INTALIGNED(source)) {</span>
+<span class="lineNum">    1173 </span><span class="lineNoCov">          0 :         register unsigned int *  src = (unsigned int *)source;</span>
+<span class="lineNum">    1174 </span><span class="lineNoCov">          0 :         while (crclen &gt;= sizeof(unsigned int)) {</span>
+<span class="lineNum">    1175 </span><span class="lineNoCov">          0 :             tmp = *src++;</span>
+<span class="lineNum">    1176 </span><span class="lineNoCov">          0 :             t = (unsigned char *)&amp;tmp;</span>
+<span class="lineNum">    1177 </span><span class="lineNoCov">          0 :             for (j = 0; j &lt; (int)sizeof(unsigned int); j++) {</span>
+<span class="lineNum">    1178 </span><span class="lineNoCov">          0 :                 i = ((partial_crc &gt;&gt; 24) ^ *t++) &amp; 0xff;</span>
+<span class="lineNum">    1179 </span><span class="lineNoCov">          0 :                 partial_crc = (partial_crc &lt;&lt; 8) ^ _opal_crc_table[i];</span>
+<span class="lineNum">    1180 </span>            :             }
+<span class="lineNum">    1181 </span><span class="lineNoCov">          0 :             crclen -= sizeof(unsigned int);</span>
+<span class="lineNum">    1182 </span>            :         }
+<span class="lineNum">    1183 </span><span class="lineNoCov">          0 :         t = (unsigned char *)src;</span>
+<span class="lineNum">    1184 </span><span class="lineNoCov">          0 :         while (crclen--) {</span>
+<span class="lineNum">    1185 </span><span class="lineNoCov">          0 :             i = ((partial_crc &gt;&gt; 24) ^ *t++) &amp; 0xff;</span>
+<span class="lineNum">    1186 </span><span class="lineNoCov">          0 :             partial_crc = (partial_crc &lt;&lt; 8) ^ _opal_crc_table[i];</span>
+<span class="lineNum">    1187 </span>            :         }
+<span class="lineNum">    1188 </span>            :     }
+<span class="lineNum">    1189 </span>            :     else {
+<span class="lineNum">    1190 </span><span class="lineNoCov">          0 :         register unsigned char *  src = (unsigned char *)source;</span>
+<span class="lineNum">    1191 </span><span class="lineNoCov">          0 :         while (crclen--) {</span>
+<span class="lineNum">    1192 </span><span class="lineNoCov">          0 :             i = ((partial_crc &gt;&gt; 24) ^ *src++) &amp; 0xff;</span>
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :             partial_crc = (partial_crc &lt;&lt; 8) ^ _opal_crc_table[i];</span>
+<span class="lineNum">    1194 </span>            :         }
+<span class="lineNum">    1195 </span>            :     }
+<span class="lineNum">    1196 </span>            : 
+<span class="lineNum">    1197 </span><span class="lineNoCov">          0 :     return partial_crc;</span>
+<span class="lineNum">    1198 </span>            : }
+<span class="lineNum">    1199 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

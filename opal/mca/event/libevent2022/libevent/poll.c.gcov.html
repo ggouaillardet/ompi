@@ -1,0 +1,409 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/event/libevent2022/libevent/poll.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../index.html">top level</a> - <a href="index.html">opal/mca/event/libevent2022/libevent</a> - poll.c<span style="font-size: 80%;"> (source / <a href="poll.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">103</td>
+            <td class="headerCovTableEntry">120</td>
+            <td class="headerCovTableEntryMed">85.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*      $OpenBSD: poll.c,v 1.2 2002/06/25 15:50:15 mickey Exp $ */</a>
+<span class="lineNum">       2 </span>            : 
+<span class="lineNum">       3 </span>            : /*
+<span class="lineNum">       4 </span>            :  * Copyright 2000-2007 Niels Provos &lt;provos@citi.umich.edu&gt;
+<span class="lineNum">       5 </span>            :  * Copyright 2007-2012 Niels Provos and Nick Mathewson
+<span class="lineNum">       6 </span>            :  *
+<span class="lineNum">       7 </span>            :  * Redistribution and use in source and binary forms, with or without
+<span class="lineNum">       8 </span>            :  * modification, are permitted provided that the following conditions
+<span class="lineNum">       9 </span>            :  * are met:
+<span class="lineNum">      10 </span>            :  * 1. Redistributions of source code must retain the above copyright
+<span class="lineNum">      11 </span>            :  *    notice, this list of conditions and the following disclaimer.
+<span class="lineNum">      12 </span>            :  * 2. Redistributions in binary form must reproduce the above copyright
+<span class="lineNum">      13 </span>            :  *    notice, this list of conditions and the following disclaimer in the
+<span class="lineNum">      14 </span>            :  *    documentation and/or other materials provided with the distribution.
+<span class="lineNum">      15 </span>            :  * 3. The name of the author may not be used to endorse or promote products
+<span class="lineNum">      16 </span>            :  *    derived from this software without specific prior written permission.
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+<span class="lineNum">      19 </span>            :  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+<span class="lineNum">      20 </span>            :  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+<span class="lineNum">      21 </span>            :  * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+<span class="lineNum">      22 </span>            :  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+<span class="lineNum">      23 </span>            :  * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+<span class="lineNum">      24 </span>            :  * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+<span class="lineNum">      25 </span>            :  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+<span class="lineNum">      26 </span>            :  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+<span class="lineNum">      27 </span>            :  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+<span class="lineNum">      28 </span>            :  */
+<span class="lineNum">      29 </span>            : #include &quot;event2/event-config.h&quot;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      32 </span>            : #ifdef _EVENT_HAVE_SYS_TIME_H
+<span class="lineNum">      33 </span>            : #include &lt;sys/time.h&gt;
+<span class="lineNum">      34 </span>            : #endif
+<span class="lineNum">      35 </span>            : #include &lt;sys/queue.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;poll.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;signal.h&gt;
+<span class="lineNum">      38 </span>            : #include &lt;limits.h&gt;
+<span class="lineNum">      39 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      40 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      41 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      42 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      43 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : #include &quot;event-internal.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;evsignal-internal.h&quot;
+<span class="lineNum">      47 </span>            : #include &quot;log-internal.h&quot;
+<span class="lineNum">      48 </span>            : #include &quot;evmap-internal.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;event2/thread.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;evthread-internal.h&quot;
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : struct pollidx {
+<span class="lineNum">      53 </span>            :         int idxplus1;
+<span class="lineNum">      54 </span>            : };
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : struct pollop {
+<span class="lineNum">      57 </span>            :         int event_count;                /* Highest number alloc */
+<span class="lineNum">      58 </span>            :         int nfds;                       /* Highest number used */
+<span class="lineNum">      59 </span>            :         int realloc_copy;               /* True iff we must realloc
+<span class="lineNum">      60 </span>            :                                          * event_set_copy */
+<span class="lineNum">      61 </span>            :         struct pollfd *event_set;
+<span class="lineNum">      62 </span>            :         struct pollfd *event_set_copy;
+<span class="lineNum">      63 </span>            : };
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : static void *poll_init(struct event_base *);
+<span class="lineNum">      66 </span>            : static int poll_add(struct event_base *, int, short old, short events, void *_idx);
+<span class="lineNum">      67 </span>            : static int poll_del(struct event_base *, int, short old, short events, void *_idx);
+<span class="lineNum">      68 </span>            : static int poll_dispatch(struct event_base *, struct timeval *);
+<span class="lineNum">      69 </span>            : static void poll_dealloc(struct event_base *);
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : const struct eventop pollops = {
+<span class="lineNum">      72 </span>            :         &quot;poll&quot;,
+<span class="lineNum">      73 </span>            :         poll_init,
+<span class="lineNum">      74 </span>            :         poll_add,
+<span class="lineNum">      75 </span>            :         poll_del,
+<span class="lineNum">      76 </span>            :         poll_dispatch,
+<span class="lineNum">      77 </span>            :         poll_dealloc,
+<span class="lineNum">      78 </span>            :         0, /* doesn't need_reinit */
+<span class="lineNum">      79 </span>            :         EV_FEATURE_FDS,
+<span class="lineNum">      80 </span>            :         sizeof(struct pollidx),
+<span class="lineNum">      81 </span>            : };
+<a name="82"><span class="lineNum">      82 </span>            : </a>
+<span class="lineNum">      83 </span>            : static void *
+<span class="lineNum">      84 </span><span class="lineCov">          4 : poll_init(struct event_base *base)</span>
+<span class="lineNum">      85 </span>            : {
+<span class="lineNum">      86 </span>            :         struct pollop *pollop;
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span><span class="lineCov">          4 :         if (!(pollop = mm_calloc(1, sizeof(struct pollop))))</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :                 return (NULL);</span>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">          4 :         evsig_init(base);</span>
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span><span class="lineCov">          4 :         return (pollop);</span>
+<span class="lineNum">      94 </span>            : }
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            : #ifdef CHECK_INVARIANTS
+<span class="lineNum">      97 </span>            : static void
+<span class="lineNum">      98 </span>            : poll_check_ok(struct pollop *pop)
+<span class="lineNum">      99 </span>            : {
+<span class="lineNum">     100 </span>            :         int i, idx;
+<span class="lineNum">     101 </span>            :         struct event *ev;
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            :         for (i = 0; i &lt; pop-&gt;fd_count; ++i) {
+<span class="lineNum">     104 </span>            :                 idx = pop-&gt;idxplus1_by_fd[i]-1;
+<span class="lineNum">     105 </span>            :                 if (idx &lt; 0)
+<span class="lineNum">     106 </span>            :                         continue;
+<span class="lineNum">     107 </span>            :                 EVUTIL_ASSERT(pop-&gt;event_set[idx].fd == i);
+<span class="lineNum">     108 </span>            :         }
+<span class="lineNum">     109 </span>            :         for (i = 0; i &lt; pop-&gt;nfds; ++i) {
+<span class="lineNum">     110 </span>            :                 struct pollfd *pfd = &amp;pop-&gt;event_set[i];
+<span class="lineNum">     111 </span>            :                 EVUTIL_ASSERT(pop-&gt;idxplus1_by_fd[pfd-&gt;fd] == i+1);
+<span class="lineNum">     112 </span>            :         }
+<span class="lineNum">     113 </span>            : }
+<span class="lineNum">     114 </span>            : #else
+<span class="lineNum">     115 </span>            : #define poll_check_ok(pop)
+<span class="lineNum">     116 </span>            : #endif
+<a name="117"><span class="lineNum">     117 </span>            : </a>
+<span class="lineNum">     118 </span>            : static int
+<span class="lineNum">     119 </span><span class="lineCov">         49 : poll_dispatch(struct event_base *base, struct timeval *tv)</span>
+<span class="lineNum">     120 </span>            : {
+<span class="lineNum">     121 </span>            :         int res, i, j, nfds;
+<span class="lineNum">     122 </span><span class="lineCov">         49 :         long msec = -1;</span>
+<span class="lineNum">     123 </span><span class="lineCov">         49 :         struct pollop *pop = base-&gt;evbase;</span>
+<span class="lineNum">     124 </span>            :         struct pollfd *event_set;
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            :         poll_check_ok(pop);
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineCov">         49 :         nfds = pop-&gt;nfds;</span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            : #ifndef _EVENT_DISABLE_THREAD_SUPPORT
+<span class="lineNum">     131 </span><span class="lineCov">         49 :         if (base-&gt;th_base_lock) {</span>
+<span class="lineNum">     132 </span>            :                 /* If we're using this backend in a multithreaded setting,
+<span class="lineNum">     133 </span>            :                  * then we need to work on a copy of event_set, so that we can
+<span class="lineNum">     134 </span>            :                  * let other threads modify the main event_set while we're
+<span class="lineNum">     135 </span>            :                  * polling. If we're not multithreaded, then we'll skip the
+<span class="lineNum">     136 </span>            :                  * copy step here to save memory and time. */
+<span class="lineNum">     137 </span><span class="lineCov">         49 :                 if (pop-&gt;realloc_copy) {</span>
+<span class="lineNum">     138 </span><span class="lineCov">          4 :                         struct pollfd *tmp = mm_realloc(pop-&gt;event_set_copy,</span>
+<span class="lineNum">     139 </span>            :                             pop-&gt;event_count * sizeof(struct pollfd));
+<span class="lineNum">     140 </span><span class="lineCov">          4 :                         if (tmp == NULL) {</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :                                 event_warn(&quot;realloc&quot;);</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :                                 return -1;</span>
+<span class="lineNum">     143 </span>            :                         }
+<span class="lineNum">     144 </span><span class="lineCov">          4 :                         pop-&gt;event_set_copy = tmp;</span>
+<span class="lineNum">     145 </span><span class="lineCov">          4 :                         pop-&gt;realloc_copy = 0;</span>
+<span class="lineNum">     146 </span>            :                 }
+<span class="lineNum">     147 </span><span class="lineCov">         49 :                 memcpy(pop-&gt;event_set_copy, pop-&gt;event_set,</span>
+<span class="lineNum">     148 </span>            :                     sizeof(struct pollfd)*nfds);
+<span class="lineNum">     149 </span><span class="lineCov">         49 :                 event_set = pop-&gt;event_set_copy;</span>
+<span class="lineNum">     150 </span>            :         } else {
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :                 event_set = pop-&gt;event_set;</span>
+<span class="lineNum">     152 </span>            :         }
+<span class="lineNum">     153 </span>            : #else
+<span class="lineNum">     154 </span>            :         event_set = pop-&gt;event_set;
+<span class="lineNum">     155 </span>            : #endif
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineCov">         49 :         if (tv != NULL) {</span>
+<span class="lineNum">     158 </span><span class="lineCov">          6 :                 msec = evutil_tv_to_msec(tv);</span>
+<span class="lineNum">     159 </span><span class="lineCov">          6 :                 if (msec &lt; 0 || msec &gt; INT_MAX)</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                         msec = INT_MAX;</span>
+<span class="lineNum">     161 </span>            :         }
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineCov">         49 :         EVBASE_RELEASE_LOCK(base, th_base_lock);</span>
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineCov">         49 :         res = poll(event_set, nfds, msec);</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineCov">         49 :         EVBASE_ACQUIRE_LOCK(base, th_base_lock);</span>
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span><span class="lineCov">         49 :         if (res == -1) {</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :                 if (errno != EINTR) {</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :                         event_warn(&quot;poll&quot;);</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     173 </span>            :                 }
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">     176 </span>            :         }
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            :         event_debug((&quot;%s: poll reports %d&quot;, __func__, res));
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineCov">         49 :         if (res == 0 || nfds == 0)</span>
+<span class="lineNum">     181 </span><span class="lineCov">          6 :                 return (0);</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span><span class="lineCov">         43 :         i = random() % nfds;</span>
+<span class="lineNum">     184 </span><span class="lineCov">        205 :         for (j = 0; j &lt; nfds; j++) {</span>
+<span class="lineNum">     185 </span>            :                 int what;
+<span class="lineNum">     186 </span><span class="lineCov">        162 :                 if (++i == nfds)</span>
+<span class="lineNum">     187 </span><span class="lineCov">         43 :                         i = 0;</span>
+<span class="lineNum">     188 </span><span class="lineCov">        162 :                 what = event_set[i].revents;</span>
+<span class="lineNum">     189 </span><span class="lineCov">        162 :                 if (!what)</span>
+<span class="lineNum">     190 </span><span class="lineCov">        117 :                         continue;</span>
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span><span class="lineCov">         45 :                 res = 0;</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :                 /* If the file gets closed notify */
+<span class="lineNum">     195 </span><span class="lineCov">         45 :                 if (what &amp; (POLLHUP|POLLERR))</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :                         what |= POLLIN|POLLOUT;</span>
+<span class="lineNum">     197 </span><span class="lineCov">         45 :                 if (what &amp; POLLIN)</span>
+<span class="lineNum">     198 </span><span class="lineCov">         35 :                         res |= EV_READ;</span>
+<span class="lineNum">     199 </span><span class="lineCov">         45 :                 if (what &amp; POLLOUT)</span>
+<span class="lineNum">     200 </span><span class="lineCov">         10 :                         res |= EV_WRITE;</span>
+<span class="lineNum">     201 </span><span class="lineCov">         45 :                 if (res == 0)</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineCov">         45 :                 evmap_io_active(base, event_set[i].fd, res);</span>
+<span class="lineNum">     205 </span>            :         }
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span><span class="lineCov">         43 :         return (0);</span>
+<span class="lineNum">     208 </span>            : }
+<a name="209"><span class="lineNum">     209 </span>            : </a>
+<span class="lineNum">     210 </span>            : static int
+<span class="lineNum">     211 </span><span class="lineCov">         24 : poll_add(struct event_base *base, int fd, short old, short events, void *_idx)</span>
+<span class="lineNum">     212 </span>            : {
+<span class="lineNum">     213 </span><span class="lineCov">         24 :         struct pollop *pop = base-&gt;evbase;</span>
+<span class="lineNum">     214 </span><span class="lineCov">         24 :         struct pollfd *pfd = NULL;</span>
+<span class="lineNum">     215 </span><span class="lineCov">         24 :         struct pollidx *idx = _idx;</span>
+<span class="lineNum">     216 </span>            :         int i;
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineCov">         24 :         EVUTIL_ASSERT((events &amp; EV_SIGNAL) == 0);</span>
+<span class="lineNum">     219 </span><span class="lineCov">         24 :         if (!(events &amp; (EV_READ|EV_WRITE)))</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            :         poll_check_ok(pop);
+<span class="lineNum">     223 </span><span class="lineCov">         24 :         if (pop-&gt;nfds + 1 &gt;= pop-&gt;event_count) {</span>
+<span class="lineNum">     224 </span>            :                 struct pollfd *tmp_event_set;
+<span class="lineNum">     225 </span>            :                 int tmp_event_count;
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineCov">          4 :                 if (pop-&gt;event_count &lt; 32)</span>
+<span class="lineNum">     228 </span><span class="lineCov">          4 :                         tmp_event_count = 32;</span>
+<span class="lineNum">     229 </span>            :                 else
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :                         tmp_event_count = pop-&gt;event_count * 2;</span>
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            :                 /* We need more file descriptors */
+<span class="lineNum">     233 </span><span class="lineCov">          4 :                 tmp_event_set = mm_realloc(pop-&gt;event_set,</span>
+<span class="lineNum">     234 </span>            :                                  tmp_event_count * sizeof(struct pollfd));
+<span class="lineNum">     235 </span><span class="lineCov">          4 :                 if (tmp_event_set == NULL) {</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :                         event_warn(&quot;realloc&quot;);</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     238 </span>            :                 }
+<span class="lineNum">     239 </span><span class="lineCov">          4 :                 pop-&gt;event_set = tmp_event_set;</span>
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span><span class="lineCov">          4 :                 pop-&gt;event_count = tmp_event_count;</span>
+<span class="lineNum">     242 </span><span class="lineCov">          4 :                 pop-&gt;realloc_copy = 1;</span>
+<span class="lineNum">     243 </span>            :         }
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span><span class="lineCov">         24 :         i = idx-&gt;idxplus1 - 1;</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineCov">         24 :         if (i &gt;= 0) {</span>
+<span class="lineNum">     248 </span><span class="lineCov">         10 :                 pfd = &amp;pop-&gt;event_set[i];</span>
+<span class="lineNum">     249 </span>            :         } else {
+<span class="lineNum">     250 </span><span class="lineCov">         14 :                 i = pop-&gt;nfds++;</span>
+<span class="lineNum">     251 </span><span class="lineCov">         14 :                 pfd = &amp;pop-&gt;event_set[i];</span>
+<span class="lineNum">     252 </span><span class="lineCov">         14 :                 pfd-&gt;events = 0;</span>
+<span class="lineNum">     253 </span><span class="lineCov">         14 :                 pfd-&gt;fd = fd;</span>
+<span class="lineNum">     254 </span><span class="lineCov">         14 :                 idx-&gt;idxplus1 = i + 1;</span>
+<span class="lineNum">     255 </span>            :         }
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineCov">         24 :         pfd-&gt;revents = 0;</span>
+<span class="lineNum">     258 </span><span class="lineCov">         24 :         if (events &amp; EV_WRITE)</span>
+<span class="lineNum">     259 </span><span class="lineCov">         10 :                 pfd-&gt;events |= POLLOUT;</span>
+<span class="lineNum">     260 </span><span class="lineCov">         24 :         if (events &amp; EV_READ)</span>
+<span class="lineNum">     261 </span><span class="lineCov">         14 :                 pfd-&gt;events |= POLLIN;</span>
+<span class="lineNum">     262 </span>            :         poll_check_ok(pop);
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span><span class="lineCov">         24 :         return (0);</span>
+<span class="lineNum">     265 </span>            : }
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            : /*
+<span class="lineNum">     268 </span>            :  * Nothing to be done here.
+<span class="lineNum">     269 </span>            :  */
+<a name="270"><span class="lineNum">     270 </span>            : </a>
+<span class="lineNum">     271 </span>            : static int
+<span class="lineNum">     272 </span><span class="lineCov">         22 : poll_del(struct event_base *base, int fd, short old, short events, void *_idx)</span>
+<span class="lineNum">     273 </span>            : {
+<span class="lineNum">     274 </span><span class="lineCov">         22 :         struct pollop *pop = base-&gt;evbase;</span>
+<span class="lineNum">     275 </span><span class="lineCov">         22 :         struct pollfd *pfd = NULL;</span>
+<span class="lineNum">     276 </span><span class="lineCov">         22 :         struct pollidx *idx = _idx;</span>
+<span class="lineNum">     277 </span>            :         int i;
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineCov">         22 :         EVUTIL_ASSERT((events &amp; EV_SIGNAL) == 0);</span>
+<span class="lineNum">     280 </span><span class="lineCov">         22 :         if (!(events &amp; (EV_READ|EV_WRITE)))</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            :         poll_check_ok(pop);
+<span class="lineNum">     284 </span><span class="lineCov">         22 :         i = idx-&gt;idxplus1 - 1;</span>
+<span class="lineNum">     285 </span><span class="lineCov">         22 :         if (i &lt; 0)</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span>            :         /* Do we still want to read or write? */
+<span class="lineNum">     289 </span><span class="lineCov">         22 :         pfd = &amp;pop-&gt;event_set[i];</span>
+<span class="lineNum">     290 </span><span class="lineCov">         22 :         if (events &amp; EV_READ)</span>
+<span class="lineNum">     291 </span><span class="lineCov">         12 :                 pfd-&gt;events &amp;= ~POLLIN;</span>
+<span class="lineNum">     292 </span><span class="lineCov">         22 :         if (events &amp; EV_WRITE)</span>
+<span class="lineNum">     293 </span><span class="lineCov">         10 :                 pfd-&gt;events &amp;= ~POLLOUT;</span>
+<span class="lineNum">     294 </span>            :         poll_check_ok(pop);
+<span class="lineNum">     295 </span><span class="lineCov">         22 :         if (pfd-&gt;events)</span>
+<span class="lineNum">     296 </span>            :                 /* Another event cares about that fd. */
+<span class="lineNum">     297 </span><span class="lineCov">         10 :                 return (0);</span>
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span>            :         /* Okay, so we aren't interested in that fd anymore. */
+<span class="lineNum">     300 </span><span class="lineCov">         12 :         idx-&gt;idxplus1 = 0;</span>
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span><span class="lineCov">         12 :         --pop-&gt;nfds;</span>
+<span class="lineNum">     303 </span><span class="lineCov">         12 :         if (i != pop-&gt;nfds) {</span>
+<span class="lineNum">     304 </span>            :                 /*
+<span class="lineNum">     305 </span>            :                  * Shift the last pollfd down into the now-unoccupied
+<span class="lineNum">     306 </span>            :                  * position.
+<span class="lineNum">     307 </span>            :                  */
+<span class="lineNum">     308 </span><span class="lineCov">          6 :                 memcpy(&amp;pop-&gt;event_set[i], &amp;pop-&gt;event_set[pop-&gt;nfds],</span>
+<span class="lineNum">     309 </span>            :                        sizeof(struct pollfd));
+<span class="lineNum">     310 </span><span class="lineCov">          6 :                 idx = evmap_io_get_fdinfo(&amp;base-&gt;io, pop-&gt;event_set[i].fd);</span>
+<span class="lineNum">     311 </span><span class="lineCov">          6 :                 EVUTIL_ASSERT(idx);</span>
+<span class="lineNum">     312 </span><span class="lineCov">          6 :                 EVUTIL_ASSERT(idx-&gt;idxplus1 == pop-&gt;nfds + 1);</span>
+<span class="lineNum">     313 </span><span class="lineCov">          6 :                 idx-&gt;idxplus1 = i + 1;</span>
+<span class="lineNum">     314 </span>            :         }
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            :         poll_check_ok(pop);
+<span class="lineNum">     317 </span><span class="lineCov">         12 :         return (0);</span>
+<span class="lineNum">     318 </span>            : }
+<a name="319"><span class="lineNum">     319 </span>            : </a>
+<span class="lineNum">     320 </span>            : static void
+<span class="lineNum">     321 </span><span class="lineCov">          2 : poll_dealloc(struct event_base *base)</span>
+<span class="lineNum">     322 </span>            : {
+<span class="lineNum">     323 </span><span class="lineCov">          2 :         struct pollop *pop = base-&gt;evbase;</span>
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span><span class="lineCov">          2 :         evsig_dealloc(base);</span>
+<span class="lineNum">     326 </span><span class="lineCov">          2 :         if (pop-&gt;event_set)</span>
+<span class="lineNum">     327 </span><span class="lineCov">          2 :                 mm_free(pop-&gt;event_set);</span>
+<span class="lineNum">     328 </span><span class="lineCov">          2 :         if (pop-&gt;event_set_copy)</span>
+<span class="lineNum">     329 </span><span class="lineCov">          2 :                 mm_free(pop-&gt;event_set_copy);</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineCov">          2 :         memset(pop, 0, sizeof(struct pollop));</span>
+<span class="lineNum">     332 </span><span class="lineCov">          2 :         mm_free(pop);</span>
+<span class="lineNum">     333 </span><span class="lineCov">          2 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

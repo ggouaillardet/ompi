@@ -1,0 +1,985 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/class/opal_list.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/class</a> - opal_list.h<span style="font-size: 80%;"> (source / <a href="opal_list.h.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">76</td>
+            <td class="headerCovTableEntry">108</td>
+            <td class="headerCovTableEntryLo">70.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntryMed">75.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2006 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2007      Voltaire All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
+<span class="lineNum">      14 </span>            :  *                         reserved.
+<span class="lineNum">      15 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * $HEADER$
+<span class="lineNum">      20 </span>            :  */
+<span class="lineNum">      21 </span>            : /**
+<span class="lineNum">      22 </span>            :  * @file
+<span class="lineNum">      23 </span>            :  *
+<span class="lineNum">      24 </span>            :  * The opal_list_t interface is used to provide a generic
+<span class="lineNum">      25 </span>            :  * doubly-linked list container for Open MPI.  It was inspired by (but
+<span class="lineNum">      26 </span>            :  * is slightly different than) the Stantard Template Library (STL)
+<span class="lineNum">      27 </span>            :  * std::list class.  One notable difference from std::list is that
+<span class="lineNum">      28 </span>            :  * when an opal_list_t is destroyed, all of the opal_list_item_t
+<span class="lineNum">      29 </span>            :  * objects that it contains are orphaned -- they are \em not
+<span class="lineNum">      30 </span>            :  * destroyed.
+<span class="lineNum">      31 </span>            :  *
+<span class="lineNum">      32 </span>            :  * The general idea is that opal_list_item_t objects can be put on an
+<span class="lineNum">      33 </span>            :  * opal_list_t.  Hence, you create a new type that derives from
+<span class="lineNum">      34 </span>            :  * opal_list_item_t; this new type can then be used with opal_list_t
+<span class="lineNum">      35 </span>            :  * containers.
+<span class="lineNum">      36 </span>            :  *
+<span class="lineNum">      37 </span>            :  * NOTE: opal_list_item_t instances can only be on \em one list at a
+<span class="lineNum">      38 </span>            :  * time.  Specifically, if you add an opal_list_item_t to one list,
+<span class="lineNum">      39 </span>            :  * and then add it to another list (without first removing it from the
+<span class="lineNum">      40 </span>            :  * first list), you will effectively be hosing the first list.  You
+<span class="lineNum">      41 </span>            :  * have been warned.
+<span class="lineNum">      42 </span>            :  *
+<span class="lineNum">      43 </span>            :  * If OPAL_ENABLE_DEBUG is true, a bunch of checks occur, including
+<span class="lineNum">      44 </span>            :  * some spot checks for a debugging reference count in an attempt to
+<span class="lineNum">      45 </span>            :  * ensure that an opal_list_item_t is only one *one* list at a time.
+<span class="lineNum">      46 </span>            :  * Given the highly concurrent nature of this class, these spot checks
+<span class="lineNum">      47 </span>            :  * cannot guarantee that an item is only one list at a time.
+<span class="lineNum">      48 </span>            :  * Specifically, since it is a desirable attribute of this class to
+<span class="lineNum">      49 </span>            :  * not use locks for normal operations, it is possible that two
+<span class="lineNum">      50 </span>            :  * threads may [erroneously] modify an opal_list_item_t concurrently.
+<span class="lineNum">      51 </span>            :  *
+<span class="lineNum">      52 </span>            :  * The only way to guarantee that a debugging reference count is valid
+<span class="lineNum">      53 </span>            :  * for the duration of an operation is to lock the item_t during the
+<span class="lineNum">      54 </span>            :  * operation.  But this fundamentally changes the desirable attribute
+<span class="lineNum">      55 </span>            :  * of this class (i.e., no locks).  So all we can do is spot-check the
+<span class="lineNum">      56 </span>            :  * reference count in a bunch of places and check that it is still the
+<span class="lineNum">      57 </span>            :  * value that we think it should be.  But this doesn't mean that you
+<span class="lineNum">      58 </span>            :  * can run into &quot;unlucky&quot; cases where two threads are concurrently
+<span class="lineNum">      59 </span>            :  * modifying an item_t, but all the spot checks still return the
+<span class="lineNum">      60 </span>            :  * &quot;right&quot; values.  All we can do is hope that we have enough spot
+<span class="lineNum">      61 </span>            :  * checks to statistically drive down the possibility of the unlucky
+<span class="lineNum">      62 </span>            :  * cases happening.
+<span class="lineNum">      63 </span>            :  */
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : #ifndef OPAL_LIST_H
+<span class="lineNum">      66 </span>            : #define OPAL_LIST_H
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      69 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      70 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      71 </span>            : #include &quot;opal/class/opal_object.h&quot;
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">      74 </span>            : /* Need atomics for debugging (reference counting) */
+<span class="lineNum">      75 </span>            : #include &quot;opal/sys/atomic.h&quot;
+<span class="lineNum">      76 </span>            : #include &quot;opal/threads/mutex.h&quot;
+<span class="lineNum">      77 </span>            : #endif
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : BEGIN_C_DECLS
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : /**
+<span class="lineNum">      82 </span>            :  * \internal
+<span class="lineNum">      83 </span>            :  *
+<span class="lineNum">      84 </span>            :  * The class for the list container.
+<span class="lineNum">      85 </span>            :  */
+<span class="lineNum">      86 </span>            : OPAL_DECLSPEC OBJ_CLASS_DECLARATION(opal_list_t);
+<span class="lineNum">      87 </span>            : /**
+<span class="lineNum">      88 </span>            :  * \internal
+<span class="lineNum">      89 </span>            :  *
+<span class="lineNum">      90 </span>            :  * Base class for items that are put in list (opal_list_t) containers.
+<span class="lineNum">      91 </span>            :  */
+<span class="lineNum">      92 </span>            : OPAL_DECLSPEC OBJ_CLASS_DECLARATION(opal_list_item_t);
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            : /**
+<span class="lineNum">      96 </span>            :  * \internal
+<span class="lineNum">      97 </span>            :  *
+<span class="lineNum">      98 </span>            :  * Struct of an opal_list_item_t
+<span class="lineNum">      99 </span>            :  */
+<span class="lineNum">     100 </span>            : struct opal_list_item_t
+<span class="lineNum">     101 </span>            : {
+<span class="lineNum">     102 </span>            :     opal_object_t super;
+<span class="lineNum">     103 </span>            :     /**&lt; Generic parent class for all Open MPI objects */
+<span class="lineNum">     104 </span>            :     volatile struct opal_list_item_t *opal_list_next;
+<span class="lineNum">     105 </span>            :     /**&lt; Pointer to next list item */
+<span class="lineNum">     106 </span>            :     volatile struct opal_list_item_t *opal_list_prev;
+<span class="lineNum">     107 </span>            :     /**&lt; Pointer to previous list item */
+<span class="lineNum">     108 </span>            :     int32_t item_free;
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     111 </span>            :     /** Atomic reference count for debugging */
+<span class="lineNum">     112 </span>            :     volatile int32_t opal_list_item_refcount;
+<span class="lineNum">     113 </span>            :     /** The list this item belong to */
+<span class="lineNum">     114 </span>            :     volatile struct opal_list_t* opal_list_item_belong_to;
+<span class="lineNum">     115 </span>            : #endif
+<span class="lineNum">     116 </span>            : };
+<span class="lineNum">     117 </span>            : /**
+<span class="lineNum">     118 </span>            :  * Base type for items that are put in a list (opal_list_t) containers.
+<span class="lineNum">     119 </span>            :  */
+<span class="lineNum">     120 </span>            : typedef struct opal_list_item_t opal_list_item_t;
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            : /**
+<span class="lineNum">     124 </span>            :  * Get the next item in a list.
+<span class="lineNum">     125 </span>            :  *
+<span class="lineNum">     126 </span>            :  * @param item A list item.
+<span class="lineNum">     127 </span>            :  *
+<span class="lineNum">     128 </span>            :  * @returns The next item in the list
+<span class="lineNum">     129 </span>            :  */
+<span class="lineNum">     130 </span>            : #define opal_list_get_next(item) \
+<span class="lineNum">     131 </span>            :     ((item) ? ((opal_list_item_t*) ((opal_list_item_t*)(item))-&gt;opal_list_next) : NULL)
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span>            : /**
+<span class="lineNum">     134 </span>            :  * Get the next item in a list.
+<span class="lineNum">     135 </span>            :  *
+<span class="lineNum">     136 </span>            :  * @param item A list item.
+<span class="lineNum">     137 </span>            :  *
+<span class="lineNum">     138 </span>            :  * @returns The next item in the list
+<span class="lineNum">     139 </span>            :  */
+<span class="lineNum">     140 </span>            : #define opal_list_get_prev(item) \
+<span class="lineNum">     141 </span>            :     ((item) ? ((opal_list_item_t*) ((opal_list_item_t*)(item))-&gt;opal_list_prev) : NULL)
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            : /**
+<span class="lineNum">     145 </span>            :  * \internal
+<span class="lineNum">     146 </span>            :  *
+<span class="lineNum">     147 </span>            :  * Struct of an opal_list_t
+<span class="lineNum">     148 </span>            :  */
+<span class="lineNum">     149 </span>            : struct opal_list_t
+<span class="lineNum">     150 </span>            : {
+<span class="lineNum">     151 </span>            :     opal_object_t       super;
+<span class="lineNum">     152 </span>            :     /**&lt; Generic parent class for all Open MPI objects */
+<span class="lineNum">     153 </span>            :     opal_list_item_t    opal_list_sentinel;
+<span class="lineNum">     154 </span>            :     /**&lt; Head and tail item of the list */
+<span class="lineNum">     155 </span>            :     volatile size_t     opal_list_length;
+<span class="lineNum">     156 </span>            :     /**&lt; Quick reference to the number of items in the list */
+<span class="lineNum">     157 </span>            : };
+<span class="lineNum">     158 </span>            : /**
+<span class="lineNum">     159 </span>            :  * List container type.
+<span class="lineNum">     160 </span>            :  */
+<span class="lineNum">     161 </span>            : typedef struct opal_list_t opal_list_t;
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            : /** Cleanly destruct a list
+<span class="lineNum">     164 </span>            :  *
+<span class="lineNum">     165 </span>            :  * The opal_list_t destructor doesn't release the items on the
+<span class="lineNum">     166 </span>            :  * list - so provide two convenience macros that do so and then
+<span class="lineNum">     167 </span>            :  * destruct/release the list object itself
+<span class="lineNum">     168 </span>            :  *
+<span class="lineNum">     169 </span>            :  * @param[in] list List to destruct or release
+<span class="lineNum">     170 </span>            :  */
+<span class="lineNum">     171 </span>            : #define OPAL_LIST_DESTRUCT(list)                                \
+<span class="lineNum">     172 </span>            :     do {                                                        \
+<span class="lineNum">     173 </span>            :         opal_list_item_t *it;                                   \
+<span class="lineNum">     174 </span>            :         while (NULL != (it = opal_list_remove_first(list))) {   \
+<span class="lineNum">     175 </span>            :             OBJ_RELEASE(it);                                    \
+<span class="lineNum">     176 </span>            :         }                                                       \
+<span class="lineNum">     177 </span>            :         OBJ_DESTRUCT(list);                                     \
+<span class="lineNum">     178 </span>            :     } while(0);
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span>            : #define OPAL_LIST_RELEASE(list)                                 \
+<span class="lineNum">     181 </span>            :     do {                                                        \
+<span class="lineNum">     182 </span>            :         opal_list_item_t *it;                                   \
+<span class="lineNum">     183 </span>            :         while (NULL != (it = opal_list_remove_first(list))) {   \
+<span class="lineNum">     184 </span>            :             OBJ_RELEASE(it);                                    \
+<span class="lineNum">     185 </span>            :         }                                                       \
+<span class="lineNum">     186 </span>            :         OBJ_RELEASE(list);                                      \
+<span class="lineNum">     187 </span>            :     } while(0);
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            : /**
+<span class="lineNum">     191 </span>            :  * Loop over a list.
+<span class="lineNum">     192 </span>            :  *
+<span class="lineNum">     193 </span>            :  * @param[in] item Storage for each item
+<span class="lineNum">     194 </span>            :  * @param[in] list List to iterate over
+<span class="lineNum">     195 </span>            :  * @param[in] type Type of each list item
+<span class="lineNum">     196 </span>            :  *
+<span class="lineNum">     197 </span>            :  * This macro provides a simple way to loop over the items in an opal_list_t. It
+<span class="lineNum">     198 </span>            :  * is not safe to call opal_list_remove_item from within the loop.
+<span class="lineNum">     199 </span>            :  *
+<span class="lineNum">     200 </span>            :  * Example Usage:
+<span class="lineNum">     201 </span>            :  *
+<span class="lineNum">     202 </span>            :  * class_foo_t *foo;
+<span class="lineNum">     203 </span>            :  * opal_list_foreach(foo, list, class_foo_t) {
+<span class="lineNum">     204 </span>            :  *    do something;
+<span class="lineNum">     205 </span>            :  * }
+<span class="lineNum">     206 </span>            :  */
+<span class="lineNum">     207 </span>            : #define OPAL_LIST_FOREACH(item, list, type)                             \
+<span class="lineNum">     208 </span>            :   for (item = (type *) (list)-&gt;opal_list_sentinel.opal_list_next ;      \
+<span class="lineNum">     209 </span>            :        item != (type *) &amp;(list)-&gt;opal_list_sentinel ;                   \
+<span class="lineNum">     210 </span>            :        item = (type *) ((opal_list_item_t *) (item))-&gt;opal_list_next)
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            : /**
+<span class="lineNum">     213 </span>            :  * Loop over a list in reverse.
+<span class="lineNum">     214 </span>            :  *
+<span class="lineNum">     215 </span>            :  * @param[in] item Storage for each item
+<span class="lineNum">     216 </span>            :  * @param[in] list List to iterate over
+<span class="lineNum">     217 </span>            :  * @param[in] type Type of each list item
+<span class="lineNum">     218 </span>            :  *
+<span class="lineNum">     219 </span>            :  * This macro provides a simple way to loop over the items in an opal_list_t. It
+<span class="lineNum">     220 </span>            :  * is not safe to call opal_list_remove_item from within the loop.
+<span class="lineNum">     221 </span>            :  *
+<span class="lineNum">     222 </span>            :  * Example Usage:
+<span class="lineNum">     223 </span>            :  *
+<span class="lineNum">     224 </span>            :  * class_foo_t *foo;
+<span class="lineNum">     225 </span>            :  * opal_list_foreach(foo, list, class_foo_t) {
+<span class="lineNum">     226 </span>            :  *    do something;
+<span class="lineNum">     227 </span>            :  * }
+<span class="lineNum">     228 </span>            :  */
+<span class="lineNum">     229 </span>            : #define OPAL_LIST_FOREACH_REV(item, list, type)                         \
+<span class="lineNum">     230 </span>            :   for (item = (type *) (list)-&gt;opal_list_sentinel.opal_list_prev ;      \
+<span class="lineNum">     231 </span>            :        item != (type *) &amp;(list)-&gt;opal_list_sentinel ;                   \
+<span class="lineNum">     232 </span>            :        item = (type *) ((opal_list_item_t *) (item))-&gt;opal_list_prev)
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            : /**
+<span class="lineNum">     235 </span>            :  * Loop over a list in a *safe* way
+<span class="lineNum">     236 </span>            :  *
+<span class="lineNum">     237 </span>            :  * @param[in] item Storage for each item
+<span class="lineNum">     238 </span>            :  * @param[in] next Storage for next item
+<span class="lineNum">     239 </span>            :  * @param[in] list List to iterate over
+<span class="lineNum">     240 </span>            :  * @param[in] type Type of each list item
+<span class="lineNum">     241 </span>            :  *
+<span class="lineNum">     242 </span>            :  * This macro provides a simple way to loop over the items in an opal_list_t. It
+<span class="lineNum">     243 </span>            :  * is safe to call opal_list_remove_item(list, item) from within the loop.
+<span class="lineNum">     244 </span>            :  *
+<span class="lineNum">     245 </span>            :  * Example Usage:
+<span class="lineNum">     246 </span>            :  *
+<span class="lineNum">     247 </span>            :  * class_foo_t *foo, *next;
+<span class="lineNum">     248 </span>            :  * opal_list_foreach_safe(foo, next, list, class_foo_t) {
+<span class="lineNum">     249 </span>            :  *    do something;
+<span class="lineNum">     250 </span>            :  *    opal_list_remove_item (list, (opal_list_item_t *) foo);
+<span class="lineNum">     251 </span>            :  * }
+<span class="lineNum">     252 </span>            :  */
+<span class="lineNum">     253 </span>            : #define OPAL_LIST_FOREACH_SAFE(item, next, list, type)                  \
+<span class="lineNum">     254 </span>            :   for (item = (type *) (list)-&gt;opal_list_sentinel.opal_list_next,       \
+<span class="lineNum">     255 </span>            :          next = (type *) ((opal_list_item_t *) (item))-&gt;opal_list_next ;\
+<span class="lineNum">     256 </span>            :        item != (type *) &amp;(list)-&gt;opal_list_sentinel ;                   \
+<span class="lineNum">     257 </span>            :        item = next, next = (type *) ((opal_list_item_t *) (item))-&gt;opal_list_next)
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            : /**
+<span class="lineNum">     260 </span>            :  * Loop over a list in a *safe* way
+<span class="lineNum">     261 </span>            :  *
+<span class="lineNum">     262 </span>            :  * @param[in] item Storage for each item
+<span class="lineNum">     263 </span>            :  * @param[in] next Storage for next item
+<span class="lineNum">     264 </span>            :  * @param[in] list List to iterate over
+<span class="lineNum">     265 </span>            :  * @param[in] type Type of each list item
+<span class="lineNum">     266 </span>            :  *
+<span class="lineNum">     267 </span>            :  * This macro provides a simple way to loop over the items in an opal_list_t. If
+<span class="lineNum">     268 </span>            :  * is safe to call opal_list_remove_item(list, item) from within the loop.
+<span class="lineNum">     269 </span>            :  *
+<span class="lineNum">     270 </span>            :  * Example Usage:
+<span class="lineNum">     271 </span>            :  *
+<span class="lineNum">     272 </span>            :  * class_foo_t *foo, *next;
+<span class="lineNum">     273 </span>            :  * opal_list_foreach_safe(foo, next, list, class_foo_t) {
+<span class="lineNum">     274 </span>            :  *    do something;
+<span class="lineNum">     275 </span>            :  *    opal_list_remove_item (list, (opal_list_item_t *) foo);
+<span class="lineNum">     276 </span>            :  * }
+<span class="lineNum">     277 </span>            :  */
+<span class="lineNum">     278 </span>            : #define OPAL_LIST_FOREACH_SAFE_REV(item, prev, list, type)              \
+<span class="lineNum">     279 </span>            :   for (item = (type *) (list)-&gt;opal_list_sentinel.opal_list_prev,       \
+<span class="lineNum">     280 </span>            :          prev = (type *) ((opal_list_item_t *) (item))-&gt;opal_list_prev ;\
+<span class="lineNum">     281 </span>            :        item != (type *) &amp;(list)-&gt;opal_list_sentinel ;                   \
+<span class="lineNum">     282 </span>            :        item = prev, prev = (type *) ((opal_list_item_t *) (item))-&gt;opal_list_prev)
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            : /**
+<span class="lineNum">     286 </span>            :  * Check for empty list
+<span class="lineNum">     287 </span>            :  *
+<span class="lineNum">     288 </span>            :  * @param list The list container
+<span class="lineNum">     289 </span>            :  *
+<span class="lineNum">     290 </span>            :  * @returns true if list's size is 0, false otherwise
+<span class="lineNum">     291 </span>            :  *
+<span class="lineNum">     292 </span>            :  * This is an O(1) operation.
+<span class="lineNum">     293 </span>            :  *
+<span class="lineNum">     294 </span>            :  * This is an inlined function in compilers that support inlining,
+<a name="295"><span class="lineNum">     295 </span>            :  * so it's usually a cheap operation.</a>
+<span class="lineNum">     296 </span>            :  */
+<span class="lineNum">     297 </span><span class="lineCov">          6 : static inline bool opal_list_is_empty(opal_list_t* list)</span>
+<span class="lineNum">     298 </span>            : {
+<span class="lineNum">     299 </span><span class="lineCov">         12 :     return (list-&gt;opal_list_sentinel.opal_list_next ==</span>
+<span class="lineNum">     300 </span><span class="lineCov">          6 :         &amp;(list-&gt;opal_list_sentinel) ? true : false);</span>
+<span class="lineNum">     301 </span>            : }
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            : /**
+<span class="lineNum">     305 </span>            :  * Return the first item on the list (does not remove it).
+<span class="lineNum">     306 </span>            :  *
+<span class="lineNum">     307 </span>            :  * @param list The list container
+<span class="lineNum">     308 </span>            :  *
+<span class="lineNum">     309 </span>            :  * @returns A pointer to the first item on the list
+<span class="lineNum">     310 </span>            :  *
+<span class="lineNum">     311 </span>            :  * This is an O(1) operation to return the first item on the list.  It
+<span class="lineNum">     312 </span>            :  * should be compared against the returned value from
+<span class="lineNum">     313 </span>            :  * opal_list_get_end() to ensure that the list is not empty.
+<span class="lineNum">     314 </span>            :  *
+<span class="lineNum">     315 </span>            :  * This is an inlined function in compilers that support inlining, so
+<a name="316"><span class="lineNum">     316 </span>            :  * it's usually a cheap operation.</a>
+<span class="lineNum">     317 </span>            :  */
+<span class="lineNum">     318 </span><span class="lineCov">        493 : static inline opal_list_item_t* opal_list_get_first(opal_list_t* list)</span>
+<span class="lineNum">     319 </span>            : {
+<span class="lineNum">     320 </span><span class="lineCov">        493 :     opal_list_item_t* item = (opal_list_item_t*)list-&gt;opal_list_sentinel.opal_list_next;</span>
+<span class="lineNum">     321 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     322 </span>            :     /* Spot check: ensure that the first item is only on one list */
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span><span class="lineCov">        493 :     assert(1 == item-&gt;opal_list_item_refcount);</span>
+<span class="lineNum">     325 </span><span class="lineCov">        493 :     assert( list == item-&gt;opal_list_item_belong_to );</span>
+<span class="lineNum">     326 </span>            : #endif
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineCov">        493 :     return item;</span>
+<span class="lineNum">     329 </span>            : }
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            : /**
+<span class="lineNum">     332 </span>            :  * Return the last item on the list (does not remove it).
+<span class="lineNum">     333 </span>            :  *
+<span class="lineNum">     334 </span>            :  * @param list The list container
+<span class="lineNum">     335 </span>            :  *
+<span class="lineNum">     336 </span>            :  * @returns A pointer to the last item on the list
+<span class="lineNum">     337 </span>            :  *
+<span class="lineNum">     338 </span>            :  * This is an O(1) operation to return the last item on the list.  It
+<span class="lineNum">     339 </span>            :  * should be compared against the returned value from
+<span class="lineNum">     340 </span>            :  * opal_list_get_begin() to ensure that the list is not empty.
+<span class="lineNum">     341 </span>            :  *
+<span class="lineNum">     342 </span>            :  * This is an inlined function in compilers that support inlining, so
+<a name="343"><span class="lineNum">     343 </span>            :  * it's usually a cheap operation.</a>
+<span class="lineNum">     344 </span>            :  */
+<span class="lineNum">     345 </span><span class="lineCov">          2 : static inline opal_list_item_t* opal_list_get_last(opal_list_t* list)</span>
+<span class="lineNum">     346 </span>            : {
+<span class="lineNum">     347 </span><span class="lineCov">          2 :     opal_list_item_t* item = (opal_list_item_t *)list-&gt;opal_list_sentinel.opal_list_prev;</span>
+<span class="lineNum">     348 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     349 </span>            :     /* Spot check: ensure that the last item is only on one list */
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span><span class="lineCov">          2 :     assert( 1 == item-&gt;opal_list_item_refcount );</span>
+<span class="lineNum">     352 </span><span class="lineCov">          2 :     assert( list == item-&gt;opal_list_item_belong_to );</span>
+<span class="lineNum">     353 </span>            : #endif
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span><span class="lineCov">          2 :     return item;</span>
+<span class="lineNum">     356 </span>            : }
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            : /**
+<span class="lineNum">     359 </span>            :  * Return the beginning of the list; an invalid list entry suitable
+<span class="lineNum">     360 </span>            :  * for comparison only.
+<span class="lineNum">     361 </span>            :  *
+<span class="lineNum">     362 </span>            :  * @param list The list container
+<span class="lineNum">     363 </span>            :  *
+<span class="lineNum">     364 </span>            :  * @returns A pointer to the beginning of the list.
+<span class="lineNum">     365 </span>            :  *
+<span class="lineNum">     366 </span>            :  * This is an O(1) operation to return the beginning of the list.
+<span class="lineNum">     367 </span>            :  * Similar to the STL, this is a special invalid list item -- it
+<span class="lineNum">     368 </span>            :  * should \em not be used for storage.  It is only suitable for
+<span class="lineNum">     369 </span>            :  * comparison to other items in the list to see if they are valid or
+<span class="lineNum">     370 </span>            :  * not; it's ususally used when iterating through the items in a list.
+<span class="lineNum">     371 </span>            :  *
+<span class="lineNum">     372 </span>            :  * This is an inlined function in compilers that support inlining, so
+<a name="373"><span class="lineNum">     373 </span>            :  * it's usually a cheap operation.</a>
+<span class="lineNum">     374 </span>            :  */
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 : static inline opal_list_item_t* opal_list_get_begin(opal_list_t* list)</span>
+<span class="lineNum">     376 </span>            : {
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     return &amp;(list-&gt;opal_list_sentinel);</span>
+<span class="lineNum">     378 </span>            : }
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span>            : /**
+<span class="lineNum">     381 </span>            :  * Return the end of the list; an invalid list entry suitable for
+<span class="lineNum">     382 </span>            :  * comparison only.
+<span class="lineNum">     383 </span>            :  *
+<span class="lineNum">     384 </span>            :  * @param list The list container
+<span class="lineNum">     385 </span>            :  *
+<span class="lineNum">     386 </span>            :  * @returns A pointer to the end of the list.
+<span class="lineNum">     387 </span>            :  *
+<span class="lineNum">     388 </span>            :  * This is an O(1) operation to return the end of the list.
+<span class="lineNum">     389 </span>            :  * Similar to the STL, this is a special invalid list item -- it
+<span class="lineNum">     390 </span>            :  * should \em not be used for storage.  It is only suitable for
+<span class="lineNum">     391 </span>            :  * comparison to other items in the list to see if they are valid or
+<span class="lineNum">     392 </span>            :  * not; it's ususally used when iterating through the items in a list.
+<span class="lineNum">     393 </span>            :  *
+<span class="lineNum">     394 </span>            :  * This is an inlined function in compilers that support inlining, so
+<a name="395"><span class="lineNum">     395 </span>            :  * it's usually a cheap operation.</a>
+<span class="lineNum">     396 </span>            :  */
+<span class="lineNum">     397 </span><span class="lineCov">       1186 : static inline opal_list_item_t* opal_list_get_end(opal_list_t* list)</span>
+<span class="lineNum">     398 </span>            : {
+<span class="lineNum">     399 </span><span class="lineCov">       1186 :     return &amp;(list-&gt;opal_list_sentinel);</span>
+<span class="lineNum">     400 </span>            : }
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span>            : /**
+<span class="lineNum">     404 </span>            :  * Return the number of items in a list
+<span class="lineNum">     405 </span>            :  *
+<span class="lineNum">     406 </span>            :  * @param list The list container
+<span class="lineNum">     407 </span>            :  *
+<span class="lineNum">     408 </span>            :  * @returns The size of the list (size_t)
+<span class="lineNum">     409 </span>            :  *
+<span class="lineNum">     410 </span>            :  * This is an O(1) lookup to return the size of the list.
+<span class="lineNum">     411 </span>            :  *
+<span class="lineNum">     412 </span>            :  * This is an inlined function in compilers that support inlining, so
+<span class="lineNum">     413 </span>            :  * it's usually a cheap operation.
+<span class="lineNum">     414 </span>            :  *
+<span class="lineNum">     415 </span>            :  * \warning The size of the list is cached as part of the list.  In
+<span class="lineNum">     416 </span>            :  * the future, calling \c opal_list_splice or \c opal_list_join may
+<span class="lineNum">     417 </span>            :  * result in this function recomputing the list size, which would be
+<span class="lineNum">     418 </span>            :  * an O(N) operation.  If \c opal_list_splice or \c opal_list_join is
+<span class="lineNum">     419 </span>            :  * never called on the specified list, this function will always be
+<a name="420"><span class="lineNum">     420 </span>            :  * O(1).</a>
+<span class="lineNum">     421 </span>            :  */
+<span class="lineNum">     422 </span><span class="lineCov">         59 : static inline size_t opal_list_get_size(opal_list_t* list)</span>
+<span class="lineNum">     423 </span>            : {
+<span class="lineNum">     424 </span>            : #if OPAL_ENABLE_DEBUG &amp;&amp; 0
+<span class="lineNum">     425 </span>            :     /* not sure if we really want this running in devel, as it does
+<span class="lineNum">     426 </span>            :      * slow things down.  Wanted for development of splice / join to
+<span class="lineNum">     427 </span>            :      * make sure length was reset properly
+<span class="lineNum">     428 </span>            :      */
+<span class="lineNum">     429 </span>            :     size_t check_len = 0;
+<span class="lineNum">     430 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span>            :     for (item = opal_list_get_first(list) ;
+<span class="lineNum">     433 </span>            :          item != opal_list_get_end(list) ;
+<span class="lineNum">     434 </span>            :          item = opal_list_get_next(item)) {
+<span class="lineNum">     435 </span>            :         check_len++;
+<span class="lineNum">     436 </span>            :     }
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span>            :     if (check_len != list-&gt;opal_list_length) {
+<span class="lineNum">     439 </span>            :         fprintf(stderr,&quot; Error :: opal_list_get_size - opal_list_length does not match actual list length\n&quot;);
+<span class="lineNum">     440 </span>            :         fflush(stderr);
+<span class="lineNum">     441 </span>            :         abort();
+<span class="lineNum">     442 </span>            :     }
+<span class="lineNum">     443 </span>            : #endif
+<span class="lineNum">     444 </span>            : 
+<span class="lineNum">     445 </span><span class="lineCov">         59 :     return list-&gt;opal_list_length;</span>
+<span class="lineNum">     446 </span>            : }
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span>            : /**
+<span class="lineNum">     450 </span>            :  * Remove an item from a list.
+<span class="lineNum">     451 </span>            :  *
+<span class="lineNum">     452 </span>            :  * @param list The list container
+<span class="lineNum">     453 </span>            :  * @param item The item to remove
+<span class="lineNum">     454 </span>            :  *
+<span class="lineNum">     455 </span>            :  * @returns A pointer to the item on the list previous to the one
+<span class="lineNum">     456 </span>            :  * that was removed.
+<span class="lineNum">     457 </span>            :  *
+<span class="lineNum">     458 </span>            :  * This is an O(1) operation to remove an item from the list.  The
+<span class="lineNum">     459 </span>            :  * forward / reverse pointers in the list are updated and the item is
+<span class="lineNum">     460 </span>            :  * removed.  The list item that is returned is now &quot;owned&quot; by the
+<span class="lineNum">     461 </span>            :  * caller -- they are responsible for OBJ_RELEASE()'ing it.
+<span class="lineNum">     462 </span>            :  *
+<span class="lineNum">     463 </span>            :  * If debugging is enabled (specifically, if --enable-debug was used
+<span class="lineNum">     464 </span>            :  * to configure Open MPI), this is an O(N) operation because it checks
+<span class="lineNum">     465 </span>            :  * to see if the item is actually in the list first.
+<span class="lineNum">     466 </span>            :  *
+<span class="lineNum">     467 </span>            :  * This is an inlined function in compilers that support inlining, so
+<a name="468"><span class="lineNum">     468 </span>            :  * it's usually a cheap operation.</a>
+<span class="lineNum">     469 </span>            :  */
+<span class="lineNum">     470 </span><span class="lineCov">        192 : static inline opal_list_item_t *opal_list_remove_item</span>
+<span class="lineNum">     471 </span>            :   (opal_list_t *list, opal_list_item_t *item)
+<span class="lineNum">     472 </span>            : {
+<span class="lineNum">     473 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     474 </span>            :     opal_list_item_t *item_ptr;
+<span class="lineNum">     475 </span><span class="lineCov">        192 :     bool found = false;</span>
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span>            :     /* check to see that the item is in the list */
+<span class="lineNum">     478 </span><span class="lineCov">        705 :     for (item_ptr = opal_list_get_first(list);</span>
+<span class="lineNum">     479 </span><span class="lineCov">        513 :             item_ptr != opal_list_get_end(list);</span>
+<span class="lineNum">     480 </span><span class="lineCov">        321 :             item_ptr = (opal_list_item_t *)(item_ptr-&gt;opal_list_next)) {</span>
+<span class="lineNum">     481 </span><span class="lineCov">        513 :         if (item_ptr == (opal_list_item_t *) item) {</span>
+<span class="lineNum">     482 </span><span class="lineCov">        192 :             found = true;</span>
+<span class="lineNum">     483 </span><span class="lineCov">        192 :             break;</span>
+<span class="lineNum">     484 </span>            :         }
+<span class="lineNum">     485 </span>            :     }
+<span class="lineNum">     486 </span><span class="lineCov">        192 :     if (!found) {</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :         fprintf(stderr,&quot; Warning :: opal_list_remove_item - the item %p is not on the list %p \n&quot;,(void*) item, (void*) list);</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :         fflush(stderr);</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :         return (opal_list_item_t *)NULL;</span>
+<span class="lineNum">     490 </span>            :     }
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span><span class="lineCov">        192 :     assert( list == item-&gt;opal_list_item_belong_to );</span>
+<span class="lineNum">     493 </span>            : #endif
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span>            :     /* reset next pointer of previous element */
+<span class="lineNum">     496 </span><span class="lineCov">        192 :     item-&gt;opal_list_prev-&gt;opal_list_next=item-&gt;opal_list_next;</span>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span>            :     /* reset previous pointer of next element */
+<span class="lineNum">     499 </span><span class="lineCov">        192 :     item-&gt;opal_list_next-&gt;opal_list_prev=item-&gt;opal_list_prev;</span>
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span><span class="lineCov">        192 :     list-&gt;opal_list_length--;</span>
+<span class="lineNum">     502 </span>            : 
+<span class="lineNum">     503 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     504 </span>            :     /* Spot check: ensure that this item is still only on one list */
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span><span class="lineCov">        192 :     OPAL_THREAD_ADD32( &amp;(item-&gt;opal_list_item_refcount), -1 );</span>
+<span class="lineNum">     507 </span><span class="lineCov">        192 :     assert(0 == item-&gt;opal_list_item_refcount);</span>
+<span class="lineNum">     508 </span><span class="lineCov">        192 :     item-&gt;opal_list_item_belong_to = NULL;</span>
+<span class="lineNum">     509 </span>            : #endif
+<span class="lineNum">     510 </span>            : 
+<span class="lineNum">     511 </span><span class="lineCov">        192 :     return (opal_list_item_t *)item-&gt;opal_list_prev;</span>
+<span class="lineNum">     512 </span>            : }
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span>            : 
+<span class="lineNum">     515 </span>            : /**
+<span class="lineNum">     516 </span>            :  * Append an item to the end of the list.
+<span class="lineNum">     517 </span>            :  *
+<span class="lineNum">     518 </span>            :  * @param list The list container
+<span class="lineNum">     519 </span>            :  * @param item The item to append
+<span class="lineNum">     520 </span>            :  *
+<span class="lineNum">     521 </span>            :  * This is an O(1) operation to append an item to the end of a list.
+<span class="lineNum">     522 </span>            :  * The opal_list_item_t is not OBJ_RETAIN()'ed; it is assumed that
+<span class="lineNum">     523 </span>            :  * &quot;ownership&quot; of the item is passed from the caller to the list.
+<span class="lineNum">     524 </span>            :  *
+<span class="lineNum">     525 </span>            :  * This is an inlined function in compilers that support inlining, so
+<span class="lineNum">     526 </span>            :  * it's usually a cheap operation.
+<span class="lineNum">     527 </span>            :  */
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     530 </span>            : #define opal_list_append(l,i) \
+<span class="lineNum">     531 </span>            : _opal_list_append(l,i,__FILE__,__LINE__)
+<span class="lineNum">     532 </span>            : #else
+<span class="lineNum">     533 </span>            : #define opal_list_append(l,i) \
+<span class="lineNum">     534 </span>            : _opal_list_append(l,i)
+<a name="535"><span class="lineNum">     535 </span>            : #endif  /* OPAL_ENABLE_DEBUG */</a>
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span><span class="lineCov">        682 : static inline void _opal_list_append(opal_list_t *list, opal_list_item_t *item</span>
+<span class="lineNum">     538 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     539 </span>            :                                      , const char* FILE_NAME, int LINENO
+<span class="lineNum">     540 </span>            : #endif  /* OPAL_ENABLE_DEBUG */
+<span class="lineNum">     541 </span>            :                                      )
+<span class="lineNum">     542 </span>            : {
+<span class="lineNum">     543 </span><span class="lineCov">        682 :     opal_list_item_t* sentinel = &amp;(list-&gt;opal_list_sentinel);</span>
+<span class="lineNum">     544 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     545 </span>            :   /* Spot check: ensure that this item is previously on no lists */
+<span class="lineNum">     546 </span>            : 
+<span class="lineNum">     547 </span><span class="lineCov">        682 :   assert(0 == item-&gt;opal_list_item_refcount);</span>
+<span class="lineNum">     548 </span><span class="lineCov">        682 :   assert( NULL == item-&gt;opal_list_item_belong_to );</span>
+<span class="lineNum">     549 </span><span class="lineCov">        682 :   item-&gt;super.cls_init_file_name = FILE_NAME;</span>
+<span class="lineNum">     550 </span><span class="lineCov">        682 :   item-&gt;super.cls_init_lineno    = LINENO;</span>
+<span class="lineNum">     551 </span>            : #endif
+<span class="lineNum">     552 </span>            : 
+<span class="lineNum">     553 </span>            :   /* set new element's previous pointer */
+<span class="lineNum">     554 </span><span class="lineCov">        682 :   item-&gt;opal_list_prev = sentinel-&gt;opal_list_prev;</span>
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span>            :   /* reset previous pointer on current last element */
+<span class="lineNum">     557 </span><span class="lineCov">        682 :   sentinel-&gt;opal_list_prev-&gt;opal_list_next = item;</span>
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span>            :   /* reset new element's next pointer */
+<span class="lineNum">     560 </span><span class="lineCov">        682 :   item-&gt;opal_list_next = sentinel;</span>
+<span class="lineNum">     561 </span>            : 
+<span class="lineNum">     562 </span>            :   /* reset the list's tail element previous pointer */
+<span class="lineNum">     563 </span><span class="lineCov">        682 :   sentinel-&gt;opal_list_prev = item;</span>
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span>            :   /* increment list element counter */
+<span class="lineNum">     566 </span><span class="lineCov">        682 :   list-&gt;opal_list_length++;</span>
+<span class="lineNum">     567 </span>            : 
+<span class="lineNum">     568 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     569 </span>            :   /* Spot check: ensure this item is only on the list that we just
+<span class="lineNum">     570 </span>            :      appended it to */
+<span class="lineNum">     571 </span>            : 
+<span class="lineNum">     572 </span><span class="lineCov">        682 :   OPAL_THREAD_ADD32( &amp;(item-&gt;opal_list_item_refcount), 1 );</span>
+<span class="lineNum">     573 </span><span class="lineCov">        682 :   assert(1 == item-&gt;opal_list_item_refcount);</span>
+<span class="lineNum">     574 </span><span class="lineCov">        682 :   item-&gt;opal_list_item_belong_to = list;</span>
+<span class="lineNum">     575 </span>            : #endif
+<span class="lineNum">     576 </span><span class="lineCov">        682 : }</span>
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span>            : 
+<span class="lineNum">     579 </span>            : /**
+<span class="lineNum">     580 </span>            :  * Prepend an item to the beginning of the list.
+<span class="lineNum">     581 </span>            :  *
+<span class="lineNum">     582 </span>            :  * @param list The list container
+<span class="lineNum">     583 </span>            :  * @param item The item to prepend
+<span class="lineNum">     584 </span>            :  *
+<span class="lineNum">     585 </span>            :  * This is an O(1) operation to prepend an item to the beginning of a
+<span class="lineNum">     586 </span>            :  * list.  The opal_list_item_t is not OBJ_RETAIN()'ed; it is assumed
+<span class="lineNum">     587 </span>            :  * that &quot;ownership&quot; of the item is passed from the caller to the list.
+<span class="lineNum">     588 </span>            :  *
+<span class="lineNum">     589 </span>            :  * This is an inlined function in compilers that support inlining, so
+<a name="590"><span class="lineNum">     590 </span>            :  * it's usually a cheap operation.</a>
+<span class="lineNum">     591 </span>            :  */
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 : static inline void opal_list_prepend(opal_list_t *list,</span>
+<span class="lineNum">     593 </span>            :                                      opal_list_item_t *item)
+<span class="lineNum">     594 </span>            : {
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :     opal_list_item_t* sentinel = &amp;(list-&gt;opal_list_sentinel);</span>
+<span class="lineNum">     596 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     597 </span>            :   /* Spot check: ensure that this item is previously on no lists */
+<span class="lineNum">     598 </span>            : 
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :   assert(0 == item-&gt;opal_list_item_refcount);</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :   assert( NULL == item-&gt;opal_list_item_belong_to );</span>
+<span class="lineNum">     601 </span>            : #endif
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span>            :   /* reset item's next pointer */
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :   item-&gt;opal_list_next = sentinel-&gt;opal_list_next;</span>
+<span class="lineNum">     605 </span>            : 
+<span class="lineNum">     606 </span>            :   /* reset item's previous pointer */
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :   item-&gt;opal_list_prev = sentinel;</span>
+<span class="lineNum">     608 </span>            : 
+<span class="lineNum">     609 </span>            :   /* reset previous first element's previous poiner */
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :   sentinel-&gt;opal_list_next-&gt;opal_list_prev = item;</span>
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span>            :   /* reset head's next pointer */
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :   sentinel-&gt;opal_list_next = item;</span>
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span>            :   /* increment list element counter */
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :   list-&gt;opal_list_length++;</span>
+<span class="lineNum">     617 </span>            : 
+<span class="lineNum">     618 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     619 </span>            :   /* Spot check: ensure this item is only on the list that we just
+<span class="lineNum">     620 </span>            :      prepended it to */
+<span class="lineNum">     621 </span>            : 
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :   OPAL_THREAD_ADD32( &amp;(item-&gt;opal_list_item_refcount), 1 );</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :   assert(1 == item-&gt;opal_list_item_refcount);</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :   item-&gt;opal_list_item_belong_to = list;</span>
+<span class="lineNum">     625 </span>            : #endif
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span>            : 
+<span class="lineNum">     629 </span>            : /**
+<span class="lineNum">     630 </span>            :  * Remove the first item from the list and return it.
+<span class="lineNum">     631 </span>            :  *
+<span class="lineNum">     632 </span>            :  * @param list The list container
+<span class="lineNum">     633 </span>            :  *
+<span class="lineNum">     634 </span>            :  * @returns The first item on the list.  If the list is empty,
+<span class="lineNum">     635 </span>            :  * NULL will be returned
+<span class="lineNum">     636 </span>            :  *
+<span class="lineNum">     637 </span>            :  * This is an O(1) operation to return the first item on the list.  If
+<span class="lineNum">     638 </span>            :  * the list is not empty, a pointer to the first item in the list will
+<span class="lineNum">     639 </span>            :  * be returned.  Ownership of the item is transferred from the list to
+<span class="lineNum">     640 </span>            :  * the caller; no calls to OBJ_RETAIN() or OBJ_RELEASE() are invoked.
+<span class="lineNum">     641 </span>            :  *
+<span class="lineNum">     642 </span>            :  * This is an inlined function in compilers that support inlining, so
+<a name="643"><span class="lineNum">     643 </span>            :  * it's usually a cheap operation.</a>
+<span class="lineNum">     644 </span>            :  */
+<span class="lineNum">     645 </span><span class="lineCov">        470 : static inline opal_list_item_t *opal_list_remove_first(opal_list_t *list)</span>
+<span class="lineNum">     646 </span>            : {
+<span class="lineNum">     647 </span>            :   /*  Removes and returns first item on list.
+<span class="lineNum">     648 </span>            :       Caller now owns the item and should release the item
+<span class="lineNum">     649 </span>            :       when caller is done with it.
+<span class="lineNum">     650 </span>            :   */
+<span class="lineNum">     651 </span>            :   volatile opal_list_item_t *item;
+<span class="lineNum">     652 </span><span class="lineCov">        470 :   if ( 0 == list-&gt;opal_list_length ) {</span>
+<span class="lineNum">     653 </span><span class="lineCov">        239 :     return (opal_list_item_t *)NULL;</span>
+<span class="lineNum">     654 </span>            :   }
+<span class="lineNum">     655 </span>            : 
+<span class="lineNum">     656 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     657 </span>            :   /* Spot check: ensure that the first item is only on this list */
+<span class="lineNum">     658 </span>            : 
+<span class="lineNum">     659 </span><span class="lineCov">        231 :   assert(1 == list-&gt;opal_list_sentinel.opal_list_next-&gt;opal_list_item_refcount);</span>
+<span class="lineNum">     660 </span>            : #endif
+<span class="lineNum">     661 </span>            : 
+<span class="lineNum">     662 </span>            :   /* reset list length counter */
+<span class="lineNum">     663 </span><span class="lineCov">        231 :   list-&gt;opal_list_length--;</span>
+<span class="lineNum">     664 </span>            : 
+<span class="lineNum">     665 </span>            :   /* get pointer to first element on the list */
+<span class="lineNum">     666 </span><span class="lineCov">        231 :   item = list-&gt;opal_list_sentinel.opal_list_next;</span>
+<span class="lineNum">     667 </span>            : 
+<span class="lineNum">     668 </span>            :   /* reset previous pointer of next item on the list */
+<span class="lineNum">     669 </span><span class="lineCov">        231 :   item-&gt;opal_list_next-&gt;opal_list_prev = item-&gt;opal_list_prev;</span>
+<span class="lineNum">     670 </span>            : 
+<span class="lineNum">     671 </span>            :   /* reset the head next pointer */
+<span class="lineNum">     672 </span><span class="lineCov">        231 :   list-&gt;opal_list_sentinel.opal_list_next = item-&gt;opal_list_next;</span>
+<span class="lineNum">     673 </span>            : 
+<span class="lineNum">     674 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     675 </span><span class="lineCov">        231 :   assert( list == item-&gt;opal_list_item_belong_to );</span>
+<span class="lineNum">     676 </span><span class="lineCov">        231 :   item-&gt;opal_list_item_belong_to = NULL;</span>
+<span class="lineNum">     677 </span><span class="lineCov">        231 :   item-&gt;opal_list_prev=(opal_list_item_t *)NULL;</span>
+<span class="lineNum">     678 </span><span class="lineCov">        231 :   item-&gt;opal_list_next=(opal_list_item_t *)NULL;</span>
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span>            :   /* Spot check: ensure that the item we're returning is now on no
+<span class="lineNum">     681 </span>            :      lists */
+<span class="lineNum">     682 </span>            : 
+<span class="lineNum">     683 </span><span class="lineCov">        231 :   OPAL_THREAD_ADD32( &amp;(item-&gt;opal_list_item_refcount), -1 );</span>
+<span class="lineNum">     684 </span><span class="lineCov">        231 :   assert(0 == item-&gt;opal_list_item_refcount);</span>
+<span class="lineNum">     685 </span>            : #endif
+<span class="lineNum">     686 </span>            : 
+<span class="lineNum">     687 </span><span class="lineCov">        231 :   return (opal_list_item_t *) item;</span>
+<span class="lineNum">     688 </span>            : }
+<span class="lineNum">     689 </span>            : 
+<span class="lineNum">     690 </span>            : 
+<span class="lineNum">     691 </span>            : /**
+<span class="lineNum">     692 </span>            :  * Remove the last item from the list and return it.
+<span class="lineNum">     693 </span>            :  *
+<span class="lineNum">     694 </span>            :  * @param list The list container
+<span class="lineNum">     695 </span>            :  *
+<span class="lineNum">     696 </span>            :  * @returns The last item on the list.  If the list is empty,
+<span class="lineNum">     697 </span>            :  * NULL will be returned
+<span class="lineNum">     698 </span>            :  *
+<span class="lineNum">     699 </span>            :  * This is an O(1) operation to return the last item on the list.  If
+<span class="lineNum">     700 </span>            :  * the list is not empty, a pointer to the last item in the list will
+<span class="lineNum">     701 </span>            :  * be returned.  Ownership of the item is transferred from the list to
+<span class="lineNum">     702 </span>            :  * the caller; no calls to OBJ_RETAIN() or OBJ_RELEASE() are invoked.
+<span class="lineNum">     703 </span>            :  *
+<span class="lineNum">     704 </span>            :  * This is an inlined function in compilers that support inlining, so
+<a name="705"><span class="lineNum">     705 </span>            :  * it's usually a cheap operation.</a>
+<span class="lineNum">     706 </span>            :  */
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 : static inline opal_list_item_t *opal_list_remove_last(opal_list_t *list)</span>
+<span class="lineNum">     708 </span>            : {
+<span class="lineNum">     709 </span>            :   /*  Removes, releases and returns last item on list.
+<span class="lineNum">     710 </span>            :       Caller now owns the item and should release the item
+<span class="lineNum">     711 </span>            :       when caller is done with it.
+<span class="lineNum">     712 </span>            :   */
+<span class="lineNum">     713 </span>            :   volatile opal_list_item_t  *item;
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :   if ( 0 == list-&gt;opal_list_length ) {</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :       return (opal_list_item_t *)NULL;</span>
+<span class="lineNum">     716 </span>            :   }
+<span class="lineNum">     717 </span>            : 
+<span class="lineNum">     718 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     719 </span>            :   /* Spot check: ensure that the first item is only on this list */
+<span class="lineNum">     720 </span>            : 
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :   assert(1 == list-&gt;opal_list_sentinel.opal_list_prev-&gt;opal_list_item_refcount);</span>
+<span class="lineNum">     722 </span>            : #endif
+<span class="lineNum">     723 </span>            : 
+<span class="lineNum">     724 </span>            :   /* reset list length counter */
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :   list-&gt;opal_list_length--;</span>
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span>            :   /* get item */
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :   item = list-&gt;opal_list_sentinel.opal_list_prev;</span>
+<span class="lineNum">     729 </span>            : 
+<span class="lineNum">     730 </span>            :   /* reset previous pointer on next to last pointer */
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :   item-&gt;opal_list_prev-&gt;opal_list_next = item-&gt;opal_list_next;</span>
+<span class="lineNum">     732 </span>            : 
+<span class="lineNum">     733 </span>            :   /* reset tail's previous pointer */
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :   list-&gt;opal_list_sentinel.opal_list_prev = item-&gt;opal_list_prev;</span>
+<span class="lineNum">     735 </span>            : 
+<span class="lineNum">     736 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :   assert( list == item-&gt;opal_list_item_belong_to );</span>
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :   item-&gt;opal_list_next = item-&gt;opal_list_prev = (opal_list_item_t *)NULL;</span>
+<span class="lineNum">     739 </span>            : 
+<span class="lineNum">     740 </span>            :   /* Spot check: ensure that the item we're returning is now on no
+<span class="lineNum">     741 </span>            :      lists */
+<span class="lineNum">     742 </span>            : 
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :   OPAL_THREAD_ADD32( &amp;(item-&gt;opal_list_item_refcount), -1 );</span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :   assert(0 == item-&gt;opal_list_item_refcount);</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :   item-&gt;opal_list_item_belong_to = NULL;</span>
+<span class="lineNum">     746 </span>            : #endif
+<span class="lineNum">     747 </span>            : 
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :   return (opal_list_item_t *) item;</span>
+<span class="lineNum">     749 </span>            : }
+<span class="lineNum">     750 </span>            : 
+<span class="lineNum">     751 </span>            :   /**
+<span class="lineNum">     752 </span>            :    * Add an item to the list before a given element
+<span class="lineNum">     753 </span>            :    *
+<span class="lineNum">     754 </span>            :    * @param list The list container
+<span class="lineNum">     755 </span>            :    * @param pos List element to insert \c item before
+<span class="lineNum">     756 </span>            :    * @param item The item to insert
+<span class="lineNum">     757 </span>            :    *
+<a name="758"><span class="lineNum">     758 </span>            :    * Inserts \c item before \c pos.  This is an O(1) operation.</a>
+<span class="lineNum">     759 </span>            :    */
+<span class="lineNum">     760 </span><span class="lineCov">          2 : static inline void opal_list_insert_pos(opal_list_t *list, opal_list_item_t *pos,</span>
+<span class="lineNum">     761 </span>            :                                         opal_list_item_t *item)
+<span class="lineNum">     762 </span>            : {
+<span class="lineNum">     763 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     764 </span>            :     /* Spot check: ensure that the item we're insertting is currently
+<span class="lineNum">     765 </span>            :        not on any list */
+<span class="lineNum">     766 </span>            : 
+<span class="lineNum">     767 </span><span class="lineCov">          2 :     assert(0 == item-&gt;opal_list_item_refcount);</span>
+<span class="lineNum">     768 </span><span class="lineCov">          2 :     assert( NULL == item-&gt;opal_list_item_belong_to );</span>
+<span class="lineNum">     769 </span>            : #endif
+<span class="lineNum">     770 </span>            : 
+<span class="lineNum">     771 </span>            :     /* point item at the existing elements */
+<span class="lineNum">     772 </span><span class="lineCov">          2 :     item-&gt;opal_list_next = pos;</span>
+<span class="lineNum">     773 </span><span class="lineCov">          2 :     item-&gt;opal_list_prev = pos-&gt;opal_list_prev;</span>
+<span class="lineNum">     774 </span>            : 
+<span class="lineNum">     775 </span>            :     /* splice into the list */
+<span class="lineNum">     776 </span><span class="lineCov">          2 :     pos-&gt;opal_list_prev-&gt;opal_list_next = item;</span>
+<span class="lineNum">     777 </span><span class="lineCov">          2 :     pos-&gt;opal_list_prev = item;</span>
+<span class="lineNum">     778 </span>            : 
+<span class="lineNum">     779 </span>            :     /* reset list length counter */
+<span class="lineNum">     780 </span><span class="lineCov">          2 :     list-&gt;opal_list_length++;</span>
+<span class="lineNum">     781 </span>            : 
+<span class="lineNum">     782 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     783 </span>            :     /* Spot check: double check that this item is only on the list
+<span class="lineNum">     784 </span>            :        that we just added it to */
+<span class="lineNum">     785 </span>            : 
+<span class="lineNum">     786 </span><span class="lineCov">          2 :     OPAL_THREAD_ADD32( &amp;(item-&gt;opal_list_item_refcount), 1 );</span>
+<span class="lineNum">     787 </span><span class="lineCov">          2 :     assert(1 == item-&gt;opal_list_item_refcount);</span>
+<span class="lineNum">     788 </span><span class="lineCov">          2 :     item-&gt;opal_list_item_belong_to = list;</span>
+<span class="lineNum">     789 </span>            : #endif
+<span class="lineNum">     790 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     791 </span>            : 
+<span class="lineNum">     792 </span>            :   /**
+<span class="lineNum">     793 </span>            :    * Add an item to the list at a specific index location in the list.
+<span class="lineNum">     794 </span>            :    *
+<span class="lineNum">     795 </span>            :    * @param list The list container
+<span class="lineNum">     796 </span>            :    * @param item The item to insert
+<span class="lineNum">     797 </span>            :    * @param index Location to add the item
+<span class="lineNum">     798 </span>            :    *
+<span class="lineNum">     799 </span>            :    * @returns true if insertion succeeded; otherwise false
+<span class="lineNum">     800 </span>            :    *
+<span class="lineNum">     801 </span>            :    * This is potentially an O(N) operation to traverse down to the
+<span class="lineNum">     802 </span>            :    * correct location in the list and add an item.
+<span class="lineNum">     803 </span>            :    *
+<span class="lineNum">     804 </span>            :    * Example: if idx = 2 and list = item1-&gt;item2-&gt;item3-&gt;item4, then
+<span class="lineNum">     805 </span>            :    * after insert, list = item1-&gt;item2-&gt;item-&gt;item3-&gt;item4.
+<span class="lineNum">     806 </span>            :    *
+<span class="lineNum">     807 </span>            :    * If index is greater than the length of the list, no action is
+<span class="lineNum">     808 </span>            :    * performed and false is returned.
+<span class="lineNum">     809 </span>            :    */
+<span class="lineNum">     810 </span>            :   OPAL_DECLSPEC bool opal_list_insert(opal_list_t *list, opal_list_item_t *item,
+<span class="lineNum">     811 </span>            :                                       long long idx);
+<span class="lineNum">     812 </span>            : 
+<span class="lineNum">     813 </span>            : 
+<span class="lineNum">     814 </span>            :     /**
+<span class="lineNum">     815 </span>            :      * Join a list into another list
+<span class="lineNum">     816 </span>            :      *
+<span class="lineNum">     817 </span>            :      * @param thislist List container for list being operated on
+<span class="lineNum">     818 </span>            :      * @param pos List item in \c thislist marking the position before
+<span class="lineNum">     819 </span>            :      *              which items are inserted
+<span class="lineNum">     820 </span>            :      * @param xlist List container for list being spliced from
+<span class="lineNum">     821 </span>            :      *
+<span class="lineNum">     822 </span>            :      * Join a list into another list.  All of the elements of \c xlist
+<span class="lineNum">     823 </span>            :      * are inserted before \c pos and removed from \c xlist.
+<span class="lineNum">     824 </span>            :      *
+<span class="lineNum">     825 </span>            :      * This operation is an O(1) operation.  Both \c thislist and \c
+<span class="lineNum">     826 </span>            :      * xlist must be valid list containsers.  \c xlist will be empty
+<span class="lineNum">     827 </span>            :      * but valid after the call.  All pointers to \c opal_list_item_t
+<span class="lineNum">     828 </span>            :      * containers remain valid, including those that point to elements
+<span class="lineNum">     829 </span>            :      * in \c xlist.
+<span class="lineNum">     830 </span>            :      */
+<span class="lineNum">     831 </span>            :     OPAL_DECLSPEC void opal_list_join(opal_list_t *thislist, opal_list_item_t *pos,
+<span class="lineNum">     832 </span>            :                                       opal_list_t *xlist);
+<span class="lineNum">     833 </span>            : 
+<span class="lineNum">     834 </span>            : 
+<span class="lineNum">     835 </span>            :     /**
+<span class="lineNum">     836 </span>            :      * Splice a list into another list
+<span class="lineNum">     837 </span>            :      *
+<span class="lineNum">     838 </span>            :      * @param thislist List container for list being operated on
+<span class="lineNum">     839 </span>            :      * @param pos List item in \c thislist marking the position before
+<span class="lineNum">     840 </span>            :      *             which items are inserted
+<span class="lineNum">     841 </span>            :      * @param xlist List container for list being spliced from
+<span class="lineNum">     842 </span>            :      * @param first List item in \c xlist marking the start of elements
+<span class="lineNum">     843 </span>            :      *             to be copied into \c thislist
+<span class="lineNum">     844 </span>            :      * @param last List item in \c xlist marking the end of elements
+<span class="lineNum">     845 </span>            :      * to be copied into \c thislist
+<span class="lineNum">     846 </span>            :      *
+<span class="lineNum">     847 </span>            :      * Splice a subset of a list into another list.  The \c [first,
+<span class="lineNum">     848 </span>            :      * last) elements of \c xlist are moved into \c thislist,
+<span class="lineNum">     849 </span>            :      * inserting them before \c pos.  \c pos must be a valid iterator
+<span class="lineNum">     850 </span>            :      * in \c thislist and \c [first, last) must be a valid range in \c
+<span class="lineNum">     851 </span>            :      * xlist.  \c postition must not be in the range \c [first, last).
+<span class="lineNum">     852 </span>            :      * It is, however, valid for \c xlist and \c thislist to be the
+<span class="lineNum">     853 </span>            :      * same list.
+<span class="lineNum">     854 </span>            :      *
+<span class="lineNum">     855 </span>            :      * This is an O(N) operation because the length of both lists must
+<span class="lineNum">     856 </span>            :      * be recomputed.
+<span class="lineNum">     857 </span>            :      */
+<span class="lineNum">     858 </span>            :     OPAL_DECLSPEC void opal_list_splice(opal_list_t *thislist, opal_list_item_t *pos,
+<span class="lineNum">     859 </span>            :                                         opal_list_t *xlist, opal_list_item_t *first,
+<span class="lineNum">     860 </span>            :                                         opal_list_item_t *last);
+<span class="lineNum">     861 </span>            : 
+<span class="lineNum">     862 </span>            :     /**
+<span class="lineNum">     863 </span>            :      * Comparison function for opal_list_sort(), below.
+<span class="lineNum">     864 </span>            :      *
+<span class="lineNum">     865 </span>            :      * @param a Pointer to a pointer to an opal_list_item_t.
+<span class="lineNum">     866 </span>            :      * Explanation below.
+<span class="lineNum">     867 </span>            :      * @param b Pointer to a pointer to an opal_list_item_t.
+<span class="lineNum">     868 </span>            :      * Explanation below.
+<span class="lineNum">     869 </span>            :      * @retval 1 if \em a is greater than \em b
+<span class="lineNum">     870 </span>            :      * @retval 0 if \em a is equal to \em b
+<span class="lineNum">     871 </span>            :      * @retval 11 if \em a is less than \em b
+<span class="lineNum">     872 </span>            :      *
+<span class="lineNum">     873 </span>            :      * This function is invoked by qsort(3) from within
+<span class="lineNum">     874 </span>            :      * opal_list_sort().  It is important to understand what
+<span class="lineNum">     875 </span>            :      * opal_list_sort() does before invoking qsort, so go read that
+<span class="lineNum">     876 </span>            :      * documentation first.
+<span class="lineNum">     877 </span>            :      *
+<span class="lineNum">     878 </span>            :      * The important thing to realize here is that a and b will be \em
+<span class="lineNum">     879 </span>            :      * double pointers to the items that you need to compare.  Here's
+<span class="lineNum">     880 </span>            :      * a sample compare function to illustrate this point:
+<span class="lineNum">     881 </span>            :      */
+<span class="lineNum">     882 </span>            :     typedef int (*opal_list_item_compare_fn_t)(opal_list_item_t **a,
+<span class="lineNum">     883 </span>            :                                                opal_list_item_t **b);
+<span class="lineNum">     884 </span>            : 
+<span class="lineNum">     885 </span>            :     /**
+<span class="lineNum">     886 </span>            :      * Sort a list with a provided compare function.
+<span class="lineNum">     887 </span>            :      *
+<span class="lineNum">     888 </span>            :      * @param list The list to sort
+<span class="lineNum">     889 </span>            :      * @param compare Compare function
+<span class="lineNum">     890 </span>            :      *
+<span class="lineNum">     891 </span>            :      * Put crassly, this function's complexity is O(N) + O(log(N)).
+<span class="lineNum">     892 </span>            :      * Its algorithm is:
+<span class="lineNum">     893 </span>            :      *
+<span class="lineNum">     894 </span>            :      * - remove every item from the list and put the corresponding
+<span class="lineNum">     895 </span>            :      *    (opal_list_item_t*)'s in an array
+<span class="lineNum">     896 </span>            :      * - call qsort(3) with that array and your compare function
+<span class="lineNum">     897 </span>            :      * - re-add every element of the now-sorted array to the list
+<span class="lineNum">     898 </span>            :      *
+<span class="lineNum">     899 </span>            :      * The resulting list is now ordered.  Note, however, that since
+<span class="lineNum">     900 </span>            :      * an array of pointers is sorted, the comparison function must do
+<span class="lineNum">     901 </span>            :      * a double de-reference to get to the actual opal_list_item_t (or
+<span class="lineNum">     902 </span>            :      * whatever the underlying type is).  See the documentation of
+<span class="lineNum">     903 </span>            :      * opal_list_item_compare_fn_t for an example).
+<span class="lineNum">     904 </span>            :      */
+<span class="lineNum">     905 </span>            :     OPAL_DECLSPEC int opal_list_sort(opal_list_t* list, opal_list_item_compare_fn_t compare);
+<span class="lineNum">     906 </span>            : 
+<span class="lineNum">     907 </span>            : END_C_DECLS
+<span class="lineNum">     908 </span>            : 
+<span class="lineNum">     909 </span>            : #endif /* OPAL_LIST_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

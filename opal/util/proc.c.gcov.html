@@ -1,0 +1,259 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/util/proc.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/util</a> - proc.c<span style="font-size: 80%;"> (source / <a href="proc.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">32</td>
+            <td class="headerCovTableEntry">57</td>
+            <td class="headerCovTableEntryLo">56.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntryLo">54.5 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2013      The University of Tennessee and The University
+<span class="lineNum">       3 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       4 </span>            :  *                         reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2013      Inria.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+<span class="lineNum">       7 </span>            :  * Copyright (c) 2014      Research Organization for Information Science
+<span class="lineNum">       8 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">       9 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * $HEADER$
+<span class="lineNum">      14 </span>            :  */
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : #include &quot;proc.h&quot;
+<span class="lineNum">      17 </span>            : #include &quot;opal/util/proc.h&quot;
+<span class="lineNum">      18 </span>            : #include &quot;opal/util/arch.h&quot;
+<span class="lineNum">      19 </span>            : #include &quot;opal/mca/dstore/dstore.h&quot;
+<span class="lineNum">      20 </span>            : #include &quot;opal/mca/pmix/pmix.h&quot;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : opal_process_name_t opal_name_wildcard = {OPAL_JOBID_WILDCARD, OPAL_VPID_WILDCARD};
+<span class="lineNum">      23 </span>            : opal_process_name_t opal_name_invalid = {OPAL_JOBID_INVALID, OPAL_VPID_INVALID};
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : opal_process_info_t opal_process_info = {
+<span class="lineNum">      26 </span>            :     .nodename = NULL,
+<span class="lineNum">      27 </span>            :     .job_session_dir = NULL,
+<span class="lineNum">      28 </span>            :     .proc_session_dir = NULL,
+<span class="lineNum">      29 </span>            :     .num_local_peers = 0,  /* there is nobody else but me */
+<span class="lineNum">      30 </span>            :     .my_local_rank = 0,    /* I'm the only process around here */
+<span class="lineNum">      31 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">      32 </span>            :     .cpuset = NULL,
+<span class="lineNum">      33 </span>            : #endif
+<span class="lineNum">      34 </span>            : };
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : static opal_proc_t opal_local_proc = {
+<span class="lineNum">      37 </span>            :     { .opal_list_next = NULL,
+<span class="lineNum">      38 </span>            :       .opal_list_prev = NULL},
+<span class="lineNum">      39 </span>            :     {OPAL_JOBID_INVALID, OPAL_VPID_INVALID},
+<span class="lineNum">      40 </span>            :     0,
+<span class="lineNum">      41 </span>            :     0,
+<span class="lineNum">      42 </span>            :     NULL,
+<span class="lineNum">      43 </span>            :     NULL
+<span class="lineNum">      44 </span>            : };
+<a name="45"><span class="lineNum">      45 </span>            : static opal_proc_t* opal_proc_my_name = &amp;opal_local_proc;</a>
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span><span class="lineCov">          6 : static void opal_proc_construct(opal_proc_t* proc)</span>
+<span class="lineNum">      48 </span>            : {
+<span class="lineNum">      49 </span><span class="lineCov">          6 :     proc-&gt;proc_arch = opal_local_arch;</span>
+<span class="lineNum">      50 </span><span class="lineCov">          6 :     proc-&gt;proc_convertor = NULL;</span>
+<span class="lineNum">      51 </span><span class="lineCov">          6 :     proc-&gt;proc_flags = 0;</span>
+<span class="lineNum">      52 </span><span class="lineCov">          6 :     proc-&gt;proc_name = *OPAL_NAME_INVALID;</span>
+<a name="53"><span class="lineNum">      53 </span><span class="lineCov">          6 : }</span></a>
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span><span class="lineCov">          6 : static void opal_proc_destruct(opal_proc_t* proc)</span>
+<span class="lineNum">      56 </span>            : {
+<span class="lineNum">      57 </span><span class="lineCov">          6 :     proc-&gt;proc_flags     = 0;</span>
+<span class="lineNum">      58 </span><span class="lineCov">          6 :     proc-&gt;proc_name      = *OPAL_NAME_INVALID;</span>
+<span class="lineNum">      59 </span><span class="lineCov">          6 :     proc-&gt;proc_hostname  = NULL;</span>
+<span class="lineNum">      60 </span><span class="lineCov">          6 :     proc-&gt;proc_convertor = NULL;</span>
+<span class="lineNum">      61 </span><span class="lineCov">          6 : }</span>
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : OBJ_CLASS_INSTANCE(opal_proc_t, opal_list_item_t,
+<span class="lineNum">      64 </span>            :                    opal_proc_construct, opal_proc_destruct);
+<a name="65"><span class="lineNum">      65 </span>            : </a>
+<span class="lineNum">      66 </span>            : static int
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 : opal_compare_opal_procs(const opal_process_name_t p1,</span>
+<span class="lineNum">      68 </span>            :                         const opal_process_name_t p2)
+<span class="lineNum">      69 </span>            : {
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     if( p1.jobid &lt; p2.jobid ) {</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :         return  -1;</span>
+<span class="lineNum">      72 </span>            :     }
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     if( p1.jobid &gt; p2.jobid ) {</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :         return  1;</span>
+<span class="lineNum">      75 </span>            :     }
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     if( p1.vpid &lt;  p2.vpid ) {</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">      78 </span>            :     }
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     if( p1.vpid &gt;  p2.vpid ) {</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :         return 1;</span>
+<span class="lineNum">      81 </span>            :     }
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">      83 </span>            : }
+<span class="lineNum">      84 </span>            : 
+<a name="85"><span class="lineNum">      85 </span>            : opal_compare_proc_fct_t opal_compare_proc = opal_compare_opal_procs;</a>
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineCov">        643 : opal_proc_t* opal_proc_local_get(void)</span>
+<span class="lineNum">      88 </span>            : {
+<span class="lineNum">      89 </span><span class="lineCov">        643 :     return opal_proc_my_name;</span>
+<a name="90"><span class="lineNum">      90 </span>            : }</a>
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span><span class="lineCov">          6 : int opal_proc_local_set(opal_proc_t* proc)</span>
+<span class="lineNum">      93 </span>            : {
+<span class="lineNum">      94 </span><span class="lineCov">          6 :     if( proc != opal_proc_my_name ) {</span>
+<span class="lineNum">      95 </span><span class="lineCov">          6 :         if( NULL != proc )</span>
+<span class="lineNum">      96 </span><span class="lineCov">          8 :             OBJ_RETAIN(proc);</span>
+<span class="lineNum">      97 </span><span class="lineCov">          6 :         if( &amp;opal_local_proc != opal_proc_my_name )</span>
+<span class="lineNum">      98 </span><span class="lineCov">          8 :             OBJ_RELEASE(opal_proc_my_name);</span>
+<span class="lineNum">      99 </span><span class="lineCov">          6 :         if( NULL != proc ) {</span>
+<span class="lineNum">     100 </span><span class="lineCov">          4 :             opal_proc_my_name = proc;</span>
+<span class="lineNum">     101 </span>            :         } else {
+<span class="lineNum">     102 </span><span class="lineCov">          2 :             opal_proc_my_name = &amp;opal_local_proc;</span>
+<span class="lineNum">     103 </span>            :         }
+<span class="lineNum">     104 </span>            :     }
+<span class="lineNum">     105 </span><span class="lineCov">          6 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     106 </span>            : }
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            : /* this function is used to temporarily set the local
+<span class="lineNum">     109 </span>            :  * name while OPAL and upper layers are initializing,
+<a name="110"><span class="lineNum">     110 </span>            :  * thus allowing debug messages to be more easily</a>
+<span class="lineNum">     111 </span>            :  * understood */
+<span class="lineNum">     112 </span><span class="lineCov">          4 : void opal_proc_set_name(opal_process_name_t *name)</span>
+<span class="lineNum">     113 </span>            : {
+<span class="lineNum">     114 </span>            :     /* to protect alignment, copy the name across */
+<span class="lineNum">     115 </span><span class="lineCov">          4 :     memcpy(&amp;opal_local_proc.proc_name, name, sizeof(opal_process_name_t));</span>
+<span class="lineNum">     116 </span><span class="lineCov">          4 : }</span>
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            : /**
+<span class="lineNum">     119 </span>            :  * The following functions are surrogates for the RTE functionality, and are not supposed
+<span class="lineNum">     120 </span>            :  * to be called. Instead, the corresponding function pointer should be set by the upper layer
+<span class="lineNum">     121 </span>            :  * before the call to opal_init, to make them point to the correct accessors based on the
+<span class="lineNum">     122 </span>            :  * underlying RTE.
+<a name="123"><span class="lineNum">     123 </span>            :  */</a>
+<span class="lineNum">     124 </span>            : static char*
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 : opal_process_name_print_should_never_be_called(const opal_process_name_t procname)</span>
+<span class="lineNum">     126 </span>            : {
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     return &quot;My Name is Nobody&quot;;</span>
+<span class="lineNum">     128 </span>            : }
+<a name="129"><span class="lineNum">     129 </span>            : </a>
+<span class="lineNum">     130 </span>            : static char*
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 : opal_vpid_print_should_never_be_called(const opal_vpid_t unused)</span>
+<span class="lineNum">     132 </span>            : {
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     return &quot;My VPID&quot;;</span>
+<span class="lineNum">     134 </span>            : }
+<a name="135"><span class="lineNum">     135 </span>            : </a>
+<span class="lineNum">     136 </span>            : static char*
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 : opal_jobid_print_should_never_be_called(const opal_jobid_t unused)</span>
+<span class="lineNum">     138 </span>            : {
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     return &quot;My JOBID&quot;;</span>
+<a name="140"><span class="lineNum">     140 </span>            : }</a>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 : static int opal_convert_string_to_process_name_should_never_be_called(opal_process_name_t *name,</span>
+<span class="lineNum">     143 </span>            :                                                                       const char* name_string)
+<span class="lineNum">     144 </span>            : {
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     return OPAL_ERR_NOT_SUPPORTED;</span>
+<span class="lineNum">     146 </span>            : }
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            : char* (*opal_process_name_print)(const opal_process_name_t) = opal_process_name_print_should_never_be_called;
+<span class="lineNum">     149 </span>            : char* (*opal_vpid_print)(const opal_vpid_t) = opal_vpid_print_should_never_be_called;
+<span class="lineNum">     150 </span>            : char* (*opal_jobid_print)(const opal_jobid_t) = opal_jobid_print_should_never_be_called;
+<a name="151"><span class="lineNum">     151 </span>            : int (*opal_convert_string_to_process_name)(opal_process_name_t *name, const char* name_string) = opal_convert_string_to_process_name_should_never_be_called;</a>
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineCov">          4 : char* opal_get_proc_hostname(const opal_proc_t *proc)</span>
+<span class="lineNum">     154 </span>            : {
+<span class="lineNum">     155 </span>            :     int ret;
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            :     /* if the proc is NULL, then we can't know */
+<span class="lineNum">     158 </span><span class="lineCov">          4 :     if (NULL == proc) {</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :         return &quot;unknown&quot;;</span>
+<span class="lineNum">     160 </span>            :     }
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span>            :     /* if it is my own hostname we are after, then just hand back
+<span class="lineNum">     163 </span>            :      * the value in opal_process_info */
+<span class="lineNum">     164 </span><span class="lineCov">          4 :     if (proc == opal_proc_my_name) {</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :         return opal_process_info.nodename;</span>
+<span class="lineNum">     166 </span>            :     }
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            :     /* see if we already have the data - if so, pass it back */
+<span class="lineNum">     169 </span><span class="lineCov">          4 :     if (NULL != proc-&gt;proc_hostname) {</span>
+<span class="lineNum">     170 </span><span class="lineCov">          4 :         return proc-&gt;proc_hostname;</span>
+<span class="lineNum">     171 </span>            :     }
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            :     /* if we don't already have it, then try to get it */
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     OPAL_MODEX_RECV_VALUE(ret, OPAL_DSTORE_HOSTNAME, proc,</span>
+<span class="lineNum">     175 </span>            :                           (char**)&amp;(proc-&gt;proc_hostname), OPAL_STRING);
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != ret) {</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :         OPAL_ERROR_LOG(ret);</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :         return &quot;unknown&quot;;  // return something so the caller doesn't segfault</span>
+<span class="lineNum">     179 </span>            :     }
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span>            :     /* user is not allowed to release the data */
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     return proc-&gt;proc_hostname;</span>
+<span class="lineNum">     183 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

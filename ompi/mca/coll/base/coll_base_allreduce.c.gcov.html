@@ -1,0 +1,990 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - ompi/mca/coll/base/coll_base_allreduce.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/coll/base</a> - coll_base_allreduce.c<span style="font-size: 80%;"> (source / <a href="coll_base_allreduce.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">296</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2015 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2009      University of Houston. All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2013      Los Alamos National Security, LLC. All Rights
+<span class="lineNum">      15 </span>            :  *                         reserved.
+<span class="lineNum">      16 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * $HEADER$
+<span class="lineNum">      21 </span>            :  */
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;mpi.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;opal/util/bit_ops.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;ompi/constants.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;ompi/datatype/ompi_datatype.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;ompi/communicator/communicator.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;ompi/mca/coll/coll.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;ompi/mca/coll/base/coll_tags.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;ompi/mca/pml/pml.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;ompi/op/op.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;ompi/mca/coll/base/coll_base_functions.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;coll_base_topo.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;coll_base_util.h&quot;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : /*
+<span class="lineNum">      39 </span>            :  * ompi_coll_base_allreduce_intra_nonoverlapping
+<span class="lineNum">      40 </span>            :  *
+<span class="lineNum">      41 </span>            :  * This function just calls a reduce followed by a broadcast
+<span class="lineNum">      42 </span>            :  * both called functions are base but they complete sequentially,
+<span class="lineNum">      43 </span>            :  * i.e. no additional overlapping
+<span class="lineNum">      44 </span>            :  * meaning if the number of segments used is greater than the topo depth
+<span class="lineNum">      45 </span>            :  * then once the first segment of data is fully 'reduced' it is not broadcast
+<span class="lineNum">      46 </span>            :  * while the reduce continues (cost = cost-reduce + cost-bcast + decision x 3)
+<span class="lineNum">      47 </span>            :  *
+<a name="48"><span class="lineNum">      48 </span>            :  */</a>
+<span class="lineNum">      49 </span>            : int
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 : ompi_coll_base_allreduce_intra_nonoverlapping(void *sbuf, void *rbuf, int count,</span>
+<span class="lineNum">      51 </span>            :                                                struct ompi_datatype_t *dtype,
+<span class="lineNum">      52 </span>            :                                                struct ompi_op_t *op,
+<span class="lineNum">      53 </span>            :                                                struct ompi_communicator_t *comm,
+<span class="lineNum">      54 </span>            :                                                mca_coll_base_module_t *module)
+<span class="lineNum">      55 </span>            : {
+<span class="lineNum">      56 </span>            :     int err, rank;
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,&quot;coll:base:allreduce_intra_nonoverlapping rank %d&quot;, rank));</span>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            :     /* Reduce to 0 and broadcast. */
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     if (MPI_IN_PLACE == sbuf) {</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :         if (0 == rank) {</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :             err = comm-&gt;c_coll.coll_reduce (MPI_IN_PLACE, rbuf, count, dtype,</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :                                             op, 0, comm, comm-&gt;c_coll.coll_reduce_module);</span>
+<span class="lineNum">      68 </span>            :         } else {
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :             err = comm-&gt;c_coll.coll_reduce (rbuf, NULL, count, dtype, op, 0,</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :                                             comm, comm-&gt;c_coll.coll_reduce_module);</span>
+<span class="lineNum">      71 </span>            :         }
+<span class="lineNum">      72 </span>            :     } else {
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :         err = comm-&gt;c_coll.coll_reduce (sbuf, rbuf, count, dtype, op, 0,</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :                                         comm, comm-&gt;c_coll.coll_reduce_module);</span>
+<span class="lineNum">      75 </span>            :     }
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != err) {</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :         return err;</span>
+<span class="lineNum">      78 </span>            :     }
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :     return comm-&gt;c_coll.coll_bcast (rbuf, count, dtype, 0, comm,</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :                                     comm-&gt;c_coll.coll_bcast_module);</span>
+<span class="lineNum">      82 </span>            : }
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            : /*
+<span class="lineNum">      85 </span>            :  *   ompi_coll_base_allreduce_intra_recursivedoubling
+<span class="lineNum">      86 </span>            :  *
+<span class="lineNum">      87 </span>            :  *   Function:       Recursive doubling algorithm for allreduce operation
+<span class="lineNum">      88 </span>            :  *   Accepts:        Same as MPI_Allreduce()
+<span class="lineNum">      89 </span>            :  *   Returns:        MPI_SUCCESS or error code
+<span class="lineNum">      90 </span>            :  *
+<span class="lineNum">      91 </span>            :  *   Description:    Implements recursive doubling algorithm for allreduce.
+<span class="lineNum">      92 </span>            :  *                   Original (non-segmented) implementation is used in MPICH-2
+<span class="lineNum">      93 </span>            :  *                   for small and intermediate size messages.
+<span class="lineNum">      94 </span>            :  *                   The algorithm preserves order of operations so it can
+<span class="lineNum">      95 </span>            :  *                   be used both by commutative and non-commutative operations.
+<span class="lineNum">      96 </span>            :  *
+<span class="lineNum">      97 </span>            :  *         Example on 7 nodes:
+<span class="lineNum">      98 </span>            :  *         Initial state
+<span class="lineNum">      99 </span>            :  *         #      0       1      2       3      4       5      6
+<span class="lineNum">     100 </span>            :  *               [0]     [1]    [2]     [3]    [4]     [5]    [6]
+<span class="lineNum">     101 </span>            :  *         Initial adjustment step for non-power of two nodes.
+<span class="lineNum">     102 </span>            :  *         old rank      1              3              5      6
+<span class="lineNum">     103 </span>            :  *         new rank      0              1              2      3
+<span class="lineNum">     104 </span>            :  *                     [0+1]          [2+3]          [4+5]   [6]
+<span class="lineNum">     105 </span>            :  *         Step 1
+<span class="lineNum">     106 </span>            :  *         old rank      1              3              5      6
+<span class="lineNum">     107 </span>            :  *         new rank      0              1              2      3
+<span class="lineNum">     108 </span>            :  *                     [0+1+]         [0+1+]         [4+5+]  [4+5+]
+<span class="lineNum">     109 </span>            :  *                     [2+3+]         [2+3+]         [6   ]  [6   ]
+<span class="lineNum">     110 </span>            :  *         Step 2
+<span class="lineNum">     111 </span>            :  *         old rank      1              3              5      6
+<span class="lineNum">     112 </span>            :  *         new rank      0              1              2      3
+<span class="lineNum">     113 </span>            :  *                     [0+1+]         [0+1+]         [0+1+]  [0+1+]
+<span class="lineNum">     114 </span>            :  *                     [2+3+]         [2+3+]         [2+3+]  [2+3+]
+<span class="lineNum">     115 </span>            :  *                     [4+5+]         [4+5+]         [4+5+]  [4+5+]
+<span class="lineNum">     116 </span>            :  *                     [6   ]         [6   ]         [6   ]  [6   ]
+<span class="lineNum">     117 </span>            :  *         Final adjustment step for non-power of two nodes
+<span class="lineNum">     118 </span>            :  *         #      0       1      2       3      4       5      6
+<span class="lineNum">     119 </span>            :  *              [0+1+] [0+1+] [0+1+]  [0+1+] [0+1+]  [0+1+] [0+1+]
+<span class="lineNum">     120 </span>            :  *              [2+3+] [2+3+] [2+3+]  [2+3+] [2+3+]  [2+3+] [2+3+]
+<span class="lineNum">     121 </span>            :  *              [4+5+] [4+5+] [4+5+]  [4+5+] [4+5+]  [4+5+] [4+5+]
+<span class="lineNum">     122 </span>            :  *              [6   ] [6   ] [6   ]  [6   ] [6   ]  [6   ] [6   ]
+<span class="lineNum">     123 </span>            :  *
+<a name="124"><span class="lineNum">     124 </span>            :  */</a>
+<span class="lineNum">     125 </span>            : int
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 : ompi_coll_base_allreduce_intra_recursivedoubling(void *sbuf, void *rbuf,</span>
+<span class="lineNum">     127 </span>            :                                                   int count,
+<span class="lineNum">     128 </span>            :                                                   struct ompi_datatype_t *dtype,
+<span class="lineNum">     129 </span>            :                                                   struct ompi_op_t *op,
+<span class="lineNum">     130 </span>            :                                                   struct ompi_communicator_t *comm,
+<span class="lineNum">     131 </span>            :                                                   mca_coll_base_module_t *module)
+<span class="lineNum">     132 </span>            : {
+<span class="lineNum">     133 </span>            :     int ret, line, rank, size, adjsize, remote, distance;
+<span class="lineNum">     134 </span>            :     int newrank, newremote, extra_ranks;
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     char *tmpsend = NULL, *tmprecv = NULL, *tmpswap = NULL, *inplacebuf = NULL;</span>
+<span class="lineNum">     136 </span>            :     ptrdiff_t true_lb, true_extent, lb, extent;
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     ompi_request_t *reqs[2] = {NULL, NULL};</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     size = ompi_comm_size(comm);</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,</span>
+<span class="lineNum">     143 </span>            :                  &quot;coll:base:allreduce_intra_recursivedoubling rank %d&quot;, rank));
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            :     /* Special case for size == 1 */
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     if (1 == size) {</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         if (MPI_IN_PLACE != sbuf) {</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :             ret = ompi_datatype_copy_content_same_ddt(dtype, count, (char*)rbuf, (char*)sbuf);</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :             if (ret &lt; 0) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     150 </span>            :         }
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :         return MPI_SUCCESS;</span>
+<span class="lineNum">     152 </span>            :     }
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span>            :     /* Allocate and initialize temporary send buffer */
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     ret = ompi_datatype_get_extent(dtype, &amp;lb, &amp;extent);</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     ret = ompi_datatype_get_true_extent(dtype, &amp;true_lb, &amp;true_extent);</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     inplacebuf = (char*) malloc(true_extent + (ptrdiff_t)(count - 1) * extent);</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :     if (NULL == inplacebuf) { ret = -1; line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     if (MPI_IN_PLACE == sbuf) {</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :         ret = ompi_datatype_copy_content_same_ddt(dtype, count, inplacebuf, (char*)rbuf);</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :         if (ret &lt; 0) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     166 </span>            :     } else {
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :         ret = ompi_datatype_copy_content_same_ddt(dtype, count, inplacebuf, (char*)sbuf);</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :         if (ret &lt; 0) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     169 </span>            :     }
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     tmpsend = (char*) inplacebuf;</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     tmprecv = (char*) rbuf;</span>
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            :     /* Determine nearest power of two less than or equal to size */
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     adjsize = opal_next_poweroftwo (size);</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     adjsize &gt;&gt;= 1;</span>
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            :     /* Handle non-power-of-two case:
+<span class="lineNum">     179 </span>            :        - Even ranks less than 2 * extra_ranks send their data to (rank + 1), and
+<span class="lineNum">     180 </span>            :        sets new rank to -1.
+<span class="lineNum">     181 </span>            :        - Odd ranks less than 2 * extra_ranks receive data from (rank - 1),
+<span class="lineNum">     182 </span>            :        apply appropriate operation, and set new rank to rank/2
+<span class="lineNum">     183 </span>            :        - Everyone else sets rank to rank - extra_ranks
+<span class="lineNum">     184 </span>            :     */
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     extra_ranks = size - adjsize;</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     if (rank &lt;  (2 * extra_ranks)) {</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :         if (0 == (rank % 2)) {</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :             ret = MCA_PML_CALL(send(tmpsend, count, dtype, (rank + 1),</span>
+<span class="lineNum">     189 </span>            :                                     MCA_COLL_BASE_TAG_ALLREDUCE,
+<span class="lineNum">     190 </span>            :                                     MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :             if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :             newrank = -1;</span>
+<span class="lineNum">     193 </span>            :         } else {
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :             ret = MCA_PML_CALL(recv(tmprecv, count, dtype, (rank - 1),</span>
+<span class="lineNum">     195 </span>            :                                     MCA_COLL_BASE_TAG_ALLREDUCE, comm,
+<span class="lineNum">     196 </span>            :                                     MPI_STATUS_IGNORE));
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :             if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     198 </span>            :             /* tmpsend = tmprecv (op) tmpsend */
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             ompi_op_reduce(op, tmprecv, tmpsend, count, dtype);</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :             newrank = rank &gt;&gt; 1;</span>
+<span class="lineNum">     201 </span>            :         }
+<span class="lineNum">     202 </span>            :     } else {
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :         newrank = rank - extra_ranks;</span>
+<span class="lineNum">     204 </span>            :     }
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span>            :     /* Communication/Computation loop
+<span class="lineNum">     207 </span>            :        - Exchange message with remote node.
+<span class="lineNum">     208 </span>            :        - Perform appropriate operation taking in account order of operations:
+<span class="lineNum">     209 </span>            :        result = value (op) result
+<span class="lineNum">     210 </span>            :     */
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :     for (distance = 0x1; distance &lt; adjsize; distance &lt;&lt;=1) {</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :         if (newrank &lt; 0) break;</span>
+<span class="lineNum">     213 </span>            :         /* Determine remote node */
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         newremote = newrank ^ distance;</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :         remote = (newremote &lt; extra_ranks)?</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :             (newremote * 2 + 1):(newremote + extra_ranks);</span>
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            :         /* Exchange the data */
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         ret = MCA_PML_CALL(irecv(tmprecv, count, dtype, remote,</span>
+<span class="lineNum">     220 </span>            :                                  MCA_COLL_BASE_TAG_ALLREDUCE, comm, &amp;reqs[0]));
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         ret = MCA_PML_CALL(isend(tmpsend, count, dtype, remote,</span>
+<span class="lineNum">     223 </span>            :                                  MCA_COLL_BASE_TAG_ALLREDUCE,
+<span class="lineNum">     224 </span>            :                                  MCA_PML_BASE_SEND_STANDARD, comm, &amp;reqs[1]));
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :         if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         ret = ompi_request_wait_all(2, reqs, MPI_STATUSES_IGNORE);</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            :         /* Apply operation */
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         if (rank &lt; remote) {</span>
+<span class="lineNum">     231 </span>            :             /* tmprecv = tmpsend (op) tmprecv */
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :             ompi_op_reduce(op, tmpsend, tmprecv, count, dtype);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :             tmpswap = tmprecv;</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :             tmprecv = tmpsend;</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :             tmpsend = tmpswap;</span>
+<span class="lineNum">     236 </span>            :         } else {
+<span class="lineNum">     237 </span>            :             /* tmpsend = tmprecv (op) tmpsend */
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :             ompi_op_reduce(op, tmprecv, tmpsend, count, dtype);</span>
+<span class="lineNum">     239 </span>            :         }
+<span class="lineNum">     240 </span>            :     }
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            :     /* Handle non-power-of-two case:
+<span class="lineNum">     243 </span>            :        - Odd ranks less than 2 * extra_ranks send result from tmpsend to
+<span class="lineNum">     244 </span>            :        (rank - 1)
+<span class="lineNum">     245 </span>            :        - Even ranks less than 2 * extra_ranks receive result from (rank + 1)
+<span class="lineNum">     246 </span>            :     */
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     if (rank &lt; (2 * extra_ranks)) {</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :         if (0 == (rank % 2)) {</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :             ret = MCA_PML_CALL(recv(rbuf, count, dtype, (rank + 1),</span>
+<span class="lineNum">     250 </span>            :                                     MCA_COLL_BASE_TAG_ALLREDUCE, comm,
+<span class="lineNum">     251 </span>            :                                     MPI_STATUS_IGNORE));
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :             if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :             tmpsend = (char*)rbuf;</span>
+<span class="lineNum">     254 </span>            :         } else {
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :             ret = MCA_PML_CALL(send(tmpsend, count, dtype, (rank - 1),</span>
+<span class="lineNum">     256 </span>            :                                     MCA_COLL_BASE_TAG_ALLREDUCE,
+<span class="lineNum">     257 </span>            :                                     MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :             if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     259 </span>            :         }
+<span class="lineNum">     260 </span>            :     }
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span>            :     /* Ensure that the final result is in rbuf */
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     if (tmpsend != rbuf) {</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :         ret = ompi_datatype_copy_content_same_ddt(dtype, count, (char*)rbuf, tmpsend);</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         if (ret &lt; 0) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     266 </span>            :     }
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     if (NULL != inplacebuf) free(inplacebuf);</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     return MPI_SUCCESS;</span>
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span>            :  error_hndl:
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output, &quot;%s:%4d\tRank %d Error occurred %d\n&quot;,</span>
+<span class="lineNum">     273 </span>            :                  __FILE__, line, rank, ret));
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     if (NULL != inplacebuf) free(inplacebuf);</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     276 </span>            : }
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span>            : /*
+<span class="lineNum">     279 </span>            :  *   ompi_coll_base_allreduce_intra_ring
+<span class="lineNum">     280 </span>            :  *
+<span class="lineNum">     281 </span>            :  *   Function:       Ring algorithm for allreduce operation
+<span class="lineNum">     282 </span>            :  *   Accepts:        Same as MPI_Allreduce()
+<span class="lineNum">     283 </span>            :  *   Returns:        MPI_SUCCESS or error code
+<span class="lineNum">     284 </span>            :  *
+<span class="lineNum">     285 </span>            :  *   Description:    Implements ring algorithm for allreduce: the message is
+<span class="lineNum">     286 </span>            :  *                   automatically segmented to segment of size M/N.
+<span class="lineNum">     287 </span>            :  *                   Algorithm requires 2*N - 1 steps.
+<span class="lineNum">     288 </span>            :  *
+<span class="lineNum">     289 </span>            :  *   Limitations:    The algorithm DOES NOT preserve order of operations so it
+<span class="lineNum">     290 </span>            :  *                   can be used only for commutative operations.
+<span class="lineNum">     291 </span>            :  *                   In addition, algorithm cannot work if the total count is
+<span class="lineNum">     292 </span>            :  *                   less than size.
+<span class="lineNum">     293 </span>            :  *         Example on 5 nodes:
+<span class="lineNum">     294 </span>            :  *         Initial state
+<span class="lineNum">     295 </span>            :  *   #      0              1             2              3             4
+<span class="lineNum">     296 </span>            :  *        [00]           [10]          [20]           [30]           [40]
+<span class="lineNum">     297 </span>            :  *        [01]           [11]          [21]           [31]           [41]
+<span class="lineNum">     298 </span>            :  *        [02]           [12]          [22]           [32]           [42]
+<span class="lineNum">     299 </span>            :  *        [03]           [13]          [23]           [33]           [43]
+<span class="lineNum">     300 </span>            :  *        [04]           [14]          [24]           [34]           [44]
+<span class="lineNum">     301 </span>            :  *
+<span class="lineNum">     302 </span>            :  *        COMPUTATION PHASE
+<span class="lineNum">     303 </span>            :  *         Step 0: rank r sends block r to rank (r+1) and receives bloc (r-1)
+<span class="lineNum">     304 </span>            :  *                 from rank (r-1) [with wraparound].
+<span class="lineNum">     305 </span>            :  *    #     0              1             2              3             4
+<span class="lineNum">     306 </span>            :  *        [00]          [00+10]        [20]           [30]           [40]
+<span class="lineNum">     307 </span>            :  *        [01]           [11]         [11+21]         [31]           [41]
+<span class="lineNum">     308 </span>            :  *        [02]           [12]          [22]          [22+32]         [42]
+<span class="lineNum">     309 </span>            :  *        [03]           [13]          [23]           [33]         [33+43]
+<span class="lineNum">     310 </span>            :  *      [44+04]          [14]          [24]           [34]           [44]
+<span class="lineNum">     311 </span>            :  *
+<span class="lineNum">     312 </span>            :  *         Step 1: rank r sends block (r-1) to rank (r+1) and receives bloc
+<span class="lineNum">     313 </span>            :  *                 (r-2) from rank (r-1) [with wraparound].
+<span class="lineNum">     314 </span>            :  *    #      0              1             2              3             4
+<span class="lineNum">     315 </span>            :  *         [00]          [00+10]     [01+10+20]        [30]           [40]
+<span class="lineNum">     316 </span>            :  *         [01]           [11]         [11+21]      [11+21+31]        [41]
+<span class="lineNum">     317 </span>            :  *         [02]           [12]          [22]          [22+32]      [22+32+42]
+<span class="lineNum">     318 </span>            :  *      [33+43+03]        [13]          [23]           [33]         [33+43]
+<span class="lineNum">     319 </span>            :  *        [44+04]       [44+04+14]       [24]           [34]           [44]
+<span class="lineNum">     320 </span>            :  *
+<span class="lineNum">     321 </span>            :  *         Step 2: rank r sends block (r-2) to rank (r+1) and receives bloc
+<span class="lineNum">     322 </span>            :  *                 (r-2) from rank (r-1) [with wraparound].
+<span class="lineNum">     323 </span>            :  *    #      0              1             2              3             4
+<span class="lineNum">     324 </span>            :  *         [00]          [00+10]     [01+10+20]    [01+10+20+30]      [40]
+<span class="lineNum">     325 </span>            :  *         [01]           [11]         [11+21]      [11+21+31]    [11+21+31+41]
+<span class="lineNum">     326 </span>            :  *     [22+32+42+02]      [12]          [22]          [22+32]      [22+32+42]
+<span class="lineNum">     327 </span>            :  *      [33+43+03]    [33+43+03+13]     [23]           [33]         [33+43]
+<span class="lineNum">     328 </span>            :  *        [44+04]       [44+04+14]  [44+04+14+24]      [34]           [44]
+<span class="lineNum">     329 </span>            :  *
+<span class="lineNum">     330 </span>            :  *         Step 3: rank r sends block (r-3) to rank (r+1) and receives bloc
+<span class="lineNum">     331 </span>            :  *                 (r-3) from rank (r-1) [with wraparound].
+<span class="lineNum">     332 </span>            :  *    #      0              1             2              3             4
+<span class="lineNum">     333 </span>            :  *         [00]          [00+10]     [01+10+20]    [01+10+20+30]     [FULL]
+<span class="lineNum">     334 </span>            :  *        [FULL]           [11]        [11+21]      [11+21+31]    [11+21+31+41]
+<span class="lineNum">     335 </span>            :  *     [22+32+42+02]     [FULL]          [22]         [22+32]      [22+32+42]
+<span class="lineNum">     336 </span>            :  *      [33+43+03]    [33+43+03+13]     [FULL]          [33]         [33+43]
+<span class="lineNum">     337 </span>            :  *        [44+04]       [44+04+14]  [44+04+14+24]      [FULL]         [44]
+<span class="lineNum">     338 </span>            :  *
+<span class="lineNum">     339 </span>            :  *        DISTRIBUTION PHASE: ring ALLGATHER with ranks shifted by 1.
+<span class="lineNum">     340 </span>            :  *
+<a name="341"><span class="lineNum">     341 </span>            :  */</a>
+<span class="lineNum">     342 </span>            : int
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 : ompi_coll_base_allreduce_intra_ring(void *sbuf, void *rbuf, int count,</span>
+<span class="lineNum">     344 </span>            :                                      struct ompi_datatype_t *dtype,
+<span class="lineNum">     345 </span>            :                                      struct ompi_op_t *op,
+<span class="lineNum">     346 </span>            :                                      struct ompi_communicator_t *comm,
+<span class="lineNum">     347 </span>            :                                      mca_coll_base_module_t *module)
+<span class="lineNum">     348 </span>            : {
+<span class="lineNum">     349 </span>            :     int ret, line, rank, size, k, recv_from, send_to, block_count, inbi;
+<span class="lineNum">     350 </span>            :     int early_segcount, late_segcount, split_rank, max_segcount;
+<span class="lineNum">     351 </span>            :     size_t typelng;
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     char *tmpsend = NULL, *tmprecv = NULL, *inbuf[2] = {NULL, NULL};</span>
+<span class="lineNum">     353 </span>            :     ptrdiff_t true_lb, true_extent, lb, extent;
+<span class="lineNum">     354 </span>            :     ptrdiff_t block_offset, max_real_segsize;
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     ompi_request_t *reqs[2] = {NULL, NULL};</span>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     size = ompi_comm_size(comm);</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,</span>
+<span class="lineNum">     361 </span>            :                  &quot;coll:base:allreduce_intra_ring rank %d, count %d&quot;, rank, count));
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span>            :     /* Special case for size == 1 */
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     if (1 == size) {</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :         if (MPI_IN_PLACE != sbuf) {</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :             ret = ompi_datatype_copy_content_same_ddt(dtype, count, (char*)rbuf, (char*)sbuf);</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :             if (ret &lt; 0) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     368 </span>            :         }
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :         return MPI_SUCCESS;</span>
+<span class="lineNum">     370 </span>            :     }
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span>            :     /* Special case for count less than size - use recursive doubling */
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     if (count &lt; size) {</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT((ompi_coll_base_framework.framework_output, &quot;coll:base:allreduce_ring rank %d/%d, count %d, switching to recursive doubling&quot;, rank, size, count));</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :         return (ompi_coll_base_allreduce_intra_recursivedoubling(sbuf, rbuf,</span>
+<span class="lineNum">     376 </span>            :                                                                   count,
+<span class="lineNum">     377 </span>            :                                                                   dtype, op,
+<span class="lineNum">     378 </span>            :                                                                   comm, module));
+<span class="lineNum">     379 </span>            :     }
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            :     /* Allocate and initialize temporary buffers */
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     ret = ompi_datatype_get_extent(dtype, &amp;lb, &amp;extent);</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :     ret = ompi_datatype_get_true_extent(dtype, &amp;true_lb, &amp;true_extent);</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :     ret = ompi_datatype_type_size( dtype, &amp;typelng);</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span>            :     /* Determine the number of elements per block and corresponding
+<span class="lineNum">     390 </span>            :        block sizes.
+<span class="lineNum">     391 </span>            :        The blocks are divided into &quot;early&quot; and &quot;late&quot; ones:
+<span class="lineNum">     392 </span>            :        blocks 0 .. (split_rank - 1) are &quot;early&quot; and
+<span class="lineNum">     393 </span>            :        blocks (split_rank) .. (size - 1) are &quot;late&quot;.
+<span class="lineNum">     394 </span>            :        Early blocks are at most 1 element larger than the late ones.
+<span class="lineNum">     395 </span>            :     */
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     COLL_BASE_COMPUTE_BLOCKCOUNT( count, size, split_rank,</span>
+<span class="lineNum">     397 </span>            :                                    early_segcount, late_segcount );
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     max_segcount = early_segcount;</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :     max_real_segsize = true_extent + (max_segcount - 1) * extent;</span>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :     inbuf[0] = (char*)malloc(max_real_segsize);</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     if (NULL == inbuf[0]) { ret = -1; line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     if (size &gt; 2) {</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         inbuf[1] = (char*)malloc(max_real_segsize);</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :         if (NULL == inbuf[1]) { ret = -1; line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     407 </span>            :     }
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span>            :     /* Handle MPI_IN_PLACE */
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     if (MPI_IN_PLACE != sbuf) {</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         ret = ompi_datatype_copy_content_same_ddt(dtype, count, (char*)rbuf, (char*)sbuf);</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         if (ret &lt; 0) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     413 </span>            :     }
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span>            :     /* Computation loop */
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span>            :     /*
+<span class="lineNum">     418 </span>            :        For each of the remote nodes:
+<span class="lineNum">     419 </span>            :        - post irecv for block (r-1)
+<span class="lineNum">     420 </span>            :        - send block (r)
+<span class="lineNum">     421 </span>            :        - in loop for every step k = 2 .. n
+<span class="lineNum">     422 </span>            :        - post irecv for block (r + n - k) % n
+<span class="lineNum">     423 </span>            :        - wait on block (r + n - k + 1) % n to arrive
+<span class="lineNum">     424 </span>            :        - compute on block (r + n - k + 1) % n
+<span class="lineNum">     425 </span>            :        - send block (r + n - k + 1) % n
+<span class="lineNum">     426 </span>            :        - wait on block (r + 1)
+<span class="lineNum">     427 </span>            :        - compute on block (r + 1)
+<span class="lineNum">     428 </span>            :        - send block (r + 1) to rank (r + 1)
+<span class="lineNum">     429 </span>            :        Note that we must be careful when computing the begining of buffers and
+<span class="lineNum">     430 </span>            :        for send operations and computation we must compute the exact block size.
+<span class="lineNum">     431 </span>            :     */
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     send_to = (rank + 1) % size;</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     recv_from = (rank + size - 1) % size;</span>
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :     inbi = 0;</span>
+<span class="lineNum">     436 </span>            :     /* Initialize first receive from the neighbor on the left */
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     ret = MCA_PML_CALL(irecv(inbuf[inbi], max_segcount, dtype, recv_from,</span>
+<span class="lineNum">     438 </span>            :                              MCA_COLL_BASE_TAG_ALLREDUCE, comm, &amp;reqs[inbi]));
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     440 </span>            :     /* Send first block (my block) to the neighbor on the right */
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     block_offset = ((rank &lt; split_rank)?</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :                     ((ptrdiff_t)rank * (ptrdiff_t)early_segcount) :</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :                     ((ptrdiff_t)rank * (ptrdiff_t)late_segcount + split_rank));</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     block_count = ((rank &lt; split_rank)? early_segcount : late_segcount);</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :     tmpsend = ((char*)rbuf) + block_offset * extent;</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :     ret = MCA_PML_CALL(send(tmpsend, block_count, dtype, send_to,</span>
+<span class="lineNum">     447 </span>            :                             MCA_COLL_BASE_TAG_ALLREDUCE,
+<span class="lineNum">     448 </span>            :                             MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     450 </span>            : 
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :     for (k = 2; k &lt; size; k++) {</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :         const int prevblock = (rank + size - k + 1) % size;</span>
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :         inbi = inbi ^ 0x1;</span>
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span>            :         /* Post irecv for the current block */
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :         ret = MCA_PML_CALL(irecv(inbuf[inbi], max_segcount, dtype, recv_from,</span>
+<span class="lineNum">     458 </span>            :                                  MCA_COLL_BASE_TAG_ALLREDUCE, comm, &amp;reqs[inbi]));
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :         if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span>            :         /* Wait on previous block to arrive */
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :         ret = ompi_request_wait(&amp;reqs[inbi ^ 0x1], MPI_STATUS_IGNORE);</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :         if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            :         /* Apply operation on previous block: result goes to rbuf
+<span class="lineNum">     466 </span>            :            rbuf[prevblock] = inbuf[inbi ^ 0x1] (op) rbuf[prevblock]
+<span class="lineNum">     467 </span>            :         */
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :         block_offset = ((prevblock &lt; split_rank)?</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :                         ((ptrdiff_t)prevblock * early_segcount) :</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :                         ((ptrdiff_t)prevblock * late_segcount + split_rank));</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :         block_count = ((prevblock &lt; split_rank)? early_segcount : late_segcount);</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :         tmprecv = ((char*)rbuf) + (ptrdiff_t)block_offset * extent;</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :         ompi_op_reduce(op, inbuf[inbi ^ 0x1], tmprecv, block_count, dtype);</span>
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span>            :         /* send previous block to send_to */
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :         ret = MCA_PML_CALL(send(tmprecv, block_count, dtype, send_to,</span>
+<span class="lineNum">     477 </span>            :                                 MCA_COLL_BASE_TAG_ALLREDUCE,
+<span class="lineNum">     478 </span>            :                                 MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :         if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     480 </span>            :     }
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span>            :     /* Wait on the last block to arrive */
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     ret = ompi_request_wait(&amp;reqs[inbi], MPI_STATUS_IGNORE);</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span>            :     /* Apply operation on the last block (from neighbor (rank + 1)
+<span class="lineNum">     487 </span>            :        rbuf[rank+1] = inbuf[inbi] (op) rbuf[rank + 1] */
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     recv_from = (rank + 1) % size;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :     block_offset = ((recv_from &lt; split_rank)?</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :                     ((ptrdiff_t)recv_from * early_segcount) :</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :                     ((ptrdiff_t)recv_from * late_segcount + split_rank));</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :     block_count = ((recv_from &lt; split_rank)? early_segcount : late_segcount);</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :     tmprecv = ((char*)rbuf) + (ptrdiff_t)block_offset * extent;</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :     ompi_op_reduce(op, inbuf[inbi], tmprecv, block_count, dtype);</span>
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span>            :     /* Distribution loop - variation of ring allgather */
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     send_to = (rank + 1) % size;</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     recv_from = (rank + size - 1) % size;</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     for (k = 0; k &lt; size - 1; k++) {</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :         const int recv_data_from = (rank + size - k) % size;</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :         const int send_data_from = (rank + 1 + size - k) % size;</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :         const int send_block_offset =</span>
+<span class="lineNum">     503 </span>            :             ((send_data_from &lt; split_rank)?
+<span class="lineNum">     504 </span>            :              ((ptrdiff_t)send_data_from * early_segcount) :
+<span class="lineNum">     505 </span>            :              ((ptrdiff_t)send_data_from * late_segcount + split_rank));
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :         const int recv_block_offset =</span>
+<span class="lineNum">     507 </span>            :             ((recv_data_from &lt; split_rank)?
+<span class="lineNum">     508 </span>            :              ((ptrdiff_t)recv_data_from * early_segcount) :
+<span class="lineNum">     509 </span>            :              ((ptrdiff_t)recv_data_from * late_segcount + split_rank));
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :         block_count = ((send_data_from &lt; split_rank)?</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :                        early_segcount : late_segcount);</span>
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :         tmprecv = (char*)rbuf + (ptrdiff_t)recv_block_offset * extent;</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :         tmpsend = (char*)rbuf + (ptrdiff_t)send_block_offset * extent;</span>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :         ret = ompi_coll_base_sendrecv(tmpsend, block_count, dtype, send_to,</span>
+<span class="lineNum">     517 </span>            :                                        MCA_COLL_BASE_TAG_ALLREDUCE,
+<span class="lineNum">     518 </span>            :                                        tmprecv, max_segcount, dtype, recv_from,
+<span class="lineNum">     519 </span>            :                                        MCA_COLL_BASE_TAG_ALLREDUCE,
+<span class="lineNum">     520 </span>            :                                        comm, MPI_STATUS_IGNORE, rank);
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :         if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl;}</span>
+<span class="lineNum">     522 </span>            : 
+<span class="lineNum">     523 </span>            :     }
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :     if (NULL != inbuf[0]) free(inbuf[0]);</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :     if (NULL != inbuf[1]) free(inbuf[1]);</span>
+<span class="lineNum">     527 </span>            : 
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :     return MPI_SUCCESS;</span>
+<span class="lineNum">     529 </span>            : 
+<span class="lineNum">     530 </span>            :  error_hndl:
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output, &quot;%s:%4d\tRank %d Error occurred %d\n&quot;,</span>
+<span class="lineNum">     532 </span>            :                  __FILE__, line, rank, ret));
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :     if (NULL != inbuf[0]) free(inbuf[0]);</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :     if (NULL != inbuf[1]) free(inbuf[1]);</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     536 </span>            : }
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span>            : /*
+<span class="lineNum">     539 </span>            :  *   ompi_coll_base_allreduce_intra_ring_segmented
+<span class="lineNum">     540 </span>            :  *
+<span class="lineNum">     541 </span>            :  *   Function:       Pipelined ring algorithm for allreduce operation
+<span class="lineNum">     542 </span>            :  *   Accepts:        Same as MPI_Allreduce(), segment size
+<span class="lineNum">     543 </span>            :  *   Returns:        MPI_SUCCESS or error code
+<span class="lineNum">     544 </span>            :  *
+<span class="lineNum">     545 </span>            :  *   Description:    Implements pipelined ring algorithm for allreduce:
+<span class="lineNum">     546 </span>            :  *                   user supplies suggested segment size for the pipelining of
+<span class="lineNum">     547 </span>            :  *                   reduce operation.
+<span class="lineNum">     548 </span>            :  *                   The segment size determines the number of phases, np, for
+<span class="lineNum">     549 </span>            :  *                   the algorithm execution.
+<span class="lineNum">     550 </span>            :  *                   The message is automatically divided into blocks of
+<span class="lineNum">     551 </span>            :  *                   approximately  (count / (np * segcount)) elements.
+<span class="lineNum">     552 </span>            :  *                   At the end of reduction phase, allgather like step is
+<span class="lineNum">     553 </span>            :  *                   executed.
+<span class="lineNum">     554 </span>            :  *                   Algorithm requires (np + 1)*(N - 1) steps.
+<span class="lineNum">     555 </span>            :  *
+<span class="lineNum">     556 </span>            :  *   Limitations:    The algorithm DOES NOT preserve order of operations so it
+<span class="lineNum">     557 </span>            :  *                   can be used only for commutative operations.
+<span class="lineNum">     558 </span>            :  *                   In addition, algorithm cannot work if the total size is
+<span class="lineNum">     559 </span>            :  *                   less than size * segment size.
+<span class="lineNum">     560 </span>            :  *         Example on 3 nodes with 2 phases
+<span class="lineNum">     561 </span>            :  *         Initial state
+<span class="lineNum">     562 </span>            :  *   #      0              1             2
+<span class="lineNum">     563 </span>            :  *        [00a]          [10a]         [20a]
+<span class="lineNum">     564 </span>            :  *        [00b]          [10b]         [20b]
+<span class="lineNum">     565 </span>            :  *        [01a]          [11a]         [21a]
+<span class="lineNum">     566 </span>            :  *        [01b]          [11b]         [21b]
+<span class="lineNum">     567 </span>            :  *        [02a]          [12a]         [22a]
+<span class="lineNum">     568 </span>            :  *        [02b]          [12b]         [22b]
+<span class="lineNum">     569 </span>            :  *
+<span class="lineNum">     570 </span>            :  *        COMPUTATION PHASE 0 (a)
+<span class="lineNum">     571 </span>            :  *         Step 0: rank r sends block ra to rank (r+1) and receives bloc (r-1)a
+<span class="lineNum">     572 </span>            :  *                 from rank (r-1) [with wraparound].
+<span class="lineNum">     573 </span>            :  *    #     0              1             2
+<span class="lineNum">     574 </span>            :  *        [00a]        [00a+10a]       [20a]
+<span class="lineNum">     575 </span>            :  *        [00b]          [10b]         [20b]
+<span class="lineNum">     576 </span>            :  *        [01a]          [11a]       [11a+21a]
+<span class="lineNum">     577 </span>            :  *        [01b]          [11b]         [21b]
+<span class="lineNum">     578 </span>            :  *      [22a+02a]        [12a]         [22a]
+<span class="lineNum">     579 </span>            :  *        [02b]          [12b]         [22b]
+<span class="lineNum">     580 </span>            :  *
+<span class="lineNum">     581 </span>            :  *         Step 1: rank r sends block (r-1)a to rank (r+1) and receives bloc
+<span class="lineNum">     582 </span>            :  *                 (r-2)a from rank (r-1) [with wraparound].
+<span class="lineNum">     583 </span>            :  *    #     0              1             2
+<span class="lineNum">     584 </span>            :  *        [00a]        [00a+10a]   [00a+10a+20a]
+<span class="lineNum">     585 </span>            :  *        [00b]          [10b]         [20b]
+<span class="lineNum">     586 </span>            :  *    [11a+21a+01a]      [11a]       [11a+21a]
+<span class="lineNum">     587 </span>            :  *        [01b]          [11b]         [21b]
+<span class="lineNum">     588 </span>            :  *      [22a+02a]    [22a+02a+12a]     [22a]
+<span class="lineNum">     589 </span>            :  *        [02b]          [12b]         [22b]
+<span class="lineNum">     590 </span>            :  *
+<span class="lineNum">     591 </span>            :  *        COMPUTATION PHASE 1 (b)
+<span class="lineNum">     592 </span>            :  *         Step 0: rank r sends block rb to rank (r+1) and receives bloc (r-1)b
+<span class="lineNum">     593 </span>            :  *                 from rank (r-1) [with wraparound].
+<span class="lineNum">     594 </span>            :  *    #     0              1             2
+<span class="lineNum">     595 </span>            :  *        [00a]        [00a+10a]       [20a]
+<span class="lineNum">     596 </span>            :  *        [00b]        [00b+10b]       [20b]
+<span class="lineNum">     597 </span>            :  *        [01a]          [11a]       [11a+21a]
+<span class="lineNum">     598 </span>            :  *        [01b]          [11b]       [11b+21b]
+<span class="lineNum">     599 </span>            :  *      [22a+02a]        [12a]         [22a]
+<span class="lineNum">     600 </span>            :  *      [22b+02b]        [12b]         [22b]
+<span class="lineNum">     601 </span>            :  *
+<span class="lineNum">     602 </span>            :  *         Step 1: rank r sends block (r-1)b to rank (r+1) and receives bloc
+<span class="lineNum">     603 </span>            :  *                 (r-2)b from rank (r-1) [with wraparound].
+<span class="lineNum">     604 </span>            :  *    #     0              1             2
+<span class="lineNum">     605 </span>            :  *        [00a]        [00a+10a]   [00a+10a+20a]
+<span class="lineNum">     606 </span>            :  *        [00b]          [10b]     [0bb+10b+20b]
+<span class="lineNum">     607 </span>            :  *    [11a+21a+01a]      [11a]       [11a+21a]
+<span class="lineNum">     608 </span>            :  *    [11b+21b+01b]      [11b]         [21b]
+<span class="lineNum">     609 </span>            :  *      [22a+02a]    [22a+02a+12a]     [22a]
+<span class="lineNum">     610 </span>            :  *        [02b]      [22b+01b+12b]     [22b]
+<span class="lineNum">     611 </span>            :  *
+<span class="lineNum">     612 </span>            :  *
+<span class="lineNum">     613 </span>            :  *        DISTRIBUTION PHASE: ring ALLGATHER with ranks shifted by 1 (same as
+<span class="lineNum">     614 </span>            :  *         in regular ring algorithm.
+<span class="lineNum">     615 </span>            :  *
+<a name="616"><span class="lineNum">     616 </span>            :  */</a>
+<span class="lineNum">     617 </span>            : int
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 : ompi_coll_base_allreduce_intra_ring_segmented(void *sbuf, void *rbuf, int count,</span>
+<span class="lineNum">     619 </span>            :                                                struct ompi_datatype_t *dtype,
+<span class="lineNum">     620 </span>            :                                                struct ompi_op_t *op,
+<span class="lineNum">     621 </span>            :                                                struct ompi_communicator_t *comm,
+<span class="lineNum">     622 </span>            :                                                mca_coll_base_module_t *module,
+<span class="lineNum">     623 </span>            :                                                uint32_t segsize)
+<span class="lineNum">     624 </span>            : {
+<span class="lineNum">     625 </span>            :     int ret, line, rank, size, k, recv_from, send_to;
+<span class="lineNum">     626 </span>            :     int early_blockcount, late_blockcount, split_rank;
+<span class="lineNum">     627 </span>            :     int segcount, max_segcount, num_phases, phase, block_count, inbi;
+<span class="lineNum">     628 </span>            :     size_t typelng;
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :     char *tmpsend = NULL, *tmprecv = NULL, *inbuf[2] = {NULL, NULL};</span>
+<span class="lineNum">     630 </span>            :     ptrdiff_t true_lb, true_extent, lb, extent;
+<span class="lineNum">     631 </span>            :     ptrdiff_t block_offset, max_real_segsize;
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :     ompi_request_t *reqs[2] = {NULL, NULL};</span>
+<span class="lineNum">     633 </span>            : 
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :     size = ompi_comm_size(comm);</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     636 </span>            : 
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,</span>
+<span class="lineNum">     638 </span>            :                  &quot;coll:base:allreduce_intra_ring_segmented rank %d, count %d&quot;, rank, count));
+<span class="lineNum">     639 </span>            : 
+<span class="lineNum">     640 </span>            :     /* Special case for size == 1 */
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :     if (1 == size) {</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :         if (MPI_IN_PLACE != sbuf) {</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :             ret = ompi_datatype_copy_content_same_ddt(dtype, count, (char*)rbuf, (char*)sbuf);</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :             if (ret &lt; 0) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     645 </span>            :         }
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :         return MPI_SUCCESS;</span>
+<span class="lineNum">     647 </span>            :     }
+<span class="lineNum">     648 </span>            : 
+<span class="lineNum">     649 </span>            :     /* Determine segment count based on the suggested segment size */
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :     ret = ompi_datatype_get_extent(dtype, &amp;lb, &amp;extent);</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :     ret = ompi_datatype_get_true_extent(dtype, &amp;true_lb, &amp;true_extent);</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :     ret = ompi_datatype_type_size( dtype, &amp;typelng);</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :     segcount = count;</span>
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :     COLL_BASE_COMPUTED_SEGCOUNT(segsize, typelng, segcount)</span>
+<span class="lineNum">     658 </span>            : 
+<span class="lineNum">     659 </span>            :         /* Special case for count less than size * segcount - use regular ring */
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :         if (count &lt; (size * segcount)) {</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT((ompi_coll_base_framework.framework_output, &quot;coll:base:allreduce_ring_segmented rank %d/%d, count %d, switching to regular ring&quot;, rank, size, count));</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :             return (ompi_coll_base_allreduce_intra_ring(sbuf, rbuf, count, dtype, op,</span>
+<span class="lineNum">     663 </span>            :                                                          comm, module));
+<span class="lineNum">     664 </span>            :         }
+<span class="lineNum">     665 </span>            : 
+<span class="lineNum">     666 </span>            :     /* Determine the number of phases of the algorithm */
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :     num_phases = count / (size * segcount);</span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :     if ((count % (size * segcount) &gt;= size) &amp;&amp;</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :         (count % (size * segcount) &gt; ((size * segcount) / 2))) {</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :         num_phases++;</span>
+<span class="lineNum">     671 </span>            :     }
+<span class="lineNum">     672 </span>            : 
+<span class="lineNum">     673 </span>            :     /* Determine the number of elements per block and corresponding
+<span class="lineNum">     674 </span>            :        block sizes.
+<span class="lineNum">     675 </span>            :        The blocks are divided into &quot;early&quot; and &quot;late&quot; ones:
+<span class="lineNum">     676 </span>            :        blocks 0 .. (split_rank - 1) are &quot;early&quot; and
+<span class="lineNum">     677 </span>            :        blocks (split_rank) .. (size - 1) are &quot;late&quot;.
+<span class="lineNum">     678 </span>            :        Early blocks are at most 1 element larger than the late ones.
+<span class="lineNum">     679 </span>            :        Note, these blocks will be split into num_phases segments,
+<span class="lineNum">     680 </span>            :        out of the largest one will have max_segcount elements.
+<span class="lineNum">     681 </span>            :     */
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :     COLL_BASE_COMPUTE_BLOCKCOUNT( count, size, split_rank,</span>
+<span class="lineNum">     683 </span>            :                                    early_blockcount, late_blockcount );
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :     COLL_BASE_COMPUTE_BLOCKCOUNT( early_blockcount, num_phases, inbi,</span>
+<span class="lineNum">     685 </span>            :                                    max_segcount, k);
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :     max_real_segsize = true_extent + (ptrdiff_t)(max_segcount - 1) * extent;</span>
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span>            :     /* Allocate and initialize temporary buffers */
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :     inbuf[0] = (char*)malloc(max_real_segsize);</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :     if (NULL == inbuf[0]) { ret = -1; line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :     if (size &gt; 2) {</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :         inbuf[1] = (char*)malloc(max_real_segsize);</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :         if (NULL == inbuf[1]) { ret = -1; line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     694 </span>            :     }
+<span class="lineNum">     695 </span>            : 
+<span class="lineNum">     696 </span>            :     /* Handle MPI_IN_PLACE */
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :     if (MPI_IN_PLACE != sbuf) {</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :         ret = ompi_datatype_copy_content_same_ddt(dtype, count, (char*)rbuf, (char*)sbuf);</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :         if (ret &lt; 0) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     700 </span>            :     }
+<span class="lineNum">     701 </span>            : 
+<span class="lineNum">     702 </span>            :     /* Computation loop: for each phase, repeat ring allreduce computation loop */
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :     for (phase = 0; phase &lt; num_phases; phase ++) {</span>
+<span class="lineNum">     704 </span>            :         ptrdiff_t phase_offset;
+<span class="lineNum">     705 </span>            :         int early_phase_segcount, late_phase_segcount, split_phase, phase_count;
+<span class="lineNum">     706 </span>            : 
+<span class="lineNum">     707 </span>            :         /*
+<span class="lineNum">     708 </span>            :            For each of the remote nodes:
+<span class="lineNum">     709 </span>            :            - post irecv for block (r-1)
+<span class="lineNum">     710 </span>            :            - send block (r)
+<span class="lineNum">     711 </span>            :            To do this, first compute block offset and count, and use block offset
+<span class="lineNum">     712 </span>            :            to compute phase offset.
+<span class="lineNum">     713 </span>            :            - in loop for every step k = 2 .. n
+<span class="lineNum">     714 </span>            :            - post irecv for block (r + n - k) % n
+<span class="lineNum">     715 </span>            :            - wait on block (r + n - k + 1) % n to arrive
+<span class="lineNum">     716 </span>            :            - compute on block (r + n - k + 1) % n
+<span class="lineNum">     717 </span>            :            - send block (r + n - k + 1) % n
+<span class="lineNum">     718 </span>            :            - wait on block (r + 1)
+<span class="lineNum">     719 </span>            :            - compute on block (r + 1)
+<span class="lineNum">     720 </span>            :            - send block (r + 1) to rank (r + 1)
+<span class="lineNum">     721 </span>            :            Note that we must be careful when computing the begining of buffers and
+<span class="lineNum">     722 </span>            :            for send operations and computation we must compute the exact block size.
+<span class="lineNum">     723 </span>            :         */
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :         send_to = (rank + 1) % size;</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :         recv_from = (rank + size - 1) % size;</span>
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :         inbi = 0;</span>
+<span class="lineNum">     728 </span>            :         /* Initialize first receive from the neighbor on the left */
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :         ret = MCA_PML_CALL(irecv(inbuf[inbi], max_segcount, dtype, recv_from,</span>
+<span class="lineNum">     730 </span>            :                                  MCA_COLL_BASE_TAG_ALLREDUCE, comm, &amp;reqs[inbi]));
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :         if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     732 </span>            :         /* Send first block (my block) to the neighbor on the right:
+<span class="lineNum">     733 </span>            :            - compute my block and phase offset
+<span class="lineNum">     734 </span>            :            - send data */
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :         block_offset = ((rank &lt; split_rank)?</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :                         ((ptrdiff_t)rank * (ptrdiff_t)early_blockcount) :</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :                         ((ptrdiff_t)rank * (ptrdiff_t)late_blockcount + split_rank));</span>
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :         block_count = ((rank &lt; split_rank)? early_blockcount : late_blockcount);</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :         COLL_BASE_COMPUTE_BLOCKCOUNT(block_count, num_phases, split_phase,</span>
+<span class="lineNum">     740 </span>            :                                       early_phase_segcount, late_phase_segcount)
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :             phase_count = ((phase &lt; split_phase)?</span>
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :                            (early_phase_segcount) : (late_phase_segcount));</span>
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :         phase_offset = ((phase &lt; split_phase)?</span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :                         ((ptrdiff_t)phase * (ptrdiff_t)early_phase_segcount) :</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :                         ((ptrdiff_t)phase * (ptrdiff_t)late_phase_segcount + split_phase));</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :         tmpsend = ((char*)rbuf) + (ptrdiff_t)(block_offset + phase_offset) * extent;</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :         ret = MCA_PML_CALL(send(tmpsend, phase_count, dtype, send_to,</span>
+<span class="lineNum">     748 </span>            :                                 MCA_COLL_BASE_TAG_ALLREDUCE,
+<span class="lineNum">     749 </span>            :                                 MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :         if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     751 </span>            : 
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :         for (k = 2; k &lt; size; k++) {</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :             const int prevblock = (rank + size - k + 1) % size;</span>
+<span class="lineNum">     754 </span>            : 
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :             inbi = inbi ^ 0x1;</span>
+<span class="lineNum">     756 </span>            : 
+<span class="lineNum">     757 </span>            :             /* Post irecv for the current block */
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :             ret = MCA_PML_CALL(irecv(inbuf[inbi], max_segcount, dtype, recv_from,</span>
+<span class="lineNum">     759 </span>            :                                      MCA_COLL_BASE_TAG_ALLREDUCE, comm,
+<span class="lineNum">     760 </span>            :                                      &amp;reqs[inbi]));
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :             if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     762 </span>            : 
+<span class="lineNum">     763 </span>            :             /* Wait on previous block to arrive */
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :             ret = ompi_request_wait(&amp;reqs[inbi ^ 0x1], MPI_STATUS_IGNORE);</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :             if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     766 </span>            : 
+<span class="lineNum">     767 </span>            :             /* Apply operation on previous block: result goes to rbuf
+<span class="lineNum">     768 </span>            :                rbuf[prevblock] = inbuf[inbi ^ 0x1] (op) rbuf[prevblock]
+<span class="lineNum">     769 </span>            :             */
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :             block_offset = ((prevblock &lt; split_rank)?</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :                             ((ptrdiff_t)prevblock * (ptrdiff_t)early_blockcount) :</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :                             ((ptrdiff_t)prevblock * (ptrdiff_t)late_blockcount + split_rank));</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :             block_count = ((prevblock &lt; split_rank)?</span>
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :                            early_blockcount : late_blockcount);</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :             COLL_BASE_COMPUTE_BLOCKCOUNT(block_count, num_phases, split_phase,</span>
+<span class="lineNum">     776 </span>            :                                           early_phase_segcount, late_phase_segcount)
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :                 phase_count = ((phase &lt; split_phase)?</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :                                (early_phase_segcount) : (late_phase_segcount));</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :             phase_offset = ((phase &lt; split_phase)?</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :                             ((ptrdiff_t)phase * (ptrdiff_t)early_phase_segcount) :</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :                             ((ptrdiff_t)phase * (ptrdiff_t)late_phase_segcount + split_phase));</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :             tmprecv = ((char*)rbuf) + (ptrdiff_t)(block_offset + phase_offset) * extent;</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :             ompi_op_reduce(op, inbuf[inbi ^ 0x1], tmprecv, phase_count, dtype);</span>
+<span class="lineNum">     784 </span>            : 
+<span class="lineNum">     785 </span>            :             /* send previous block to send_to */
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :             ret = MCA_PML_CALL(send(tmprecv, phase_count, dtype, send_to,</span>
+<span class="lineNum">     787 </span>            :                                     MCA_COLL_BASE_TAG_ALLREDUCE,
+<span class="lineNum">     788 </span>            :                                     MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :             if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     790 </span>            :         }
+<span class="lineNum">     791 </span>            : 
+<span class="lineNum">     792 </span>            :         /* Wait on the last block to arrive */
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :         ret = ompi_request_wait(&amp;reqs[inbi], MPI_STATUS_IGNORE);</span>
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :         if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     795 </span>            : 
+<span class="lineNum">     796 </span>            :         /* Apply operation on the last block (from neighbor (rank + 1)
+<span class="lineNum">     797 </span>            :            rbuf[rank+1] = inbuf[inbi] (op) rbuf[rank + 1] */
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :         recv_from = (rank + 1) % size;</span>
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :         block_offset = ((recv_from &lt; split_rank)?</span>
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :                         ((ptrdiff_t)recv_from * (ptrdiff_t)early_blockcount) :</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :                         ((ptrdiff_t)recv_from * (ptrdiff_t)late_blockcount + split_rank));</span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :         block_count = ((recv_from &lt; split_rank)?</span>
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :                        early_blockcount : late_blockcount);</span>
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :         COLL_BASE_COMPUTE_BLOCKCOUNT(block_count, num_phases, split_phase,</span>
+<span class="lineNum">     805 </span>            :                                       early_phase_segcount, late_phase_segcount)
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :             phase_count = ((phase &lt; split_phase)?</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :                            (early_phase_segcount) : (late_phase_segcount));</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :         phase_offset = ((phase &lt; split_phase)?</span>
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :                         ((ptrdiff_t)phase * (ptrdiff_t)early_phase_segcount) :</span>
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :                         ((ptrdiff_t)phase * (ptrdiff_t)late_phase_segcount + split_phase));</span>
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :         tmprecv = ((char*)rbuf) + (ptrdiff_t)(block_offset + phase_offset) * extent;</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :         ompi_op_reduce(op, inbuf[inbi], tmprecv, phase_count, dtype);</span>
+<span class="lineNum">     813 </span>            :     }
+<span class="lineNum">     814 </span>            : 
+<span class="lineNum">     815 </span>            :     /* Distribution loop - variation of ring allgather */
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :     send_to = (rank + 1) % size;</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :     recv_from = (rank + size - 1) % size;</span>
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :     for (k = 0; k &lt; size - 1; k++) {</span>
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :         const int recv_data_from = (rank + size - k) % size;</span>
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :         const int send_data_from = (rank + 1 + size - k) % size;</span>
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :         const int send_block_offset =</span>
+<span class="lineNum">     822 </span>            :             ((send_data_from &lt; split_rank)?
+<span class="lineNum">     823 </span>            :              ((ptrdiff_t)send_data_from * (ptrdiff_t)early_blockcount) :
+<span class="lineNum">     824 </span>            :              ((ptrdiff_t)send_data_from * (ptrdiff_t)late_blockcount + split_rank));
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :         const int recv_block_offset =</span>
+<span class="lineNum">     826 </span>            :             ((recv_data_from &lt; split_rank)?
+<span class="lineNum">     827 </span>            :              ((ptrdiff_t)recv_data_from * (ptrdiff_t)early_blockcount) :
+<span class="lineNum">     828 </span>            :              ((ptrdiff_t)recv_data_from * (ptrdiff_t)late_blockcount + split_rank));
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :         block_count = ((send_data_from &lt; split_rank)?</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :                        early_blockcount : late_blockcount);</span>
+<span class="lineNum">     831 </span>            : 
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :         tmprecv = (char*)rbuf + (ptrdiff_t)recv_block_offset * extent;</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :         tmpsend = (char*)rbuf + (ptrdiff_t)send_block_offset * extent;</span>
+<span class="lineNum">     834 </span>            : 
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :         ret = ompi_coll_base_sendrecv(tmpsend, block_count, dtype, send_to,</span>
+<span class="lineNum">     836 </span>            :                                        MCA_COLL_BASE_TAG_ALLREDUCE,
+<span class="lineNum">     837 </span>            :                                        tmprecv, early_blockcount, dtype, recv_from,
+<span class="lineNum">     838 </span>            :                                        MCA_COLL_BASE_TAG_ALLREDUCE,
+<span class="lineNum">     839 </span>            :                                        comm, MPI_STATUS_IGNORE, rank);
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :         if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl;}</span>
+<span class="lineNum">     841 </span>            : 
+<span class="lineNum">     842 </span>            :     }
+<span class="lineNum">     843 </span>            : 
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :     if (NULL != inbuf[0]) free(inbuf[0]);</span>
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :     if (NULL != inbuf[1]) free(inbuf[1]);</span>
+<span class="lineNum">     846 </span>            : 
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :     return MPI_SUCCESS;</span>
+<span class="lineNum">     848 </span>            : 
+<span class="lineNum">     849 </span>            :  error_hndl:
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output, &quot;%s:%4d\tRank %d Error occurred %d\n&quot;,</span>
+<span class="lineNum">     851 </span>            :                  __FILE__, line, rank, ret));
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :     if (NULL != inbuf[0]) free(inbuf[0]);</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :     if (NULL != inbuf[1]) free(inbuf[1]);</span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     855 </span>            : }
+<span class="lineNum">     856 </span>            : 
+<span class="lineNum">     857 </span>            : /*
+<span class="lineNum">     858 </span>            :  * Linear functions are copied from the BASIC coll module
+<span class="lineNum">     859 </span>            :  * they do not segment the message and are simple implementations
+<span class="lineNum">     860 </span>            :  * but for some small number of nodes and/or small data sizes they
+<span class="lineNum">     861 </span>            :  * are just as fast as base/tree based segmenting operations
+<span class="lineNum">     862 </span>            :  * and as such may be selected by the decision functions
+<span class="lineNum">     863 </span>            :  * These are copied into this module due to the way we select modules
+<span class="lineNum">     864 </span>            :  * in V1. i.e. in V2 we will handle this differently and so will not
+<span class="lineNum">     865 </span>            :  * have to duplicate code.
+<span class="lineNum">     866 </span>            :  * GEF Oct05 after asking Jeff.
+<span class="lineNum">     867 </span>            :  */
+<span class="lineNum">     868 </span>            : 
+<span class="lineNum">     869 </span>            : /* copied function (with appropriate renaming) starts here */
+<span class="lineNum">     870 </span>            : 
+<span class="lineNum">     871 </span>            : 
+<span class="lineNum">     872 </span>            : /*
+<span class="lineNum">     873 </span>            :  *      allreduce_intra
+<span class="lineNum">     874 </span>            :  *
+<span class="lineNum">     875 </span>            :  *      Function:       - allreduce using other MPI collectives
+<span class="lineNum">     876 </span>            :  *      Accepts:        - same as MPI_Allreduce()
+<span class="lineNum">     877 </span>            :  *      Returns:        - MPI_SUCCESS or error code
+<a name="878"><span class="lineNum">     878 </span>            :  */</a>
+<span class="lineNum">     879 </span>            : int
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 : ompi_coll_base_allreduce_intra_basic_linear(void *sbuf, void *rbuf, int count,</span>
+<span class="lineNum">     881 </span>            :                                              struct ompi_datatype_t *dtype,
+<span class="lineNum">     882 </span>            :                                              struct ompi_op_t *op,
+<span class="lineNum">     883 </span>            :                                              struct ompi_communicator_t *comm,
+<span class="lineNum">     884 </span>            :                                              mca_coll_base_module_t *module)
+<span class="lineNum">     885 </span>            : {
+<span class="lineNum">     886 </span>            :     int err, rank;
+<span class="lineNum">     887 </span>            : 
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     889 </span>            : 
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,&quot;coll:base:allreduce_intra_basic_linear rank %d&quot;, rank));</span>
+<span class="lineNum">     891 </span>            : 
+<span class="lineNum">     892 </span>            :     /* Reduce to 0 and broadcast. */
+<span class="lineNum">     893 </span>            : 
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :     if (MPI_IN_PLACE == sbuf) {</span>
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :         if (0 == rank) {</span>
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :             err = ompi_coll_base_reduce_intra_basic_linear (MPI_IN_PLACE, rbuf, count, dtype,</span>
+<span class="lineNum">     897 </span>            :                                                              op, 0, comm, module);
+<span class="lineNum">     898 </span>            :         } else {
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :             err = ompi_coll_base_reduce_intra_basic_linear(rbuf, NULL, count, dtype,</span>
+<span class="lineNum">     900 </span>            :                                                             op, 0, comm, module);
+<span class="lineNum">     901 </span>            :         }
+<span class="lineNum">     902 </span>            :     } else {
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :         err = ompi_coll_base_reduce_intra_basic_linear(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     904 </span>            :                                                         op, 0, comm, module);
+<span class="lineNum">     905 </span>            :     }
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != err) {</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :         return err;</span>
+<span class="lineNum">     908 </span>            :     }
+<span class="lineNum">     909 </span>            : 
+<span class="lineNum">     910 </span><span class="lineNoCov">          0 :     return ompi_coll_base_bcast_intra_basic_linear(rbuf, count, dtype, 0, comm, module);</span>
+<span class="lineNum">     911 </span>            : }
+<span class="lineNum">     912 </span>            : 
+<span class="lineNum">     913 </span>            : 
+<span class="lineNum">     914 </span>            : /* copied function (with appropriate renaming) ends here */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

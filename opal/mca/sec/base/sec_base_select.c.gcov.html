@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/sec/base/sec_base_select.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/sec/base</a> - sec_base_select.c<span style="font-size: 80%;"> (source / <a href="sec_base_select.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">27</td>
+            <td class="headerCovTableEntry">44</td>
+            <td class="headerCovTableEntryLo">61.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2014 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">       4 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * Additional copyrights may follow
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * $HEADER$
+<span class="lineNum">       9 </span>            :  */
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      12 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : #include &quot;opal/mca/mca.h&quot;
+<span class="lineNum">      17 </span>            : #include &quot;opal/mca/base/base.h&quot;
+<span class="lineNum">      18 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #include &quot;opal/mca/sec/base/base.h&quot;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : static bool selected = false;
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : /*
+<span class="lineNum">      25 </span>            :  * Function for selecting one component from all those that are
+<a name="26"><span class="lineNum">      26 </span>            :  * available.</a>
+<span class="lineNum">      27 </span>            :  */
+<span class="lineNum">      28 </span><span class="lineCov">          2 : int opal_sec_base_select(void)</span>
+<span class="lineNum">      29 </span>            : {
+<span class="lineNum">      30 </span><span class="lineCov">          2 :     mca_base_component_list_item_t *cli = NULL;</span>
+<span class="lineNum">      31 </span><span class="lineCov">          2 :     mca_base_component_t *component = NULL;</span>
+<span class="lineNum">      32 </span><span class="lineCov">          2 :     mca_base_module_t *module = NULL;</span>
+<span class="lineNum">      33 </span>            :     opal_sec_base_module_t *smodule;
+<span class="lineNum">      34 </span>            :     int rc, priority;
+<span class="lineNum">      35 </span>            :     opal_sec_handle_t *hdl, *hptr, *hmark;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span><span class="lineCov">          2 :     if (selected) {</span>
+<span class="lineNum">      38 </span>            :         /* ensure we don't do this twice */
+<span class="lineNum">      39 </span><span class="lineNoCov">          0 :         return OPAL_SUCCESS;</span>
+<span class="lineNum">      40 </span>            :     }
+<span class="lineNum">      41 </span><span class="lineCov">          2 :     selected = true;</span>
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            :     /* Query all available components and ask if they have a module */
+<span class="lineNum">      44 </span><span class="lineCov">          4 :     OPAL_LIST_FOREACH(cli, &amp;opal_sec_base_framework.framework_components, mca_base_component_list_item_t) {</span>
+<span class="lineNum">      45 </span><span class="lineCov">          2 :         component = (mca_base_component_t *) cli-&gt;cli_component;</span>
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span><span class="lineCov">          2 :         opal_output_verbose(5, opal_sec_base_framework.framework_output,</span>
+<span class="lineNum">      48 </span><span class="lineCov">          2 :                             &quot;mca:sec:select: checking available component %s&quot;, component-&gt;mca_component_name);</span>
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            :         /* If there's no query function, skip it */
+<span class="lineNum">      51 </span><span class="lineCov">          2 :         if (NULL == component-&gt;mca_query_component) {</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :             opal_output_verbose(5, opal_sec_base_framework.framework_output,</span>
+<span class="lineNum">      53 </span>            :                                 &quot;mca:sec:select: Skipping component [%s]. It does not implement a query function&quot;,
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :                                 component-&gt;mca_component_name );</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">      56 </span>            :         }
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            :         /* Query the component */
+<span class="lineNum">      59 </span><span class="lineCov">          2 :         opal_output_verbose(5, opal_sec_base_framework.framework_output,</span>
+<span class="lineNum">      60 </span>            :                             &quot;mca:sec:select: Querying component [%s]&quot;,
+<span class="lineNum">      61 </span><span class="lineCov">          2 :                             component-&gt;mca_component_name);</span>
+<span class="lineNum">      62 </span><span class="lineCov">          2 :         rc = component-&gt;mca_query_component(&amp;module, &amp;priority);</span>
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            :         /* If no module was returned, then skip component */
+<span class="lineNum">      65 </span><span class="lineCov">          2 :         if (OPAL_SUCCESS != rc || NULL == module) {</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :             opal_output_verbose(5, opal_sec_base_framework.framework_output,</span>
+<span class="lineNum">      67 </span>            :                                 &quot;mca:sec:select: Skipping component [%s]. Query failed to return a module&quot;,
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :                                 component-&gt;mca_component_name );</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">      70 </span>            :         }
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span><span class="lineCov">          2 :         smodule = (opal_sec_base_module_t*)module;</span>
+<span class="lineNum">      73 </span>            :         /* modules are required to have an init function */
+<span class="lineNum">      74 </span><span class="lineCov">          2 :         if (NULL == smodule-&gt;init) {</span>
+<span class="lineNum">      75 </span>            :             /* report the error */
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :             opal_output_verbose(5, opal_sec_base_framework.framework_output,</span>
+<span class="lineNum">      77 </span>            :                                 &quot;mca:sec:select: Skipping component [%s]. It does not implement an init function&quot;,
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :                                 component-&gt;mca_component_name);</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">      80 </span>            :         }
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            :         /* if we got a module, let it try to initialize */
+<span class="lineNum">      83 </span><span class="lineCov">          2 :         if (OPAL_SUCCESS != (rc = smodule-&gt;init())) {</span>
+<span class="lineNum">      84 </span>            :             /* couldn't init - ignore it */
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :             opal_output_verbose(5, opal_sec_base_framework.framework_output,</span>
+<span class="lineNum">      86 </span>            :                                 &quot;mca:sec:select: Skipping component [%s]. Init returned %d&quot;,
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :                                 component-&gt;mca_component_name, rc);</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">      89 </span>            :         }
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            :         /* keep this one */
+<span class="lineNum">      92 </span><span class="lineCov">          2 :         hdl = OBJ_NEW(opal_sec_handle_t);</span>
+<span class="lineNum">      93 </span><span class="lineCov">          2 :         hdl-&gt;pri = priority;</span>
+<span class="lineNum">      94 </span><span class="lineCov">          2 :         hdl-&gt;module = smodule;</span>
+<span class="lineNum">      95 </span><span class="lineCov">          2 :         hdl-&gt;component = component;</span>
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            :         /* add to the list of actives in priority order */
+<span class="lineNum">      98 </span><span class="lineCov">          2 :         hmark = NULL;</span>
+<span class="lineNum">      99 </span><span class="lineCov">          2 :         OPAL_LIST_FOREACH(hptr, &amp;opal_sec_base_actives, opal_sec_handle_t) {</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :             if (priority &gt; hptr-&gt;pri) {</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :                 hmark = hptr;</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     103 </span>            :             }
+<span class="lineNum">     104 </span>            :         }
+<span class="lineNum">     105 </span><span class="lineCov">          2 :         if (NULL == hmark) {</span>
+<span class="lineNum">     106 </span>            :             /* just append to the end */
+<span class="lineNum">     107 </span><span class="lineCov">          2 :             opal_list_append(&amp;opal_sec_base_actives, &amp;hdl-&gt;super);</span>
+<span class="lineNum">     108 </span>            :         } else {
+<span class="lineNum">     109 </span>            :             /* insert before hmark */
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :             opal_list_insert_pos(&amp;opal_sec_base_actives, &amp;hmark-&gt;super, &amp;hdl-&gt;super);</span>
+<span class="lineNum">     111 </span>            :         }
+<span class="lineNum">     112 </span>            :     }
+<span class="lineNum">     113 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;;</span>
+<span class="lineNum">     114 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

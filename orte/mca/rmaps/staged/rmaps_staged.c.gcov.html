@@ -1,0 +1,512 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/rmaps/staged/rmaps_staged.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/rmaps/staged</a> - rmaps_staged.c<span style="font-size: 80%;"> (source / <a href="rmaps_staged.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">180</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2012      Los Alamos National Security, LLC.
+<span class="lineNum">       3 </span>            :  *                         All rights reserved
+<span class="lineNum">       4 </span>            :  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+<span class="lineNum">       5 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       6 </span>            :  *
+<span class="lineNum">       7 </span>            :  * Additional copyrights may follow
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * $HEADER$
+<span class="lineNum">      10 </span>            :  */
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      13 </span>            : #include &quot;orte/constants.h&quot;
+<span class="lineNum">      14 </span>            : #include &quot;orte/types.h&quot;
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      17 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      18 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      19 </span>            : #endif  /* HAVE_UNISTD_H */
+<span class="lineNum">      20 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &quot;opal/mca/hwloc/base/base.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;opal/dss/dss.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &quot;orte/util/show_help.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;orte/mca/state/state.h&quot;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &quot;orte/mca/rmaps/base/rmaps_private.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;orte/mca/rmaps/base/base.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;rmaps_staged.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : static int staged_mapper(orte_job_t *jdata);
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : orte_rmaps_base_module_t orte_rmaps_staged_module = {
+<span class="lineNum">      38 </span>            :     staged_mapper
+<a name="39"><span class="lineNum">      39 </span>            : };</a>
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 : static int staged_mapper(orte_job_t *jdata)</span>
+<span class="lineNum">      42 </span>            : {
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :     mca_base_component_t *c=&amp;mca_rmaps_staged_component.base_version;</span>
+<span class="lineNum">      44 </span>            :     int i, j, k, rc;
+<span class="lineNum">      45 </span>            :     orte_app_context_t *app;
+<span class="lineNum">      46 </span>            :     opal_list_t node_list, desired;
+<span class="lineNum">      47 </span>            :     orte_std_cntr_t num_slots;
+<span class="lineNum">      48 </span>            :     orte_proc_t *proc;
+<span class="lineNum">      49 </span>            :     orte_node_t *node, *next;
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :     bool work_to_do = false, first_pass = false;</span>
+<span class="lineNum">      51 </span>            :     opal_list_item_t *item, *it2;
+<span class="lineNum">      52 </span>            :     char *cptr, **minimap, *hosts, **dash_host;
+<span class="lineNum">      53 </span>            :     orte_vpid_t load;
+<span class="lineNum">      54 </span>            :     orte_vpid_t max_ppn, *ppn;
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            :     /* only use this mapper if it was specified */
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     if (NULL == jdata-&gt;map-&gt;req_mapper ||</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :         0 != strcasecmp(jdata-&gt;map-&gt;req_mapper, c-&gt;mca_component_name) ||</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :         ORTE_MAPPING_STAGED != ORTE_GET_MAPPING_POLICY(jdata-&gt;map-&gt;mapping)) {</span>
+<span class="lineNum">      60 </span>            :         /* I wasn't specified */
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :         opal_output_verbose(5, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">      62 </span>            :                             &quot;mca:rmaps:staged: job %s not using staged mapper&quot;,
+<span class="lineNum">      63 </span>            :                             ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :         return ORTE_ERR_TAKE_NEXT_OPTION;</span>
+<span class="lineNum">      65 </span>            :     }
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">      68 </span>            :                         &quot;%s mca:rmaps:staged: mapping job %s with %d procs&quot;,
+<span class="lineNum">      69 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :                         ORTE_JOBID_PRINT(jdata-&gt;jobid), (int)jdata-&gt;num_procs);</span>
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            :     /* flag that I did the mapping */
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     if (NULL != jdata-&gt;map-&gt;last_mapper) {</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :         free(jdata-&gt;map-&gt;last_mapper);</span>
+<span class="lineNum">      75 </span>            :     }
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     jdata-&gt;map-&gt;last_mapper = strdup(c-&gt;mca_component_name);</span>
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            :     /* if there are no nodes in the map, then this is our first
+<span class="lineNum">      79 </span>            :      * pass thru this job
+<span class="lineNum">      80 </span>            :      */
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     if (0 == jdata-&gt;map-&gt;num_nodes) {</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :         first_pass = true;</span>
+<span class="lineNum">      83 </span>            :     }
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            :     /* we assume that the app_contexts are in priority order,
+<span class="lineNum">      86 </span>            :      * with the highest priority being the first entry in the
+<span class="lineNum">      87 </span>            :      * job's app_context array. Loop across the app_contexts
+<span class="lineNum">      88 </span>            :      * in order, looking for apps that have not been
+<span class="lineNum">      89 </span>            :      * fully mapped
+<span class="lineNum">      90 </span>            :      */
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; jdata-&gt;apps-&gt;size; i++) {</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         if (NULL == (app = (orte_app_context_t*)opal_pointer_array_get_item(jdata-&gt;apps, i))) {</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">      94 </span>            :         }
+<span class="lineNum">      95 </span>            :         /* has it been fully mapped? */
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :         if (ORTE_APP_STATE_ALL_MAPPED &lt;= app-&gt;state) {</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">      98 </span>            :         }
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :         opal_output_verbose(5, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     100 </span>            :                             &quot;%s mca:rmaps:staged: working app %s&quot;,
+<span class="lineNum">     101 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), app-&gt;app);
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            :         /* find nodes that meet any constraints provided in the form of
+<span class="lineNum">     104 </span>            :          * -hostfile or -host directives
+<span class="lineNum">     105 </span>            :          */
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :         OBJ_CONSTRUCT(&amp;node_list, opal_list_t);</span>
+<span class="lineNum">     107 </span>            :         /* get nodes based on a strict interpretation of the location hints */
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = orte_rmaps_base_get_target_nodes(&amp;node_list, &amp;num_slots, app,</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :                                                                    jdata-&gt;map-&gt;mapping, false, true))) {</span>
+<span class="lineNum">     110 </span>            :             /* we were unable to get any nodes that match those
+<span class="lineNum">     111 </span>            :              * specified in the app
+<span class="lineNum">     112 </span>            :              */
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :             if (ORTE_ERR_RESOURCE_BUSY == rc) {</span>
+<span class="lineNum">     114 </span>            :                 /* if the return is &quot;busy&quot;, then at least one of the
+<span class="lineNum">     115 </span>            :                  * specified resources must exist, but no slots are
+<span class="lineNum">     116 </span>            :                  * currently available. This means there is at least
+<span class="lineNum">     117 </span>            :                  * a hope of eventually being able to map this app
+<span class="lineNum">     118 </span>            :                  * within its specified constraints, so continue working
+<span class="lineNum">     119 </span>            :                  */
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :                 if (orte_soft_locations) {</span>
+<span class="lineNum">     121 </span>            :                     /* if soft locations were given, then we know that
+<span class="lineNum">     122 </span>            :                      * none of the nodes in this allocation are available,
+<span class="lineNum">     123 </span>            :                      * so there is no point in continuing to check the
+<span class="lineNum">     124 </span>            :                      * remaining apps
+<span class="lineNum">     125 </span>            :                      */
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :                     while (NULL != (item = opal_list_remove_first(&amp;node_list))) {</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :                         OBJ_RELEASE(item);</span>
+<span class="lineNum">     128 </span>            :                     }
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :                     OBJ_DESTRUCT(&amp;node_list);</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :                     goto complete;</span>
+<span class="lineNum">     131 </span>            :                 }
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :                 opal_output_verbose(5, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     133 </span>            :                                     &quot;%s mca:rmaps:staged: all nodes for this app are currently busy&quot;,
+<span class="lineNum">     134 </span>            :                                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :                 OBJ_DESTRUCT(&amp;node_list);</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     137 </span>            :             } else {
+<span class="lineNum">     138 </span>            :                 /* this indicates that there are no nodes that match
+<span class="lineNum">     139 </span>            :                  * the specified constraints, so there is no hope of
+<span class="lineNum">     140 </span>            :                  * ever being able to execute this app. This is an
+<span class="lineNum">     141 </span>            :                  * unrecoverable error - note that a return of
+<span class="lineNum">     142 </span>            :                  * &quot;silent&quot; means that the function already printed
+<span class="lineNum">     143 </span>            :                  * an error message, so the error_log will print nothing
+<span class="lineNum">     144 </span>            :                  */
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     147 </span>            :             }
+<span class="lineNum">     148 </span>            :         }
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span>            :         /* if a max number of procs/node was given for this
+<span class="lineNum">     151 </span>            :          * app, remove all nodes from the list that exceed
+<span class="lineNum">     152 </span>            :          * that limit
+<span class="lineNum">     153 </span>            :          */
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :         ppn = &amp;max_ppn;</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :         if (orte_get_attribute(&amp;app-&gt;attributes, ORTE_APP_MAX_PPN, (void**)&amp;ppn, OPAL_UINT32)) {</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :             item = opal_list_get_first(&amp;node_list);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :             while (item != opal_list_get_end(&amp;node_list)) {</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :                 it2 = opal_list_get_next(item);</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :                 node = (orte_node_t*)item;</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                 if (max_ppn &lt;= node-&gt;num_procs) {</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :                     opal_list_remove_item(&amp;node_list, item);</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                     OBJ_RELEASE(item);</span>
+<span class="lineNum">     163 </span>            :                 }
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :                 item = it2;</span>
+<span class="lineNum">     165 </span>            :             }
+<span class="lineNum">     166 </span>            :         }
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            :         /* if we have no available nodes, then move on to next app */
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         if (0 == opal_list_get_size(&amp;node_list)) {</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :             OBJ_DESTRUCT(&amp;node_list);</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     172 </span>            :         }
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            :         /* if the app specified locations, soft or not, search the list of nodes
+<span class="lineNum">     175 </span>            :          * for those that match the requested locations and move those
+<span class="lineNum">     176 </span>            :          * to the desired list so we use them first
+<span class="lineNum">     177 </span>            :          */
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :         if (orte_get_attribute(&amp;app-&gt;attributes, ORTE_APP_DASH_HOST, (void**)&amp;hosts, OPAL_STRING)) {</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :             OBJ_CONSTRUCT(&amp;desired, opal_list_t);</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :             dash_host = opal_argv_split(hosts, ',');</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :             free(hosts);</span>
+<span class="lineNum">     182 </span>            :             /* no particular order is required */
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :             for (j=0; j &lt; opal_argv_count(dash_host); j++) {</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :                 minimap = opal_argv_split(dash_host[j], ',');</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :                 for (k=0; k &lt; opal_argv_count(minimap); k++) {</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :                     cptr = minimap[k];</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :                     for (item = opal_list_get_first(&amp;node_list);</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :                          item != opal_list_get_end(&amp;node_list);</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :                          item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                         node = (orte_node_t*)item;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :                         if (0 == strcmp(node-&gt;name, cptr) ||</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :                             (0 == strcmp(&quot;localhost&quot;, cptr) &amp;&amp;</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :                              0 == strcmp(node-&gt;name, orte_process_info.nodename))) {</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :                             opal_list_remove_item(&amp;node_list, item);</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :                             opal_list_append(&amp;desired, item);</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :                             opal_output_verbose(10, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     197 </span>            :                                                 &quot;%s mca:rmaps:staged: placing node %s on desired list&quot;,
+<span class="lineNum">     198 </span>            :                                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     199 </span>            :                                                 node-&gt;name);
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :                             break;</span>
+<span class="lineNum">     201 </span>            :                         }
+<span class="lineNum">     202 </span>            :                     }
+<span class="lineNum">     203 </span>            :                 }
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :                 opal_argv_free(minimap);</span>
+<span class="lineNum">     205 </span>            :             }
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :             opal_argv_free(dash_host);</span>
+<span class="lineNum">     207 </span>            :             /* if no nodes made the transition and the app specified soft
+<span class="lineNum">     208 </span>            :              * locations, then we can skip to look at the non-desired list
+<span class="lineNum">     209 </span>            :              */
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :             if (0 == opal_list_get_size(&amp;desired)) {</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :                 OBJ_DESTRUCT(&amp;desired);</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :                 if (orte_soft_locations) {</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :                     goto process;</span>
+<span class="lineNum">     214 </span>            :                 } else {
+<span class="lineNum">     215 </span>            :                     /* move on to next app */
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     217 </span>            :                 }
+<span class="lineNum">     218 </span>            :             }
+<span class="lineNum">     219 </span>            :             /* cycle thru the procs for this app and attempt to map them
+<span class="lineNum">     220 </span>            :              * to the desired nodes using a load-balancing algo
+<span class="lineNum">     221 </span>            :              */
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :             for (j=0; j &lt; app-&gt;procs.size; j++) {</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :                 if (NULL == (proc = opal_pointer_array_get_item(&amp;app-&gt;procs, j))) {</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     225 </span>            :                 }
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :                 if (ORTE_PROC_STATE_UNDEF != proc-&gt;state) {</span>
+<span class="lineNum">     227 </span>            :                     /* this proc has already been mapped or executed */
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :                     opal_output_verbose(5, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     229 </span>            :                                         &quot;%s mca:rmaps:staged: proc %s has already been mapped&quot;,
+<span class="lineNum">     230 </span>            :                                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :                                         ORTE_NAME_PRINT(&amp;proc-&gt;name));</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     233 </span>            :                 }
+<span class="lineNum">     234 </span>            :                 /* flag that there is at least one proc still to
+<span class="lineNum">     235 </span>            :                  * be executed
+<span class="lineNum">     236 </span>            :                  */
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :                 work_to_do = true;</span>
+<span class="lineNum">     238 </span>            :                 /* track number mapped */
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :                 jdata-&gt;num_mapped++;</span>
+<span class="lineNum">     240 </span>            :                 /* find the lightest-loaded node on the desired list */
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :                 node = NULL;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :                 load = ORTE_VPID_MAX;</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :                 for (item = opal_list_get_first(&amp;desired);</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :                      item != opal_list_get_end(&amp;desired);</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :                      item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :                     next = (orte_node_t*)item;</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :                     if (next-&gt;num_procs &lt; load) {</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :                         node = next;</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :                         load = next-&gt;num_procs;</span>
+<span class="lineNum">     250 </span>            :                     }
+<span class="lineNum">     251 </span>            :                 }
+<span class="lineNum">     252 </span>            :                 /* put the proc there */
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :                 proc-&gt;node = node;</span>
+<span class="lineNum">     254 </span>            :                 /* the local rank is the number of procs
+<span class="lineNum">     255 </span>            :                  * on this node from this job - we don't
+<span class="lineNum">     256 </span>            :                  * directly track this number, so it must
+<span class="lineNum">     257 </span>            :                  * be found by looping across the node-&gt;procs
+<span class="lineNum">     258 </span>            :                  * array and counting it each time. For now,
+<span class="lineNum">     259 </span>            :                  * since we don't use this value in this mode
+<span class="lineNum">     260 </span>            :                  * of operation, just set it to something arbitrary
+<span class="lineNum">     261 </span>            :                  */
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :                 proc-&gt;local_rank = node-&gt;num_procs;</span>
+<span class="lineNum">     263 </span>            :                 /* the node rank is simply the number of procs
+<span class="lineNum">     264 </span>            :                  * on the node at this time
+<span class="lineNum">     265 </span>            :                  */
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :                 proc-&gt;node_rank = node-&gt;num_procs;</span>
+<span class="lineNum">     267 </span>            :                 /* track number of procs on node and number of slots used */
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :                 node-&gt;num_procs++;</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :                 node-&gt;slots_inuse++;</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :                 opal_output_verbose(10, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     271 </span>            :                                     &quot;%s Proc %s on node %s: slots %d inuse %d&quot;,
+<span class="lineNum">     272 </span>            :                                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :                                     ORTE_NAME_PRINT(&amp;proc-&gt;name), node-&gt;name,</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :                                     (int)node-&gt;slots, (int)node-&gt;slots_inuse);</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :                 if (node-&gt;slots_inuse == node-&gt;slots) {</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :                     opal_list_remove_item(&amp;desired, &amp;node-&gt;super);</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :                     OBJ_RELEASE(node);</span>
+<span class="lineNum">     278 </span>            :                 }
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :                 if (0 &gt; (rc = opal_pointer_array_add(node-&gt;procs, (void*)proc))) {</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :                     OBJ_RELEASE(proc);</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :                     return rc;</span>
+<span class="lineNum">     283 </span>            :                 }
+<span class="lineNum">     284 </span>            :                 /* retain the proc struct so that we correctly track its release */
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :                 OBJ_RETAIN(proc);</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :                 proc-&gt;state = ORTE_PROC_STATE_INIT;</span>
+<span class="lineNum">     287 </span>            :                 /* flag the proc as updated so it will be included
+<span class="lineNum">     288 </span>            :                  * in the next pidmap message
+<span class="lineNum">     289 </span>            :                  */
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :                 ORTE_FLAG_SET(proc, ORTE_PROC_FLAG_UPDATED);</span>
+<span class="lineNum">     291 </span>            :                 /* add the node to the map, if needed */
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                 if (!ORTE_FLAG_TEST(node, ORTE_NODE_FLAG_MAPPED)) {</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :                     if (ORTE_SUCCESS &gt; (rc = opal_pointer_array_add(jdata-&gt;map-&gt;nodes, (void*)node))) {</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :                         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :                         return rc;</span>
+<span class="lineNum">     296 </span>            :                     }
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :                     ORTE_FLAG_SET(node, ORTE_NODE_FLAG_MAPPED);</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :                     OBJ_RETAIN(node);  /* maintain accounting on object */</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :                     jdata-&gt;map-&gt;num_nodes++;</span>
+<span class="lineNum">     300 </span>            :                 }
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :                 if (0 == opal_list_get_size(&amp;desired)) {</span>
+<span class="lineNum">     302 </span>            :                     /* nothing more we can do */
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     304 </span>            :                 }
+<span class="lineNum">     305 </span>            :             }
+<span class="lineNum">     306 </span>            :             /* clear the list */
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :             while (NULL != (item = opal_list_remove_first(&amp;desired))) {</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(item);</span>
+<span class="lineNum">     309 </span>            :             }
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :             OBJ_DESTRUCT(&amp;desired);</span>
+<span class="lineNum">     311 </span>            :         }
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            :     process:
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         for (j=0; j &lt; app-&gt;procs.size; j++) {</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :             if (NULL == (proc = opal_pointer_array_get_item(&amp;app-&gt;procs, j))) {</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     317 </span>            :             }
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :             if (ORTE_PROC_STATE_UNDEF != proc-&gt;state) {</span>
+<span class="lineNum">     319 </span>            :                 /* this proc has already been mapped or executed */
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :                 opal_output_verbose(5, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     321 </span>            :                                     &quot;%s mca:rmaps:staged: proc %s has already been mapped&quot;,
+<span class="lineNum">     322 </span>            :                                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :                                     ORTE_NAME_PRINT(&amp;proc-&gt;name));</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     325 </span>            :             }
+<span class="lineNum">     326 </span>            :             /* find the lightest-loaded node on the node list */
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :             node = NULL;</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :             load = ORTE_VPID_MAX;</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :             for (item = opal_list_get_first(&amp;node_list);</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :                  item != opal_list_get_end(&amp;node_list);</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :                  item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :                 next = (orte_node_t*)item;</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :                 if (next-&gt;num_procs &lt; load) {</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :                     node = next;</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :                     load = next-&gt;num_procs;</span>
+<span class="lineNum">     336 </span>            :                 }
+<span class="lineNum">     337 </span>            :             }
+<span class="lineNum">     338 </span>            :             /* flag that there is at least one proc still to
+<span class="lineNum">     339 </span>            :              * be executed
+<span class="lineNum">     340 </span>            :              */
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :             work_to_do = true;</span>
+<span class="lineNum">     342 </span>            :             /* track number mapped */
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :             jdata-&gt;num_mapped++;</span>
+<span class="lineNum">     344 </span>            :             /* map this proc to the first available slot */
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :             OBJ_RETAIN(node);  /* maintain accounting on object */</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :             opal_output_verbose(5, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     347 </span>            :                                 &quot;%s mca:rmaps:staged: assigning proc %s to node %s&quot;,
+<span class="lineNum">     348 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :                                 ORTE_NAME_PRINT(&amp;proc-&gt;name), node-&gt;name);</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :             proc-&gt;node = node;</span>
+<span class="lineNum">     351 </span>            :             /* the local rank is the number of procs
+<span class="lineNum">     352 </span>            :              * on this node from this job - we don't
+<span class="lineNum">     353 </span>            :              * directly track this number, so it must
+<span class="lineNum">     354 </span>            :              * be found by looping across the node-&gt;procs
+<span class="lineNum">     355 </span>            :              * array and counting it each time. For now,
+<span class="lineNum">     356 </span>            :              * since we don't use this value in this mode
+<span class="lineNum">     357 </span>            :              * of operation, just set it to something arbitrary
+<span class="lineNum">     358 </span>            :              */
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :             proc-&gt;local_rank = node-&gt;num_procs;</span>
+<span class="lineNum">     360 </span>            :             /* the node rank is simply the number of procs
+<span class="lineNum">     361 </span>            :              * on the node at this time
+<span class="lineNum">     362 </span>            :              */
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :             proc-&gt;node_rank = node-&gt;num_procs;</span>
+<span class="lineNum">     364 </span>            :             /* track number of procs on node and number of slots used */
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :             node-&gt;num_procs++;</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :             node-&gt;slots_inuse++;</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :             opal_output_verbose(10, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     368 </span>            :                                 &quot;%s Proc %s on node %s: slots %d inuse %d&quot;,
+<span class="lineNum">     369 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :                                 ORTE_NAME_PRINT(&amp;proc-&gt;name), node-&gt;name,</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :                                 (int)node-&gt;slots, (int)node-&gt;slots_inuse);</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :             if (node-&gt;slots_inuse == node-&gt;slots) {</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;node_list, &amp;node-&gt;super);</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(node);</span>
+<span class="lineNum">     375 </span>            :             }
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :             if (0 &gt; (rc = opal_pointer_array_add(node-&gt;procs, (void*)proc))) {</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(proc);</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     380 </span>            :             }
+<span class="lineNum">     381 </span>            :             /* retain the proc struct so that we correctly track its release */
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :             OBJ_RETAIN(proc);</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :             proc-&gt;state = ORTE_PROC_STATE_INIT;</span>
+<span class="lineNum">     384 </span>            :             /* flag the proc as updated so it will be included
+<span class="lineNum">     385 </span>            :              * in the next pidmap message
+<span class="lineNum">     386 </span>            :              */
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :             ORTE_FLAG_SET(proc, ORTE_PROC_FLAG_UPDATED);</span>
+<span class="lineNum">     388 </span>            :             /* add the node to the map, if needed */
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :             if (!ORTE_FLAG_TEST(node, ORTE_NODE_FLAG_MAPPED)) {</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :                 if (ORTE_SUCCESS &gt; (rc = opal_pointer_array_add(jdata-&gt;map-&gt;nodes, (void*)node))) {</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :                     return rc;</span>
+<span class="lineNum">     393 </span>            :                 }
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :                 ORTE_FLAG_SET(node, ORTE_NODE_FLAG_MAPPED);</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :                 OBJ_RETAIN(node);  /* maintain accounting on object */</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :                 jdata-&gt;map-&gt;num_nodes++;</span>
+<span class="lineNum">     397 </span>            :             }
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :             if (0 == opal_list_get_size(&amp;node_list)) {</span>
+<span class="lineNum">     399 </span>            :                 /* nothing more we can do */
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     401 </span>            :             }
+<span class="lineNum">     402 </span>            :         }
+<span class="lineNum">     403 </span>            :         /* clear the list */
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         while (NULL != (item = opal_list_remove_first(&amp;node_list))) {</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(item);</span>
+<span class="lineNum">     406 </span>            :         }
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;node_list);</span>
+<span class="lineNum">     408 </span>            :     }
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span>            :  complete:
+<span class="lineNum">     411 </span>            :     /* if there isn't at least one proc that can be launched,
+<span class="lineNum">     412 </span>            :      * then indicate that we don't need to proceed with the
+<span class="lineNum">     413 </span>            :      * launch sequence
+<span class="lineNum">     414 </span>            :      */
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :     if (!work_to_do) {</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :         return ORTE_ERR_RESOURCE_BUSY;</span>
+<span class="lineNum">     417 </span>            :     }
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :     /* flag that the job was updated so it will be
+<span class="lineNum">     420 </span>            :      * included in the pidmap message
+<span class="lineNum">     421 </span>            :      */
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     ORTE_FLAG_SET(jdata, ORTE_JOB_FLAG_UPDATED);</span>
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span>            :     /* if we successfully mapped ALL procs in the first pass,
+<span class="lineNum">     425 </span>            :      * then this job is capable of supporting MPI procs
+<span class="lineNum">     426 </span>            :      */
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     if (first_pass &amp;&amp; jdata-&gt;num_mapped == jdata-&gt;num_procs) {</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :         opal_output_verbose(5, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     429 </span>            :                             &quot;%s mca:rmaps:staged: job %s is MPI-capable&quot;,
+<span class="lineNum">     430 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     431 </span>            :                             ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :         ORTE_FLAG_SET(jdata, ORTE_JOB_FLAG_GANG_LAUNCHED);</span>
+<span class="lineNum">     433 </span>            :     }
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     436 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

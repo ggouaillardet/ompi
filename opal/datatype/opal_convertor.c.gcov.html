@@ -1,0 +1,783 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/datatype/opal_convertor.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/datatype</a> - opal_convertor.c<span style="font-size: 80%;"> (source / <a href="opal_convertor.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">101</td>
+            <td class="headerCovTableEntry">244</td>
+            <td class="headerCovTableEntryLo">41.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntryLo">60.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2006 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2014 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2006 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2006 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2009      Oak Ridge National Labs.  All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2011      NVIDIA Corporation.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2013-2015 Research Organization for Information Science
+<span class="lineNum">      16 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      17 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * $HEADER$
+<span class="lineNum">      22 </span>            :  */
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;stddef.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;stdint.h&gt;
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #include &quot;opal/prefetch.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;opal/util/arch.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #include &quot;opal/datatype/opal_datatype_internal.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;opal/datatype/opal_datatype.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;opal/datatype/opal_convertor.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;opal/datatype/opal_datatype_checksum.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;opal/datatype/opal_datatype_prototypes.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;opal/datatype/opal_convertor_internal.h&quot;
+<span class="lineNum">      40 </span>            : #if OPAL_CUDA_SUPPORT
+<span class="lineNum">      41 </span>            : #include &quot;opal/datatype/opal_datatype_cuda.h&quot;
+<span class="lineNum">      42 </span>            : #define MEMCPY_CUDA( DST, SRC, BLENGTH, CONVERTOR ) \
+<span class="lineNum">      43 </span>            :     CONVERTOR-&gt;cbmemcpy( (DST), (SRC), (BLENGTH), (CONVERTOR) )
+<span class="lineNum">      44 </span>            : #endif
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : extern int opal_convertor_create_stack_with_pos_general( opal_convertor_t* convertor,
+<a name="47"><span class="lineNum">      47 </span>            :                                                          int starting_point, const int* sizes );</a>
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span><span class="lineCov">         21 : static void opal_convertor_construct( opal_convertor_t* convertor )</span>
+<span class="lineNum">      50 </span>            : {
+<span class="lineNum">      51 </span><span class="lineCov">         21 :     convertor-&gt;pStack         = convertor-&gt;static_stack;</span>
+<span class="lineNum">      52 </span><span class="lineCov">         21 :     convertor-&gt;stack_size     = DT_STATIC_STACK_SIZE;</span>
+<span class="lineNum">      53 </span><span class="lineCov">         21 :     convertor-&gt;partial_length = 0;</span>
+<span class="lineNum">      54 </span><span class="lineCov">         21 :     convertor-&gt;remoteArch     = opal_local_arch;</span>
+<span class="lineNum">      55 </span><span class="lineCov">         21 :     convertor-&gt;flags          = OPAL_DATATYPE_FLAG_NO_GAPS | CONVERTOR_COMPLETED;</span>
+<span class="lineNum">      56 </span>            : #if OPAL_CUDA_SUPPORT
+<span class="lineNum">      57 </span>            :     convertor-&gt;cbmemcpy       = &amp;opal_cuda_memcpy;
+<span class="lineNum">      58 </span>            : #endif
+<span class="lineNum">      59 </span><span class="lineCov">         21 : }</span>
+<a name="60"><span class="lineNum">      60 </span>            : </a>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span><span class="lineCov">          4 : static void opal_convertor_destruct( opal_convertor_t* convertor )</span>
+<span class="lineNum">      63 </span>            : {
+<span class="lineNum">      64 </span><span class="lineCov">          4 :     opal_convertor_cleanup( convertor );</span>
+<span class="lineNum">      65 </span><span class="lineCov">          4 : }</span>
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            : OBJ_CLASS_INSTANCE(opal_convertor_t, opal_object_t, opal_convertor_construct, opal_convertor_destruct );
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : static opal_convertor_master_t* opal_convertor_master_list = NULL;
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : extern conversion_fct_t opal_datatype_heterogeneous_copy_functions[OPAL_DATATYPE_MAX_PREDEFINED];
+<a name="72"><span class="lineNum">      72 </span>            : extern conversion_fct_t opal_datatype_copy_functions[OPAL_DATATYPE_MAX_PREDEFINED];</a>
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span><span class="lineCov">          4 : void opal_convertor_destroy_masters( void )</span>
+<span class="lineNum">      75 </span>            : {
+<span class="lineNum">      76 </span><span class="lineCov">          4 :     opal_convertor_master_t* master = opal_convertor_master_list;</span>
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineCov">         12 :     while( NULL != master ) {</span>
+<span class="lineNum">      79 </span><span class="lineCov">          4 :         opal_convertor_master_list = master-&gt;next;</span>
+<span class="lineNum">      80 </span><span class="lineCov">          4 :         master-&gt;next = NULL;</span>
+<span class="lineNum">      81 </span>            :         /* Cleanup the conversion function if not one of the defaults */
+<span class="lineNum">      82 </span><span class="lineCov">          8 :         if( (master-&gt;pFunctions != opal_datatype_heterogeneous_copy_functions) &amp;&amp;</span>
+<span class="lineNum">      83 </span><span class="lineCov">          4 :             (master-&gt;pFunctions != opal_datatype_copy_functions) )</span>
+<span class="lineNum">      84 </span><span class="lineCov">          2 :             free( master-&gt;pFunctions );</span>
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span><span class="lineCov">          4 :         free( master );</span>
+<span class="lineNum">      87 </span><span class="lineCov">          4 :         master = opal_convertor_master_list;</span>
+<span class="lineNum">      88 </span>            :     }
+<span class="lineNum">      89 </span><span class="lineCov">          4 : }</span>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            : /**
+<span class="lineNum">      92 </span>            :  * Find or create a convertor suitable for the remote architecture. If there
+<span class="lineNum">      93 </span>            :  * is already a master convertor for this architecture then return it.
+<a name="94"><span class="lineNum">      94 </span>            :  * Otherwise, create and initialize a full featured master convertor.</a>
+<span class="lineNum">      95 </span>            :  */
+<span class="lineNum">      96 </span><span class="lineCov">          4 : opal_convertor_master_t* opal_convertor_find_or_create_master( uint32_t remote_arch )</span>
+<span class="lineNum">      97 </span>            : {
+<span class="lineNum">      98 </span><span class="lineCov">          4 :     opal_convertor_master_t* master = opal_convertor_master_list;</span>
+<span class="lineNum">      99 </span>            :     int i;
+<span class="lineNum">     100 </span>            :     size_t* remote_sizes;
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span><span class="lineCov">         10 :     while( NULL != master ) {</span>
+<span class="lineNum">     103 </span><span class="lineCov">          2 :         if( master-&gt;remote_arch == remote_arch )</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :             return master;</span>
+<span class="lineNum">     105 </span><span class="lineCov">          2 :         master = master-&gt;next;</span>
+<span class="lineNum">     106 </span>            :     }
+<span class="lineNum">     107 </span>            :     /**
+<span class="lineNum">     108 </span>            :      * Create a new convertor matching the specified architecture and add it to the
+<span class="lineNum">     109 </span>            :      * master convertor list.
+<span class="lineNum">     110 </span>            :      */
+<span class="lineNum">     111 </span><span class="lineCov">          4 :     master = (opal_convertor_master_t*)malloc( sizeof(opal_convertor_master_t) );</span>
+<span class="lineNum">     112 </span><span class="lineCov">          4 :     master-&gt;next = opal_convertor_master_list;</span>
+<span class="lineNum">     113 </span><span class="lineCov">          4 :     opal_convertor_master_list = master;</span>
+<span class="lineNum">     114 </span><span class="lineCov">          4 :     master-&gt;remote_arch = remote_arch;</span>
+<span class="lineNum">     115 </span><span class="lineCov">          4 :     master-&gt;flags       = 0;</span>
+<span class="lineNum">     116 </span><span class="lineCov">          4 :     master-&gt;hetero_mask = 0;</span>
+<span class="lineNum">     117 </span>            :     /**
+<span class="lineNum">     118 </span>            :      * Most of the sizes will be identical, so for now just make a copy of
+<span class="lineNum">     119 </span>            :      * the local ones. As master-&gt;remote_sizes is defined as being an array of
+<span class="lineNum">     120 </span>            :      * consts we have to manually cast it before using it for writing purposes.
+<span class="lineNum">     121 </span>            :      */
+<span class="lineNum">     122 </span><span class="lineCov">          4 :     remote_sizes = (size_t*)master-&gt;remote_sizes;</span>
+<span class="lineNum">     123 </span><span class="lineCov">          4 :     memcpy(remote_sizes, opal_datatype_local_sizes, sizeof(size_t) * OPAL_DATATYPE_MAX_PREDEFINED);</span>
+<span class="lineNum">     124 </span>            :     /**
+<span class="lineNum">     125 </span>            :      * If the local and remote architecture are the same there is no need
+<span class="lineNum">     126 </span>            :      * to check for the remote data sizes. They will always be the same as
+<span class="lineNum">     127 </span>            :      * the local ones.
+<span class="lineNum">     128 </span>            :      */
+<span class="lineNum">     129 </span><span class="lineCov">          4 :     if( master-&gt;remote_arch == opal_local_arch ) {</span>
+<span class="lineNum">     130 </span><span class="lineCov">          2 :         master-&gt;pFunctions = opal_datatype_copy_functions;</span>
+<span class="lineNum">     131 </span><span class="lineCov">          2 :         master-&gt;flags |= CONVERTOR_HOMOGENEOUS;</span>
+<span class="lineNum">     132 </span><span class="lineCov">          2 :         return master;</span>
+<span class="lineNum">     133 </span>            :     }
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            :     /* Find out the remote bool size */
+<span class="lineNum">     136 </span><span class="lineCov">          2 :     if( opal_arch_checkmask( &amp;master-&gt;remote_arch, OPAL_ARCH_BOOLIS8 ) ) {</span>
+<span class="lineNum">     137 </span><span class="lineCov">          2 :         remote_sizes[OPAL_DATATYPE_BOOL] = 1;</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :     } else if( opal_arch_checkmask( &amp;master-&gt;remote_arch, OPAL_ARCH_BOOLIS16 ) ) {</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :         remote_sizes[OPAL_DATATYPE_BOOL] = 2;</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     } else if( opal_arch_checkmask( &amp;master-&gt;remote_arch, OPAL_ARCH_BOOLIS32 ) ) {</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         remote_sizes[OPAL_DATATYPE_BOOL] = 4;</span>
+<span class="lineNum">     142 </span>            :     } else {
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         opal_output( 0, &quot;Unknown sizeof(bool) for the remote architecture\n&quot; );</span>
+<span class="lineNum">     144 </span>            :     }
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span>            :     /**
+<span class="lineNum">     147 </span>            :      * Now we can compute the conversion mask. For all sizes where the remote
+<span class="lineNum">     148 </span>            :      * and local architecture differ a conversion is needed. Moreover, if the
+<span class="lineNum">     149 </span>            :      * 2 architectures don't have the same endianess all data with a length
+<span class="lineNum">     150 </span>            :      * over 2 bytes (with the exception of logicals) have to be byte-swapped.
+<span class="lineNum">     151 </span>            :      */
+<span class="lineNum">     152 </span><span class="lineCov">         44 :     for( i = OPAL_DATATYPE_FIRST_TYPE; i &lt; OPAL_DATATYPE_MAX_PREDEFINED; i++ ) {</span>
+<span class="lineNum">     153 </span><span class="lineCov">         42 :         if( remote_sizes[i] != opal_datatype_local_sizes[i] )</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :             master-&gt;hetero_mask |= (((uint32_t)1) &lt;&lt; i);</span>
+<span class="lineNum">     155 </span>            :     }
+<span class="lineNum">     156 </span><span class="lineCov">          4 :     if( opal_arch_checkmask( &amp;master-&gt;remote_arch, OPAL_ARCH_ISBIGENDIAN ) !=</span>
+<span class="lineNum">     157 </span><span class="lineCov">          2 :         opal_arch_checkmask( &amp;opal_local_arch, OPAL_ARCH_ISBIGENDIAN ) ) {</span>
+<span class="lineNum">     158 </span><span class="lineCov">          2 :         uint32_t hetero_mask = 0;</span>
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineCov">         44 :         for( i = OPAL_DATATYPE_FIRST_TYPE; i &lt; OPAL_DATATYPE_MAX_PREDEFINED; i++ ) {</span>
+<span class="lineNum">     161 </span><span class="lineCov">         42 :             if( remote_sizes[i] &gt; 1 )</span>
+<span class="lineNum">     162 </span><span class="lineCov">         34 :                 hetero_mask |= (((uint32_t)1) &lt;&lt; i);</span>
+<span class="lineNum">     163 </span>            :         }
+<span class="lineNum">     164 </span><span class="lineCov">          2 :         hetero_mask &amp;= ~(((uint32_t)1) &lt;&lt; OPAL_DATATYPE_BOOL);</span>
+<span class="lineNum">     165 </span><span class="lineCov">          2 :         master-&gt;hetero_mask |= hetero_mask;</span>
+<span class="lineNum">     166 </span>            :     }
+<span class="lineNum">     167 </span><span class="lineCov">          2 :     master-&gt;pFunctions = (conversion_fct_t*)malloc( sizeof(opal_datatype_heterogeneous_copy_functions) );</span>
+<span class="lineNum">     168 </span>            :     /**
+<span class="lineNum">     169 </span>            :      * Usually the heterogeneous functions are slower than the copy ones. Let's
+<span class="lineNum">     170 </span>            :      * try to minimize the usage of the heterogeneous versions.
+<span class="lineNum">     171 </span>            :      */
+<span class="lineNum">     172 </span><span class="lineCov">         44 :     for( i = OPAL_DATATYPE_FIRST_TYPE; i &lt; OPAL_DATATYPE_MAX_PREDEFINED; i++ ) {</span>
+<span class="lineNum">     173 </span><span class="lineCov">         42 :         if( master-&gt;hetero_mask &amp; (((uint32_t)1) &lt;&lt; i) )</span>
+<span class="lineNum">     174 </span><span class="lineCov">         34 :             master-&gt;pFunctions[i] = opal_datatype_heterogeneous_copy_functions[i];</span>
+<span class="lineNum">     175 </span>            :         else
+<span class="lineNum">     176 </span><span class="lineCov">          8 :             master-&gt;pFunctions[i] = opal_datatype_copy_functions[i];</span>
+<span class="lineNum">     177 </span>            :     }
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            :     /* We're done so far, return the mater convertor */
+<span class="lineNum">     180 </span><span class="lineCov">          2 :     return master;</span>
+<span class="lineNum">     181 </span>            : }
+<a name="182"><span class="lineNum">     182 </span>            : </a>
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span><span class="lineCov">          4 : opal_convertor_t* opal_convertor_create( int32_t remote_arch, int32_t mode )</span>
+<span class="lineNum">     185 </span>            : {
+<span class="lineNum">     186 </span><span class="lineCov">          4 :     opal_convertor_t* convertor = OBJ_NEW(opal_convertor_t);</span>
+<span class="lineNum">     187 </span>            :     opal_convertor_master_t* master;
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineCov">          4 :     master = opal_convertor_find_or_create_master( remote_arch );</span>
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span><span class="lineCov">          4 :     convertor-&gt;remoteArch = remote_arch;</span>
+<span class="lineNum">     192 </span><span class="lineCov">          4 :     convertor-&gt;stack_pos  = 0;</span>
+<span class="lineNum">     193 </span><span class="lineCov">          4 :     convertor-&gt;flags      = master-&gt;flags;</span>
+<span class="lineNum">     194 </span><span class="lineCov">          4 :     convertor-&gt;master     = master;</span>
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span><span class="lineCov">          4 :     return convertor;</span>
+<span class="lineNum">     197 </span>            : }
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span>            : #define OPAL_CONVERTOR_SET_STATUS_BEFORE_PACK_UNPACK( CONVERTOR, IOV, OUT, MAX_DATA ) \
+<span class="lineNum">     200 </span>            :     do {                                                                \
+<span class="lineNum">     201 </span>            :         /* protect against over packing data */                         \
+<span class="lineNum">     202 </span>            :         if( OPAL_UNLIKELY((CONVERTOR)-&gt;flags &amp; CONVERTOR_COMPLETED) ) { \
+<span class="lineNum">     203 </span>            :             (IOV)[0].iov_len = 0;                                       \
+<span class="lineNum">     204 </span>            :             *(OUT) = 0;                                                 \
+<span class="lineNum">     205 </span>            :             *(MAX_DATA) = 0;                                            \
+<span class="lineNum">     206 </span>            :             return 1;  /* nothing to do */                              \
+<span class="lineNum">     207 </span>            :         }                                                               \
+<span class="lineNum">     208 </span>            :         (CONVERTOR)-&gt;checksum = OPAL_CSUM_ZERO;                         \
+<span class="lineNum">     209 </span>            :         (CONVERTOR)-&gt;csum_ui1 = 0;                                      \
+<span class="lineNum">     210 </span>            :         (CONVERTOR)-&gt;csum_ui2 = 0;                                      \
+<span class="lineNum">     211 </span>            :         assert( (CONVERTOR)-&gt;bConverted &lt; (CONVERTOR)-&gt;local_size );    \
+<span class="lineNum">     212 </span>            :     } while(0)
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span>            : /**
+<span class="lineNum">     215 </span>            :  * Return 0 if everything went OK and if there is still room before the complete
+<span class="lineNum">     216 </span>            :  *          conversion of the data (need additional call with others input buffers )
+<span class="lineNum">     217 </span>            :  *        1 if everything went fine and the data was completly converted
+<a name="218"><span class="lineNum">     218 </span>            :  *       -1 something wrong occurs.</a>
+<span class="lineNum">     219 </span>            :  */
+<span class="lineNum">     220 </span><span class="lineCov">          1 : int32_t opal_convertor_pack( opal_convertor_t* pConv,</span>
+<span class="lineNum">     221 </span>            :                              struct iovec* iov, uint32_t* out_size,
+<span class="lineNum">     222 </span>            :                              size_t* max_data )
+<span class="lineNum">     223 </span>            : {
+<span class="lineNum">     224 </span><span class="lineCov">          1 :     OPAL_CONVERTOR_SET_STATUS_BEFORE_PACK_UNPACK( pConv, iov, out_size, max_data );</span>
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span><span class="lineCov">          1 :     if( OPAL_LIKELY(pConv-&gt;flags &amp; CONVERTOR_NO_OP) ) {</span>
+<span class="lineNum">     227 </span>            :         /**
+<span class="lineNum">     228 </span>            :          * We are doing conversion on a contiguous datatype on a homogeneous
+<span class="lineNum">     229 </span>            :          * environment. The convertor contain minimal informations, we only
+<span class="lineNum">     230 </span>            :          * use the bConverted to manage the conversion.
+<span class="lineNum">     231 </span>            :          */
+<span class="lineNum">     232 </span>            :         uint32_t i;
+<span class="lineNum">     233 </span>            :         unsigned char* base_pointer;
+<span class="lineNum">     234 </span><span class="lineCov">          1 :         size_t pending_length = pConv-&gt;local_size - pConv-&gt;bConverted;</span>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span><span class="lineCov">          1 :         *max_data = pending_length;</span>
+<span class="lineNum">     237 </span><span class="lineCov">          1 :         opal_convertor_get_current_pointer( pConv, (void**)&amp;base_pointer );</span>
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span><span class="lineCov">          1 :         for( i = 0; i &lt; *out_size; i++ ) {</span>
+<span class="lineNum">     240 </span><span class="lineCov">          1 :             if( iov[i].iov_len &gt;= pending_length ) {</span>
+<span class="lineNum">     241 </span><span class="lineCov">          1 :                 goto complete_contiguous_data_pack;</span>
+<span class="lineNum">     242 </span>            :             }
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :             if( OPAL_LIKELY(NULL == iov[i].iov_base) )</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :                 iov[i].iov_base = (IOVBASE_TYPE *) base_pointer;</span>
+<span class="lineNum">     245 </span>            :             else
+<span class="lineNum">     246 </span>            : #if OPAL_CUDA_SUPPORT
+<span class="lineNum">     247 </span>            :                 MEMCPY_CUDA( iov[i].iov_base, base_pointer, iov[i].iov_len, pConv );
+<span class="lineNum">     248 </span>            : #else
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :                 MEMCPY( iov[i].iov_base, base_pointer, iov[i].iov_len );</span>
+<span class="lineNum">     250 </span>            : #endif
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :             pending_length -= iov[i].iov_len;</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :             base_pointer += iov[i].iov_len;</span>
+<span class="lineNum">     253 </span>            :         }
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         *max_data -= pending_length;</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :         pConv-&gt;bConverted += (*max_data);</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            : complete_contiguous_data_pack:
+<span class="lineNum">     259 </span><span class="lineCov">          1 :         iov[i].iov_len = pending_length;</span>
+<span class="lineNum">     260 </span><span class="lineCov">          1 :         if( OPAL_LIKELY(NULL == iov[i].iov_base) )</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :             iov[i].iov_base = (IOVBASE_TYPE *) base_pointer;</span>
+<span class="lineNum">     262 </span>            :         else
+<span class="lineNum">     263 </span>            : #if OPAL_CUDA_SUPPORT
+<span class="lineNum">     264 </span>            :             MEMCPY_CUDA( iov[i].iov_base, base_pointer, iov[i].iov_len, pConv );
+<span class="lineNum">     265 </span>            : #else
+<span class="lineNum">     266 </span><span class="lineCov">          1 :             MEMCPY( iov[i].iov_base, base_pointer, iov[i].iov_len );</span>
+<span class="lineNum">     267 </span>            : #endif
+<span class="lineNum">     268 </span><span class="lineCov">          1 :         pConv-&gt;bConverted = pConv-&gt;local_size;</span>
+<span class="lineNum">     269 </span><span class="lineCov">          1 :         *out_size = i + 1;</span>
+<span class="lineNum">     270 </span><span class="lineCov">          1 :         pConv-&gt;flags |= CONVERTOR_COMPLETED;</span>
+<span class="lineNum">     271 </span><span class="lineCov">          1 :         return 1;</span>
+<span class="lineNum">     272 </span>            :     }
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     return pConv-&gt;fAdvance( pConv, iov, out_size, max_data );</span>
+<span class="lineNum">     275 </span>            : }
+<a name="276"><span class="lineNum">     276 </span>            : </a>
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span><span class="lineCov">          1 : int32_t opal_convertor_unpack( opal_convertor_t* pConv,</span>
+<span class="lineNum">     279 </span>            :                                struct iovec* iov, uint32_t* out_size,
+<span class="lineNum">     280 </span>            :                                size_t* max_data )
+<span class="lineNum">     281 </span>            : {
+<span class="lineNum">     282 </span><span class="lineCov">          1 :     OPAL_CONVERTOR_SET_STATUS_BEFORE_PACK_UNPACK( pConv, iov, out_size, max_data );</span>
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineCov">          1 :     if( OPAL_LIKELY(pConv-&gt;flags &amp; CONVERTOR_NO_OP) ) {</span>
+<span class="lineNum">     285 </span>            :         /**
+<span class="lineNum">     286 </span>            :          * We are doing conversion on a contiguous datatype on a homogeneous
+<span class="lineNum">     287 </span>            :          * environment. The convertor contain minimal informations, we only
+<span class="lineNum">     288 </span>            :          * use the bConverted to manage the conversion.
+<span class="lineNum">     289 </span>            :          */
+<span class="lineNum">     290 </span>            :         uint32_t i;
+<span class="lineNum">     291 </span>            :         unsigned char* base_pointer;
+<span class="lineNum">     292 </span><span class="lineCov">          1 :         size_t pending_length = pConv-&gt;local_size - pConv-&gt;bConverted;</span>
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineCov">          1 :         *max_data = pending_length;</span>
+<span class="lineNum">     295 </span><span class="lineCov">          1 :         opal_convertor_get_current_pointer( pConv, (void**)&amp;base_pointer );</span>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span><span class="lineCov">          1 :         for( i = 0; i &lt; *out_size; i++ ) {</span>
+<span class="lineNum">     298 </span><span class="lineCov">          1 :             if( iov[i].iov_len &gt;= pending_length ) {</span>
+<span class="lineNum">     299 </span><span class="lineCov">          1 :                 goto complete_contiguous_data_unpack;</span>
+<span class="lineNum">     300 </span>            :             }
+<span class="lineNum">     301 </span>            : #if OPAL_CUDA_SUPPORT
+<span class="lineNum">     302 </span>            :             MEMCPY_CUDA( base_pointer, iov[i].iov_base, iov[i].iov_len, pConv );
+<span class="lineNum">     303 </span>            : #else
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :             MEMCPY( base_pointer, iov[i].iov_base, iov[i].iov_len );</span>
+<span class="lineNum">     305 </span>            : #endif
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :             pending_length -= iov[i].iov_len;</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :             base_pointer += iov[i].iov_len;</span>
+<span class="lineNum">     308 </span>            :         }
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :         *max_data -= pending_length;</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :         pConv-&gt;bConverted += (*max_data);</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            : complete_contiguous_data_unpack:
+<span class="lineNum">     314 </span><span class="lineCov">          1 :         iov[i].iov_len = pending_length;</span>
+<span class="lineNum">     315 </span>            : #if OPAL_CUDA_SUPPORT
+<span class="lineNum">     316 </span>            :         MEMCPY_CUDA( base_pointer, iov[i].iov_base, iov[i].iov_len, pConv );
+<span class="lineNum">     317 </span>            : #else
+<span class="lineNum">     318 </span><span class="lineCov">          1 :         MEMCPY( base_pointer, iov[i].iov_base, iov[i].iov_len );</span>
+<span class="lineNum">     319 </span>            : #endif
+<span class="lineNum">     320 </span><span class="lineCov">          1 :         pConv-&gt;bConverted = pConv-&gt;local_size;</span>
+<span class="lineNum">     321 </span><span class="lineCov">          1 :         *out_size = i + 1;</span>
+<span class="lineNum">     322 </span><span class="lineCov">          1 :         pConv-&gt;flags |= CONVERTOR_COMPLETED;</span>
+<span class="lineNum">     323 </span><span class="lineCov">          1 :         return 1;</span>
+<span class="lineNum">     324 </span>            :     }
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     return pConv-&gt;fAdvance( pConv, iov, out_size, max_data );</span>
+<a name="327"><span class="lineNum">     327 </span>            : }</a>
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 : static inline int opal_convertor_create_stack_with_pos_contig( opal_convertor_t* pConvertor,</span>
+<span class="lineNum">     330 </span>            :                                                                size_t starting_point, const size_t* sizes )
+<span class="lineNum">     331 </span>            : {
+<span class="lineNum">     332 </span>            :     dt_stack_t* pStack;   /* pointer to the position on the stack */
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     const opal_datatype_t* pData = pConvertor-&gt;pDesc;</span>
+<span class="lineNum">     334 </span>            :     dt_elem_desc_t* pElems;
+<span class="lineNum">     335 </span>            :     uint32_t count;
+<span class="lineNum">     336 </span>            :     OPAL_PTRDIFF_TYPE extent;
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     pStack = pConvertor-&gt;pStack;</span>
+<span class="lineNum">     339 </span>            :     /**
+<span class="lineNum">     340 </span>            :      * The prepare function already make the selection on which data representation
+<span class="lineNum">     341 </span>            :      * we have to use: normal one or the optimized version ?
+<span class="lineNum">     342 </span>            :      */
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :     pElems = pConvertor-&gt;use_desc-&gt;desc;</span>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     count = (uint32_t)(starting_point / pData-&gt;size);</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     extent = pData-&gt;ub - pData-&gt;lb;</span>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :     pStack[0].type     = OPAL_DATATYPE_LOOP;  /* the first one is always the loop */</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :     pStack[0].count    = pConvertor-&gt;count - count;</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     pStack[0].index    = -1;</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     pStack[0].disp     = count * extent;</span>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span>            :     /* now compute the number of pending bytes */
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     count = (uint32_t)(starting_point - count * pData-&gt;size);</span>
+<span class="lineNum">     355 </span>            :     /**
+<span class="lineNum">     356 </span>            :      * We save the current displacement starting from the begining
+<span class="lineNum">     357 </span>            :      * of this data.
+<span class="lineNum">     358 </span>            :      */
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     if( OPAL_LIKELY(0 == count) ) {</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :         pStack[1].type     = pElems-&gt;elem.common.type;</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :         pStack[1].count    = pElems-&gt;elem.count;</span>
+<span class="lineNum">     362 </span>            :     } else {
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :         pStack[1].type  = OPAL_DATATYPE_UINT1;</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :         pStack[1].count = pData-&gt;size - count;</span>
+<span class="lineNum">     365 </span>            :     }
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     pStack[1].disp  = count;</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     pStack[1].index = 0;  /* useless */</span>
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     pConvertor-&gt;bConverted = starting_point;</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     pConvertor-&gt;stack_pos = 1;</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     assert( 0 == pConvertor-&gt;partial_length );</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     373 </span>            : }
+<a name="374"><span class="lineNum">     374 </span>            : </a>
+<span class="lineNum">     375 </span>            : static inline
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 : int opal_convertor_create_stack_at_begining( opal_convertor_t* convertor,</span>
+<span class="lineNum">     377 </span>            :                                              const size_t* sizes )
+<span class="lineNum">     378 </span>            : {
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :     dt_stack_t* pStack = convertor-&gt;pStack;</span>
+<span class="lineNum">     380 </span>            :     dt_elem_desc_t* pElems;
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span>            :     /**
+<span class="lineNum">     383 </span>            :      * The prepare function already make the selection on which data representation
+<span class="lineNum">     384 </span>            :      * we have to use: normal one or the optimized version ?
+<span class="lineNum">     385 </span>            :      */
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :     pElems = convertor-&gt;use_desc-&gt;desc;</span>
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :     convertor-&gt;stack_pos      = 1;</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     convertor-&gt;partial_length = 0;</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     convertor-&gt;bConverted     = 0;</span>
+<span class="lineNum">     391 </span>            :     /**
+<span class="lineNum">     392 </span>            :      * Fill the first position on the stack. This one correspond to the
+<span class="lineNum">     393 </span>            :      * last fake OPAL_DATATYPE_END_LOOP that we add to the data representation and
+<span class="lineNum">     394 </span>            :      * allow us to move quickly inside the datatype when we have a count.
+<span class="lineNum">     395 </span>            :      */
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     pStack[0].index = -1;</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :     pStack[0].count = convertor-&gt;count;</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     pStack[0].disp  = 0;</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :     pStack[0].type  = OPAL_DATATYPE_LOOP;</span>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :     pStack[1].index = 0;</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :     pStack[1].disp = 0;</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     if( pElems[0].elem.common.type == OPAL_DATATYPE_LOOP ) {</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         pStack[1].count = pElems[0].loop.loops;</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         pStack[1].type  = OPAL_DATATYPE_LOOP;</span>
+<span class="lineNum">     406 </span>            :     } else {
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :         pStack[1].count = pElems[0].elem.count;</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :         pStack[1].type  = pElems[0].elem.common.type;</span>
+<span class="lineNum">     409 </span>            :     }
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     411 </span>            : }
+<a name="412"><span class="lineNum">     412 </span>            : </a>
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 : int32_t opal_convertor_set_position_nocheck( opal_convertor_t* convertor,</span>
+<span class="lineNum">     415 </span>            :                                              size_t* position )
+<span class="lineNum">     416 </span>            : {
+<span class="lineNum">     417 </span>            :     int32_t rc;
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :     /**
+<span class="lineNum">     420 </span>            :      * create_stack_with_pos_contig always set the position relative to the ZERO
+<span class="lineNum">     421 </span>            :      * position, so there is no need for special handling. In all other cases,
+<span class="lineNum">     422 </span>            :      * if we plan to rollback the convertor then first we have to reset it at
+<span class="lineNum">     423 </span>            :      * the beginning.
+<span class="lineNum">     424 </span>            :      */
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     if( OPAL_LIKELY(convertor-&gt;flags &amp; OPAL_DATATYPE_FLAG_CONTIGUOUS) ) {</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         rc = opal_convertor_create_stack_with_pos_contig( convertor, (*position),</span>
+<span class="lineNum">     427 </span>            :                                                           opal_datatype_local_sizes );
+<span class="lineNum">     428 </span>            :     } else {
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :         if( (0 == (*position)) || ((*position) &lt; convertor-&gt;bConverted) ) {</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :             rc = opal_convertor_create_stack_at_begining( convertor, opal_datatype_local_sizes );</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :             if( 0 == (*position) ) return rc;</span>
+<span class="lineNum">     432 </span>            :         }
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :         rc = opal_convertor_generic_simple_position( convertor, position );</span>
+<span class="lineNum">     434 </span>            :         /**
+<span class="lineNum">     435 </span>            :          * If we have a non-contigous send convertor don't allow it move in the middle
+<span class="lineNum">     436 </span>            :          * of a predefined datatype, it won't be able to copy out the left-overs
+<span class="lineNum">     437 </span>            :          * anyway. Instead force the position to stay on predefined datatypes
+<span class="lineNum">     438 </span>            :          * boundaries. As we allow partial predefined datatypes on the contiguous
+<span class="lineNum">     439 </span>            :          * case, we should be accepted by any receiver convertor.
+<span class="lineNum">     440 </span>            :          */
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :         if( CONVERTOR_SEND &amp; convertor-&gt;flags ) {</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :             convertor-&gt;bConverted -= convertor-&gt;partial_length;</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :             convertor-&gt;partial_length = 0;</span>
+<span class="lineNum">     444 </span>            :         }
+<span class="lineNum">     445 </span>            :     }
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :     *position = convertor-&gt;bConverted;</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     448 </span>            : }
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span>            : 
+<span class="lineNum">     451 </span>            : /**
+<span class="lineNum">     452 </span>            :  * Compute the remote size.
+<span class="lineNum">     453 </span>            :  */
+<span class="lineNum">     454 </span>            : #if OPAL_ENABLE_HETEROGENEOUS_SUPPORT
+<span class="lineNum">     455 </span>            : #define OPAL_CONVERTOR_COMPUTE_REMOTE_SIZE(convertor, datatype, bdt_mask, send) \
+<span class="lineNum">     456 </span>            : {                                                                         \
+<span class="lineNum">     457 </span>            :     if( OPAL_UNLIKELY(0 != (bdt_mask)) ) {                                \
+<span class="lineNum">     458 </span>            :         opal_convertor_master_t* master;                                  \
+<span class="lineNum">     459 </span>            :         int i;                                                            \
+<span class="lineNum">     460 </span>            :         uint32_t mask = datatype-&gt;bdt_used;                               \
+<span class="lineNum">     461 </span>            :         convertor-&gt;flags ^= CONVERTOR_HOMOGENEOUS;                        \
+<span class="lineNum">     462 </span>            :         master = convertor-&gt;master;                                       \
+<span class="lineNum">     463 </span>            :         convertor-&gt;remote_size = 0;                                       \
+<span class="lineNum">     464 </span>            :         for( i = OPAL_DATATYPE_FIRST_TYPE; mask &amp;&amp; (i &lt; OPAL_DATATYPE_MAX_PREDEFINED); i++ ) { \
+<span class="lineNum">     465 </span>            :             if( mask &amp; ((uint32_t)1 &lt;&lt; i) ) {                             \
+<span class="lineNum">     466 </span>            :                 convertor-&gt;remote_size += (datatype-&gt;btypes[i] *          \
+<span class="lineNum">     467 </span>            :                                            master-&gt;remote_sizes[i]);      \
+<span class="lineNum">     468 </span>            :                 mask ^= ((uint32_t)1 &lt;&lt; i);                               \
+<span class="lineNum">     469 </span>            :             }                                                             \
+<span class="lineNum">     470 </span>            :         }                                                                 \
+<span class="lineNum">     471 </span>            :         convertor-&gt;remote_size *= convertor-&gt;count;                       \
+<span class="lineNum">     472 </span>            :         if (!(send &amp;&amp; convertor-&gt;flags &amp; OPAL_DATATYPE_FLAG_CONTIGUOUS))  \
+<span class="lineNum">     473 </span>            :             convertor-&gt;use_desc = &amp;(datatype-&gt;desc);                      \
+<span class="lineNum">     474 </span>            :     }                                                                     \
+<span class="lineNum">     475 </span>            : }
+<span class="lineNum">     476 </span>            : #else
+<span class="lineNum">     477 </span>            : #define OPAL_CONVERTOR_COMPUTE_REMOTE_SIZE(convertor, datatype, bdt_mask, send) \
+<span class="lineNum">     478 </span>            :     assert(0 == (bdt_mask))
+<span class="lineNum">     479 </span>            : #endif  /* OPAL_ENABLE_HETEROGENEOUS_SUPPORT */
+<span class="lineNum">     480 </span>            : 
+<span class="lineNum">     481 </span>            : /**
+<span class="lineNum">     482 </span>            :  * This macro will initialize a convertor based on a previously created
+<span class="lineNum">     483 </span>            :  * convertor. The idea is the move outside these function the heavy
+<span class="lineNum">     484 </span>            :  * selection of architecture features for the convertors. I consider
+<span class="lineNum">     485 </span>            :  * here that the convertor is clean, either never initialized or already
+<span class="lineNum">     486 </span>            :  * cleaned.
+<span class="lineNum">     487 </span>            :  */
+<span class="lineNum">     488 </span>            : #define OPAL_CONVERTOR_PREPARE( convertor, datatype, count, pUserBuf, send )  \
+<span class="lineNum">     489 </span>            :     {                                                                   \
+<span class="lineNum">     490 </span>            :         uint32_t bdt_mask;                                              \
+<span class="lineNum">     491 </span>            :                                                                         \
+<span class="lineNum">     492 </span>            :         /* If the data is empty we just mark the convertor as           \
+<span class="lineNum">     493 </span>            :          * completed. With this flag set the pack and unpack functions  \
+<span class="lineNum">     494 </span>            :          * will not do anything.                                        \
+<span class="lineNum">     495 </span>            :          */                                                             \
+<span class="lineNum">     496 </span>            :         if( OPAL_UNLIKELY((0 == count) || (0 == datatype-&gt;size)) ) {    \
+<span class="lineNum">     497 </span>            :             convertor-&gt;flags |= OPAL_DATATYPE_FLAG_NO_GAPS | CONVERTOR_COMPLETED;  \
+<span class="lineNum">     498 </span>            :             convertor-&gt;local_size = convertor-&gt;remote_size = 0;         \
+<span class="lineNum">     499 </span>            :             return OPAL_SUCCESS;                                        \
+<span class="lineNum">     500 </span>            :         }                                                               \
+<span class="lineNum">     501 </span>            :         /* Compute the local in advance */                              \
+<span class="lineNum">     502 </span>            :         convertor-&gt;local_size = count * datatype-&gt;size;                 \
+<span class="lineNum">     503 </span>            :         convertor-&gt;pBaseBuf   = (unsigned char*)pUserBuf;               \
+<span class="lineNum">     504 </span>            :         convertor-&gt;count      = count;                                  \
+<span class="lineNum">     505 </span>            :                                                                         \
+<span class="lineNum">     506 </span>            :         /* Grab the datatype part of the flags */                       \
+<span class="lineNum">     507 </span>            :         convertor-&gt;flags     &amp;= CONVERTOR_TYPE_MASK;                    \
+<span class="lineNum">     508 </span>            :         convertor-&gt;flags     |= (CONVERTOR_DATATYPE_MASK &amp; datatype-&gt;flags); \
+<span class="lineNum">     509 </span>            :         convertor-&gt;flags     |= (CONVERTOR_NO_OP | CONVERTOR_HOMOGENEOUS); \
+<span class="lineNum">     510 </span>            :         convertor-&gt;pDesc      = (opal_datatype_t*)datatype;             \
+<span class="lineNum">     511 </span>            :         convertor-&gt;bConverted = 0;                                      \
+<span class="lineNum">     512 </span>            :         /* By default consider the optimized description */             \
+<span class="lineNum">     513 </span>            :         convertor-&gt;use_desc = &amp;(datatype-&gt;opt_desc);                    \
+<span class="lineNum">     514 </span>            :                                                                         \
+<span class="lineNum">     515 </span>            :         convertor-&gt;remote_size = convertor-&gt;local_size;                 \
+<span class="lineNum">     516 </span>            :         if( OPAL_LIKELY(convertor-&gt;remoteArch == opal_local_arch) ) {   \
+<span class="lineNum">     517 </span>            :             if( (convertor-&gt;flags &amp; (CONVERTOR_WITH_CHECKSUM | OPAL_DATATYPE_FLAG_NO_GAPS)) == OPAL_DATATYPE_FLAG_NO_GAPS ) { \
+<span class="lineNum">     518 </span>            :                 return OPAL_SUCCESS;                                    \
+<span class="lineNum">     519 </span>            :             }                                                           \
+<span class="lineNum">     520 </span>            :             if( ((convertor-&gt;flags &amp; (CONVERTOR_WITH_CHECKSUM | OPAL_DATATYPE_FLAG_CONTIGUOUS)) \
+<span class="lineNum">     521 </span>            :                  == OPAL_DATATYPE_FLAG_CONTIGUOUS) &amp;&amp; (1 == count) ) {             \
+<span class="lineNum">     522 </span>            :                 return OPAL_SUCCESS;                                    \
+<span class="lineNum">     523 </span>            :             }                                                           \
+<span class="lineNum">     524 </span>            :         }                                                               \
+<span class="lineNum">     525 </span>            :                                                                         \
+<span class="lineNum">     526 </span>            :         bdt_mask = datatype-&gt;bdt_used &amp; convertor-&gt;master-&gt;hetero_mask; \
+<span class="lineNum">     527 </span>            :         OPAL_CONVERTOR_COMPUTE_REMOTE_SIZE( convertor, datatype,        \
+<span class="lineNum">     528 </span>            :                                             bdt_mask, send );           \
+<span class="lineNum">     529 </span>            :         assert( NULL != convertor-&gt;use_desc-&gt;desc );                    \
+<span class="lineNum">     530 </span>            :         /* For predefined datatypes (contiguous) do nothing more */     \
+<span class="lineNum">     531 </span>            :         /* if checksum is enabled then always continue */               \
+<span class="lineNum">     532 </span>            :         if( ((convertor-&gt;flags &amp; (CONVERTOR_WITH_CHECKSUM | OPAL_DATATYPE_FLAG_NO_GAPS)) \
+<span class="lineNum">     533 </span>            :              == OPAL_DATATYPE_FLAG_NO_GAPS) &amp;&amp;                                     \
+<span class="lineNum">     534 </span>            :             (convertor-&gt;flags &amp; (CONVERTOR_SEND | CONVERTOR_HOMOGENEOUS)) ) { \
+<span class="lineNum">     535 </span>            :             return OPAL_SUCCESS;                                        \
+<span class="lineNum">     536 </span>            :         }                                                               \
+<span class="lineNum">     537 </span>            :         convertor-&gt;flags &amp;= ~CONVERTOR_NO_OP;                           \
+<span class="lineNum">     538 </span>            :         {                                                               \
+<span class="lineNum">     539 </span>            :             uint32_t required_stack_length = datatype-&gt;btypes[OPAL_DATATYPE_LOOP] + 1; \
+<span class="lineNum">     540 </span>            :                                                                         \
+<span class="lineNum">     541 </span>            :             if( required_stack_length &gt; convertor-&gt;stack_size ) {       \
+<span class="lineNum">     542 </span>            :                 assert(convertor-&gt;pStack == convertor-&gt;static_stack);   \
+<span class="lineNum">     543 </span>            :                 convertor-&gt;stack_size = required_stack_length;          \
+<span class="lineNum">     544 </span>            :                 convertor-&gt;pStack     = (dt_stack_t*)malloc(sizeof(dt_stack_t) * \
+<span class="lineNum">     545 </span>            :                                                             convertor-&gt;stack_size ); \
+<span class="lineNum">     546 </span>            :             }                                                           \
+<span class="lineNum">     547 </span>            :         }                                                               \
+<span class="lineNum">     548 </span>            :         opal_convertor_create_stack_at_begining( convertor, opal_datatype_local_sizes ); \
+<a name="549"><span class="lineNum">     549 </span>            :     }</a>
+<span class="lineNum">     550 </span>            : 
+<span class="lineNum">     551 </span><span class="lineCov">          1 : </span>
+<span class="lineNum">     552 </span>            : int32_t opal_convertor_prepare_for_recv( opal_convertor_t* convertor,
+<span class="lineNum">     553 </span>            :                                          const struct opal_datatype_t* datatype,
+<span class="lineNum">     554 </span>            :                                          int32_t count,
+<span class="lineNum">     555 </span>            :                                          const void* pUserBuf )
+<span class="lineNum">     556 </span>            : {
+<span class="lineNum">     557 </span>            :     /* Here I should check that the data is not overlapping */
+<span class="lineNum">     558 </span><span class="lineCov">          1 : </span>
+<span class="lineNum">     559 </span>            :     convertor-&gt;flags |= CONVERTOR_RECV;
+<span class="lineNum">     560 </span>            : #if OPAL_CUDA_SUPPORT
+<span class="lineNum">     561 </span>            :     mca_cuda_convertor_init(convertor, pUserBuf);
+<span class="lineNum">     562 </span>            : #endif
+<span class="lineNum">     563 </span><span class="lineCov">          1 : </span>
+<span class="lineNum">     564 </span>            :     OPAL_CONVERTOR_PREPARE( convertor, datatype, count, pUserBuf, 0 );
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     566 </span>            :     if( convertor-&gt;flags &amp; CONVERTOR_WITH_CHECKSUM ) {
+<span class="lineNum">     567 </span>            : #if OPAL_ENABLE_HETEROGENEOUS_SUPPORT
+<span class="lineNum">     568 </span>            :         if( !(convertor-&gt;flags &amp; CONVERTOR_HOMOGENEOUS) ) {
+<span class="lineNum">     569 </span>            :             convertor-&gt;fAdvance = opal_unpack_general_checksum;
+<span class="lineNum">     570 </span>            :         } else
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 : #endif</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :         if( convertor-&gt;pDesc-&gt;flags &amp; OPAL_DATATYPE_FLAG_CONTIGUOUS ) {</span>
+<span class="lineNum">     573 </span>            :             convertor-&gt;fAdvance = opal_unpack_homogeneous_contig_checksum;
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :         } else {</span>
+<span class="lineNum">     575 </span>            :             convertor-&gt;fAdvance = opal_generic_simple_unpack_checksum;
+<span class="lineNum">     576 </span>            :         }
+<span class="lineNum">     577 </span>            :     } else {
+<span class="lineNum">     578 </span>            : #if OPAL_ENABLE_HETEROGENEOUS_SUPPORT
+<span class="lineNum">     579 </span>            :         if( !(convertor-&gt;flags &amp; CONVERTOR_HOMOGENEOUS) ) {
+<span class="lineNum">     580 </span>            :             convertor-&gt;fAdvance = opal_unpack_general;
+<span class="lineNum">     581 </span>            :         } else
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 : #endif</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :         if( convertor-&gt;pDesc-&gt;flags &amp; OPAL_DATATYPE_FLAG_CONTIGUOUS ) {</span>
+<span class="lineNum">     584 </span>            :             convertor-&gt;fAdvance = opal_unpack_homogeneous_contig;
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :         } else {</span>
+<span class="lineNum">     586 </span>            :             convertor-&gt;fAdvance = opal_generic_simple_unpack;
+<span class="lineNum">     587 </span>            :         }
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     589 </span>            :     return OPAL_SUCCESS;
+<a name="590"><span class="lineNum">     590 </span>            : }</a>
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span><span class="lineCov">          1 : </span>
+<span class="lineNum">     593 </span>            : int32_t opal_convertor_prepare_for_send( opal_convertor_t* convertor,
+<span class="lineNum">     594 </span>            :                                          const struct opal_datatype_t* datatype,
+<span class="lineNum">     595 </span>            :                                          int32_t count,
+<span class="lineNum">     596 </span>            :                                          const void* pUserBuf )
+<span class="lineNum">     597 </span><span class="lineCov">          1 : {</span>
+<span class="lineNum">     598 </span>            :     convertor-&gt;flags |= CONVERTOR_SEND;
+<span class="lineNum">     599 </span>            : #if OPAL_CUDA_SUPPORT
+<span class="lineNum">     600 </span>            :     mca_cuda_convertor_init(convertor, pUserBuf);
+<span class="lineNum">     601 </span>            : #endif
+<span class="lineNum">     602 </span><span class="lineCov">          1 : </span>
+<span class="lineNum">     603 </span>            :     OPAL_CONVERTOR_PREPARE( convertor, datatype, count, pUserBuf, 1 );
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :     if( convertor-&gt;flags &amp; CONVERTOR_WITH_CHECKSUM ) {</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :         if( datatype-&gt;flags &amp; OPAL_DATATYPE_FLAG_CONTIGUOUS ) {</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :             if( ((datatype-&gt;ub - datatype-&gt;lb) == (OPAL_PTRDIFF_TYPE)datatype-&gt;size)</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :                 || (1 &gt;= convertor-&gt;count) )</span>
+<span class="lineNum">     609 </span>            :                 convertor-&gt;fAdvance = opal_pack_homogeneous_contig_checksum;
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :             else</span>
+<span class="lineNum">     611 </span>            :                 convertor-&gt;fAdvance = opal_pack_homogeneous_contig_with_gaps_checksum;
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :         } else {</span>
+<span class="lineNum">     613 </span>            :             convertor-&gt;fAdvance = opal_generic_simple_pack_checksum;
+<span class="lineNum">     614 </span>            :         }
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :         if( datatype-&gt;flags &amp; OPAL_DATATYPE_FLAG_CONTIGUOUS ) {</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :             if( ((datatype-&gt;ub - datatype-&gt;lb) == (OPAL_PTRDIFF_TYPE)datatype-&gt;size)</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :                 || (1 &gt;= convertor-&gt;count) )</span>
+<span class="lineNum">     619 </span>            :                 convertor-&gt;fAdvance = opal_pack_homogeneous_contig;
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :             else</span>
+<span class="lineNum">     621 </span>            :                 convertor-&gt;fAdvance = opal_pack_homogeneous_contig_with_gaps;
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :         } else {</span>
+<span class="lineNum">     623 </span>            :             convertor-&gt;fAdvance = opal_generic_simple_pack;
+<span class="lineNum">     624 </span>            :         }
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     626 </span>            :     return OPAL_SUCCESS;
+<span class="lineNum">     627 </span>            : }
+<span class="lineNum">     628 </span>            : 
+<span class="lineNum">     629 </span>            : /*
+<span class="lineNum">     630 </span>            :  * These functions can be used in order to create an IDENTICAL copy of one convertor. In this
+<span class="lineNum">     631 </span>            :  * context IDENTICAL means that the datatype and count and all other properties of the basic
+<span class="lineNum">     632 </span>            :  * convertor get replicated on this new convertor. However, the references to the datatype
+<span class="lineNum">     633 </span>            :  * are not increased. This function take special care about the stack. If all the cases the
+<span class="lineNum">     634 </span>            :  * stack is created with the correct number of entries but if the copy_stack is true (!= 0)
+<span class="lineNum">     635 </span>            :  * then the content of the old stack is copied on the new one. The result will be a convertor
+<a name="636"><span class="lineNum">     636 </span>            :  * ready to use starting from the old position. If copy_stack is false then the convertor</a>
+<span class="lineNum">     637 </span>            :  * is created with a empty stack (you have to use opal_convertor_set_position before using it).
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :  */</span>
+<span class="lineNum">     639 </span>            : int opal_convertor_clone( const opal_convertor_t* source,
+<span class="lineNum">     640 </span>            :                           opal_convertor_t* destination,
+<span class="lineNum">     641 </span>            :                           int32_t copy_stack )
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :     destination-&gt;remoteArch        = source-&gt;remoteArch;</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :     destination-&gt;flags             = source-&gt;flags;</span>
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :     destination-&gt;pDesc             = source-&gt;pDesc;</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :     destination-&gt;use_desc          = source-&gt;use_desc;</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :     destination-&gt;count             = source-&gt;count;</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :     destination-&gt;pBaseBuf          = source-&gt;pBaseBuf;</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :     destination-&gt;fAdvance          = source-&gt;fAdvance;</span>
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :     destination-&gt;master            = source-&gt;master;</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :     destination-&gt;local_size        = source-&gt;local_size;</span>
+<span class="lineNum">     652 </span>            :     destination-&gt;remote_size       = source-&gt;remote_size;
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :     /* create the stack */</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :     if( OPAL_UNLIKELY(source-&gt;stack_size &gt; DT_STATIC_STACK_SIZE) ) {</span>
+<span class="lineNum">     655 </span>            :         destination-&gt;pStack = (dt_stack_t*)malloc(sizeof(dt_stack_t) * source-&gt;stack_size );
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     657 </span>            :         destination-&gt;pStack = destination-&gt;static_stack;
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     659 </span>            :     destination-&gt;stack_size = source-&gt;stack_size;
+<span class="lineNum">     660 </span>            : 
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :     /* initialize the stack */</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :     if( OPAL_LIKELY(0 == copy_stack) ) {</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :         destination-&gt;bConverted = -1;</span>
+<span class="lineNum">     664 </span>            :         destination-&gt;stack_pos  = -1;
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :         memcpy( destination-&gt;pStack, source-&gt;pStack, sizeof(dt_stack_t) * (source-&gt;stack_pos+1) );</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :         destination-&gt;bConverted = source-&gt;bConverted;</span>
+<span class="lineNum">     668 </span>            :         destination-&gt;stack_pos  = source-&gt;stack_pos;
+<span class="lineNum">     669 </span>            :     }
+<span class="lineNum">     670 </span>            : #if OPAL_CUDA_SUPPORT
+<span class="lineNum">     671 </span>            :     destination-&gt;cbmemcpy   = source-&gt;cbmemcpy;
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 : #endif</span>
+<span class="lineNum">     673 </span>            :     return OPAL_SUCCESS;
+<a name="674"><span class="lineNum">     674 </span>            : }</a>
+<span class="lineNum">     675 </span>            : 
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     677 </span>            : void opal_convertor_dump( opal_convertor_t* convertor )
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :     printf( &quot;Convertor %p count %d stack position %d bConverted %ld\n&quot;, (void*)convertor,</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :             convertor-&gt;count, convertor-&gt;stack_pos, (unsigned long)convertor-&gt;bConverted );</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :     printf( &quot;\tlocal_size %ld remote_size %ld flags %X stack_size %d pending_length %d\n&quot;,</span>
+<span class="lineNum">     682 </span>            :             (unsigned long)convertor-&gt;local_size, (unsigned long)convertor-&gt;remote_size,
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :             convertor-&gt;flags, convertor-&gt;stack_size, convertor-&gt;partial_length );</span>
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :     opal_datatype_dump( convertor-&gt;pDesc );</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :     printf( &quot;Actual stack representation\n&quot; );</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :     opal_datatype_dump_stack( convertor-&gt;pStack, convertor-&gt;stack_pos,</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :                               convertor-&gt;pDesc-&gt;desc.desc, convertor-&gt;pDesc-&gt;name );</span>
+<a name="688"><span class="lineNum">     688 </span>            : }</a>
+<span class="lineNum">     689 </span>            : 
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     691 </span>            : void opal_datatype_dump_stack( const dt_stack_t* pStack, int stack_pos,
+<span class="lineNum">     692 </span>            :                                const union dt_elem_desc* pDesc, const char* name )
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :     opal_output( 0, &quot;\nStack %p stack_pos %d name %s\n&quot;, (void*)pStack, stack_pos, name );</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :     for( ; stack_pos &gt;= 0; stack_pos-- ) {</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :         opal_output( 0, &quot;%d: pos %d count %d disp %ld &quot;, stack_pos, pStack[stack_pos].index,</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :                      (int)pStack[stack_pos].count, (long)pStack[stack_pos].disp );</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :         if( pStack-&gt;index != -1 )</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :             opal_output( 0, &quot;\t[desc count %d disp %ld extent %ld]\n&quot;,</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :                          pDesc[pStack[stack_pos].index].elem.count,</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :                          (long)pDesc[pStack[stack_pos].index].elem.disp,</span>
+<span class="lineNum">     702 </span>            :                          (long)pDesc[pStack[stack_pos].index].elem.extent );
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :         else</span>
+<span class="lineNum">     704 </span>            :             opal_output( 0, &quot;\n&quot; );
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :     opal_output( 0, &quot;\n&quot; );</span>
+<span class="lineNum">     707 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

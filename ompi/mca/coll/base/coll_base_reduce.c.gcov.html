@@ -1,0 +1,904 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - ompi/mca/coll/base/coll_base_reduce.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/coll/base</a> - coll_base_reduce.c<span style="font-size: 80%;"> (source / <a href="coll_base_reduce.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">240</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2015 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2013      Los Alamos National Security, LLC. All Rights
+<span class="lineNum">      14 </span>            :  *                         reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      16 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      17 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * $HEADER$
+<span class="lineNum">      22 </span>            :  */
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;mpi.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;ompi/constants.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;ompi/datatype/ompi_datatype.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;ompi/communicator/communicator.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;ompi/mca/coll/coll.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;ompi/mca/coll/base/coll_tags.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;ompi/mca/pml/pml.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;ompi/op/op.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;ompi/mca/coll/base/coll_base_functions.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;coll_base_topo.h&quot;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : /**
+<span class="lineNum">      38 </span>            :  * This is a generic implementation of the reduce protocol. It used the tree
+<span class="lineNum">      39 </span>            :  * provided as an argument and execute all operations using a segment of
+<span class="lineNum">      40 </span>            :  * count times a datatype.
+<span class="lineNum">      41 </span>            :  * For the last communication it will update the count in order to limit
+<span class="lineNum">      42 </span>            :  * the number of datatype to the original count (original_count)
+<span class="lineNum">      43 </span>            :  *
+<span class="lineNum">      44 </span>            :  * Note that for non-commutative operations we cannot save memory copy
+<span class="lineNum">      45 </span>            :  * for the first block: thus we must copy sendbuf to accumbuf on intermediate
+<a name="46"><span class="lineNum">      46 </span>            :  * to keep the optimized loop happy.</a>
+<span class="lineNum">      47 </span>            :  */
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 : int ompi_coll_base_reduce_generic( void* sendbuf, void* recvbuf, int original_count,</span>
+<span class="lineNum">      49 </span>            :                                     ompi_datatype_t* datatype, ompi_op_t* op,
+<span class="lineNum">      50 </span>            :                                     int root, ompi_communicator_t* comm,
+<span class="lineNum">      51 </span>            :                                     mca_coll_base_module_t *module,
+<span class="lineNum">      52 </span>            :                                     ompi_coll_tree_t* tree, int count_by_segment,
+<span class="lineNum">      53 </span>            :                                     int max_outstanding_reqs )
+<span class="lineNum">      54 </span>            : {
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :     char *inbuf[2] = {NULL, NULL}, *inbuf_free[2] = {NULL, NULL};</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     char *accumbuf = NULL, *accumbuf_free = NULL;</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     char *local_op_buffer = NULL, *sendtmpbuf = NULL;</span>
+<span class="lineNum">      58 </span>            :     ptrdiff_t extent, lower_bound, segment_increment;
+<span class="lineNum">      59 </span>            :     size_t typelng;
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :     ompi_request_t* reqs[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};</span>
+<span class="lineNum">      61 </span>            :     int num_segments, line, ret, segindex, i, rank;
+<span class="lineNum">      62 </span>            :     int recvcount, prevcount, inbi;
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            :     /**
+<span class="lineNum">      65 </span>            :      * Determine number of segments and number of elements
+<span class="lineNum">      66 </span>            :      * sent per operation
+<span class="lineNum">      67 </span>            :      */
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :     ompi_datatype_get_extent( datatype, &amp;lower_bound, &amp;extent );</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size( datatype, &amp;typelng );</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     num_segments = (original_count + count_by_segment - 1) / count_by_segment;</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :     segment_increment = (ptrdiff_t)count_by_segment * extent;</span>
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     sendtmpbuf = (char*) sendbuf;</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     if( sendbuf == MPI_IN_PLACE ) {</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :         sendtmpbuf = (char *)recvbuf;</span>
+<span class="lineNum">      76 </span>            :     }
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output, &quot;coll:base:reduce_generic count %d, msg size %ld, segsize %ld, max_requests %d&quot;,</span>
+<span class="lineNum">      79 </span>            :                  original_count, (unsigned long)((ptrdiff_t)num_segments * (ptrdiff_t)segment_increment),
+<span class="lineNum">      80 </span>            :                  (unsigned long)segment_increment, max_outstanding_reqs));
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            :     /* non-leaf nodes - wait for children to send me data &amp; forward up
+<span class="lineNum">      85 </span>            :        (if needed) */
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :     if( tree-&gt;tree_nextsize &gt; 0 ) {</span>
+<span class="lineNum">      87 </span>            :         ptrdiff_t true_lower_bound, true_extent, real_segment_size;
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :         ompi_datatype_get_true_extent( datatype, &amp;true_lower_bound,</span>
+<span class="lineNum">      89 </span>            :                                        &amp;true_extent );
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            :         /* handle non existant recv buffer (i.e. its NULL) and
+<span class="lineNum">      92 </span>            :            protect the recv buffer on non-root nodes */
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :         accumbuf = (char*)recvbuf;</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :         if( (NULL == accumbuf) || (root != rank) ) {</span>
+<span class="lineNum">      95 </span>            :             /* Allocate temporary accumulator buffer. */
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :             accumbuf_free = (char*)malloc(true_extent +</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :                                           (ptrdiff_t)(original_count - 1) * extent);</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :             if (accumbuf_free == NULL) {</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :                 line = __LINE__; ret = -1; goto error_hndl;</span>
+<span class="lineNum">     100 </span>            :             }
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :             accumbuf = accumbuf_free - lower_bound;</span>
+<span class="lineNum">     102 </span>            :         }
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            :         /* If this is a non-commutative operation we must copy
+<span class="lineNum">     105 </span>            :            sendbuf to the accumbuf, in order to simplfy the loops */
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :         if (!ompi_op_is_commute(op)) {</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :             ompi_datatype_copy_content_same_ddt(datatype, original_count,</span>
+<span class="lineNum">     108 </span>            :                                                 (char*)accumbuf,
+<span class="lineNum">     109 </span>            :                                                 (char*)sendtmpbuf);
+<span class="lineNum">     110 </span>            :         }
+<span class="lineNum">     111 </span>            :         /* Allocate two buffers for incoming segments */
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :         real_segment_size = true_extent + (ptrdiff_t)(count_by_segment - 1) * extent;</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :         inbuf_free[0] = (char*) malloc(real_segment_size);</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :         if( inbuf_free[0] == NULL ) {</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :             line = __LINE__; ret = -1; goto error_hndl;</span>
+<span class="lineNum">     116 </span>            :         }
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :         inbuf[0] = inbuf_free[0] - lower_bound;</span>
+<span class="lineNum">     118 </span>            :         /* if there is chance to overlap communication -
+<span class="lineNum">     119 </span>            :            allocate second buffer */
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :         if( (num_segments &gt; 1) || (tree-&gt;tree_nextsize &gt; 1) ) {</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :             inbuf_free[1] = (char*) malloc(real_segment_size);</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :             if( inbuf_free[1] == NULL ) {</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :                 line = __LINE__; ret = -1; goto error_hndl;</span>
+<span class="lineNum">     124 </span>            :             }
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :             inbuf[1] = inbuf_free[1] - lower_bound;</span>
+<span class="lineNum">     126 </span>            :         }
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            :         /* reset input buffer index and receive count */
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :         inbi = 0;</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         recvcount = 0;</span>
+<span class="lineNum">     131 </span>            :         /* for each segment */
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :         for( segindex = 0; segindex &lt;= num_segments; segindex++ ) {</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :             prevcount = recvcount;</span>
+<span class="lineNum">     134 </span>            :             /* recvcount - number of elements in current segment */
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :             recvcount = count_by_segment;</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :             if( segindex == (num_segments-1) )</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :                 recvcount = original_count - (ptrdiff_t)count_by_segment * (ptrdiff_t)segindex;</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            :             /* for each child */
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :             for( i = 0; i &lt; tree-&gt;tree_nextsize; i++ ) {</span>
+<span class="lineNum">     141 </span>            :                 /**
+<span class="lineNum">     142 </span>            :                  * We try to overlap communication:
+<span class="lineNum">     143 </span>            :                  * either with next segment or with the next child
+<span class="lineNum">     144 </span>            :                  */
+<span class="lineNum">     145 </span>            :                 /* post irecv for current segindex on current child */
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :                 if( segindex &lt; num_segments ) {</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :                     void* local_recvbuf = inbuf[inbi];</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :                     if( 0 == i ) {</span>
+<span class="lineNum">     149 </span>            :                         /* for the first step (1st child per segment) and
+<span class="lineNum">     150 </span>            :                          * commutative operations we might be able to irecv
+<span class="lineNum">     151 </span>            :                          * directly into the accumulate buffer so that we can
+<span class="lineNum">     152 </span>            :                          * reduce(op) this with our sendbuf in one step as
+<span class="lineNum">     153 </span>            :                          * ompi_op_reduce only has two buffer pointers,
+<span class="lineNum">     154 </span>            :                          * this avoids an extra memory copy.
+<span class="lineNum">     155 </span>            :                          *
+<span class="lineNum">     156 </span>            :                          * BUT if the operation is non-commutative or
+<span class="lineNum">     157 </span>            :                          * we are root and are USING MPI_IN_PLACE this is wrong!
+<span class="lineNum">     158 </span>            :                          */
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :                         if( (ompi_op_is_commute(op)) &amp;&amp;</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                             !((MPI_IN_PLACE == sendbuf) &amp;&amp; (rank == tree-&gt;tree_root)) ) {</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :                             local_recvbuf = accumbuf + (ptrdiff_t)segindex * (ptrdiff_t)segment_increment;</span>
+<span class="lineNum">     162 </span>            :                         }
+<span class="lineNum">     163 </span>            :                     }
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :                     ret = MCA_PML_CALL(irecv(local_recvbuf, recvcount, datatype,</span>
+<span class="lineNum">     166 </span>            :                                              tree-&gt;tree_next[i],
+<span class="lineNum">     167 </span>            :                                              MCA_COLL_BASE_TAG_REDUCE, comm,
+<span class="lineNum">     168 </span>            :                                              &amp;reqs[inbi]));
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :                     if (ret != MPI_SUCCESS) { line = __LINE__; goto error_hndl;}</span>
+<span class="lineNum">     170 </span>            :                 }
+<span class="lineNum">     171 </span>            :                 /* wait for previous req to complete, if any.
+<span class="lineNum">     172 </span>            :                    if there are no requests reqs[inbi ^1] will be
+<span class="lineNum">     173 </span>            :                    MPI_REQUEST_NULL. */
+<span class="lineNum">     174 </span>            :                 /* wait on data from last child for previous segment */
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :                 ret = ompi_request_wait_all( 1, &amp;reqs[inbi ^ 1],</span>
+<span class="lineNum">     176 </span>            :                                              MPI_STATUSES_IGNORE );
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :                 if (ret != MPI_SUCCESS) { line = __LINE__; goto error_hndl;  }</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :                 local_op_buffer = inbuf[inbi ^ 1];</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :                 if( i &gt; 0 ) {</span>
+<span class="lineNum">     180 </span>            :                     /* our first operation is to combine our own [sendbuf] data
+<span class="lineNum">     181 </span>            :                      * with the data we recvd from down stream (but only
+<span class="lineNum">     182 </span>            :                      * the operation is commutative and if we are not root and
+<span class="lineNum">     183 </span>            :                      * not using MPI_IN_PLACE)
+<span class="lineNum">     184 </span>            :                      */
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :                     if( 1 == i ) {</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :                         if( (ompi_op_is_commute(op)) &amp;&amp;</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :                             !((MPI_IN_PLACE == sendbuf) &amp;&amp; (rank == tree-&gt;tree_root)) ) {</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :                             local_op_buffer = sendtmpbuf + (ptrdiff_t)segindex * (ptrdiff_t)segment_increment;</span>
+<span class="lineNum">     189 </span>            :                         }
+<span class="lineNum">     190 </span>            :                     }
+<span class="lineNum">     191 </span>            :                     /* apply operation */
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :                     ompi_op_reduce(op, local_op_buffer,</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :                                    accumbuf + (ptrdiff_t)segindex * (ptrdiff_t)segment_increment,</span>
+<span class="lineNum">     194 </span>            :                                    recvcount, datatype );
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :                 } else if ( segindex &gt; 0 ) {</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :                     void* accumulator = accumbuf + (ptrdiff_t)(segindex-1) * (ptrdiff_t)segment_increment;</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :                     if( tree-&gt;tree_nextsize &lt;= 1 ) {</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :                         if( (ompi_op_is_commute(op)) &amp;&amp;</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :                             !((MPI_IN_PLACE == sendbuf) &amp;&amp; (rank == tree-&gt;tree_root)) ) {</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :                             local_op_buffer = sendtmpbuf + (ptrdiff_t)(segindex-1) * (ptrdiff_t)segment_increment;</span>
+<span class="lineNum">     201 </span>            :                         }
+<span class="lineNum">     202 </span>            :                     }
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :                     ompi_op_reduce(op, local_op_buffer, accumulator, prevcount,</span>
+<span class="lineNum">     204 </span>            :                                    datatype );
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span>            :                     /* all reduced on available data this step (i) complete,
+<span class="lineNum">     207 </span>            :                      * pass to the next process unless you are the root.
+<span class="lineNum">     208 </span>            :                      */
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :                     if (rank != tree-&gt;tree_root) {</span>
+<span class="lineNum">     210 </span>            :                         /* send combined/accumulated data to parent */
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :                         ret = MCA_PML_CALL( send( accumulator, prevcount,</span>
+<span class="lineNum">     212 </span>            :                                                   datatype, tree-&gt;tree_prev,
+<span class="lineNum">     213 </span>            :                                                   MCA_COLL_BASE_TAG_REDUCE,
+<span class="lineNum">     214 </span>            :                                                   MCA_PML_BASE_SEND_STANDARD,
+<span class="lineNum">     215 </span>            :                                                   comm) );
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :                         if (ret != MPI_SUCCESS) {</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :                             line = __LINE__; goto error_hndl;</span>
+<span class="lineNum">     218 </span>            :                         }
+<span class="lineNum">     219 </span>            :                     }
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span>            :                     /* we stop when segindex = number of segments
+<span class="lineNum">     222 </span>            :                        (i.e. we do num_segment+1 steps for pipelining */
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :                     if (segindex == num_segments) break;</span>
+<span class="lineNum">     224 </span>            :                 }
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            :                 /* update input buffer index */
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :                 inbi = inbi ^ 1;</span>
+<span class="lineNum">     228 </span>            :             } /* end of for each child */
+<span class="lineNum">     229 </span>            :         } /* end of for each segment */
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span>            :         /* clean up */
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         if( inbuf_free[0] != NULL) free(inbuf_free[0]);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         if( inbuf_free[1] != NULL) free(inbuf_free[1]);</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         if( accumbuf_free != NULL ) free(accumbuf_free);</span>
+<span class="lineNum">     235 </span>            :     }
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span>            :     /* leaf nodes
+<span class="lineNum">     238 </span>            :        Depending on the value of max_outstanding_reqs and
+<span class="lineNum">     239 </span>            :        the number of segments we have two options:
+<span class="lineNum">     240 </span>            :        - send all segments using blocking send to the parent, or
+<span class="lineNum">     241 </span>            :        - avoid overflooding the parent nodes by limiting the number of
+<span class="lineNum">     242 </span>            :        outstanding requests to max_oustanding_reqs.
+<span class="lineNum">     243 </span>            :        TODO/POSSIBLE IMPROVEMENT: If there is a way to determine the eager size
+<span class="lineNum">     244 </span>            :        for the current communication, synchronization should be used only
+<span class="lineNum">     245 </span>            :        when the message/segment size is smaller than the eager size.
+<span class="lineNum">     246 </span>            :     */
+<span class="lineNum">     247 </span>            :     else {
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            :         /* If the number of segments is less than a maximum number of oustanding
+<span class="lineNum">     250 </span>            :            requests or there is no limit on the maximum number of outstanding
+<span class="lineNum">     251 </span>            :            requests, we send data to the parent using blocking send */
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         if ((0 == max_outstanding_reqs) ||</span>
+<span class="lineNum">     253 </span>            :             (num_segments &lt;= max_outstanding_reqs)) {
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :             segindex = 0;</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :             while ( original_count &gt; 0) {</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :                 if (original_count &lt; count_by_segment) {</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :                     count_by_segment = original_count;</span>
+<span class="lineNum">     259 </span>            :                 }
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :                 ret = MCA_PML_CALL( send((char*)sendbuf +</span>
+<span class="lineNum">     261 </span>            :                                          (ptrdiff_t)segindex * (ptrdiff_t)segment_increment,
+<span class="lineNum">     262 </span>            :                                          count_by_segment, datatype,
+<span class="lineNum">     263 </span>            :                                          tree-&gt;tree_prev,
+<span class="lineNum">     264 </span>            :                                          MCA_COLL_BASE_TAG_REDUCE,
+<span class="lineNum">     265 </span>            :                                          MCA_PML_BASE_SEND_STANDARD,
+<span class="lineNum">     266 </span>            :                                          comm) );
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :                 if (ret != MPI_SUCCESS) { line = __LINE__; goto error_hndl; }</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :                 segindex++;</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :                 original_count -= count_by_segment;</span>
+<span class="lineNum">     270 </span>            :             }
+<span class="lineNum">     271 </span>            :         }
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span>            :         /* Otherwise, introduce flow control:
+<span class="lineNum">     274 </span>            :            - post max_outstanding_reqs non-blocking synchronous send,
+<span class="lineNum">     275 </span>            :            - for remaining segments
+<span class="lineNum">     276 </span>            :            - wait for a ssend to complete, and post the next one.
+<span class="lineNum">     277 </span>            :            - wait for all outstanding sends to complete.
+<span class="lineNum">     278 </span>            :         */
+<span class="lineNum">     279 </span>            :         else {
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :             int creq = 0;</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :             ompi_request_t **sreq = NULL;</span>
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :             sreq = (ompi_request_t**) calloc( max_outstanding_reqs,</span>
+<span class="lineNum">     285 </span>            :                                               sizeof(ompi_request_t*) );
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :             if (NULL == sreq) { line = __LINE__; ret = -1; goto error_hndl; }</span>
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span>            :             /* post first group of requests */
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :             for (segindex = 0; segindex &lt; max_outstanding_reqs; segindex++) {</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :                 ret = MCA_PML_CALL( isend((char*)sendbuf +</span>
+<span class="lineNum">     291 </span>            :                                           (ptrdiff_t)segindex * (ptrdiff_t)segment_increment,
+<span class="lineNum">     292 </span>            :                                           count_by_segment, datatype,
+<span class="lineNum">     293 </span>            :                                           tree-&gt;tree_prev,
+<span class="lineNum">     294 </span>            :                                           MCA_COLL_BASE_TAG_REDUCE,
+<span class="lineNum">     295 </span>            :                                           MCA_PML_BASE_SEND_SYNCHRONOUS, comm,
+<span class="lineNum">     296 </span>            :                                           &amp;sreq[segindex]) );
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :                 if (ret != MPI_SUCCESS) { line = __LINE__; goto error_hndl;  }</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :                 original_count -= count_by_segment;</span>
+<span class="lineNum">     299 </span>            :             }
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :             creq = 0;</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :             while ( original_count &gt; 0 ) {</span>
+<span class="lineNum">     303 </span>            :                 /* wait on a posted request to complete */
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :                 ret = ompi_request_wait(&amp;sreq[creq], MPI_STATUS_IGNORE);</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :                 if (ret != MPI_SUCCESS) { line = __LINE__; goto error_hndl;  }</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :                 sreq[creq] = MPI_REQUEST_NULL;</span>
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :                 if( original_count &lt; count_by_segment ) {</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :                     count_by_segment = original_count;</span>
+<span class="lineNum">     310 </span>            :                 }
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :                 ret = MCA_PML_CALL( isend((char*)sendbuf +</span>
+<span class="lineNum">     312 </span>            :                                           (ptrdiff_t)segindex * (ptrdiff_t)segment_increment,
+<span class="lineNum">     313 </span>            :                                           count_by_segment, datatype,
+<span class="lineNum">     314 </span>            :                                           tree-&gt;tree_prev,
+<span class="lineNum">     315 </span>            :                                           MCA_COLL_BASE_TAG_REDUCE,
+<span class="lineNum">     316 </span>            :                                           MCA_PML_BASE_SEND_SYNCHRONOUS, comm,
+<span class="lineNum">     317 </span>            :                                           &amp;sreq[creq]) );
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :                 if (ret != MPI_SUCCESS) { line = __LINE__; goto error_hndl;  }</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :                 creq = (creq + 1) % max_outstanding_reqs;</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :                 segindex++;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :                 original_count -= count_by_segment;</span>
+<span class="lineNum">     322 </span>            :             }
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            :             /* Wait on the remaining request to complete */
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :             ret = ompi_request_wait_all( max_outstanding_reqs, sreq,</span>
+<span class="lineNum">     326 </span>            :                                          MPI_STATUSES_IGNORE );
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :             if (ret != MPI_SUCCESS) { line = __LINE__; goto error_hndl;  }</span>
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span>            :             /* free requests */
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :             free(sreq);</span>
+<span class="lineNum">     331 </span>            :         }
+<span class="lineNum">     332 </span>            :     }
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span>            :  error_hndl:  /* error handler */
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT (( ompi_coll_base_framework.framework_output,</span>
+<span class="lineNum">     337 </span>            :                    &quot;ERROR_HNDL: node %d file %s line %d error %d\n&quot;,
+<span class="lineNum">     338 </span>            :                    rank, __FILE__, line, ret ));
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     if( inbuf_free[0] != NULL ) free(inbuf_free[0]);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     if( inbuf_free[1] != NULL ) free(inbuf_free[1]);</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     if( accumbuf_free != NULL ) free(accumbuf);</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     343 </span>            : }
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span>            : /* Attention: this version of the reduce operations does not
+<span class="lineNum">     346 </span>            :    work for:
+<span class="lineNum">     347 </span>            :    - non-commutative operations
+<span class="lineNum">     348 </span>            :    - segment sizes which are not multiplies of the extent of the datatype
+<span class="lineNum">     349 </span>            :      meaning that at least one datatype must fit in the segment !
+<a name="350"><span class="lineNum">     350 </span>            : */</a>
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 : int ompi_coll_base_reduce_intra_chain( void *sendbuf, void *recvbuf, int count,</span>
+<span class="lineNum">     353 </span>            :                                         ompi_datatype_t* datatype,
+<span class="lineNum">     354 </span>            :                                         ompi_op_t* op, int root,
+<span class="lineNum">     355 </span>            :                                         ompi_communicator_t* comm,
+<span class="lineNum">     356 </span>            :                                         mca_coll_base_module_t *module,
+<span class="lineNum">     357 </span>            :                                         uint32_t segsize, int fanout,
+<span class="lineNum">     358 </span>            :                                         int max_outstanding_reqs )
+<span class="lineNum">     359 </span>            : {
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     int segcount = count;</span>
+<span class="lineNum">     361 </span>            :     size_t typelng;
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :     mca_coll_base_module_t *base_module = (mca_coll_base_module_t*) module;</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     mca_coll_base_comm_t *data = base_module-&gt;base_data;</span>
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,&quot;coll:base:reduce_intra_chain rank %d fo %d ss %5d&quot;, ompi_comm_rank(comm), fanout, segsize));</span>
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     COLL_BASE_UPDATE_CHAIN( comm, base_module, root, fanout );</span>
+<span class="lineNum">     368 </span>            :     /**
+<span class="lineNum">     369 </span>            :      * Determine number of segments and number of elements
+<span class="lineNum">     370 </span>            :      * sent per operation
+<span class="lineNum">     371 </span>            :      */
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size( datatype, &amp;typelng );</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     COLL_BASE_COMPUTED_SEGCOUNT( segsize, typelng, segcount );</span>
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :     return ompi_coll_base_reduce_generic( sendbuf, recvbuf, count, datatype,</span>
+<span class="lineNum">     376 </span>            :                                            op, root, comm, module,
+<span class="lineNum">     377 </span>            :                                            data-&gt;cached_chain,
+<span class="lineNum">     378 </span>            :                                            segcount, max_outstanding_reqs );
+<span class="lineNum">     379 </span>            : }
+<a name="380"><span class="lineNum">     380 </span>            : </a>
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 : int ompi_coll_base_reduce_intra_pipeline( void *sendbuf, void *recvbuf,</span>
+<span class="lineNum">     383 </span>            :                                            int count, ompi_datatype_t* datatype,
+<span class="lineNum">     384 </span>            :                                            ompi_op_t* op, int root,
+<span class="lineNum">     385 </span>            :                                            ompi_communicator_t* comm,
+<span class="lineNum">     386 </span>            :                                            mca_coll_base_module_t *module,
+<span class="lineNum">     387 </span>            :                                            uint32_t segsize,
+<span class="lineNum">     388 </span>            :                                            int max_outstanding_reqs  )
+<span class="lineNum">     389 </span>            : {
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     int segcount = count;</span>
+<span class="lineNum">     391 </span>            :     size_t typelng;
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :     mca_coll_base_module_t *base_module = (mca_coll_base_module_t*) module;</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     mca_coll_base_comm_t *data = base_module-&gt;base_data;</span>
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,&quot;coll:base:reduce_intra_pipeline rank %d ss %5d&quot;,</span>
+<span class="lineNum">     396 </span>            :                  ompi_comm_rank(comm), segsize));
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     COLL_BASE_UPDATE_PIPELINE( comm, base_module, root );</span>
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            :     /**
+<span class="lineNum">     401 </span>            :      * Determine number of segments and number of elements
+<span class="lineNum">     402 </span>            :      * sent per operation
+<span class="lineNum">     403 </span>            :      */
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size( datatype, &amp;typelng );</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     COLL_BASE_COMPUTED_SEGCOUNT( segsize, typelng, segcount );</span>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :     return ompi_coll_base_reduce_generic( sendbuf, recvbuf, count, datatype,</span>
+<span class="lineNum">     408 </span>            :                                            op, root, comm, module,
+<span class="lineNum">     409 </span>            :                                            data-&gt;cached_pipeline,
+<span class="lineNum">     410 </span>            :                                            segcount, max_outstanding_reqs );
+<a name="411"><span class="lineNum">     411 </span>            : }</a>
+<span class="lineNum">     412 </span>            : 
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 : int ompi_coll_base_reduce_intra_binary( void *sendbuf, void *recvbuf,</span>
+<span class="lineNum">     414 </span>            :                                          int count, ompi_datatype_t* datatype,
+<span class="lineNum">     415 </span>            :                                          ompi_op_t* op, int root,
+<span class="lineNum">     416 </span>            :                                          ompi_communicator_t* comm,
+<span class="lineNum">     417 </span>            :                                          mca_coll_base_module_t *module,
+<span class="lineNum">     418 </span>            :                                          uint32_t segsize,
+<span class="lineNum">     419 </span>            :                                          int max_outstanding_reqs  )
+<span class="lineNum">     420 </span>            : {
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     int segcount = count;</span>
+<span class="lineNum">     422 </span>            :     size_t typelng;
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     mca_coll_base_module_t *base_module = (mca_coll_base_module_t*) module;</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     mca_coll_base_comm_t *data = base_module-&gt;base_data;</span>
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,&quot;coll:base:reduce_intra_binary rank %d ss %5d&quot;,</span>
+<span class="lineNum">     427 </span>            :                  ompi_comm_rank(comm), segsize));
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :     COLL_BASE_UPDATE_BINTREE( comm, base_module, root );</span>
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span>            :     /**
+<span class="lineNum">     432 </span>            :      * Determine number of segments and number of elements
+<span class="lineNum">     433 </span>            :      * sent per operation
+<span class="lineNum">     434 </span>            :      */
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size( datatype, &amp;typelng );</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     COLL_BASE_COMPUTED_SEGCOUNT( segsize, typelng, segcount );</span>
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :     return ompi_coll_base_reduce_generic( sendbuf, recvbuf, count, datatype,</span>
+<span class="lineNum">     439 </span>            :                                            op, root, comm, module,
+<span class="lineNum">     440 </span>            :                                            data-&gt;cached_bintree,
+<span class="lineNum">     441 </span>            :                                            segcount, max_outstanding_reqs );
+<a name="442"><span class="lineNum">     442 </span>            : }</a>
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 : int ompi_coll_base_reduce_intra_binomial( void *sendbuf, void *recvbuf,</span>
+<span class="lineNum">     445 </span>            :                                            int count, ompi_datatype_t* datatype,
+<span class="lineNum">     446 </span>            :                                            ompi_op_t* op, int root,
+<span class="lineNum">     447 </span>            :                                            ompi_communicator_t* comm,
+<span class="lineNum">     448 </span>            :                                            mca_coll_base_module_t *module,
+<span class="lineNum">     449 </span>            :                                            uint32_t segsize,
+<span class="lineNum">     450 </span>            :                                            int max_outstanding_reqs  )
+<span class="lineNum">     451 </span>            : {
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     int segcount = count;</span>
+<span class="lineNum">     453 </span>            :     size_t typelng;
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :     mca_coll_base_module_t *base_module = (mca_coll_base_module_t*) module;</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :     mca_coll_base_comm_t *data = base_module-&gt;base_data;</span>
+<span class="lineNum">     456 </span>            : 
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,&quot;coll:base:reduce_intra_binomial rank %d ss %5d&quot;,</span>
+<span class="lineNum">     458 </span>            :                  ompi_comm_rank(comm), segsize));
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     COLL_BASE_UPDATE_IN_ORDER_BMTREE( comm, base_module, root );</span>
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span>            :     /**
+<span class="lineNum">     463 </span>            :      * Determine number of segments and number of elements
+<span class="lineNum">     464 </span>            :      * sent per operation
+<span class="lineNum">     465 </span>            :      */
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size( datatype, &amp;typelng );</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :     COLL_BASE_COMPUTED_SEGCOUNT( segsize, typelng, segcount );</span>
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :     return ompi_coll_base_reduce_generic( sendbuf, recvbuf, count, datatype,</span>
+<span class="lineNum">     470 </span>            :                                            op, root, comm, module,
+<span class="lineNum">     471 </span>            :                                            data-&gt;cached_in_order_bmtree,
+<span class="lineNum">     472 </span>            :                                            segcount, max_outstanding_reqs );
+<span class="lineNum">     473 </span>            : }
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span>            : /*
+<span class="lineNum">     476 </span>            :  * reduce_intra_in_order_binary
+<span class="lineNum">     477 </span>            :  *
+<span class="lineNum">     478 </span>            :  * Function:      Logarithmic reduce operation for non-commutative operations.
+<span class="lineNum">     479 </span>            :  * Acecpts:       same as MPI_Reduce()
+<a name="480"><span class="lineNum">     480 </span>            :  * Returns:       MPI_SUCCESS or error code</a>
+<span class="lineNum">     481 </span>            :  */
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 : int ompi_coll_base_reduce_intra_in_order_binary( void *sendbuf, void *recvbuf,</span>
+<span class="lineNum">     483 </span>            :                                                   int count,
+<span class="lineNum">     484 </span>            :                                                   ompi_datatype_t* datatype,
+<span class="lineNum">     485 </span>            :                                                   ompi_op_t* op, int root,
+<span class="lineNum">     486 </span>            :                                                   ompi_communicator_t* comm,
+<span class="lineNum">     487 </span>            :                                                   mca_coll_base_module_t *module,
+<span class="lineNum">     488 </span>            :                                                   uint32_t segsize,
+<span class="lineNum">     489 </span>            :                                                   int max_outstanding_reqs  )
+<span class="lineNum">     490 </span>            : {
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     int ret, rank, size, io_root, segcount = count;</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :     void *use_this_sendbuf = NULL, *use_this_recvbuf = NULL;</span>
+<span class="lineNum">     493 </span>            :     size_t typelng;
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :     mca_coll_base_module_t *base_module = (mca_coll_base_module_t*) module;</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     mca_coll_base_comm_t *data = base_module-&gt;base_data;</span>
+<span class="lineNum">     496 </span>            : 
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     size = ompi_comm_size(comm);</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,&quot;coll:base:reduce_intra_in_order_binary rank %d ss %5d&quot;,</span>
+<span class="lineNum">     500 </span>            :                  rank, segsize));
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     COLL_BASE_UPDATE_IN_ORDER_BINTREE( comm, base_module );</span>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span>            :     /**
+<span class="lineNum">     505 </span>            :      * Determine number of segments and number of elements
+<span class="lineNum">     506 </span>            :      * sent per operation
+<span class="lineNum">     507 </span>            :      */
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size( datatype, &amp;typelng );</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :     COLL_BASE_COMPUTED_SEGCOUNT( segsize, typelng, segcount );</span>
+<span class="lineNum">     510 </span>            : 
+<span class="lineNum">     511 </span>            :     /* An in-order binary tree must use root (size-1) to preserve the order of
+<span class="lineNum">     512 </span>            :        operations.  Thus, if root is not rank (size - 1), then we must handle
+<span class="lineNum">     513 </span>            :        1. MPI_IN_PLACE option on real root, and
+<span class="lineNum">     514 </span>            :        2. we must allocate temporary recvbuf on rank (size - 1).
+<span class="lineNum">     515 </span>            :        Note that generic function must be careful not to switch order of
+<span class="lineNum">     516 </span>            :        operations for non-commutative ops.
+<span class="lineNum">     517 </span>            :     */
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :     io_root = size - 1;</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     use_this_sendbuf = sendbuf;</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :     use_this_recvbuf = recvbuf;</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     if (io_root != root) {</span>
+<span class="lineNum">     522 </span>            :         ptrdiff_t tlb, text, lb, ext;
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :         char *tmpbuf = NULL;</span>
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :         ompi_datatype_get_extent(datatype, &amp;lb, &amp;ext);</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :         ompi_datatype_get_true_extent(datatype, &amp;tlb, &amp;text);</span>
+<span class="lineNum">     527 </span>            : 
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :         if ((root == rank) &amp;&amp; (MPI_IN_PLACE == sendbuf)) {</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :             tmpbuf = (char *) malloc(text + (ptrdiff_t)(count - 1) * ext);</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :             if (NULL == tmpbuf) {</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :                 return MPI_ERR_INTERN;</span>
+<span class="lineNum">     532 </span>            :             }
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :             ompi_datatype_copy_content_same_ddt(datatype, count,</span>
+<span class="lineNum">     534 </span>            :                                                 (char*)tmpbuf,
+<span class="lineNum">     535 </span>            :                                                 (char*)recvbuf);
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :             use_this_sendbuf = tmpbuf;</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :         } else if (io_root == rank) {</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :             tmpbuf = (char *) malloc(text + (ptrdiff_t)(count - 1) * ext);</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :             if (NULL == tmpbuf) {</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :                 return MPI_ERR_INTERN;</span>
+<span class="lineNum">     541 </span>            :             }
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :             use_this_recvbuf = tmpbuf;</span>
+<span class="lineNum">     543 </span>            :         }
+<span class="lineNum">     544 </span>            :     }
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            :     /* Use generic reduce with in-order binary tree topology and io_root */
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :     ret = ompi_coll_base_reduce_generic( use_this_sendbuf, use_this_recvbuf, count, datatype,</span>
+<span class="lineNum">     548 </span>            :                                           op, io_root, comm, module,
+<span class="lineNum">     549 </span>            :                                           data-&gt;cached_in_order_bintree,
+<span class="lineNum">     550 </span>            :                                           segcount, max_outstanding_reqs );
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != ret) { return ret; }</span>
+<span class="lineNum">     552 </span>            : 
+<span class="lineNum">     553 </span>            :     /* Clean up */
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :     if (io_root != root) {</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :         if (root == rank) {</span>
+<span class="lineNum">     556 </span>            :             /* Receive result from rank io_root to recvbuf */
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :             ret = MCA_PML_CALL(recv(recvbuf, count, datatype, io_root,</span>
+<span class="lineNum">     558 </span>            :                                     MCA_COLL_BASE_TAG_REDUCE, comm,
+<span class="lineNum">     559 </span>            :                                     MPI_STATUS_IGNORE));
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :             if (MPI_SUCCESS != ret) { return ret; }</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :             if (MPI_IN_PLACE == sendbuf) {</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :                 free(use_this_sendbuf);</span>
+<span class="lineNum">     563 </span>            :             }
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :         } else if (io_root == rank) {</span>
+<span class="lineNum">     566 </span>            :             /* Send result from use_this_recvbuf to root */
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :             ret = MCA_PML_CALL(send(use_this_recvbuf, count, datatype, root,</span>
+<span class="lineNum">     568 </span>            :                                     MCA_COLL_BASE_TAG_REDUCE,
+<span class="lineNum">     569 </span>            :                                     MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :             if (MPI_SUCCESS != ret) { return ret; }</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :             free(use_this_recvbuf);</span>
+<span class="lineNum">     572 </span>            :         }
+<span class="lineNum">     573 </span>            :     }
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     return MPI_SUCCESS;</span>
+<span class="lineNum">     576 </span>            : }
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span>            : /*
+<span class="lineNum">     579 </span>            :  * Linear functions are copied from the BASIC coll module
+<span class="lineNum">     580 </span>            :  * they do not segment the message and are simple implementations
+<span class="lineNum">     581 </span>            :  * but for some small number of nodes and/or small data sizes they
+<span class="lineNum">     582 </span>            :  * are just as fast as base/tree based segmenting operations
+<span class="lineNum">     583 </span>            :  * and as such may be selected by the decision functions
+<span class="lineNum">     584 </span>            :  * These are copied into this module due to the way we select modules
+<span class="lineNum">     585 </span>            :  * in V1. i.e. in V2 we will handle this differently and so will not
+<span class="lineNum">     586 </span>            :  * have to duplicate code.
+<span class="lineNum">     587 </span>            :  * GEF Oct05 after asking Jeff.
+<span class="lineNum">     588 </span>            :  */
+<span class="lineNum">     589 </span>            : 
+<span class="lineNum">     590 </span>            : /* copied function (with appropriate renaming) starts here */
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span>            : /*
+<span class="lineNum">     593 </span>            :  *  reduce_lin_intra
+<span class="lineNum">     594 </span>            :  *
+<span class="lineNum">     595 </span>            :  *  Function:   - reduction using O(N) algorithm
+<span class="lineNum">     596 </span>            :  *  Accepts:    - same as MPI_Reduce()
+<span class="lineNum">     597 </span>            :  *  Returns:    - MPI_SUCCESS or error code
+<a name="598"><span class="lineNum">     598 </span>            :  */</a>
+<span class="lineNum">     599 </span>            : int
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 : ompi_coll_base_reduce_intra_basic_linear(void *sbuf, void *rbuf, int count,</span>
+<span class="lineNum">     601 </span>            :                                          struct ompi_datatype_t *dtype,
+<span class="lineNum">     602 </span>            :                                          struct ompi_op_t *op,
+<span class="lineNum">     603 </span>            :                                          int root,
+<span class="lineNum">     604 </span>            :                                          struct ompi_communicator_t *comm,
+<span class="lineNum">     605 </span>            :                                          mca_coll_base_module_t *module)
+<span class="lineNum">     606 </span>            : {
+<span class="lineNum">     607 </span>            :     int i, rank, err, size;
+<span class="lineNum">     608 </span>            :     ptrdiff_t true_lb, true_extent, lb, extent;
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :     char *free_buffer = NULL;</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :     char *pml_buffer = NULL;</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :     char *inplace_temp = NULL;</span>
+<span class="lineNum">     612 </span>            :     char *inbuf;
+<span class="lineNum">     613 </span>            : 
+<span class="lineNum">     614 </span>            :     /* Initialize */
+<span class="lineNum">     615 </span>            : 
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :     size = ompi_comm_size(comm);</span>
+<span class="lineNum">     618 </span>            : 
+<span class="lineNum">     619 </span>            :     /* If not root, send data to the root. */
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :     if (rank != root) {</span>
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :         err = MCA_PML_CALL(send(sbuf, count, dtype, root,</span>
+<span class="lineNum">     623 </span>            :                                 MCA_COLL_BASE_TAG_REDUCE,
+<span class="lineNum">     624 </span>            :                                 MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :         return err;</span>
+<span class="lineNum">     626 </span>            :     }
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span>            :     /* Root receives and reduces messages.  Allocate buffer to receive
+<span class="lineNum">     629 </span>            :      * messages.  This comment applies to all collectives in this basic
+<span class="lineNum">     630 </span>            :      * module where we allocate a temporary buffer.  For the next few
+<span class="lineNum">     631 </span>            :      * lines of code, it's tremendously complicated how we decided that
+<span class="lineNum">     632 </span>            :      * this was the Right Thing to do.  Sit back and enjoy.  And prepare
+<span class="lineNum">     633 </span>            :      * to have your mind warped. :-)
+<span class="lineNum">     634 </span>            :      *
+<span class="lineNum">     635 </span>            :      * Recall some definitions (I always get these backwards, so I'm
+<span class="lineNum">     636 </span>            :      * going to put them here):
+<span class="lineNum">     637 </span>            :      *
+<span class="lineNum">     638 </span>            :      * extent: the length from the lower bound to the upper bound -- may
+<span class="lineNum">     639 </span>            :      * be considerably larger than the buffer required to hold the data
+<span class="lineNum">     640 </span>            :      * (or smaller!  But it's easiest to think about when it's larger).
+<span class="lineNum">     641 </span>            :      *
+<span class="lineNum">     642 </span>            :      * true extent: the exact number of bytes required to hold the data
+<span class="lineNum">     643 </span>            :      * in the layout pattern in the datatype.
+<span class="lineNum">     644 </span>            :      *
+<span class="lineNum">     645 </span>            :      * For example, consider the following buffer (just talking about
+<span class="lineNum">     646 </span>            :      * true_lb, extent, and true extent -- extrapolate for true_ub:
+<span class="lineNum">     647 </span>            :      *
+<span class="lineNum">     648 </span>            :      * A              B                                       C
+<span class="lineNum">     649 </span>            :      * --------------------------------------------------------
+<span class="lineNum">     650 </span>            :      * |              |                                       |
+<span class="lineNum">     651 </span>            :      * --------------------------------------------------------
+<span class="lineNum">     652 </span>            :      *
+<span class="lineNum">     653 </span>            :      * There are multiple cases:
+<span class="lineNum">     654 </span>            :      *
+<span class="lineNum">     655 </span>            :      * 1. A is what we give to MPI_Send (and friends), and A is where
+<span class="lineNum">     656 </span>            :      * the data starts, and C is where the data ends.  In this case:
+<span class="lineNum">     657 </span>            :      *
+<span class="lineNum">     658 </span>            :      * - extent: C-A
+<span class="lineNum">     659 </span>            :      * - true extent: C-A
+<span class="lineNum">     660 </span>            :      * - true_lb: 0
+<span class="lineNum">     661 </span>            :      *
+<span class="lineNum">     662 </span>            :      * A                                                      C
+<span class="lineNum">     663 </span>            :      * --------------------------------------------------------
+<span class="lineNum">     664 </span>            :      * |                                                      |
+<span class="lineNum">     665 </span>            :      * --------------------------------------------------------
+<span class="lineNum">     666 </span>            :      * &lt;=======================extent=========================&gt;
+<span class="lineNum">     667 </span>            :      * &lt;======================true extent=====================&gt;
+<span class="lineNum">     668 </span>            :      *
+<span class="lineNum">     669 </span>            :      * 2. A is what we give to MPI_Send (and friends), B is where the
+<span class="lineNum">     670 </span>            :      * data starts, and C is where the data ends.  In this case:
+<span class="lineNum">     671 </span>            :      *
+<span class="lineNum">     672 </span>            :      * - extent: C-A
+<span class="lineNum">     673 </span>            :      * - true extent: C-B
+<span class="lineNum">     674 </span>            :      * - true_lb: positive
+<span class="lineNum">     675 </span>            :      *
+<span class="lineNum">     676 </span>            :      * A              B                                       C
+<span class="lineNum">     677 </span>            :      * --------------------------------------------------------
+<span class="lineNum">     678 </span>            :      * |              |           User buffer                 |
+<span class="lineNum">     679 </span>            :      * --------------------------------------------------------
+<span class="lineNum">     680 </span>            :      * &lt;=======================extent=========================&gt;
+<span class="lineNum">     681 </span>            :      * &lt;===============true extent=============&gt;
+<span class="lineNum">     682 </span>            :      *
+<span class="lineNum">     683 </span>            :      * 3. B is what we give to MPI_Send (and friends), A is where the
+<span class="lineNum">     684 </span>            :      * data starts, and C is where the data ends.  In this case:
+<span class="lineNum">     685 </span>            :      *
+<span class="lineNum">     686 </span>            :      * - extent: C-A
+<span class="lineNum">     687 </span>            :      * - true extent: C-A
+<span class="lineNum">     688 </span>            :      * - true_lb: negative
+<span class="lineNum">     689 </span>            :      *
+<span class="lineNum">     690 </span>            :      * A              B                                       C
+<span class="lineNum">     691 </span>            :      * --------------------------------------------------------
+<span class="lineNum">     692 </span>            :      * |              |           User buffer                 |
+<span class="lineNum">     693 </span>            :      * --------------------------------------------------------
+<span class="lineNum">     694 </span>            :      * &lt;=======================extent=========================&gt;
+<span class="lineNum">     695 </span>            :      * &lt;======================true extent=====================&gt;
+<span class="lineNum">     696 </span>            :      *
+<span class="lineNum">     697 </span>            :      * 4. MPI_BOTTOM is what we give to MPI_Send (and friends), B is
+<span class="lineNum">     698 </span>            :      * where the data starts, and C is where the data ends.  In this
+<span class="lineNum">     699 </span>            :      * case:
+<span class="lineNum">     700 </span>            :      *
+<span class="lineNum">     701 </span>            :      * - extent: C-MPI_BOTTOM
+<span class="lineNum">     702 </span>            :      * - true extent: C-B
+<span class="lineNum">     703 </span>            :      * - true_lb: [potentially very large] positive
+<span class="lineNum">     704 </span>            :      *
+<span class="lineNum">     705 </span>            :      * MPI_BOTTOM     B                                       C
+<span class="lineNum">     706 </span>            :      * --------------------------------------------------------
+<span class="lineNum">     707 </span>            :      * |              |           User buffer                 |
+<span class="lineNum">     708 </span>            :      * --------------------------------------------------------
+<span class="lineNum">     709 </span>            :      * &lt;=======================extent=========================&gt;
+<span class="lineNum">     710 </span>            :      * &lt;===============true extent=============&gt;
+<span class="lineNum">     711 </span>            :      *
+<span class="lineNum">     712 </span>            :      * So in all cases, for a temporary buffer, all we need to malloc()
+<span class="lineNum">     713 </span>            :      * is a buffer of size true_extent.  We therefore need to know two
+<span class="lineNum">     714 </span>            :      * pointer values: what value to give to MPI_Send (and friends) and
+<span class="lineNum">     715 </span>            :      * what value to give to free(), because they might not be the same.
+<span class="lineNum">     716 </span>            :      *
+<span class="lineNum">     717 </span>            :      * Clearly, what we give to free() is exactly what was returned from
+<span class="lineNum">     718 </span>            :      * malloc().  That part is easy.  :-)
+<span class="lineNum">     719 </span>            :      *
+<span class="lineNum">     720 </span>            :      * What we give to MPI_Send (and friends) is a bit more complicated.
+<span class="lineNum">     721 </span>            :      * Let's take the 4 cases from above:
+<span class="lineNum">     722 </span>            :      *
+<span class="lineNum">     723 </span>            :      * 1. If A is what we give to MPI_Send and A is where the data
+<span class="lineNum">     724 </span>            :      * starts, then clearly we give to MPI_Send what we got back from
+<span class="lineNum">     725 </span>            :      * malloc().
+<span class="lineNum">     726 </span>            :      *
+<span class="lineNum">     727 </span>            :      * 2. If B is what we get back from malloc, but we give A to
+<span class="lineNum">     728 </span>            :      * MPI_Send, then the buffer range [A,B) represents &quot;dead space&quot;
+<span class="lineNum">     729 </span>            :      * -- no data will be put there.  So it's safe to give B-true_lb to
+<span class="lineNum">     730 </span>            :      * MPI_Send.  More specifically, the true_lb is positive, so B-true_lb is
+<span class="lineNum">     731 </span>            :      * actually A.
+<span class="lineNum">     732 </span>            :      *
+<span class="lineNum">     733 </span>            :      * 3. If A is what we get back from malloc, and B is what we give to
+<span class="lineNum">     734 </span>            :      * MPI_Send, then the true_lb is negative, so A-true_lb will actually equal
+<span class="lineNum">     735 </span>            :      * B.
+<span class="lineNum">     736 </span>            :      *
+<span class="lineNum">     737 </span>            :      * 4. Although this seems like the weirdest case, it's actually
+<span class="lineNum">     738 </span>            :      * quite similar to case #2 -- the pointer we give to MPI_Send is
+<span class="lineNum">     739 </span>            :      * smaller than the pointer we got back from malloc().
+<span class="lineNum">     740 </span>            :      *
+<span class="lineNum">     741 </span>            :      * Hence, in all cases, we give (return_from_malloc - true_lb) to MPI_Send.
+<span class="lineNum">     742 </span>            :      *
+<span class="lineNum">     743 </span>            :      * This works fine and dandy if we only have (count==1), which we
+<span class="lineNum">     744 </span>            :      * rarely do.  ;-) So we really need to allocate (true_extent +
+<span class="lineNum">     745 </span>            :      * ((count - 1) * extent)) to get enough space for the rest.  This may
+<span class="lineNum">     746 </span>            :      * be more than is necessary, but it's ok.
+<span class="lineNum">     747 </span>            :      *
+<span class="lineNum">     748 </span>            :      * Simple, no?  :-)
+<span class="lineNum">     749 </span>            :      *
+<span class="lineNum">     750 </span>            :      */
+<span class="lineNum">     751 </span>            : 
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :     ompi_datatype_get_extent(dtype, &amp;lb, &amp;extent);</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :     ompi_datatype_get_true_extent(dtype, &amp;true_lb, &amp;true_extent);</span>
+<span class="lineNum">     754 </span>            : 
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :     if (MPI_IN_PLACE == sbuf) {</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :         sbuf = rbuf;</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :         inplace_temp = (char*)malloc(true_extent + (count - 1) * extent);</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :         if (NULL == inplace_temp) {</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :             return OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     760 </span>            :         }
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :         rbuf = inplace_temp - true_lb;</span>
+<span class="lineNum">     762 </span>            :     }
+<span class="lineNum">     763 </span>            : 
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :     if (size &gt; 1) {</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :         free_buffer = (char*)malloc(true_extent + (count - 1) * extent);</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :         if (NULL == free_buffer) {</span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :             if (NULL != inplace_temp) {</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :                 free(inplace_temp);</span>
+<span class="lineNum">     769 </span>            :             }
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :             return OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     771 </span>            :         }
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :         pml_buffer = free_buffer - true_lb;</span>
+<span class="lineNum">     773 </span>            :     }
+<span class="lineNum">     774 </span>            : 
+<span class="lineNum">     775 </span>            :     /* Initialize the receive buffer. */
+<span class="lineNum">     776 </span>            : 
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :     if (rank == (size - 1)) {</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :         err = ompi_datatype_copy_content_same_ddt(dtype, count, (char*)rbuf, (char*)sbuf);</span>
+<span class="lineNum">     779 </span>            :     } else {
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :         err = MCA_PML_CALL(recv(rbuf, count, dtype, size - 1,</span>
+<span class="lineNum">     781 </span>            :                                 MCA_COLL_BASE_TAG_REDUCE, comm,
+<span class="lineNum">     782 </span>            :                                 MPI_STATUS_IGNORE));
+<span class="lineNum">     783 </span>            :     }
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != err) {</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :         if (NULL != free_buffer) {</span>
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :             free(free_buffer);</span>
+<span class="lineNum">     787 </span>            :         }
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :         return err;</span>
+<span class="lineNum">     789 </span>            :     }
+<span class="lineNum">     790 </span>            : 
+<span class="lineNum">     791 </span>            :     /* Loop receiving and calling reduction function (C or Fortran). */
+<span class="lineNum">     792 </span>            : 
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :     for (i = size - 2; i &gt;= 0; --i) {</span>
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :         if (rank == i) {</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :             inbuf = (char*)sbuf;</span>
+<span class="lineNum">     796 </span>            :         } else {
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :             err = MCA_PML_CALL(recv(pml_buffer, count, dtype, i,</span>
+<span class="lineNum">     798 </span>            :                                     MCA_COLL_BASE_TAG_REDUCE, comm,
+<span class="lineNum">     799 </span>            :                                     MPI_STATUS_IGNORE));
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :             if (MPI_SUCCESS != err) {</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :                 if (NULL != free_buffer) {</span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :                     free(free_buffer);</span>
+<span class="lineNum">     803 </span>            :                 }
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :                 return err;</span>
+<span class="lineNum">     805 </span>            :             }
+<span class="lineNum">     806 </span>            : 
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :             inbuf = pml_buffer;</span>
+<span class="lineNum">     808 </span>            :         }
+<span class="lineNum">     809 </span>            : 
+<span class="lineNum">     810 </span>            :         /* Perform the reduction */
+<span class="lineNum">     811 </span>            : 
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :         ompi_op_reduce(op, inbuf, rbuf, count, dtype);</span>
+<span class="lineNum">     813 </span>            :     }
+<span class="lineNum">     814 </span>            : 
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :     if (NULL != inplace_temp) {</span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :         err = ompi_datatype_copy_content_same_ddt(dtype, count, (char*)sbuf, inplace_temp);</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :         free(inplace_temp);</span>
+<span class="lineNum">     818 </span>            :     }
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :     if (NULL != free_buffer) {</span>
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :         free(free_buffer);</span>
+<span class="lineNum">     821 </span>            :     }
+<span class="lineNum">     822 </span>            : 
+<span class="lineNum">     823 </span>            :     /* All done */
+<span class="lineNum">     824 </span>            : 
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :     return MPI_SUCCESS;</span>
+<span class="lineNum">     826 </span>            : }
+<span class="lineNum">     827 </span>            : 
+<span class="lineNum">     828 </span>            : /* copied function (with appropriate renaming) ends here */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

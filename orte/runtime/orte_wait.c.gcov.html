@@ -1,0 +1,352 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/runtime/orte_wait.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">orte/runtime</a> - orte_wait.c<span style="font-size: 80%;"> (source / <a href="orte_wait.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">95</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2008 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2007-2013 Los Alamos National Security, LLC.  All rights
+<span class="lineNum">      13 </span>            :  *                         reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2008      Institut National de Recherche en Informatique
+<span class="lineNum">      15 </span>            :  *                         et Automatique. All rights reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2014      Intel Corporation.  All rights reserved.
+<span class="lineNum">      17 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * $HEADER$
+<span class="lineNum">      22 </span>            :  */
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;assert.h&gt;
+<span class="lineNum">      29 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      30 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      31 </span>            : #endif
+<span class="lineNum">      32 </span>            : #ifdef HAVE_SYS_QUEUE_H
+<span class="lineNum">      33 </span>            : #include &lt;sys/queue.h&gt;
+<span class="lineNum">      34 </span>            : #endif
+<span class="lineNum">      35 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      36 </span>            : #ifdef HAVE_SYS_TIME_H
+<span class="lineNum">      37 </span>            : #include &lt;sys/time.h&gt;
+<span class="lineNum">      38 </span>            : #endif
+<span class="lineNum">      39 </span>            : #ifdef HAVE_SYS_TYPES_H
+<span class="lineNum">      40 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      41 </span>            : #endif
+<span class="lineNum">      42 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      43 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      44 </span>            : #include &lt;signal.h&gt;
+<span class="lineNum">      45 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      46 </span>            : #include &lt;sys/stat.h&gt;
+<span class="lineNum">      47 </span>            : #ifdef HAVE_SYS_WAIT_H
+<span class="lineNum">      48 </span>            : #include &lt;sys/wait.h&gt;
+<span class="lineNum">      49 </span>            : #endif
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            : #include &quot;opal/dss/dss_types.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;opal/class/opal_object.h&quot;
+<span class="lineNum">      53 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      54 </span>            : #include &quot;opal/class/opal_list.h&quot;
+<span class="lineNum">      55 </span>            : #include &quot;opal/mca/event/event.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;opal/threads/mutex.h&quot;
+<span class="lineNum">      57 </span>            : #include &quot;opal/threads/condition.h&quot;
+<span class="lineNum">      58 </span>            : #include &quot;opal/sys/atomic.h&quot;
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : #include &quot;orte/constants.h&quot;
+<span class="lineNum">      61 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      62 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      63 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : #include &quot;orte/runtime/orte_wait.h&quot;
+<a name="66"><span class="lineNum">      66 </span>            : </a>
+<span class="lineNum">      67 </span>            : /* Timer Object Declaration */
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 : static void timer_const(orte_timer_t *tm)</span>
+<span class="lineNum">      69 </span>            : {
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     tm-&gt;ev = opal_event_alloc();</span>
+<a name="71"><span class="lineNum">      71 </span><span class="lineNoCov">          0 :     tm-&gt;payload = NULL;</span></a>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 : static void timer_dest(orte_timer_t *tm)</span>
+<span class="lineNum">      74 </span>            : {
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     opal_event_free(tm-&gt;ev);</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      77 </span>            : OBJ_CLASS_INSTANCE(orte_timer_t,
+<span class="lineNum">      78 </span>            :                    opal_object_t,
+<span class="lineNum">      79 </span>            :                    timer_const,
+<span class="lineNum">      80 </span>            :                    timer_dest);
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : /* Local objects */
+<span class="lineNum">      83 </span>            : typedef struct {
+<span class="lineNum">      84 </span>            :     opal_list_item_t super;
+<span class="lineNum">      85 </span>            :     opal_event_t ev;
+<span class="lineNum">      86 </span>            :     orte_proc_t *child;
+<span class="lineNum">      87 </span>            :     orte_wait_fn_t cbfunc;
+<a name="88"><span class="lineNum">      88 </span>            :     void *cbdata;</a>
+<span class="lineNum">      89 </span>            : } orte_wait_tracker_t;
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 : static void wccon(orte_wait_tracker_t *p)</span>
+<span class="lineNum">      91 </span>            : {
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :     p-&gt;child = NULL;</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     p-&gt;cbfunc = NULL;</span>
+<a name="94"><span class="lineNum">      94 </span><span class="lineNoCov">          0 :     p-&gt;cbdata = NULL;</span></a>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 : static void wcdes(orte_wait_tracker_t *p)</span>
+<span class="lineNum">      97 </span>            : {
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     if (NULL != p-&gt;child) {</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(p-&gt;child);</span>
+<span class="lineNum">     100 </span>            :     }
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     102 </span>            : static OBJ_CLASS_INSTANCE(orte_wait_tracker_t,
+<span class="lineNum">     103 </span>            :                           opal_list_item_t,
+<span class="lineNum">     104 </span>            :                           wccon, wcdes);
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            : /* Local Variables */
+<span class="lineNum">     107 </span>            : static opal_event_t handler;
+<span class="lineNum">     108 </span>            : static opal_list_t pending_cbs;
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : /* Local Function Prototypes */
+<span class="lineNum">     111 </span>            : static void wait_signal_callback(int fd, short event, void *arg);
+<span class="lineNum">     112 </span>            : 
+<a name="113"><span class="lineNum">     113 </span>            : /* Interface Functions */</a>
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 : void orte_wait_disable(void)</span>
+<span class="lineNum">     116 </span>            : {
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     opal_event_del(&amp;handler);</span>
+<a name="118"><span class="lineNum">     118 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 : void orte_wait_enable(void)</span>
+<span class="lineNum">     121 </span>            : {
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     opal_event_add(&amp;handler, NULL);</span>
+<a name="123"><span class="lineNum">     123 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 : int orte_wait_init(void)</span>
+<span class="lineNum">     126 </span>            : {
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;pending_cbs, opal_list_t);</span>
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     opal_event_set(orte_event_base,</span>
+<span class="lineNum">     130 </span>            :                    &amp;handler, SIGCHLD, OPAL_EV_SIGNAL|OPAL_EV_PERSIST,
+<span class="lineNum">     131 </span>            :                    wait_signal_callback,
+<span class="lineNum">     132 </span>            :                    &amp;handler);
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     opal_event_set_priority(&amp;handler, ORTE_SYS_PRI);</span>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     opal_event_add(&amp;handler, NULL);</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     137 </span>            : }
+<a name="138"><span class="lineNum">     138 </span>            : </a>
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 : int orte_wait_finalize(void)</span>
+<span class="lineNum">     141 </span>            : {
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     opal_event_del(&amp;handler);</span>
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            :     /* clear out the pending cbs */
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     OPAL_LIST_DESTRUCT(&amp;pending_cbs);</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="148"><span class="lineNum">     148 </span>            : }</a>
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 : static void register_callback(int fd, short args, void *cbdata)</span>
+<span class="lineNum">     151 </span>            : {
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     orte_wait_tracker_t *trk = (orte_wait_tracker_t*)cbdata;</span>
+<span class="lineNum">     153 </span>            :     orte_wait_tracker_t *t2;
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            :     /* see if this proc is still alive */
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     if (!ORTE_FLAG_TEST(trk-&gt;child, ORTE_PROC_FLAG_ALIVE)) {</span>
+<span class="lineNum">     157 </span>            :         /* already heard this proc is dead, so just do the callback */
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :         if (NULL != trk-&gt;cbfunc) {</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :             trk-&gt;cbfunc(trk-&gt;child, trk-&gt;cbdata);</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(trk);</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     162 </span>            :         }
+<span class="lineNum">     163 </span>            :     }
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span>            :    /* we just override any existing registration */
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     OPAL_LIST_FOREACH(t2, &amp;pending_cbs, orte_wait_tracker_t) {</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :         if (t2-&gt;child == trk-&gt;child) {</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :             t2-&gt;cbfunc = trk-&gt;cbfunc;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :             t2-&gt;cbdata = trk-&gt;cbdata;</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(trk);</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     172 </span>            :         }
+<span class="lineNum">     173 </span>            :     }
+<span class="lineNum">     174 </span>            :     /* get here if this is a new registration */
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;pending_cbs, &amp;trk-&gt;super);</span>
+<a name="176"><span class="lineNum">     176 </span>            : }</a>
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 : void orte_wait_cb(orte_proc_t *child, orte_wait_fn_t callback, void *data)</span>
+<span class="lineNum">     179 </span>            : {
+<span class="lineNum">     180 </span>            :     orte_wait_tracker_t *trk;
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     if (NULL == child || NULL == callback) {</span>
+<span class="lineNum">     183 </span>            :         /* bozo protection */
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     186 </span>            :     }
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span>            :     /* push this into the event library for handling */
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     trk = OBJ_NEW(orte_wait_tracker_t);</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :     OBJ_RETAIN(child);  // protect against race conditions</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     trk-&gt;child = child;</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     trk-&gt;cbfunc = callback;</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :     trk-&gt;cbdata = data;</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     opal_event_set(orte_event_base, &amp;trk-&gt;ev, -1, OPAL_EV_WRITE, register_callback, trk);</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     opal_event_set_priority(&amp;trk-&gt;ev, ORTE_SYS_PRI);</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :     opal_event_active(&amp;trk-&gt;ev, OPAL_EV_WRITE, 1);</span>
+<a name="197"><span class="lineNum">     197 </span>            : }</a>
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 : static void cancel_callback(int fd, short args, void *cbdata)</span>
+<span class="lineNum">     200 </span>            : {
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     orte_wait_tracker_t *trk = (orte_wait_tracker_t*)cbdata;</span>
+<span class="lineNum">     202 </span>            :     orte_wait_tracker_t *t2;
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     OPAL_LIST_FOREACH(t2, &amp;pending_cbs, orte_wait_tracker_t) {</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :         if (t2-&gt;child == trk-&gt;child) {</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :             opal_list_remove_item(&amp;pending_cbs, &amp;t2-&gt;super);</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(t2);</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(trk);</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     210 </span>            :         }
+<span class="lineNum">     211 </span>            :     }
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(trk);</span>
+<a name="214"><span class="lineNum">     214 </span>            : }</a>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 : void orte_wait_cb_cancel(orte_proc_t *child)</span>
+<span class="lineNum">     217 </span>            : {
+<span class="lineNum">     218 </span>            :     orte_wait_tracker_t *trk;
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :     if (NULL == child) {</span>
+<span class="lineNum">     221 </span>            :         /* bozo protection */
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     224 </span>            :     }
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            :     /* push this into the event library for handling */
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     trk = OBJ_NEW(orte_wait_tracker_t);</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     OBJ_RETAIN(child);  // protect against race conditions</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     trk-&gt;child = child;</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     opal_event_set(orte_event_base, &amp;trk-&gt;ev, -1, OPAL_EV_WRITE, cancel_callback, trk);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     opal_event_set_priority(&amp;trk-&gt;ev, ORTE_SYS_PRI);</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     opal_event_active(&amp;trk-&gt;ev, OPAL_EV_WRITE, 1);</span>
+<span class="lineNum">     233 </span>            : }
+<span class="lineNum">     234 </span>            : 
+<a name="235"><span class="lineNum">     235 </span>            : </a>
+<span class="lineNum">     236 </span>            : /* callback from the event library whenever a SIGCHLD is received */
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 : static void wait_signal_callback(int fd, short event, void *arg)</span>
+<span class="lineNum">     238 </span>            : {
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     opal_event_t *signal = (opal_event_t*) arg;</span>
+<span class="lineNum">     240 </span>            :     int status;
+<span class="lineNum">     241 </span>            :     pid_t pid;
+<span class="lineNum">     242 </span>            :     orte_wait_tracker_t *t2;
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     if (SIGCHLD != OPAL_EVENT_SIGNAL(signal)) {</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     246 </span>            :     }
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span>            :     /* we can have multiple children leave but only get one
+<span class="lineNum">     249 </span>            :      * sigchild callback, so reap all the waitpids until we
+<span class="lineNum">     250 </span>            :      * don't get anything valid back */
+<span class="lineNum">     251 </span>            :     while (1) {
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         pid = waitpid(-1, &amp;status, WNOHANG);</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         if (-1 == pid &amp;&amp; EINTR == errno) {</span>
+<span class="lineNum">     254 </span>            :             /* try it again */
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     256 </span>            :         }
+<span class="lineNum">     257 </span>            :         /* if we got garbage, then nothing we can do */
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         if (pid &lt;= 0) {</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     260 </span>            :         }
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span>            :         /* we are already in an event, so it is safe to access the list */
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         OPAL_LIST_FOREACH(t2, &amp;pending_cbs, orte_wait_tracker_t) {</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             if (pid == t2-&gt;child-&gt;pid) {</span>
+<span class="lineNum">     265 </span>            :                 /* found it! */
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :                 t2-&gt;child-&gt;exit_code = status;</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :                 if (NULL != t2-&gt;cbfunc) {</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :                     t2-&gt;cbfunc(t2-&gt;child, t2-&gt;cbdata);</span>
+<span class="lineNum">     269 </span>            :                 }
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;pending_cbs, &amp;t2-&gt;super);</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(t2);</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     273 </span>            :             }
+<span class="lineNum">     274 </span>            :         }
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     276 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

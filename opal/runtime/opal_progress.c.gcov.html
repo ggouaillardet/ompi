@@ -1,0 +1,451 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/runtime/opal_progress.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/runtime</a> - opal_progress.c<span style="font-size: 80%;"> (source / <a href="opal_progress.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">84</td>
+            <td class="headerCovTableEntry">91</td>
+            <td class="headerCovTableEntryHi">92.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntryHi">90.9 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2005 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2006-2014 Los Alamos National Security, LLC.  All rights
+<span class="lineNum">      14 </span>            :  *                         reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      16 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      21 </span>            :  *
+<span class="lineNum">      22 </span>            :  * $HEADER$
+<span class="lineNum">      23 </span>            :  */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #ifdef HAVE_SCHED_H
+<span class="lineNum">      28 </span>            : #include &lt;sched.h&gt;
+<span class="lineNum">      29 </span>            : #endif
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &quot;opal/runtime/opal_progress.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;opal/mca/event/event.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;opal/mca/base/mca_base_var.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;opal/mca/timer/base/base.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;opal/runtime/opal_params.h&quot;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : #define OPAL_PROGRESS_USE_TIMERS (OPAL_TIMER_CYCLE_SUPPORTED || OPAL_TIMER_USEC_SUPPORTED)
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">      42 </span>            : bool opal_progress_debug = false;
+<span class="lineNum">      43 </span>            : #endif
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : /*
+<span class="lineNum">      46 </span>            :  * default parameters
+<span class="lineNum">      47 </span>            :  */
+<span class="lineNum">      48 </span>            : static int opal_progress_event_flag = OPAL_EVLOOP_ONCE | OPAL_EVLOOP_NONBLOCK;
+<span class="lineNum">      49 </span>            : int opal_progress_spin_count = 10000;
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : /*
+<span class="lineNum">      53 </span>            :  * Local variables
+<span class="lineNum">      54 </span>            :  */
+<span class="lineNum">      55 </span>            : static opal_atomic_lock_t progress_lock;
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : /* callbacks to progress */
+<span class="lineNum">      58 </span>            : static opal_progress_callback_t *callbacks = NULL;
+<span class="lineNum">      59 </span>            : static size_t callbacks_len = 0;
+<span class="lineNum">      60 </span>            : static size_t callbacks_size = 0;
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : /* do we want to call sched_yield() if nothing happened */
+<span class="lineNum">      63 </span>            : bool opal_progress_yield_when_idle = false;
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : #if OPAL_PROGRESS_USE_TIMERS
+<span class="lineNum">      66 </span>            : static opal_timer_t event_progress_last_time = 0;
+<span class="lineNum">      67 </span>            : static opal_timer_t event_progress_delta = 0;
+<span class="lineNum">      68 </span>            : #else
+<span class="lineNum">      69 </span>            : /* current count down until we tick the event library */
+<span class="lineNum">      70 </span>            : static int32_t event_progress_counter = 0;
+<span class="lineNum">      71 </span>            : /* reset value for counter when it hits 0 */
+<span class="lineNum">      72 </span>            : static int32_t event_progress_delta = 0;
+<span class="lineNum">      73 </span>            : #endif
+<span class="lineNum">      74 </span>            : /* users of the event library from MPI cause the tick rate to
+<span class="lineNum">      75 </span>            :    be every time */
+<span class="lineNum">      76 </span>            : static int32_t num_event_users = 0;
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">      79 </span>            : static int debug_output = -1;
+<span class="lineNum">      80 </span>            : #endif
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : /**
+<span class="lineNum">      83 </span>            :  * Fake callback used for threading purpose when one thread
+<span class="lineNum">      84 </span>            :  * progesses callbacks while another unregister somes. The root
+<span class="lineNum">      85 </span>            :  * of the problem is that we allow modifications of the callback
+<span class="lineNum">      86 </span>            :  * array directly from the callbacks themselves. Now if
+<span class="lineNum">      87 </span>            :  * writing a pointer is atomic, we should not have any more
+<a name="88"><span class="lineNum">      88 </span>            :  * problems.</a>
+<span class="lineNum">      89 </span>            :  */
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 : static int fake_cb(void) { return 0; }</span>
+<span class="lineNum">      91 </span>            : 
+<a name="92"><span class="lineNum">      92 </span>            : /* init the progress engine - called from orte_init */</a>
+<span class="lineNum">      93 </span>            : int
+<span class="lineNum">      94 </span><span class="lineCov">          2 : opal_progress_init(void)</span>
+<span class="lineNum">      95 </span>            : {
+<span class="lineNum">      96 </span>            :     /* reentrant issues */
+<span class="lineNum">      97 </span><span class="lineCov">          2 :     opal_atomic_init(&amp;progress_lock, OPAL_ATOMIC_UNLOCKED);</span>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            :     /* set the event tick rate */
+<span class="lineNum">     100 </span><span class="lineCov">          2 :     opal_progress_set_event_poll_rate(10000);</span>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     103 </span><span class="lineCov">          2 :     if (opal_progress_debug) {</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :        debug_output = opal_output_open(NULL);</span>
+<span class="lineNum">     105 </span>            :     }
+<span class="lineNum">     106 </span>            : #endif
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineCov">          2 :     OPAL_OUTPUT((debug_output, &quot;progress: initialized event flag to: %x&quot;,</span>
+<span class="lineNum">     109 </span>            :                  opal_progress_event_flag));
+<span class="lineNum">     110 </span><span class="lineCov">          2 :     OPAL_OUTPUT((debug_output, &quot;progress: initialized yield_when_idle to: %s&quot;,</span>
+<span class="lineNum">     111 </span>            :                  opal_progress_yield_when_idle ? &quot;true&quot; : &quot;false&quot;));
+<span class="lineNum">     112 </span><span class="lineCov">          2 :     OPAL_OUTPUT((debug_output, &quot;progress: initialized num users to: %d&quot;,</span>
+<span class="lineNum">     113 </span>            :                  num_event_users));
+<span class="lineNum">     114 </span><span class="lineCov">          2 :     OPAL_OUTPUT((debug_output, &quot;progress: initialized poll rate to: %ld&quot;,</span>
+<span class="lineNum">     115 </span>            :                  (long) event_progress_delta));
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     118 </span>            : }
+<span class="lineNum">     119 </span>            : 
+<a name="120"><span class="lineNum">     120 </span>            : </a>
+<span class="lineNum">     121 </span>            : int
+<span class="lineNum">     122 </span><span class="lineCov">          2 : opal_progress_finalize(void)</span>
+<span class="lineNum">     123 </span>            : {
+<span class="lineNum">     124 </span>            :     /* free memory associated with the callbacks */
+<span class="lineNum">     125 </span><span class="lineCov">          2 :     opal_atomic_lock(&amp;progress_lock);</span>
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span><span class="lineCov">          2 :     callbacks_len = 0;</span>
+<span class="lineNum">     128 </span><span class="lineCov">          2 :     callbacks_size = 0;</span>
+<span class="lineNum">     129 </span><span class="lineCov">          2 :     if (NULL != callbacks) {</span>
+<span class="lineNum">     130 </span><span class="lineCov">          2 :         free(callbacks);</span>
+<span class="lineNum">     131 </span><span class="lineCov">          2 :         callbacks = NULL;</span>
+<span class="lineNum">     132 </span>            :     }
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span><span class="lineCov">          2 :     opal_atomic_unlock(&amp;progress_lock);</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     137 </span>            : }
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            : /*
+<span class="lineNum">     141 </span>            :  * Progress the event library and any functions that have registered to
+<span class="lineNum">     142 </span>            :  * be called.  We don't propogate errors from the progress functions,
+<span class="lineNum">     143 </span>            :  * so no action is taken if they return failures.  The functions are
+<span class="lineNum">     144 </span>            :  * expected to return the number of events progressed, to determine
+<span class="lineNum">     145 </span>            :  * whether or not we should call sched_yield() during MPI progress.
+<span class="lineNum">     146 </span>            :  * This is only losely tracked, as an error return can cause the number
+<span class="lineNum">     147 </span>            :  * of progressed events to appear lower than it actually is.  We don't
+<span class="lineNum">     148 </span>            :  * care, as the cost of that happening is far outweighed by the cost
+<span class="lineNum">     149 </span>            :  * of the if checks (they were resulting in bad pipe stalling behavior)
+<a name="150"><span class="lineNum">     150 </span>            :  */</a>
+<span class="lineNum">     151 </span>            : void
+<span class="lineNum">     152 </span><span class="lineCov">          4 : opal_progress(void)</span>
+<span class="lineNum">     153 </span>            : {
+<span class="lineNum">     154 </span>            :     size_t i;
+<span class="lineNum">     155 </span><span class="lineCov">          4 :     int events = 0;</span>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineCov">          4 :     if( opal_progress_event_flag != 0 ) {</span>
+<span class="lineNum">     158 </span>            : #if OPAL_HAVE_WORKING_EVENTOPS
+<span class="lineNum">     159 </span>            : #if OPAL_PROGRESS_USE_TIMERS
+<span class="lineNum">     160 </span>            : #if OPAL_TIMER_USEC_NATIVE
+<span class="lineNum">     161 </span><span class="lineCov">          4 :         opal_timer_t now = opal_timer_base_get_usec();</span>
+<span class="lineNum">     162 </span>            : #else
+<span class="lineNum">     163 </span>            :         opal_timer_t now = opal_timer_base_get_cycles();
+<span class="lineNum">     164 </span>            : #endif  /* OPAL_TIMER_USEC_NATIVE */
+<span class="lineNum">     165 </span>            :     /* trip the event library if we've reached our tick rate and we are
+<span class="lineNum">     166 </span>            :        enabled */
+<span class="lineNum">     167 </span><span class="lineCov">          4 :         if (now - event_progress_last_time &gt; event_progress_delta ) {</span>
+<span class="lineNum">     168 </span><span class="lineCov">          8 :                 event_progress_last_time = (num_event_users &gt; 0) ?</span>
+<span class="lineNum">     169 </span><span class="lineCov">          4 :                     now - event_progress_delta : now;</span>
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span><span class="lineCov">          4 :                 events += opal_event_loop(opal_sync_event_base, opal_progress_event_flag);</span>
+<span class="lineNum">     172 </span>            :         }
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            : #else /* OPAL_PROGRESS_USE_TIMERS */
+<span class="lineNum">     175 </span>            :     /* trip the event library if we've reached our tick rate and we are
+<span class="lineNum">     176 </span>            :        enabled */
+<span class="lineNum">     177 </span>            :         if (OPAL_THREAD_ADD32(&amp;event_progress_counter, -1) &lt;= 0 ) {
+<span class="lineNum">     178 </span>            :                 event_progress_counter =
+<span class="lineNum">     179 </span>            :                     (num_event_users &gt; 0) ? 0 : event_progress_delta;
+<span class="lineNum">     180 </span>            :                 events += opal_event_loop(opal_sync_event_base, opal_progress_event_flag);
+<span class="lineNum">     181 </span>            :         }
+<span class="lineNum">     182 </span>            : #endif /* OPAL_PROGRESS_USE_TIMERS */
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            : #endif /* OPAL_HAVE_WORKING_EVENTOPS */
+<span class="lineNum">     185 </span>            :     }
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span>            :     /* progress all registered callbacks */
+<span class="lineNum">     188 </span><span class="lineCov">         12 :     for (i = 0 ; i &lt; callbacks_len ; ++i) {</span>
+<span class="lineNum">     189 </span><span class="lineCov">          8 :         events += (callbacks[i])();</span>
+<span class="lineNum">     190 </span>            :     }
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            : #if OPAL_HAVE_SCHED_YIELD
+<span class="lineNum">     193 </span><span class="lineCov">          4 :     if (opal_progress_yield_when_idle &amp;&amp; events &lt;= 0) {</span>
+<span class="lineNum">     194 </span>            :         /* If there is nothing to do - yield the processor - otherwise
+<span class="lineNum">     195 </span>            :          * we could consume the processor for the entire time slice. If
+<span class="lineNum">     196 </span>            :          * the processor is oversubscribed - this will result in a best-case
+<span class="lineNum">     197 </span>            :          * latency equivalent to the time-slice.
+<span class="lineNum">     198 </span>            :          */
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :         sched_yield();</span>
+<span class="lineNum">     200 </span>            :     }
+<span class="lineNum">     201 </span>            : #endif  /* defined(HAVE_SCHED_YIELD) */
+<span class="lineNum">     202 </span><span class="lineCov">          4 : }</span>
+<span class="lineNum">     203 </span>            : 
+<a name="204"><span class="lineNum">     204 </span>            : </a>
+<span class="lineNum">     205 </span>            : int
+<span class="lineNum">     206 </span><span class="lineCov">          4 : opal_progress_set_event_flag(int flag)</span>
+<span class="lineNum">     207 </span>            : {
+<span class="lineNum">     208 </span><span class="lineCov">          4 :     int tmp = opal_progress_event_flag;</span>
+<span class="lineNum">     209 </span><span class="lineCov">          4 :     opal_progress_event_flag = flag;</span>
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span><span class="lineCov">          4 :     OPAL_OUTPUT((debug_output, &quot;progress: set_event_flag setting to %d&quot;, flag));</span>
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span><span class="lineCov">          4 :     return tmp;</span>
+<span class="lineNum">     214 </span>            : }
+<span class="lineNum">     215 </span>            : 
+<a name="216"><span class="lineNum">     216 </span>            : </a>
+<span class="lineNum">     217 </span>            : void
+<span class="lineNum">     218 </span><span class="lineCov">          8 : opal_progress_event_users_increment(void)</span>
+<span class="lineNum">     219 </span>            : {
+<span class="lineNum">     220 </span>            :     int32_t val;
+<span class="lineNum">     221 </span><span class="lineCov">          8 :     val = opal_atomic_add_32(&amp;num_event_users, 1);</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineCov">          8 :     OPAL_OUTPUT((debug_output, &quot;progress: event_users_increment setting count to %d&quot;, val));</span>
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span>            : #if OPAL_PROGRESS_USE_TIMERS
+<span class="lineNum">     226 </span>            :     /* force an update next round (we'll be past the delta) */
+<span class="lineNum">     227 </span><span class="lineCov">          8 :     event_progress_last_time -= event_progress_delta;</span>
+<span class="lineNum">     228 </span>            : #else
+<span class="lineNum">     229 </span>            :     /* always reset the tick rate - can't hurt */
+<span class="lineNum">     230 </span>            :     event_progress_counter = 0;
+<span class="lineNum">     231 </span>            : #endif
+<span class="lineNum">     232 </span><span class="lineCov">          8 : }</span>
+<span class="lineNum">     233 </span>            : 
+<a name="234"><span class="lineNum">     234 </span>            : </a>
+<span class="lineNum">     235 </span>            : void
+<span class="lineNum">     236 </span><span class="lineCov">          6 : opal_progress_event_users_decrement(void)</span>
+<span class="lineNum">     237 </span>            : {
+<span class="lineNum">     238 </span>            :     int32_t val;
+<span class="lineNum">     239 </span><span class="lineCov">          6 :     val = opal_atomic_sub_32(&amp;num_event_users, 1);</span>
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span><span class="lineCov">          6 :     OPAL_OUTPUT((debug_output, &quot;progress: event_users_decrement setting count to %d&quot;, val));</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            : #if !OPAL_PROGRESS_USE_TIMERS
+<span class="lineNum">     244 </span>            :    /* start now in delaying if it's easy */
+<span class="lineNum">     245 </span>            :    if (val &gt;= 0) {
+<span class="lineNum">     246 </span>            :        event_progress_counter = event_progress_delta;
+<span class="lineNum">     247 </span>            :    }
+<span class="lineNum">     248 </span>            : #endif
+<span class="lineNum">     249 </span><span class="lineCov">          6 : }</span>
+<span class="lineNum">     250 </span>            : 
+<a name="251"><span class="lineNum">     251 </span>            : </a>
+<span class="lineNum">     252 </span>            : bool
+<span class="lineNum">     253 </span><span class="lineCov">          2 : opal_progress_set_yield_when_idle(bool yieldopt)</span>
+<span class="lineNum">     254 </span>            : {
+<span class="lineNum">     255 </span><span class="lineCov">          2 :     bool tmp = opal_progress_yield_when_idle;</span>
+<span class="lineNum">     256 </span><span class="lineCov">          2 :     opal_progress_yield_when_idle = (yieldopt) ? 1 : 0;</span>
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineCov">          2 :     OPAL_OUTPUT((debug_output, &quot;progress: progress_set_yield_when_idle to %s&quot;,</span>
+<span class="lineNum">     259 </span>            :                                     opal_progress_yield_when_idle ? &quot;true&quot; : &quot;false&quot;));
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span><span class="lineCov">          2 :     return tmp;</span>
+<span class="lineNum">     262 </span>            : }
+<span class="lineNum">     263 </span>            : 
+<a name="264"><span class="lineNum">     264 </span>            : </a>
+<span class="lineNum">     265 </span>            : void
+<span class="lineNum">     266 </span><span class="lineCov">          2 : opal_progress_set_event_poll_rate(int polltime)</span>
+<span class="lineNum">     267 </span>            : {
+<span class="lineNum">     268 </span><span class="lineCov">          2 :     OPAL_OUTPUT((debug_output, &quot;progress: progress_set_event_poll_rate(%d)&quot;, polltime));</span>
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span>            : #if OPAL_PROGRESS_USE_TIMERS
+<span class="lineNum">     271 </span><span class="lineCov">          2 :     event_progress_delta = 0;</span>
+<span class="lineNum">     272 </span>            : #  if OPAL_TIMER_USEC_NATIVE
+<span class="lineNum">     273 </span><span class="lineCov">          2 :     event_progress_last_time = opal_timer_base_get_usec();</span>
+<span class="lineNum">     274 </span>            : #  else
+<span class="lineNum">     275 </span>            :     event_progress_last_time = opal_timer_base_get_cycles();
+<span class="lineNum">     276 </span>            : #  endif
+<span class="lineNum">     277 </span>            : #else
+<span class="lineNum">     278 </span>            :     event_progress_counter = event_progress_delta = 0;
+<span class="lineNum">     279 </span>            : #endif
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span><span class="lineCov">          2 :     if (polltime == 0) {</span>
+<span class="lineNum">     282 </span>            : #if OPAL_PROGRESS_USE_TIMERS
+<span class="lineNum">     283 </span>            :         /* user specified as never tick - tick once per minute */
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :         event_progress_delta = 60 * 1000000;</span>
+<span class="lineNum">     285 </span>            : #else
+<span class="lineNum">     286 </span>            :         /* user specified as never tick - don't count often */
+<span class="lineNum">     287 </span>            :         event_progress_delta = INT_MAX;
+<span class="lineNum">     288 </span>            : #endif
+<span class="lineNum">     289 </span>            :     } else {
+<span class="lineNum">     290 </span>            : #if OPAL_PROGRESS_USE_TIMERS
+<span class="lineNum">     291 </span><span class="lineCov">          2 :         event_progress_delta = polltime;</span>
+<span class="lineNum">     292 </span>            : #else
+<span class="lineNum">     293 </span>            :         /* subtract one so that we can do post-fix subtraction
+<span class="lineNum">     294 </span>            :            in the inner loop and go faster */
+<span class="lineNum">     295 </span>            :         event_progress_delta = polltime - 1;
+<span class="lineNum">     296 </span>            : #endif
+<span class="lineNum">     297 </span>            :     }
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span>            : #if OPAL_PROGRESS_USE_TIMERS &amp;&amp; !OPAL_TIMER_USEC_NATIVE
+<span class="lineNum">     300 </span>            :     /*  going to use cycles for counter.  Adjust specified usec into cycles */
+<span class="lineNum">     301 </span>            :     event_progress_delta = event_progress_delta * opal_timer_base_get_freq() / 1000000;
+<span class="lineNum">     302 </span>            : #endif
+<span class="lineNum">     303 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     304 </span>            : 
+<a name="305"><span class="lineNum">     305 </span>            : </a>
+<span class="lineNum">     306 </span>            : int
+<span class="lineNum">     307 </span><span class="lineCov">          4 : opal_progress_register(opal_progress_callback_t cb)</span>
+<span class="lineNum">     308 </span>            : {
+<span class="lineNum">     309 </span><span class="lineCov">          4 :     int ret = OPAL_SUCCESS;</span>
+<span class="lineNum">     310 </span>            :     size_t index;
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span><span class="lineCov">          4 :     opal_atomic_lock(&amp;progress_lock);</span>
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span>            :     /* see if we need to allocate more space */
+<span class="lineNum">     315 </span><span class="lineCov">          4 :     if (callbacks_len + 1 &gt; callbacks_size) {</span>
+<span class="lineNum">     316 </span>            :         opal_progress_callback_t *tmp;
+<span class="lineNum">     317 </span><span class="lineCov">          2 :         tmp = (opal_progress_callback_t*)realloc(callbacks, sizeof(opal_progress_callback_t) * (callbacks_size + 4));</span>
+<span class="lineNum">     318 </span><span class="lineCov">          2 :         if (tmp == NULL) {</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :             ret = OPAL_ERR_TEMP_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :             goto cleanup;</span>
+<span class="lineNum">     321 </span>            :         }
+<span class="lineNum">     322 </span>            :         /* registering fake callbacks to fill callbacks[] */
+<span class="lineNum">     323 </span><span class="lineCov">          8 :         for( index = callbacks_len + 1 ;  index &lt; callbacks_size + 4 ; index++) {</span>
+<span class="lineNum">     324 </span><span class="lineCov">          6 :             tmp[index] = &amp;fake_cb;</span>
+<span class="lineNum">     325 </span>            :         }
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span><span class="lineCov">          2 :         callbacks = tmp;</span>
+<span class="lineNum">     328 </span><span class="lineCov">          2 :         callbacks_size += 4;</span>
+<span class="lineNum">     329 </span>            :     }
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineCov">          4 :     callbacks[callbacks_len++] = cb;</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span>            :  cleanup:
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineCov">          4 :     opal_atomic_unlock(&amp;progress_lock);</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineCov">          4 :     return ret;</span>
+<span class="lineNum">     338 </span>            : }
+<a name="339"><span class="lineNum">     339 </span>            : </a>
+<span class="lineNum">     340 </span>            : int
+<span class="lineNum">     341 </span><span class="lineCov">          4 : opal_progress_unregister(opal_progress_callback_t cb)</span>
+<span class="lineNum">     342 </span>            : {
+<span class="lineNum">     343 </span>            :     size_t i;
+<span class="lineNum">     344 </span><span class="lineCov">          4 :     int ret = OPAL_ERR_NOT_FOUND;</span>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span><span class="lineCov">          4 :     opal_atomic_lock(&amp;progress_lock);</span>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineCov">          6 :     for (i = 0 ; i &lt; callbacks_len ; ++i) {</span>
+<span class="lineNum">     349 </span><span class="lineCov">          6 :         if (cb == callbacks[i]) {</span>
+<span class="lineNum">     350 </span><span class="lineCov">          4 :             callbacks[i] = &amp;fake_cb;</span>
+<span class="lineNum">     351 </span><span class="lineCov">          4 :             ret = OPAL_SUCCESS;</span>
+<span class="lineNum">     352 </span><span class="lineCov">          4 :             break;</span>
+<span class="lineNum">     353 </span>            :         }
+<span class="lineNum">     354 </span>            :     }
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span>            :     /* If we found the function we're unregistering: If callbacks_len
+<span class="lineNum">     357 </span>            :        is 0, we're not goig to do anything interesting anyway, so
+<span class="lineNum">     358 </span>            :        skip.  If callbacks_len is 1, it will soon be 0, so no need to
+<span class="lineNum">     359 </span>            :        do any repacking.  size_t can be unsigned, so 0 - 1 is bad for
+<span class="lineNum">     360 </span>            :        a loop condition :). */
+<span class="lineNum">     361 </span><span class="lineCov">          4 :     if (OPAL_SUCCESS == ret) {</span>
+<span class="lineNum">     362 </span><span class="lineCov">          4 :         if (callbacks_len &gt; 1 ) {</span>
+<span class="lineNum">     363 </span>            :             /* now tightly pack the array */
+<span class="lineNum">     364 </span><span class="lineCov">          2 :             for ( ; i &lt; callbacks_len - 1 ; ++i) {</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :                 callbacks[i] = callbacks[i + 1];</span>
+<span class="lineNum">     366 </span>            :             }
+<span class="lineNum">     367 </span>            :         }
+<span class="lineNum">     368 </span><span class="lineCov">          4 :         callbacks[callbacks_len - 1] = &amp;fake_cb;</span>
+<span class="lineNum">     369 </span><span class="lineCov">          4 :         callbacks_len--;</span>
+<span class="lineNum">     370 </span>            :     }
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span><span class="lineCov">          4 :     opal_atomic_unlock(&amp;progress_lock);</span>
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span><span class="lineCov">          4 :     return ret;</span>
+<span class="lineNum">     375 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

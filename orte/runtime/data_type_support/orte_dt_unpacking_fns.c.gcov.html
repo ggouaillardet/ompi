@@ -1,0 +1,984 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/runtime/data_type_support/orte_dt_unpacking_fns.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="index.html">orte/runtime/data_type_support</a> - orte_dt_unpacking_fns.c<span style="font-size: 80%;"> (source / <a href="orte_dt_unpacking_fns.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">430</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2010 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2011 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2011      Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.
+<span class="lineNum">      14 </span>            :  *                         All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+<span class="lineNum">      16 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * $HEADER$
+<span class="lineNum">      21 </span>            :  */
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;orte/types.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &quot;opal/dss/dss.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;opal/dss/dss_internal.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;opal/mca/hwloc/hwloc.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;orte/runtime/data_type_support/orte_dt_support.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : /*
+<a name="36"><span class="lineNum">      36 </span>            :  * ORTE_STD_CNTR</a>
+<span class="lineNum">      37 </span>            :  */
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 : int orte_dt_unpack_std_cntr(opal_buffer_t *buffer, void *dest,</span>
+<span class="lineNum">      39 </span>            :                              int32_t *num_vals, opal_data_type_t type)
+<span class="lineNum">      40 </span>            : {
+<span class="lineNum">      41 </span>            :     int ret;
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            :     /* Turn around and unpack the real type */
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, dest, num_vals, ORTE_STD_CNTR_T))) {</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">      46 </span>            :     }
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">      49 </span>            : }
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            : /*
+<span class="lineNum">      52 </span>            :  * JOB
+<span class="lineNum">      53 </span>            :  * NOTE: We do not pack all of the job object's fields as many of them have no
+<span class="lineNum">      54 </span>            :  * value in sending them to another location. The only purpose in packing and
+<span class="lineNum">      55 </span>            :  * sending a job object is to communicate the data required to dynamically
+<span class="lineNum">      56 </span>            :  * spawn another job - so we only pack that limited set of required data.
+<a name="57"><span class="lineNum">      57 </span>            :  * Therefore, only unpack what was packed</a>
+<span class="lineNum">      58 </span>            :  */
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 : int orte_dt_unpack_job(opal_buffer_t *buffer, void *dest,</span>
+<span class="lineNum">      60 </span>            :                        int32_t *num_vals, opal_data_type_t type)
+<span class="lineNum">      61 </span>            : {
+<span class="lineNum">      62 </span>            :     int rc;
+<span class="lineNum">      63 </span>            :     int32_t i, k, n, count;
+<span class="lineNum">      64 </span>            :     orte_job_t **jobs;
+<span class="lineNum">      65 </span>            :     orte_app_idx_t j;
+<span class="lineNum">      66 </span>            :     orte_attribute_t *kv;
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            :     /* unpack into array of orte_job_t objects */
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     jobs = (orte_job_t**) dest;</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; *num_vals; i++) {</span>
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            :         /* create the orte_job_t object */
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :         jobs[i] = OBJ_NEW(orte_job_t);</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :         if (NULL == jobs[i]) {</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">      77 </span>            :         }
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            :         /* unpack the jobid */
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :                                 &amp;(jobs[i]-&gt;jobid), &amp;n, ORTE_JOBID))) {</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">      85 </span>            :         }
+<span class="lineNum">      86 </span>            :         /* unpack the personality */
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :         n=1;</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;jobs[i]-&gt;personality, &amp;n, OPAL_STRING))) {</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">      91 </span>            :         }
+<span class="lineNum">      92 </span>            :         /* unpack the num apps */
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :                                 (&amp;(jobs[i]-&gt;num_apps)), &amp;n, ORTE_APP_IDX))) {</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">      98 </span>            :         }
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            :         /* if there are apps, unpack them */
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :         if (0 &lt; jobs[i]-&gt;num_apps) {</span>
+<span class="lineNum">     102 </span>            :             orte_app_context_t *app;
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :             for (j=0; j &lt; jobs[i]-&gt;num_apps; j++) {</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :                 n = 1;</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :                 if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     106 </span>            :                                &amp;app, &amp;n, ORTE_APP_CONTEXT))) {
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :                     return rc;</span>
+<span class="lineNum">     109 </span>            :                 }
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :                 opal_pointer_array_add(jobs[i]-&gt;apps, app);</span>
+<span class="lineNum">     111 </span>            :             }
+<span class="lineNum">     112 </span>            :         }
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :         /* unpack num procs and offset */
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :                                 (&amp;(jobs[i]-&gt;num_procs)), &amp;n, ORTE_VPID))) {</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     120 </span>            :         }
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :                                 (&amp;(jobs[i]-&gt;offset)), &amp;n, ORTE_VPID))) {</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     126 </span>            :         }
+<span class="lineNum">     127 </span>            :         /* and the procs, if provided */
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         if (0 &lt; jobs[i]-&gt;num_procs) {</span>
+<span class="lineNum">     129 </span>            :             orte_proc_t *proc;
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :             for (j=0; j &lt; jobs[i]-&gt;num_procs; j++) {</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :                 n = 1;</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :                 if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     133 </span>            :                                &amp;proc, &amp;n, ORTE_PROC))) {
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :                     return rc;</span>
+<span class="lineNum">     136 </span>            :                 }
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :                 opal_pointer_array_add(jobs[i]-&gt;procs, proc);</span>
+<span class="lineNum">     138 </span>            :             }
+<span class="lineNum">     139 </span>            :         }
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            :         /* unpack stdin target */
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :                             (&amp;(jobs[i]-&gt;stdin_target)), &amp;n, ORTE_VPID))) {</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     147 </span>            :         }
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span>            :         /* unpack the total slots allocated to the job */
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :                          (&amp;(jobs[i]-&gt;total_slots_alloc)), &amp;n, ORTE_STD_CNTR))) {</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     155 </span>            :         }
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            :         /* if the map is NULL, then we din't pack it as there was
+<span class="lineNum">     158 </span>            :          * nothing to pack. Instead, we packed a flag to indicate whether or not
+<span class="lineNum">     159 </span>            :          * the map is included         */
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     162 </span>            :                                             &amp;j, &amp;n, ORTE_STD_CNTR))) {
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     165 </span>            :         }
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :         if (0 &lt; j) {</span>
+<span class="lineNum">     167 </span>            :             /* unpack the map */
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :             n = 1;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :             if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :                                             (&amp;(jobs[i]-&gt;map)), &amp;n, ORTE_JOB_MAP))) {</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     173 </span>            :             }
+<span class="lineNum">     174 </span>            :         }
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            :         /* no bookmark of oversubscribe_override flags to unpack */
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            :         /* unpack the job state */
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :                          (&amp;(jobs[i]-&gt;state)), &amp;n, ORTE_JOB_STATE))) {</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     184 </span>            :         }
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            :         /* unpack the flags */
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :                          (&amp;(jobs[i]-&gt;flags)), &amp;n, ORTE_JOB_FLAGS_T))) {</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     192 </span>            :         }
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :         /* unpack the attributes */
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :         n=1;</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;count,</span>
+<span class="lineNum">     197 </span>            :                                                          &amp;n, ORTE_STD_CNTR))) {
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     200 </span>            :         }
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :         for (k=0; k &lt; count; k++) {</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :             n=1;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :             if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;kv,</span>
+<span class="lineNum">     204 </span>            :                                                              &amp;n, ORTE_ATTRIBUTE))) {
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     207 </span>            :             }
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :             kv-&gt;local = ORTE_ATTR_GLOBAL;  // obviously not a local value</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :             opal_list_append(&amp;jobs[i]-&gt;attributes, &amp;kv-&gt;super);</span>
+<span class="lineNum">     210 </span>            :         }
+<span class="lineNum">     211 </span>            :     }
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     214 </span>            : }
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            : /*
+<a name="217"><span class="lineNum">     217 </span>            :  * NODE</a>
+<span class="lineNum">     218 </span>            :  */
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 : int orte_dt_unpack_node(opal_buffer_t *buffer, void *dest,</span>
+<span class="lineNum">     220 </span>            :                         int32_t *num_vals, opal_data_type_t type)
+<span class="lineNum">     221 </span>            : {
+<span class="lineNum">     222 </span>            :     int rc;
+<span class="lineNum">     223 </span>            :     int32_t i, n, k, count;
+<span class="lineNum">     224 </span>            :     orte_node_t **nodes;
+<span class="lineNum">     225 </span>            :     uint8_t flag;
+<span class="lineNum">     226 </span>            :     orte_attribute_t *kv;
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span>            :     /* unpack into array of orte_node_t objects */
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     nodes = (orte_node_t**) dest;</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; *num_vals; i++) {</span>
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            :         /* create the node object */
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         nodes[i] = OBJ_NEW(orte_node_t);</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         if (NULL == nodes[i]) {</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     237 </span>            :         }
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            :         /* do not unpack the index - meaningless here */
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span>            :         /* unpack the node name */
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :                          &amp;(nodes[i]-&gt;name), &amp;n, OPAL_STRING))) {</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     247 </span>            :         }
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            :         /* do not unpack the daemon name or launch id */
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            :         /* unpack the number of procs on the node */
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :                          (&amp;(nodes[i]-&gt;num_procs)), &amp;n, ORTE_VPID))) {</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     257 </span>            :         }
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            :         /* do not unpack the proc info */
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            :         /* unpack whether we are oversubscribed */
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     264 </span>            :                          (&amp;flag), &amp;n, OPAL_UINT8))) {
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     267 </span>            :         }
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         if (flag) {</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :             ORTE_FLAG_SET(nodes[i], ORTE_NODE_FLAG_OVERSUBSCRIBED);</span>
+<span class="lineNum">     270 </span>            :         }
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            :         /* unpack the state */
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :                          (&amp;(nodes[i]-&gt;state)), &amp;n, ORTE_NODE_STATE))) {</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     278 </span>            :         }
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span>            :         /* unpack the attributes */
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :         n=1;</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;count,</span>
+<span class="lineNum">     283 </span>            :                                                          &amp;n, ORTE_STD_CNTR))) {
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     286 </span>            :         }
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :         for (k=0; k &lt; count; k++) {</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :             n=1;</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :             if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;kv,</span>
+<span class="lineNum">     290 </span>            :                                                              &amp;n, ORTE_ATTRIBUTE))) {
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     293 </span>            :             }
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :             kv-&gt;local = ORTE_ATTR_GLOBAL;  // obviously not a local value</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :             opal_list_append(&amp;nodes[i]-&gt;attributes, &amp;kv-&gt;super);</span>
+<span class="lineNum">     296 </span>            :         }
+<span class="lineNum">     297 </span>            :     }
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     299 </span>            : }
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            : /*
+<a name="302"><span class="lineNum">     302 </span>            :  * PROC</a>
+<span class="lineNum">     303 </span>            :  */
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 : int orte_dt_unpack_proc(opal_buffer_t *buffer, void *dest,</span>
+<span class="lineNum">     305 </span>            :                         int32_t *num_vals, opal_data_type_t type)
+<span class="lineNum">     306 </span>            : {
+<span class="lineNum">     307 </span>            :     int rc;
+<span class="lineNum">     308 </span>            :     int32_t i, n, count, k;
+<span class="lineNum">     309 </span>            :     orte_attribute_t *kv;;
+<span class="lineNum">     310 </span>            :     orte_proc_t **procs;
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span>            :     /* unpack into array of orte_proc_t objects */
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     procs = (orte_proc_t**) dest;</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; *num_vals; i++) {</span>
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            :         /* create the orte_proc_t object */
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         procs[i] = OBJ_NEW(orte_proc_t);</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :         if (NULL == procs[i]) {</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     321 </span>            :         }
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            :         /* unpack the name */
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :                          &amp;(procs[i]-&gt;name), &amp;n, ORTE_NAME))) {</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     329 </span>            :         }
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            :         /* unpack the node it is on */
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :                          (&amp;(procs[i]-&gt;parent)), &amp;n, ORTE_VPID))) {</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     337 </span>            :         }
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span>            :        /* unpack the local rank */
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :                          (&amp;(procs[i]-&gt;local_rank)), &amp;n, ORTE_LOCAL_RANK))) {</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     345 </span>            :         }
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span>            :         /* unpack the node rank */
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :                           (&amp;(procs[i]-&gt;node_rank)), &amp;n, ORTE_NODE_RANK))) {</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     353 </span>            :         }
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span>            :         /* unpack the state */
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :                          (&amp;(procs[i]-&gt;state)), &amp;n, ORTE_PROC_STATE))) {</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     361 </span>            :         }
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span>            :         /* unpack the app context index */
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :                          (&amp;(procs[i]-&gt;app_idx)), &amp;n, ORTE_STD_CNTR))) {</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     369 </span>            :         }
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span>            :         /* unpack the attributes */
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :         n=1;</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;count,</span>
+<span class="lineNum">     374 </span>            :                                                          &amp;n, ORTE_STD_CNTR))) {
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     377 </span>            :         }
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :         for (k=0; k &lt; count; k++) {</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :             n=1;</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :             if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;kv,</span>
+<span class="lineNum">     381 </span>            :                                                              &amp;n, ORTE_ATTRIBUTE))) {
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     384 </span>            :             }
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :             kv-&gt;local = ORTE_ATTR_GLOBAL;  // obviously not a local value</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :             opal_list_append(&amp;procs[i]-&gt;attributes, &amp;kv-&gt;super);</span>
+<span class="lineNum">     387 </span>            :         }
+<span class="lineNum">     388 </span>            :     }
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     390 </span>            : }
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span>            : /*
+<a name="393"><span class="lineNum">     393 </span>            :  * APP_CONTEXT</a>
+<span class="lineNum">     394 </span>            :  */
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 : int orte_dt_unpack_app_context(opal_buffer_t *buffer, void *dest,</span>
+<span class="lineNum">     396 </span>            :                                int32_t *num_vals, opal_data_type_t type)
+<span class="lineNum">     397 </span>            : {
+<span class="lineNum">     398 </span>            :     int rc;
+<span class="lineNum">     399 </span>            :     orte_app_context_t **app_context;
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :     int32_t i, max_n=1, count, k;</span>
+<span class="lineNum">     401 </span>            :     orte_attribute_t *kv;
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span>            :     /* unpack into array of app_context objects */
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     app_context = (orte_app_context_t**) dest;</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; *num_vals; i++) {</span>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span>            :         /* create the app_context object */
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :         app_context[i] = OBJ_NEW(orte_app_context_t);</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :         if (NULL == app_context[i]) {</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     412 </span>            :         }
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span>            :         /* get the app index number */
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :         max_n = 1;</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;(app_context[i]-&gt;idx),</span>
+<span class="lineNum">     417 </span>            :                                                          &amp;max_n, ORTE_STD_CNTR))) {
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     420 </span>            :         }
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span>            :         /* unpack the application name */
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :         max_n = 1;</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;(app_context[i]-&gt;app),</span>
+<span class="lineNum">     425 </span>            :                                                          &amp;max_n, OPAL_STRING))) {
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     428 </span>            :         }
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span>            :         /* get the number of processes */
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :         max_n = 1;</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;(app_context[i]-&gt;num_procs),</span>
+<span class="lineNum">     433 </span>            :                                                          &amp;max_n, ORTE_STD_CNTR))) {
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     436 </span>            :         }
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span>            :         /* get the first rank for this app */
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :         max_n = 1;</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;(app_context[i]-&gt;first_rank),</span>
+<span class="lineNum">     441 </span>            :                                                          &amp;max_n, ORTE_VPID))) {
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     444 </span>            :         }
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span>            :         /* get the number of argv strings that were packed */
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :         max_n = 1;</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;count, &amp;max_n, ORTE_STD_CNTR))) {</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     451 </span>            :         }
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span>            :         /* if there are argv strings, allocate the required space for the char * pointers */
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :         if (0 &lt; count) {</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :             app_context[i]-&gt;argv = (char **)malloc((count+1) * sizeof(char*));</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :             if (NULL == app_context[i]-&gt;argv) {</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     459 </span>            :             }
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :             app_context[i]-&gt;argv[count] = NULL;</span>
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span>            :             /* and unpack them */
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :             max_n = count;</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :             if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, app_context[i]-&gt;argv, &amp;max_n, OPAL_STRING))) {</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     467 </span>            :             }
+<span class="lineNum">     468 </span>            :         }
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span>            :         /* get the number of env strings */
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :         max_n = 1;</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;count, &amp;max_n, ORTE_STD_CNTR))) {</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     475 </span>            :         }
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span>            :         /* if there are env strings, allocate the required space for the char * pointers */
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :         if (0 &lt; count) {</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :             app_context[i]-&gt;env = (char **)malloc((count+1) * sizeof(char*));</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :             if (NULL == app_context[i]-&gt;env) {</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     483 </span>            :             }
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :             app_context[i]-&gt;env[count] = NULL;</span>
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span>            :             /* and unpack them */
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :             max_n = count;</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :             if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, app_context[i]-&gt;env, &amp;max_n, OPAL_STRING))) {</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     491 </span>            :             }
+<span class="lineNum">     492 </span>            :         }
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span>            :         /* unpack the cwd */
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :         max_n = 1;</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;app_context[i]-&gt;cwd,</span>
+<span class="lineNum">     497 </span>            :                                                          &amp;max_n, OPAL_STRING))) {
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     500 </span>            :         }
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span>            :         /* unpack the attributes */
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :         max_n=1;</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;count,</span>
+<span class="lineNum">     505 </span>            :                                                          &amp;max_n, ORTE_STD_CNTR))) {
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     508 </span>            :         }
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :         for (k=0; k &lt; count; k++) {</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :             max_n=1;</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :             if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, &amp;kv,</span>
+<span class="lineNum">     512 </span>            :                                                              &amp;max_n, ORTE_ATTRIBUTE))) {
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     515 </span>            :             }
+<span class="lineNum">     516 </span>            :             /* obviously, this isn't a local value */
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :             kv-&gt;local = false;</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :             opal_list_append(&amp;app_context[i]-&gt;attributes, &amp;kv-&gt;super);</span>
+<span class="lineNum">     519 </span>            :         }
+<span class="lineNum">     520 </span>            :     }
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     523 </span>            : }
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span>            : /*
+<a name="526"><span class="lineNum">     526 </span>            :  * EXIT CODE</a>
+<span class="lineNum">     527 </span>            :  */
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 : int orte_dt_unpack_exit_code(opal_buffer_t *buffer, void *dest,</span>
+<span class="lineNum">     529 </span>            :                                    int32_t *num_vals, opal_data_type_t type)
+<span class="lineNum">     530 </span>            : {
+<span class="lineNum">     531 </span>            :     int rc;
+<span class="lineNum">     532 </span>            : 
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, dest, num_vals, ORTE_EXIT_CODE_T))) {</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     535 </span>            :     }
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     538 </span>            : }
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span>            : /*
+<a name="541"><span class="lineNum">     541 </span>            :  * NODE STATE</a>
+<span class="lineNum">     542 </span>            :  */
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 : int orte_dt_unpack_node_state(opal_buffer_t *buffer, void *dest,</span>
+<span class="lineNum">     544 </span>            :                                     int32_t *num_vals, opal_data_type_t type)
+<span class="lineNum">     545 </span>            : {
+<span class="lineNum">     546 </span>            :     int rc;
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, dest, num_vals, ORTE_NODE_STATE_T))) {</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     550 </span>            :     }
+<span class="lineNum">     551 </span>            : 
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     553 </span>            : }
+<span class="lineNum">     554 </span>            : 
+<span class="lineNum">     555 </span>            : /*
+<a name="556"><span class="lineNum">     556 </span>            :  * PROC STATE</a>
+<span class="lineNum">     557 </span>            :  */
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 : int orte_dt_unpack_proc_state(opal_buffer_t *buffer, void *dest,</span>
+<span class="lineNum">     559 </span>            :                                     int32_t *num_vals, opal_data_type_t type)
+<span class="lineNum">     560 </span>            : {
+<span class="lineNum">     561 </span>            :     int rc;
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, dest, num_vals, ORTE_PROC_STATE_T))) {</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     565 </span>            :     }
+<span class="lineNum">     566 </span>            : 
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     568 </span>            : }
+<span class="lineNum">     569 </span>            : 
+<span class="lineNum">     570 </span>            : /*
+<a name="571"><span class="lineNum">     571 </span>            :  * JOB STATE</a>
+<span class="lineNum">     572 </span>            :  */
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 : int orte_dt_unpack_job_state(opal_buffer_t *buffer, void *dest,</span>
+<span class="lineNum">     574 </span>            :                                    int32_t *num_vals, opal_data_type_t type)
+<span class="lineNum">     575 </span>            : {
+<span class="lineNum">     576 </span>            :     int rc;
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer, dest, num_vals, ORTE_JOB_STATE_T))) {</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     580 </span>            :     }
+<span class="lineNum">     581 </span>            : 
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     583 </span>            : }
+<span class="lineNum">     584 </span>            : 
+<span class="lineNum">     585 </span>            : /*
+<span class="lineNum">     586 </span>            :  * JOB_MAP
+<span class="lineNum">     587 </span>            :  * NOTE: There is no obvious reason to include all the node information when
+<a name="588"><span class="lineNum">     588 </span>            :  * sending a map - hence, we do not pack that field, so don't unpack it here</a>
+<span class="lineNum">     589 </span>            :  */
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 : int orte_dt_unpack_map(opal_buffer_t *buffer, void *dest,</span>
+<span class="lineNum">     591 </span>            :                        int32_t *num_vals, opal_data_type_t type)
+<span class="lineNum">     592 </span>            : {
+<span class="lineNum">     593 </span>            :     int rc;
+<span class="lineNum">     594 </span>            :     int32_t i, n;
+<span class="lineNum">     595 </span>            :     orte_job_map_t **maps;
+<span class="lineNum">     596 </span>            : 
+<span class="lineNum">     597 </span>            :     /* unpack into array of orte_job_map_t objects */
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :     maps = (orte_job_map_t**) dest;</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; *num_vals; i++) {</span>
+<span class="lineNum">     600 </span>            : 
+<span class="lineNum">     601 </span>            :         /* create the orte_rmaps_base_map_t object */
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :         maps[i] = OBJ_NEW(orte_job_map_t);</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :         if (NULL == maps[i]) {</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     606 </span>            :         }
+<span class="lineNum">     607 </span>            : 
+<span class="lineNum">     608 </span>            :         /* unpack the requested mapper */
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :                                                          &amp;(maps[i]-&gt;req_mapper), &amp;n, OPAL_STRING))) {</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     614 </span>            :         }
+<span class="lineNum">     615 </span>            : 
+<span class="lineNum">     616 </span>            :         /* unpack the policies */
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :                                                          &amp;(maps[i]-&gt;mapping), &amp;n, ORTE_MAPPING_POLICY))) {</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     622 </span>            :         }
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :                                                          &amp;(maps[i]-&gt;ranking), &amp;n, ORTE_RANKING_POLICY))) {</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     628 </span>            :         }
+<span class="lineNum">     629 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :                                                          &amp;(maps[i]-&gt;binding), &amp;n, OPAL_BINDING_POLICY))) {</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     635 </span>            :         }
+<span class="lineNum">     636 </span>            : #endif
+<span class="lineNum">     637 </span>            :         /* unpack the ppr */
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :                                                          &amp;(maps[i]-&gt;ppr), &amp;n, OPAL_STRING))) {</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     643 </span>            :         }
+<span class="lineNum">     644 </span>            :         /* unpack the cpus/rank */
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :                                                          &amp;(maps[i]-&gt;cpus_per_rank), &amp;n, OPAL_INT16))) {</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     650 </span>            :         }
+<span class="lineNum">     651 </span>            :         /* unpack the display map flag */
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :                                                          &amp;(maps[i]-&gt;display_map), &amp;n, OPAL_BOOL))) {</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     657 </span>            :         }
+<span class="lineNum">     658 </span>            :         /* unpack the number of nodes involved in the job */
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :         n = 1;</span>
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = opal_dss_unpack_buffer(buffer,</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :                                                          &amp;(maps[i]-&gt;num_nodes), &amp;n, OPAL_UINT32))) {</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     664 </span>            :         }
+<span class="lineNum">     665 </span>            :     }
+<span class="lineNum">     666 </span>            : 
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     668 </span>            : }
+<span class="lineNum">     669 </span>            : 
+<span class="lineNum">     670 </span>            : /*
+<a name="671"><span class="lineNum">     671 </span>            :  * RML_TAG</a>
+<span class="lineNum">     672 </span>            :  */
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 : int orte_dt_unpack_tag(opal_buffer_t *buffer, void *dest,</span>
+<span class="lineNum">     674 </span>            :                        int32_t *num_vals, opal_data_type_t type)
+<span class="lineNum">     675 </span>            : {
+<span class="lineNum">     676 </span>            :     int ret;
+<span class="lineNum">     677 </span>            : 
+<span class="lineNum">     678 </span>            :     /* Turn around and unpack the real type */
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, dest, num_vals, ORTE_RML_TAG_T))) {</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">     681 </span>            :     }
+<span class="lineNum">     682 </span>            : 
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     684 </span>            : }
+<span class="lineNum">     685 </span>            : 
+<span class="lineNum">     686 </span>            : /*
+<a name="687"><span class="lineNum">     687 </span>            :  * ORTE_DAEMON_CMD</a>
+<span class="lineNum">     688 </span>            :  */
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 : int orte_dt_unpack_daemon_cmd(opal_buffer_t *buffer, void *dest, int32_t *num_vals,</span>
+<span class="lineNum">     690 </span>            :                               opal_data_type_t type)
+<span class="lineNum">     691 </span>            : {
+<span class="lineNum">     692 </span>            :     int ret;
+<span class="lineNum">     693 </span>            : 
+<span class="lineNum">     694 </span>            :     /* turn around and unpack the real type */
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :     ret = opal_dss_unpack_buffer(buffer, dest, num_vals, ORTE_DAEMON_CMD_T);</span>
+<span class="lineNum">     696 </span>            : 
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     698 </span>            : }
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span>            : /*
+<a name="701"><span class="lineNum">     701 </span>            :  * ORTE_IOF_TAG</a>
+<span class="lineNum">     702 </span>            :  */
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 : int orte_dt_unpack_iof_tag(opal_buffer_t *buffer, void *dest, int32_t *num_vals,</span>
+<span class="lineNum">     704 </span>            :                            opal_data_type_t type)
+<span class="lineNum">     705 </span>            : {
+<span class="lineNum">     706 </span>            :     int ret;
+<span class="lineNum">     707 </span>            : 
+<span class="lineNum">     708 </span>            :     /* turn around and unpack the real type */
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :     ret = opal_dss_unpack_buffer(buffer, dest, num_vals, ORTE_IOF_TAG_T);</span>
+<span class="lineNum">     710 </span>            : 
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     712 </span>            : }
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span>            : /*
+<span class="lineNum">     715 </span>            :  * ORTE_ATTR
+<a name="716"><span class="lineNum">     716 </span>            :  */</a>
+<span class="lineNum">     717 </span>            : 
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 : int orte_dt_unpack_attr(opal_buffer_t *buffer, void *dest, int32_t *num_vals,</span>
+<span class="lineNum">     719 </span>            :                         opal_data_type_t type)
+<span class="lineNum">     720 </span>            : {
+<span class="lineNum">     721 </span>            :     orte_attribute_t **ptr;
+<span class="lineNum">     722 </span>            :     int32_t i, n, m;
+<span class="lineNum">     723 </span>            :     int ret;
+<span class="lineNum">     724 </span>            : 
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :     ptr = (orte_attribute_t **) dest;</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :     n = *num_vals;</span>
+<span class="lineNum">     727 </span>            : 
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; n; ++i) {</span>
+<span class="lineNum">     729 </span>            :         /* allocate the new object */
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :         ptr[i] = OBJ_NEW(orte_attribute_t);</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :         if (NULL == ptr[i]) {</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :             return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     733 </span>            :         }
+<span class="lineNum">     734 </span>            :         /* unpack the key and type */
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :         m=1;</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;key, &amp;m, ORTE_ATTR_KEY_T))) {</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :             return ret;</span>
+<span class="lineNum">     738 </span>            :         }
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :         m=1;</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;type, &amp;m, OPAL_DATA_TYPE))) {</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :             return ret;</span>
+<span class="lineNum">     742 </span>            :         }
+<span class="lineNum">     743 </span>            :         /* now unpack the right field */
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :         m=1;</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :         switch (ptr[i]-&gt;type) {</span>
+<span class="lineNum">     746 </span>            :         case OPAL_BOOL:
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.flag, &amp;m, OPAL_BOOL))) {</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     749 </span>            :             }
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     751 </span>            :         case OPAL_BYTE:
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.byte, &amp;m, OPAL_BYTE))) {</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     754 </span>            :             }
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     756 </span>            :         case OPAL_STRING:
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.string, &amp;m, OPAL_STRING))) {</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     759 </span>            :             }
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     761 </span>            :         case OPAL_SIZE:
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.size, &amp;m, OPAL_SIZE))) {</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     764 </span>            :             }
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     766 </span>            :         case OPAL_PID:
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.pid, &amp;m, OPAL_PID))) {</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     769 </span>            :             }
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     771 </span>            :         case OPAL_INT:
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.integer, &amp;m, OPAL_INT))) {</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     774 </span>            :             }
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     776 </span>            :         case OPAL_INT8:
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.int8, &amp;m, OPAL_INT8))) {</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     779 </span>            :             }
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     781 </span>            :         case OPAL_INT16:
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.int16, &amp;m, OPAL_INT16))) {</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     784 </span>            :             }
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     786 </span>            :         case OPAL_INT32:
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.int32, &amp;m, OPAL_INT32))) {</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     789 </span>            :             }
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     791 </span>            :         case OPAL_INT64:
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.int64, &amp;m, OPAL_INT64))) {</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     794 </span>            :             }
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     796 </span>            :         case OPAL_UINT:
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.uint, &amp;m, OPAL_UINT))) {</span>
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     799 </span>            :             }
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     801 </span>            :         case OPAL_UINT8:
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.uint8, &amp;m, OPAL_UINT8))) {</span>
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     804 </span>            :             }
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     806 </span>            :         case OPAL_UINT16:
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.uint16, &amp;m, OPAL_UINT16))) {</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     809 </span>            :             }
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     811 </span>            :         case OPAL_UINT32:
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.uint32, &amp;m, OPAL_UINT32))) {</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     814 </span>            :             }
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     816 </span>            :         case OPAL_UINT64:
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.uint64, &amp;m, OPAL_UINT64))) {</span>
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     819 </span>            :             }
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     821 </span>            :         case OPAL_BYTE_OBJECT:
+<span class="lineNum">     822 </span>            :             /* cannot use byte object unpack as it allocates memory, so unpack object size in bytes */
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_int32(buffer, &amp;(ptr[i]-&gt;data.bo.size), &amp;m, OPAL_INT32))) {</span>
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     825 </span>            :             }
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :             if (0 &lt; ptr[i]-&gt;data.bo.size) {</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :                 ptr[i]-&gt;data.bo.bytes = (uint8_t*)malloc(ptr[i]-&gt;data.bo.size);</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :                 if (NULL == ptr[i]-&gt;data.bo.bytes) {</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :                     return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     830 </span>            :                 }
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :                 if (OPAL_SUCCESS != (ret = opal_dss_unpack_byte(buffer, ptr[i]-&gt;data.bo.bytes,</span>
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :                                                                 &amp;(ptr[i]-&gt;data.bo.size), OPAL_BYTE))) {</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :                     return ret;</span>
+<span class="lineNum">     834 </span>            :                 }
+<span class="lineNum">     835 </span>            :             } else {
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :                 ptr[i]-&gt;data.bo.bytes = NULL;</span>
+<span class="lineNum">     837 </span>            :             }
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     839 </span>            :         case OPAL_FLOAT:
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.fval, &amp;m, OPAL_FLOAT))) {</span>
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     842 </span>            :             }
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     844 </span>            :         case OPAL_TIMEVAL:
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.tv, &amp;m, OPAL_TIMEVAL))) {</span>
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     847 </span>            :             }
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     849 </span>            :         case ORTE_VPID:
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.vpid, &amp;m, ORTE_VPID))) {</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     852 </span>            :             }
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     854 </span>            :         case ORTE_JOBID:
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss_unpack_buffer(buffer, &amp;ptr[i]-&gt;data.jobid, &amp;m, ORTE_JOBID))) {</span>
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     857 </span>            :             }
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     859 </span>            : 
+<span class="lineNum">     860 </span>            :         default:
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;PACK-ORTE-ATTR: UNSUPPORTED TYPE&quot;);</span>
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :             return OPAL_ERROR;</span>
+<span class="lineNum">     863 </span>            :         }
+<span class="lineNum">     864 </span>            :     }
+<span class="lineNum">     865 </span>            : 
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<a name="867"><span class="lineNum">     867 </span>            : }</a>
+<span class="lineNum">     868 </span>            : 
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 : int orte_dt_unpack_sig(opal_buffer_t *buffer, void *dest, int32_t *num_vals,</span>
+<span class="lineNum">     870 </span>            :                        opal_data_type_t type)
+<span class="lineNum">     871 </span>            : {
+<span class="lineNum">     872 </span>            :     orte_grpcomm_signature_t **ptr;
+<span class="lineNum">     873 </span>            :     int32_t i, n, cnt;
+<span class="lineNum">     874 </span>            :     int rc;
+<span class="lineNum">     875 </span>            : 
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :     ptr = (orte_grpcomm_signature_t **) dest;</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :     n = *num_vals;</span>
+<span class="lineNum">     878 </span>            : 
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; n; ++i) {</span>
+<span class="lineNum">     880 </span>            :         /* allocate the new object */
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :         ptr[i] = OBJ_NEW(orte_grpcomm_signature_t);</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :         if (NULL == ptr[i]) {</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :             return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     884 </span>            :         }
+<span class="lineNum">     885 </span>            :         /* unpack the #procs */
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :         cnt = 1;</span>
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;ptr[i]-&gt;sz, &amp;cnt, OPAL_SIZE))) {</span>
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     890 </span>            :         }
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;ptr[i]-&gt;seq_num, &amp;cnt, OPAL_UINT32))) {</span>
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     894 </span>            :         }
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :         if (0 &lt; ptr[i]-&gt;sz) {</span>
+<span class="lineNum">     896 </span>            :             /* allocate space for the array */
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :             ptr[i]-&gt;signature = (orte_process_name_t*)malloc(ptr[i]-&gt;sz * sizeof(orte_process_name_t));</span>
+<span class="lineNum">     898 </span>            :             /* unpack the array - the array is our signature for the collective */
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :             cnt = ptr[i]-&gt;sz;</span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, ptr[i]-&gt;signature, &amp;cnt, ORTE_NAME))) {</span>
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(ptr[i]);</span>
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     904 </span>            :             }
+<span class="lineNum">     905 </span>            :         }
+<span class="lineNum">     906 </span>            :     }
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     908 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

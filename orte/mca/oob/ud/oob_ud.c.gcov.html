@@ -1,0 +1,355 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/oob/ud/oob_ud.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/oob/ud</a> - oob_ud.c<span style="font-size: 80%;"> (source / <a href="oob_ud.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">110</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2011-2012 Los Alamos National Security, LLC. All rights
+<span class="lineNum">       4 </span>            :  *                         reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2014      Research Organization for Information Science
+<span class="lineNum">       6 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">       7 </span>            :  *               2014      Mellanox Technologies, Inc.
+<span class="lineNum">       8 </span>            :  *                         All rights reserved.
+<span class="lineNum">       9 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * $HEADER$
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  */
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      18 </span>            : #include &quot;orte/types.h&quot;
+<span class="lineNum">      19 </span>            : #include &quot;opal/types.h&quot;
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;orte/util/proc_info.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;orte/util/show_help.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;orte/mca/routed/routed.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &quot;oob_ud.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;oob_ud_send.h&quot;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #define min(a,b) ((a) &lt; (b) ? (a) : (b))
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : static int mca_oob_ud_module_init (void);
+<span class="lineNum">      34 </span>            : static void mca_oob_ud_module_fini (mca_oob_ud_peer_t **peer);
+<span class="lineNum">      35 </span>            : static int mca_oob_ud_set_addr (const orte_process_name_t *name, const char *uri);
+<span class="lineNum">      36 </span>            : static void mca_oob_ud_send_nb(orte_rml_send_t *msg);
+<span class="lineNum">      37 </span>            : static void mca_oob_ud_ping(const orte_process_name_t *proc);
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : mca_oob_ud_module_t mca_oob_ud_module = {
+<span class="lineNum">      40 </span>            :     {
+<span class="lineNum">      41 </span>            :         mca_oob_ud_module_init,
+<span class="lineNum">      42 </span>            :         mca_oob_ud_module_fini,
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            :         mca_oob_ud_set_addr,
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            :         mca_oob_ud_ping,
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            :         mca_oob_ud_send_nb
+<span class="lineNum">      49 </span>            :     }
+<a name="50"><span class="lineNum">      50 </span>            : };</a>
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 : static void mca_oob_ud_send_nb(orte_rml_send_t *msg) {</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">      54 </span>            :                         &quot;%s oob:ud:send_nb to peer %s&quot;,
+<span class="lineNum">      55 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :                         ORTE_NAME_PRINT(&amp;msg-&gt;dst));</span>
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            :     /* push this into our event base for processing */
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :     ORTE_ACTIVATE_UD_POST_SEND(msg, mca_oob_ud_process_send_nb);</span>
+<a name="60"><span class="lineNum">      60 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 : static void mca_oob_ud_ping(const orte_process_name_t *proc) {</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">      64 </span>            :                         &quot;%s oob:ud:ping proc %s&quot;,
+<span class="lineNum">      65 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">      66 </span>            :                         ORTE_NAME_PRINT(proc));
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            :     /* push this into our event base for processing */
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     ORTE_ACTIVATE_UD_PING(proc, mca_oob_ud_process_ping);</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 : }</span>
+<a name="71"><span class="lineNum">      71 </span>            : </a>
+<span class="lineNum">      72 </span>            : /* uri must be at least 27 bytes in size */
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 : void mca_oob_ud_port_get_uri (mca_oob_ud_port_t *port, char *uri)</span>
+<span class="lineNum">      74 </span>            : {
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     sprintf (uri, &quot;ud://%u.%u.%u&quot;, port-&gt;listen_qp.ib_qp-&gt;qp_num,</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :              port-&gt;lid, port-&gt;port_num);</span>
+<a name="77"><span class="lineNum">      77 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 : static int mca_oob_ud_set_addr (const orte_process_name_t *name, const char *uri)</span>
+<span class="lineNum">      80 </span>            : {
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     mca_oob_ud_peer_t *peer = NULL;</span>
+<span class="lineNum">      82 </span>            :     int rc;
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     opal_output_verbose(5, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">      85 </span>            :                          &quot;%s oob:ud:set_addr: setting location for peer %s from %s&quot;,
+<span class="lineNum">      86 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), ORTE_NAME_PRINT(name), uri);
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     (void) mca_oob_ud_peer_lookup (name, &amp;peer);</span>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     if (NULL == uri) {</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :         if (NULL != peer) {</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :             mca_oob_ud_peer_release (peer);</span>
+<span class="lineNum">      93 </span>            :         }
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         peer = NULL;</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     } else if (NULL == peer) {</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :         peer = mca_oob_ud_peer_from_uri (uri);</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         if (NULL == peer) {</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :             return ORTE_ERR_BAD_PARAM;</span>
+<span class="lineNum">     100 </span>            :         }
+<span class="lineNum">     101 </span>            :     } else {
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :         rc = mca_oob_ud_peer_update_with_uri (peer, uri);</span>
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != rc) {</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     106 </span>            :         }
+<span class="lineNum">     107 </span>            :     }
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :     if (NULL != peer) {</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :         peer-&gt;peer_name = *name;</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :         peer-&gt;needs_notification = true;</span>
+<span class="lineNum">     112 </span>            :     }
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     opal_proc_table_set_value(&amp;mca_oob_ud_module.peers,</span>
+<span class="lineNum">     115 </span>            :                               *name, (void *)peer);
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="118"><span class="lineNum">     118 </span>            : }</a>
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 : int mca_oob_ud_port_post_one_recv (mca_oob_ud_port_t *port, int msg_num)</span>
+<span class="lineNum">     121 </span>            : {
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     char *grh_buf = port-&gt;grh_buf.ptr + msg_num * sizeof (struct ibv_grh);</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     char *msg_buf = port-&gt;msg_buf.ptr + msg_num * port-&gt;mtu;</span>
+<span class="lineNum">     124 </span>            :     struct ibv_recv_wr wr;
+<span class="lineNum">     125 </span>            :     struct ibv_sge sge[2];
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            :     /* GRH */
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     mca_oob_ud_fill_sge(sge, grh_buf, sizeof (struct ibv_grh), port-&gt;grh_buf.mr-&gt;lkey);</span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            :     /* message */
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     mca_oob_ud_fill_sge(sge + 1, msg_buf, port-&gt;mtu, port-&gt;msg_buf.mr-&gt;lkey);</span>
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     mca_oob_ud_fill_recv_wr (&amp;wr, sge, 2);</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     wr.wr_id   = MCA_OOB_UD_RECV_WR | (uint64_t)msg_num;</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     return mca_oob_ud_qp_post_recv (&amp;port-&gt;listen_qp, &amp;wr);</span>
+<span class="lineNum">     137 </span>            : }
+<span class="lineNum">     138 </span>            : 
+<a name="139"><span class="lineNum">     139 </span>            : static bool module_has_been_inited = false;</a>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 : static int mca_oob_ud_module_init (void)</span>
+<span class="lineNum">     142 </span>            : {
+<span class="lineNum">     143 </span>            :     /* protect against repeat inits */
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     if (module_has_been_inited) {</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     146 </span>            :     }
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :     module_has_been_inited = true;</span>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;mca_oob_ud_module.peers, opal_proc_table_t);</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     opal_proc_table_init (&amp;mca_oob_ud_module.peers, 16, 1024);</span>
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="153"><span class="lineNum">     153 </span>            : }</a>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 : static void mca_oob_ud_module_fini (mca_oob_ud_peer_t **peer)</span>
+<span class="lineNum">     156 </span>            : {
+<span class="lineNum">     157 </span>            :     opal_process_name_t key;
+<span class="lineNum">     158 </span>            :     void *node1, *node2;
+<span class="lineNum">     159 </span>            :     int rc;
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :     rc = opal_proc_table_get_first_key (&amp;mca_oob_ud_module.peers, &amp;key,</span>
+<span class="lineNum">     162 </span>            :                                         (void **) peer, &amp;node1, &amp;node2);
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS == rc) {</span>
+<span class="lineNum">     164 </span>            :         do {
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :             if (NULL != *peer) {</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :                 mca_oob_ud_peer_release (*peer);</span>
+<span class="lineNum">     167 </span>            :             }
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :             rc = opal_proc_table_get_next_key (&amp;mca_oob_ud_module.peers, &amp;key,</span>
+<span class="lineNum">     169 </span>            :                                                (void **) peer, node1, &amp;node1, node2, &amp;node2);
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :         } while (OPAL_SUCCESS == rc);</span>
+<span class="lineNum">     171 </span>            :     }
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     opal_proc_table_remove_all(&amp;mca_oob_ud_module.peers);</span>
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;mca_oob_ud_module.peers);</span>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     return;</span>
+<a name="178"><span class="lineNum">     178 </span>            : }</a>
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 : int mca_oob_ud_register_iov (struct iovec *iov, int count, struct ibv_mr **ib_mr,</span>
+<span class="lineNum">     181 </span>            :                              struct ibv_pd *ib_pd, unsigned int mtu, int *sge_countp,
+<span class="lineNum">     182 </span>            :                              int *wr_countp, int *data_lenp)
+<span class="lineNum">     183 </span>            : {
+<span class="lineNum">     184 </span>            :     int data_len, iov_index, sge_count;
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     unsigned int packet_size = 0;</span>
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     opal_output_verbose (80, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     188 </span>            :                          &quot;%s oob:ud:register_iov registering memory&quot;, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :     *wr_countp  = 0;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     *data_lenp  = 0;</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     *sge_countp = 0;</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     for (iov_index = 0, data_len = 0, sge_count = 0 ; iov_index &lt; count ; ++iov_index) {</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :         unsigned int iov_left = iov[iov_index].iov_len;</span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         data_len += iov_left;</span>
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :         sge_count++;</span>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            :         do {
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :             unsigned int to_trans = min (iov_left, mtu - packet_size);</span>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :             packet_size = (to_trans &lt; iov_left) ? 0 : packet_size + to_trans;</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :             iov_left    -= to_trans;</span>
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :             if (0 == packet_size &amp;&amp; iov_left) {</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :                 sge_count++;</span>
+<span class="lineNum">     209 </span>            :             }
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :         } while (iov_left);</span>
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            :         /* register buffers */
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :         if (NULL == ib_mr[iov_index]) {</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :             ib_mr[iov_index] = ibv_reg_mr (ib_pd,</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :                                            iov[iov_index].iov_base,</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :                                            iov[iov_index].iov_len,</span>
+<span class="lineNum">     217 </span>            :                                            IBV_ACCESS_LOCAL_WRITE |
+<span class="lineNum">     218 </span>            :                                            IBV_ACCESS_REMOTE_WRITE);
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :             if (NULL == ib_mr[iov_index]) {</span>
+<span class="lineNum">     220 </span>            :                 /* Ruh-roh */
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-oob-ud.txt&quot;, &quot;reg-mr-failed&quot;, true,</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :                        orte_process_info.nodename, iov[iov_index].iov_base,</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :                        iov[iov_index].iov_len,strerror(errno));</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     225 </span>            :             }
+<span class="lineNum">     226 </span>            :         }
+<span class="lineNum">     227 </span>            :     }
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     *wr_countp  = (data_len + mtu - 1) / mtu;</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     *sge_countp = sge_count;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     *data_lenp  = data_len;</span>
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="234"><span class="lineNum">     234 </span>            : }</a>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 : int mca_oob_ud_register_buf (char *buf, int size, struct ibv_mr **ib_mr_buf,</span>
+<span class="lineNum">     237 </span>            :                              struct ibv_pd *ib_pd, unsigned int mtu, int *sge_countp, int *wr_countp)
+<span class="lineNum">     238 </span>            : {
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     int sge_count = 0;</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     unsigned int packet_size = 0;</span>
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     opal_output_verbose (80, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     243 </span>            :                          &quot;%s oob:ud:mca_oob_ud_register_buf registering memory&quot;, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     *wr_countp  = 0;</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     *sge_countp = 0;</span>
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     unsigned int iov_left = size;</span>
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     sge_count++;</span>
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span>            :     do {
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         unsigned int to_trans = min (iov_left, mtu - packet_size);</span>
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :         packet_size = (to_trans &lt; iov_left) ? 0 : packet_size + to_trans;</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         iov_left    -= to_trans;</span>
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         if (0 == packet_size &amp;&amp; iov_left) {</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :             sge_count++;</span>
+<span class="lineNum">     260 </span>            :         }
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     } while (iov_left);</span>
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span>            :     /* register buffers */
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :     if (NULL == *ib_mr_buf) {</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         *ib_mr_buf = ibv_reg_mr (ib_pd, buf, size,</span>
+<span class="lineNum">     266 </span>            :                                 IBV_ACCESS_LOCAL_WRITE |
+<span class="lineNum">     267 </span>            :                                 IBV_ACCESS_REMOTE_WRITE);
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         if (NULL == *ib_mr_buf) {</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-oob-ud.txt&quot;, &quot;reg-mr-failed&quot;, true,</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :                        orte_process_info.nodename, buf, size, strerror(errno));</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     272 </span>            :         }
+<span class="lineNum">     273 </span>            :     }
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     *wr_countp  = (size + mtu - 1) / mtu;</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     *sge_countp = sge_count;</span>
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     279 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

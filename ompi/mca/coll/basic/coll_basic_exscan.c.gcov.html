@@ -1,0 +1,210 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - ompi/mca/coll/basic/coll_basic_exscan.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/coll/basic</a> - coll_basic_exscan.c<span style="font-size: 80%;"> (source / <a href="coll_basic_exscan.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">27</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2014 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2011      NVIDIA Corporation.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  * $HEADER$
+<span class="lineNum">      18 </span>            :  */
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      21 </span>            : #include &quot;coll_basic.h&quot;
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;mpi.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;ompi/constants.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;ompi/op/op.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;ompi/datatype/ompi_datatype.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;ompi/mca/pml/pml.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;ompi/mca/coll/coll.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;ompi/mca/coll/base/coll_tags.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;coll_basic.h&quot;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : /*
+<span class="lineNum">      36 </span>            :  *      exscan_intra
+<span class="lineNum">      37 </span>            :  *
+<span class="lineNum">      38 </span>            :  *      Function:       - basic exscan operation
+<span class="lineNum">      39 </span>            :  *      Accepts:        - same arguments as MPI_Exscan()
+<span class="lineNum">      40 </span>            :  *      Returns:        - MPI_SUCCESS or error code
+<a name="41"><span class="lineNum">      41 </span>            :  */</a>
+<span class="lineNum">      42 </span>            : int
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 : mca_coll_basic_exscan_intra(void *sbuf, void *rbuf, int count,</span>
+<span class="lineNum">      44 </span>            :                             struct ompi_datatype_t *dtype,
+<span class="lineNum">      45 </span>            :                             struct ompi_op_t *op,
+<span class="lineNum">      46 </span>            :                             struct ompi_communicator_t *comm,
+<span class="lineNum">      47 </span>            :                             mca_coll_base_module_t *module)
+<span class="lineNum">      48 </span>            : {
+<span class="lineNum">      49 </span>            :     int size, rank, err;
+<span class="lineNum">      50 </span>            :     ptrdiff_t true_lb, true_extent, lb, extent;
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :     char *free_buffer = NULL;</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :     char *reduce_buffer = NULL;</span>
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :     size = ompi_comm_size(comm);</span>
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            :     /* For MPI_IN_PLACE, just adjust send buffer to point to
+<span class="lineNum">      58 </span>            :      * receive buffer. */
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :     if (MPI_IN_PLACE == sbuf) {</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :         sbuf = rbuf;</span>
+<span class="lineNum">      61 </span>            :     }
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            :     /* If we're rank 0, then just send our sbuf to the next rank, and
+<span class="lineNum">      64 </span>            :      * we are done. */
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     if (0 == rank) {</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :         return MCA_PML_CALL(send(sbuf, count, dtype, rank + 1,</span>
+<span class="lineNum">      67 </span>            :                                  MCA_COLL_BASE_TAG_EXSCAN,
+<span class="lineNum">      68 </span>            :                                  MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">      69 </span>            :     }
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            :     /* If we're the last rank, then just receive the result from the
+<span class="lineNum">      72 </span>            :      * prior rank, and we are done. */
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     else if ((size - 1) == rank) {</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :         return MCA_PML_CALL(recv(rbuf, count, dtype, rank - 1,</span>
+<span class="lineNum">      75 </span>            :                                  MCA_COLL_BASE_TAG_EXSCAN, comm,
+<span class="lineNum">      76 </span>            :                                  MPI_STATUS_IGNORE));
+<span class="lineNum">      77 </span>            :     }
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            :     /* Otherwise, get the result from the prior rank, combine it with my
+<span class="lineNum">      80 </span>            :      * data, and send it to the next rank */
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            :     /* Get a temporary buffer to perform the reduction into.  Rationale
+<span class="lineNum">      83 </span>            :      * for malloc'ing this size is provided in coll_basic_reduce.c. */
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     ompi_datatype_get_extent(dtype, &amp;lb, &amp;extent);</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :     ompi_datatype_get_true_extent(dtype, &amp;true_lb, &amp;true_extent);</span>
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     free_buffer = (char*)malloc(true_extent + (count - 1) * extent);</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     if (NULL == free_buffer) {</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :         return OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">      90 </span>            :     }
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     reduce_buffer = free_buffer - true_lb;</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :     err = ompi_datatype_copy_content_same_ddt(dtype, count,</span>
+<span class="lineNum">      93 </span>            :                                               reduce_buffer, (char*)sbuf);
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            :     /* Receive the reduced value from the prior rank */
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     err = MCA_PML_CALL(recv(rbuf, count, dtype, rank - 1,</span>
+<span class="lineNum">      97 </span>            :                             MCA_COLL_BASE_TAG_EXSCAN, comm, MPI_STATUS_IGNORE));
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     if (MPI_SUCCESS != err) {</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">     100 </span>            :     }
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :     /* Now reduce the prior rank's result with my source buffer.  The source
+<span class="lineNum">     103 </span>            :      * buffer had been previously copied into the temporary reduce_buffer. */
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     ompi_op_reduce(op, rbuf, reduce_buffer, count, dtype);</span>
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            :     /* Send my result off to the next rank */
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     err = MCA_PML_CALL(send(reduce_buffer, count, dtype, rank + 1,</span>
+<span class="lineNum">     108 </span>            :                             MCA_COLL_BASE_TAG_EXSCAN,
+<span class="lineNum">     109 </span>            :                             MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     110 </span>            :     /* Error */
+<span class="lineNum">     111 </span>            :   error:
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     free(free_buffer);</span>
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :     /* All done */
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     return err;</span>
+<span class="lineNum">     116 </span>            : }
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            : /*
+<span class="lineNum">     120 </span>            :  *      exscan_inter
+<span class="lineNum">     121 </span>            :  *
+<span class="lineNum">     122 </span>            :  *      Function:       - basic exscan operation
+<span class="lineNum">     123 </span>            :  *      Accepts:        - same arguments as MPI_Exscan()
+<span class="lineNum">     124 </span>            :  *      Returns:        - MPI_SUCCESS or error code
+<a name="125"><span class="lineNum">     125 </span>            :  */</a>
+<span class="lineNum">     126 </span>            : int
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 : mca_coll_basic_exscan_inter(void *sbuf, void *rbuf, int count,</span>
+<span class="lineNum">     128 </span>            :                             struct ompi_datatype_t *dtype,
+<span class="lineNum">     129 </span>            :                             struct ompi_op_t *op,
+<span class="lineNum">     130 </span>            :                             struct ompi_communicator_t *comm,
+<span class="lineNum">     131 </span>            :                             mca_coll_base_module_t *module)
+<span class="lineNum">     132 </span>            : {
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     return OMPI_ERR_NOT_IMPLEMENTED;</span>
+<span class="lineNum">     134 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

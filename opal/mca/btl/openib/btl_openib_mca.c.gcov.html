@@ -1,0 +1,913 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/btl/openib/btl_openib_mca.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/btl/openib</a> - btl_openib_mca.c<span style="font-size: 80%;"> (source / <a href="btl_openib_mca.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">146</td>
+            <td class="headerCovTableEntry">174</td>
+            <td class="headerCovTableEntryMed">83.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2005 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2006-2015 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2006-2009 Mellanox Technologies. All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2006-2015 Los Alamos National Security, LLC.  All rights
+<span class="lineNum">      16 </span>            :  *                         reserved.
+<span class="lineNum">      17 </span>            :  * Copyright (c) 2006-2007 Voltaire All rights reserved.
+<span class="lineNum">      18 </span>            :  * Copyright (c) 2009-2010 Oracle and/or its affiliates.  All rights reserved.
+<span class="lineNum">      19 </span>            :  * Copyright (c) 2013-2015 NVIDIA Corporation.  All rights reserved.
+<span class="lineNum">      20 </span>            :  * Copyright (c) 2014-2015 Research Organization for Information Science
+<span class="lineNum">      21 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      22 </span>            :  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+<span class="lineNum">      23 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      24 </span>            :  *
+<span class="lineNum">      25 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      26 </span>            :  *
+<span class="lineNum">      27 </span>            :  * $HEADER$
+<span class="lineNum">      28 </span>            :  */
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      33 </span>            : #include &quot;opal/util/bit_ops.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;opal/mca/common/verbs/common_verbs.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;opal/mca/installdirs/installdirs.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;opal/util/os_dirpath.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;opal/util/show_help.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;opal/util/proc.h&quot;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : #include &quot;btl_openib.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;btl_openib_mca.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;btl_openib_ini.h&quot;
+<span class="lineNum">      44 </span>            : #include &quot;connect/base.h&quot;
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : #ifdef HAVE_IBV_FORK_INIT
+<span class="lineNum">      47 </span>            : #define OPAL_HAVE_IBV_FORK_INIT 1
+<span class="lineNum">      48 </span>            : #else
+<span class="lineNum">      49 </span>            : #define OPAL_HAVE_IBV_FORK_INIT 0
+<span class="lineNum">      50 </span>            : #endif
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : /*
+<span class="lineNum">      53 </span>            :  * Local flags
+<span class="lineNum">      54 </span>            :  */
+<span class="lineNum">      55 </span>            : enum {
+<span class="lineNum">      56 </span>            :     REGINT_NEG_ONE_OK = 0x01,
+<span class="lineNum">      57 </span>            :     REGINT_GE_ZERO = 0x02,
+<span class="lineNum">      58 </span>            :     REGINT_GE_ONE = 0x04,
+<span class="lineNum">      59 </span>            :     REGINT_NONZERO = 0x08,
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            :     REGINT_MAX = 0x88
+<span class="lineNum">      62 </span>            : };
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : enum {
+<span class="lineNum">      66 </span>            :     REGSTR_EMPTY_OK = 0x01,
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            :     REGSTR_MAX = 0x88
+<span class="lineNum">      69 </span>            : };
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : static mca_base_var_enum_value_t ib_mtu_values[] = {
+<span class="lineNum">      72 </span>            :     {IBV_MTU_256, &quot;256B&quot;},
+<span class="lineNum">      73 </span>            :     {IBV_MTU_512, &quot;512B&quot;},
+<span class="lineNum">      74 </span>            :     {IBV_MTU_1024, &quot;1k&quot;},
+<span class="lineNum">      75 </span>            :     {IBV_MTU_2048, &quot;2k&quot;},
+<span class="lineNum">      76 </span>            :     {IBV_MTU_4096, &quot;4k&quot;},
+<span class="lineNum">      77 </span>            :     {0, NULL}
+<span class="lineNum">      78 </span>            : };
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span>            : static mca_base_var_enum_value_t device_type_values[] = {
+<span class="lineNum">      81 </span>            :     {BTL_OPENIB_DT_IB,    &quot;infiniband&quot;},
+<span class="lineNum">      82 </span>            :     {BTL_OPENIB_DT_IB,    &quot;ib&quot;},
+<span class="lineNum">      83 </span>            :     {BTL_OPENIB_DT_IWARP, &quot;iwarp&quot;},
+<span class="lineNum">      84 </span>            :     {BTL_OPENIB_DT_IWARP, &quot;iw&quot;},
+<span class="lineNum">      85 </span>            :     {BTL_OPENIB_DT_ALL,   &quot;all&quot;},
+<span class="lineNum">      86 </span>            :     {0, NULL}
+<span class="lineNum">      87 </span>            : };
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span>            : static int btl_openib_cq_size;
+<span class="lineNum">      90 </span>            : static bool btl_openib_have_fork_support = OPAL_HAVE_IBV_FORK_INIT;
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : #if BTL_OPENIB_FAILOVER_ENABLED
+<span class="lineNum">      93 </span>            : static int btl_openib_verbose_failover;
+<span class="lineNum">      94 </span>            : static bool btl_openib_failover_enabled = true;
+<span class="lineNum">      95 </span>            : #endif
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            : /*
+<a name="98"><span class="lineNum">      98 </span>            :  * utility routine for string parameter registration</a>
+<span class="lineNum">      99 </span>            :  */
+<span class="lineNum">     100 </span><span class="lineCov">         14 : static int reg_string(const char* param_name,</span>
+<span class="lineNum">     101 </span>            :                       const char* deprecated_param_name,
+<span class="lineNum">     102 </span>            :                       const char* param_desc,
+<span class="lineNum">     103 </span>            :                       const char* default_value, char **storage,
+<span class="lineNum">     104 </span>            :                       int flags)
+<span class="lineNum">     105 </span>            : {
+<span class="lineNum">     106 </span>            :     int index;
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineCov">         14 :     assert (NULL != storage);</span>
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            :     /* The MCA variable system will not change this pointer */
+<span class="lineNum">     111 </span><span class="lineCov">         14 :     *storage = (char *) default_value;</span>
+<span class="lineNum">     112 </span><span class="lineCov">         14 :     index = mca_base_component_var_register(&amp;mca_btl_openib_component.super.btl_version,</span>
+<span class="lineNum">     113 </span>            :                                             param_name, param_desc, MCA_BASE_VAR_TYPE_STRING,
+<span class="lineNum">     114 </span>            :                                             NULL, 0, 0, OPAL_INFO_LVL_9,
+<span class="lineNum">     115 </span>            :                                             MCA_BASE_VAR_SCOPE_READONLY, storage);
+<span class="lineNum">     116 </span><span class="lineCov">         14 :     if (NULL != deprecated_param_name) {</span>
+<span class="lineNum">     117 </span><span class="lineCov">          2 :         (void) mca_base_var_register_synonym(index, &quot;ompi&quot;, &quot;btl&quot;, &quot;openib&quot;,</span>
+<span class="lineNum">     118 </span>            :                                              deprecated_param_name,
+<span class="lineNum">     119 </span>            :                                              MCA_BASE_VAR_SYN_FLAG_DEPRECATED);
+<span class="lineNum">     120 </span>            :     }
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span><span class="lineCov">         14 :     if (0 != (flags &amp; REGSTR_EMPTY_OK) &amp;&amp; (NULL == *storage || 0 == strlen(*storage))) {</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;Bad parameter value for parameter \&quot;%s\&quot;&quot;,</span>
+<span class="lineNum">     124 </span>            :                 param_name);
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     126 </span>            :     }
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineCov">         14 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     129 </span>            : }
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : /*
+<a name="133"><span class="lineNum">     133 </span>            :  * utility routine for integer parameter registration</a>
+<span class="lineNum">     134 </span>            :  */
+<span class="lineNum">     135 </span><span class="lineCov">         34 : static int reg_int(const char* param_name,</span>
+<span class="lineNum">     136 </span>            :                    const char* deprecated_param_name,
+<span class="lineNum">     137 </span>            :                    const char* param_desc,
+<span class="lineNum">     138 </span>            :                    int default_value, int *storage, int flags)
+<span class="lineNum">     139 </span>            : {
+<span class="lineNum">     140 </span>            :     int index;
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineCov">         34 :     *storage = default_value;</span>
+<span class="lineNum">     143 </span><span class="lineCov">         34 :     index = mca_base_component_var_register(&amp;mca_btl_openib_component.super.btl_version,</span>
+<span class="lineNum">     144 </span>            :                                             param_name, param_desc, MCA_BASE_VAR_TYPE_INT,
+<span class="lineNum">     145 </span>            :                                             NULL, 0, 0, OPAL_INFO_LVL_9,
+<span class="lineNum">     146 </span>            :                                             MCA_BASE_VAR_SCOPE_READONLY, storage);
+<span class="lineNum">     147 </span><span class="lineCov">         34 :     if (NULL != deprecated_param_name) {</span>
+<span class="lineNum">     148 </span><span class="lineCov">          4 :         (void) mca_base_var_register_synonym(index, &quot;ompi&quot;, &quot;btl&quot;, &quot;openib&quot;,</span>
+<span class="lineNum">     149 </span>            :                                              deprecated_param_name,
+<span class="lineNum">     150 </span>            :                                              MCA_BASE_VAR_SYN_FLAG_DEPRECATED);
+<span class="lineNum">     151 </span>            :     }
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineCov">         34 :     if (0 != (flags &amp; REGINT_NEG_ONE_OK) &amp;&amp; -1 == *storage) {</span>
+<span class="lineNum">     154 </span><span class="lineCov">          6 :         return OPAL_SUCCESS;</span>
+<span class="lineNum">     155 </span>            :     }
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineCov">         56 :     if ((0 != (flags &amp; REGINT_GE_ZERO) &amp;&amp; *storage &lt; 0) ||</span>
+<span class="lineNum">     158 </span><span class="lineCov">         68 :         (0 != (flags &amp; REGINT_GE_ONE) &amp;&amp; *storage &lt; 1) ||</span>
+<span class="lineNum">     159 </span><span class="lineCov">         28 :         (0 != (flags &amp; REGINT_NONZERO) &amp;&amp; 0 == *storage)) {</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;Bad parameter value for parameter \&quot;%s\&quot;&quot;,</span>
+<span class="lineNum">     161 </span>            :                 param_name);
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     163 </span>            :     }
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineCov">         28 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     166 </span>            : }
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            : /*
+<a name="169"><span class="lineNum">     169 </span>            :  * utility routine for integer parameter registration</a>
+<span class="lineNum">     170 </span>            :  */
+<span class="lineNum">     171 </span><span class="lineCov">         34 : static int reg_uint(const char* param_name,</span>
+<span class="lineNum">     172 </span>            :                     const char* deprecated_param_name,
+<span class="lineNum">     173 </span>            :                     const char* param_desc,
+<span class="lineNum">     174 </span>            :                     unsigned int default_value, unsigned int *storage,
+<span class="lineNum">     175 </span>            :                     int flags)
+<span class="lineNum">     176 </span>            : {
+<span class="lineNum">     177 </span>            :     int index;
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineCov">         34 :     *storage = default_value;</span>
+<span class="lineNum">     180 </span><span class="lineCov">         34 :     index = mca_base_component_var_register(&amp;mca_btl_openib_component.super.btl_version,</span>
+<span class="lineNum">     181 </span>            :                                             param_name, param_desc, MCA_BASE_VAR_TYPE_UNSIGNED_INT,
+<span class="lineNum">     182 </span>            :                                             NULL, 0, 0, OPAL_INFO_LVL_9,
+<span class="lineNum">     183 </span>            :                                             MCA_BASE_VAR_SCOPE_READONLY, storage);
+<span class="lineNum">     184 </span><span class="lineCov">         34 :     if (NULL != deprecated_param_name) {</span>
+<span class="lineNum">     185 </span><span class="lineCov">          4 :         (void) mca_base_var_register_synonym(index, &quot;ompi&quot;, &quot;btl&quot;, &quot;openib&quot;,</span>
+<span class="lineNum">     186 </span>            :                                              deprecated_param_name,
+<span class="lineNum">     187 </span>            :                                              MCA_BASE_VAR_SYN_FLAG_DEPRECATED);
+<span class="lineNum">     188 </span>            :     }
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineCov">         68 :     if ((0 != (flags &amp; REGINT_GE_ONE) &amp;&amp; *storage &lt; 1) ||</span>
+<span class="lineNum">     191 </span><span class="lineCov">         34 :         (0 != (flags &amp; REGINT_NONZERO) &amp;&amp; 0 == *storage)) {</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;Bad parameter value for parameter \&quot;%s\&quot;&quot;,</span>
+<span class="lineNum">     193 </span>            :                 param_name);
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     195 </span>            :     }
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineCov">         34 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     198 </span>            : }
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span>            : /*
+<a name="201"><span class="lineNum">     201 </span>            :  * utility routine for integer parameter registration</a>
+<span class="lineNum">     202 </span>            :  */
+<span class="lineNum">     203 </span><span class="lineCov">         20 : static int reg_bool(const char* param_name,</span>
+<span class="lineNum">     204 </span>            :                     const char* deprecated_param_name,
+<span class="lineNum">     205 </span>            :                     const char* param_desc,
+<span class="lineNum">     206 </span>            :                     bool default_value, bool *storage)
+<span class="lineNum">     207 </span>            : {
+<span class="lineNum">     208 </span>            :     int index;
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span><span class="lineCov">         20 :     *storage = default_value;</span>
+<span class="lineNum">     211 </span><span class="lineCov">         20 :     index = mca_base_component_var_register(&amp;mca_btl_openib_component.super.btl_version,</span>
+<span class="lineNum">     212 </span>            :                                             param_name, param_desc, MCA_BASE_VAR_TYPE_BOOL,
+<span class="lineNum">     213 </span>            :                                             NULL, 0, 0, OPAL_INFO_LVL_9,
+<span class="lineNum">     214 </span>            :                                             MCA_BASE_VAR_SCOPE_READONLY, storage);
+<span class="lineNum">     215 </span><span class="lineCov">         20 :     if (NULL != deprecated_param_name) {</span>
+<span class="lineNum">     216 </span><span class="lineCov">          2 :         (void) mca_base_var_register_synonym(index, &quot;ompi&quot;, &quot;btl&quot;, &quot;openib&quot;,</span>
+<span class="lineNum">     217 </span>            :                                              deprecated_param_name,
+<span class="lineNum">     218 </span>            :                                              MCA_BASE_VAR_SYN_FLAG_DEPRECATED);
+<span class="lineNum">     219 </span>            :     }
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span><span class="lineCov">         20 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     222 </span>            : }
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            : /*
+<a name="225"><span class="lineNum">     225 </span>            :  * Register and check all MCA parameters</a>
+<span class="lineNum">     226 </span>            :  */
+<span class="lineNum">     227 </span><span class="lineCov">          2 : int btl_openib_register_mca_params(void)</span>
+<span class="lineNum">     228 </span>            : {
+<span class="lineNum">     229 </span>            :     mca_base_var_enum_t *new_enum;
+<span class="lineNum">     230 </span>            :     char *default_qps;
+<span class="lineNum">     231 </span>            :     uint32_t mid_qp_size;
+<span class="lineNum">     232 </span>            :     char *msg, *str;
+<span class="lineNum">     233 </span>            :     int ret, tmp;
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineCov">          2 :     ret = OPAL_SUCCESS;</span>
+<span class="lineNum">     236 </span>            : #define CHECK(expr) do {\
+<span class="lineNum">     237 </span>            :         tmp = (expr); \
+<span class="lineNum">     238 </span>            :         if (OPAL_SUCCESS != tmp) ret = tmp; \
+<span class="lineNum">     239 </span>            :      } while (0)
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span>            :     /* register openib component parameters */
+<span class="lineNum">     242 </span><span class="lineCov">          2 :     CHECK(reg_bool(&quot;verbose&quot;, NULL,</span>
+<span class="lineNum">     243 </span>            :                   &quot;Output some verbose OpenIB BTL information &quot;
+<span class="lineNum">     244 </span>            :                   &quot;(0 = no output, nonzero = output)&quot;, false,
+<span class="lineNum">     245 </span>            :                    &amp;mca_btl_openib_component.verbose));
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineCov">          2 :     CHECK(reg_bool(&quot;warn_no_device_params_found&quot;,</span>
+<span class="lineNum">     248 </span>            :                   &quot;warn_no_hca_params_found&quot;,
+<span class="lineNum">     249 </span>            :                   &quot;Warn when no device-specific parameters are found in the INI file specified by the btl_openib_device_param_files MCA parameter &quot;
+<span class="lineNum">     250 </span>            :                   &quot;(0 = do not warn; any other value = warn)&quot;,
+<span class="lineNum">     251 </span>            :                   true, &amp;mca_btl_openib_component.warn_no_device_params_found));
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineCov">          2 :     CHECK(reg_bool(&quot;warn_default_gid_prefix&quot;, NULL,</span>
+<span class="lineNum">     254 </span>            :                   &quot;Warn when there is more than one active ports and at least one of them connected to the network with only default GID prefix configured &quot;
+<span class="lineNum">     255 </span>            :                   &quot;(0 = do not warn; any other value = warn)&quot;,
+<span class="lineNum">     256 </span>            :                   true, &amp;mca_btl_openib_component.warn_default_gid_prefix));
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineCov">          2 :     CHECK(reg_bool(&quot;warn_nonexistent_if&quot;, NULL,</span>
+<span class="lineNum">     259 </span>            :                   &quot;Warn if non-existent devices and/or ports are specified in the btl_openib_if_[in|ex]clude MCA parameters &quot;
+<span class="lineNum">     260 </span>            :                   &quot;(0 = do not warn; any other value = warn)&quot;,
+<span class="lineNum">     261 </span>            :                   true, &amp;mca_btl_openib_component.warn_nonexistent_if));
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span>            :     /* If we print a warning about not having enough registered memory
+<span class="lineNum">     264 </span>            :        available, do we want to abort? */
+<span class="lineNum">     265 </span><span class="lineCov">          2 :     CHECK(reg_bool(&quot;abort_not_enough_reg_mem&quot;, NULL,</span>
+<span class="lineNum">     266 </span>            :                   &quot;If there is not enough registered memory available on the system for Open MPI to function properly, Open MPI will issue a warning.  If this MCA parameter is set to true, then Open MPI will also abort all MPI jobs &quot;
+<span class="lineNum">     267 </span>            :                   &quot;(0 = warn, but do not abort; any other value = warn and abort)&quot;,
+<span class="lineNum">     268 </span>            :                   false, &amp;mca_btl_openib_component.abort_not_enough_reg_mem));
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;poll_cq_batch&quot;, NULL,</span>
+<span class="lineNum">     271 </span>            :                    &quot;Retrieve up to poll_cq_batch completions from CQ&quot;,
+<span class="lineNum">     272 </span>            :                    MCA_BTL_OPENIB_CQ_POLL_BATCH_DEFAULT, &amp;mca_btl_openib_component.cq_poll_batch,
+<span class="lineNum">     273 </span>            :                    REGINT_GE_ONE));
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span><span class="lineCov">          2 :     asprintf(&amp;str, &quot;%s/mca-btl-openib-device-params.ini&quot;,</span>
+<span class="lineNum">     276 </span>            :              opal_install_dirs.opaldatadir);
+<span class="lineNum">     277 </span><span class="lineCov">          2 :     if (NULL == str) {</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     279 </span>            :     }
+<span class="lineNum">     280 </span><span class="lineCov">          2 :     CHECK(reg_string(&quot;device_param_files&quot;, &quot;hca_param_files&quot;,</span>
+<span class="lineNum">     281 </span>            :                      &quot;Colon-delimited list of INI-style files that contain device vendor/part-specific parameters (use semicolon for Windows)&quot;,
+<span class="lineNum">     282 </span>            :                      str, &amp;mca_btl_openib_component.device_params_file_names,
+<span class="lineNum">     283 </span>            :                      0));
+<span class="lineNum">     284 </span><span class="lineCov">          2 :     free(str);</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span><span class="lineCov">          2 :     (void)mca_base_var_enum_create(&quot;btl_openib_device_types&quot;, device_type_values, &amp;new_enum);</span>
+<span class="lineNum">     287 </span><span class="lineCov">          2 :     mca_btl_openib_component.device_type = BTL_OPENIB_DT_ALL;</span>
+<span class="lineNum">     288 </span><span class="lineCov">          2 :     tmp = mca_base_component_var_register(&amp;mca_btl_openib_component.super.btl_version,</span>
+<span class="lineNum">     289 </span>            :                                           &quot;device_type&quot;, &quot;Specify to only use IB or iWARP &quot;
+<span class="lineNum">     290 </span>            :                                           &quot;network adapters (infiniband = only use InfiniBand &quot;
+<span class="lineNum">     291 </span>            :                                           &quot;HCAs; iwarp = only use iWARP NICs; all = use any &quot;
+<span class="lineNum">     292 </span>            :                                           &quot;available adapters)&quot;, MCA_BASE_VAR_TYPE_INT, new_enum,
+<span class="lineNum">     293 </span>            :                                           0, 0, OPAL_INFO_LVL_9,
+<span class="lineNum">     294 </span>            :                                           MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     295 </span>            :                                           &amp;mca_btl_openib_component.device_type);
+<span class="lineNum">     296 </span><span class="lineCov">          2 :     if (0 &gt; tmp) ret = tmp;</span>
+<span class="lineNum">     297 </span><span class="lineCov">          4 :     OBJ_RELEASE(new_enum);</span>
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;max_btls&quot;, NULL,</span>
+<span class="lineNum">     300 </span>            :                   &quot;Maximum number of device ports to use &quot;
+<span class="lineNum">     301 </span>            :                   &quot;(-1 = use all available, otherwise must be &gt;= 1)&quot;,
+<span class="lineNum">     302 </span>            :                   -1, &amp;mca_btl_openib_component.ib_max_btls,
+<span class="lineNum">     303 </span>            :                   REGINT_NEG_ONE_OK | REGINT_GE_ONE));
+<span class="lineNum">     304 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;free_list_num&quot;, NULL,</span>
+<span class="lineNum">     305 </span>            :                   &quot;Initial size of free lists &quot;
+<span class="lineNum">     306 </span>            :                   &quot;(must be &gt;= 1)&quot;,
+<span class="lineNum">     307 </span>            :                   8, &amp;mca_btl_openib_component.ib_free_list_num,
+<span class="lineNum">     308 </span>            :                   REGINT_GE_ONE));
+<span class="lineNum">     309 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;free_list_max&quot;, NULL,</span>
+<span class="lineNum">     310 </span>            :                   &quot;Maximum size of free lists &quot;
+<span class="lineNum">     311 </span>            :                   &quot;(-1 = infinite, otherwise must be &gt;= 0)&quot;,
+<span class="lineNum">     312 </span>            :                   -1, &amp;mca_btl_openib_component.ib_free_list_max,
+<span class="lineNum">     313 </span>            :                   REGINT_NEG_ONE_OK | REGINT_GE_ONE));
+<span class="lineNum">     314 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;free_list_inc&quot;, NULL,</span>
+<span class="lineNum">     315 </span>            :                   &quot;Increment size of free lists &quot;
+<span class="lineNum">     316 </span>            :                   &quot;(must be &gt;= 1)&quot;,
+<span class="lineNum">     317 </span>            :                   32, &amp;mca_btl_openib_component.ib_free_list_inc,
+<span class="lineNum">     318 </span>            :                   REGINT_GE_ONE));
+<span class="lineNum">     319 </span><span class="lineCov">          2 :     CHECK(reg_string(&quot;mpool&quot;, NULL,</span>
+<span class="lineNum">     320 </span>            :                      &quot;Name of the memory pool to be used (it is unlikely that you will ever want to change this)&quot;,
+<span class="lineNum">     321 </span>            :                      &quot;grdma&quot;, &amp;mca_btl_openib_component.ib_mpool_name,
+<span class="lineNum">     322 </span>            :                      0));
+<span class="lineNum">     323 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;reg_mru_len&quot;, NULL,</span>
+<span class="lineNum">     324 </span>            :                   &quot;Length of the registration cache most recently used list &quot;
+<span class="lineNum">     325 </span>            :                   &quot;(must be &gt;= 1)&quot;,
+<span class="lineNum">     326 </span>            :                   16, (int*) &amp;mca_btl_openib_component.reg_mru_len,
+<span class="lineNum">     327 </span>            :                   REGINT_GE_ONE));
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;cq_size&quot;, &quot;ib_cq_size&quot;,</span>
+<span class="lineNum">     330 </span>            :                   &quot;Minimum size of the OpenFabrics completion queue &quot;
+<span class="lineNum">     331 </span>            :                   &quot;(CQs are automatically sized based on the number &quot;
+<span class="lineNum">     332 </span>            :                   &quot;of peer MPI processes; this value determines the &quot;
+<span class="lineNum">     333 </span>            :                   &quot;*minimum* size of all CQs)&quot;,
+<span class="lineNum">     334 </span>            :                   8192, &amp;btl_openib_cq_size, REGINT_GE_ONE));
+<span class="lineNum">     335 </span><span class="lineCov">          2 :     mca_btl_openib_component.ib_cq_size[BTL_OPENIB_LP_CQ] =</span>
+<span class="lineNum">     336 </span><span class="lineCov">          2 :         mca_btl_openib_component.ib_cq_size[BTL_OPENIB_HP_CQ] = (uint32_t) btl_openib_cq_size;</span>
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;max_inline_data&quot;, &quot;ib_max_inline_data&quot;,</span>
+<span class="lineNum">     339 </span>            :                   &quot;Maximum size of inline data segment &quot;
+<span class="lineNum">     340 </span>            :                   &quot;(-1 = run-time probe to discover max value, otherwise must be &gt;= 0). &quot;
+<span class="lineNum">     341 </span>            :                   &quot;If not explicitly set, use max_inline_data from &quot;
+<span class="lineNum">     342 </span>            :                   &quot;the INI file containing device-specific parameters&quot;,
+<span class="lineNum">     343 </span>            :                   -1, &amp;mca_btl_openib_component.ib_max_inline_data,
+<span class="lineNum">     344 </span>            :                   REGINT_NEG_ONE_OK | REGINT_GE_ZERO));
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;pkey&quot;, &quot;ib_pkey_val&quot;,</span>
+<span class="lineNum">     347 </span>            :                    &quot;OpenFabrics partition key (pkey) value. &quot;
+<span class="lineNum">     348 </span>            :                    &quot;Unsigned integer decimal or hex values are allowed (e.g., \&quot;3\&quot; or \&quot;0x3f\&quot;) and will be masked against the maximum allowable IB partition key value (0x7fff)&quot;,
+<span class="lineNum">     349 </span>            :                    0, &amp;mca_btl_openib_component.ib_pkey_val, 0));
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;psn&quot;, &quot;ib_psn&quot;,</span>
+<span class="lineNum">     352 </span>            :                   &quot;OpenFabrics packet sequence starting number &quot;
+<span class="lineNum">     353 </span>            :                   &quot;(must be &gt;= 0)&quot;,
+<span class="lineNum">     354 </span>            :                   0, &amp;mca_btl_openib_component.ib_psn, 0));
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;ib_qp_ous_rd_atom&quot;, NULL,</span>
+<span class="lineNum">     357 </span>            :                    &quot;InfiniBand outstanding atomic reads &quot;
+<span class="lineNum">     358 </span>            :                    &quot;(must be &gt;= 0)&quot;,
+<span class="lineNum">     359 </span>            :                    4, &amp;mca_btl_openib_component.ib_qp_ous_rd_atom, 0));
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span><span class="lineCov">          2 :     asprintf(&amp;msg, &quot;OpenFabrics MTU, in bytes (if not specified in INI files).  Valid values are: %d=256 bytes, %d=512 bytes, %d=1024 bytes, %d=2048 bytes, %d=4096 bytes&quot;,</span>
+<span class="lineNum">     362 </span>            :              IBV_MTU_256,
+<span class="lineNum">     363 </span>            :              IBV_MTU_512,
+<span class="lineNum">     364 </span>            :              IBV_MTU_1024,
+<span class="lineNum">     365 </span>            :              IBV_MTU_2048,
+<span class="lineNum">     366 </span>            :              IBV_MTU_4096);
+<span class="lineNum">     367 </span><span class="lineCov">          2 :     if (NULL == msg) {</span>
+<span class="lineNum">     368 </span>            :         /* Don't try to recover from this */
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     370 </span>            :     }
+<span class="lineNum">     371 </span><span class="lineCov">          2 :     mca_btl_openib_component.ib_mtu = IBV_MTU_1024;</span>
+<span class="lineNum">     372 </span><span class="lineCov">          2 :     (void) mca_base_var_enum_create(&quot;btl_openib_mtus&quot;, ib_mtu_values, &amp;new_enum);</span>
+<span class="lineNum">     373 </span><span class="lineCov">          2 :     tmp = mca_base_component_var_register(&amp;mca_btl_openib_component.super.btl_version,</span>
+<span class="lineNum">     374 </span>            :                                           &quot;mtu&quot;, msg, MCA_BASE_VAR_TYPE_INT, new_enum,
+<span class="lineNum">     375 </span>            :                                           0, 0, OPAL_INFO_LVL_9,
+<span class="lineNum">     376 </span>            :                                           MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     377 </span>            :                                           &amp;mca_btl_openib_component.ib_mtu);
+<span class="lineNum">     378 </span><span class="lineCov">          2 :     if (0 &lt;= tmp) {</span>
+<span class="lineNum">     379 </span><span class="lineCov">          2 :         (void) mca_base_var_register_synonym(tmp, &quot;ompi&quot;, &quot;btl&quot;, &quot;openib&quot;, &quot;ib_mtu&quot;,</span>
+<span class="lineNum">     380 </span>            :                                              MCA_BASE_VAR_SYN_FLAG_DEPRECATED);
+<span class="lineNum">     381 </span>            :     } else {
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :         ret = tmp;</span>
+<span class="lineNum">     383 </span>            :     }
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span><span class="lineCov">          4 :     OBJ_RELEASE(new_enum);</span>
+<span class="lineNum">     386 </span><span class="lineCov">          2 :     free(msg);</span>
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;ib_min_rnr_timer&quot;, NULL, &quot;InfiniBand minimum &quot;</span>
+<span class="lineNum">     389 </span>            :                    &quot;\&quot;receiver not ready\&quot; timer, in seconds &quot;
+<span class="lineNum">     390 </span>            :                    &quot;(must be &gt;= 0 and &lt;= 31)&quot;,
+<span class="lineNum">     391 </span>            :                    25, &amp;mca_btl_openib_component.ib_min_rnr_timer, 0));
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;ib_timeout&quot;, NULL,</span>
+<span class="lineNum">     394 </span>            :                   &quot;InfiniBand transmit timeout, plugged into formula: 4.096 microseconds * (2^btl_openib_ib_timeout) &quot;
+<span class="lineNum">     395 </span>            :                   &quot;(must be &gt;= 0 and &lt;= 31)&quot;,
+<span class="lineNum">     396 </span>            :                   20, &amp;mca_btl_openib_component.ib_timeout, 0));
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;ib_retry_count&quot;, NULL,</span>
+<span class="lineNum">     399 </span>            :                   &quot;InfiniBand transmit retry count &quot;
+<span class="lineNum">     400 </span>            :                   &quot;(must be &gt;= 0 and &lt;= 7)&quot;,
+<span class="lineNum">     401 </span>            :                   7, &amp;mca_btl_openib_component.ib_retry_count, 0));
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;ib_rnr_retry&quot;, NULL,</span>
+<span class="lineNum">     404 </span>            :                    &quot;InfiniBand \&quot;receiver not ready\&quot; &quot;
+<span class="lineNum">     405 </span>            :                    &quot;retry count; applies *only* to SRQ/XRC queues.  PP queues &quot;
+<span class="lineNum">     406 </span>            :                    &quot;use RNR retry values of 0 because Open MPI performs &quot;
+<span class="lineNum">     407 </span>            :                    &quot;software flow control to guarantee that RNRs never occur &quot;
+<span class="lineNum">     408 </span>            :                    &quot;(must be &gt;= 0 and &lt;= 7; 7 = \&quot;infinite\&quot;)&quot;,
+<span class="lineNum">     409 </span>            :                    7, &amp;mca_btl_openib_component.ib_rnr_retry, 0));
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;ib_max_rdma_dst_ops&quot;, NULL, &quot;InfiniBand maximum pending RDMA &quot;</span>
+<span class="lineNum">     412 </span>            :                   &quot;destination operations &quot;
+<span class="lineNum">     413 </span>            :                   &quot;(must be &gt;= 0)&quot;,
+<span class="lineNum">     414 </span>            :                   4, &amp;mca_btl_openib_component.ib_max_rdma_dst_ops, 0));
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;ib_service_level&quot;, NULL, &quot;InfiniBand service level &quot;</span>
+<span class="lineNum">     417 </span>            :                    &quot;(must be &gt;= 0 and &lt;= 15)&quot;,
+<span class="lineNum">     418 </span>            :                    0, &amp;mca_btl_openib_component.ib_service_level, 0));
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span>            : #if (ENABLE_DYNAMIC_SL)
+<span class="lineNum">     421 </span>            :     CHECK(reg_uint(&quot;ib_path_record_service_level&quot;, NULL,
+<span class="lineNum">     422 </span>            :                    &quot;Enable getting InfiniBand service level from PathRecord &quot;
+<span class="lineNum">     423 </span>            :                    &quot;(must be &gt;= 0, 0 = disabled, positive = try to get the &quot;
+<span class="lineNum">     424 </span>            :                    &quot;service level from PathRecord)&quot;,
+<span class="lineNum">     425 </span>            :                    0, &amp;mca_btl_openib_component.ib_path_record_service_level, 0));
+<span class="lineNum">     426 </span>            : #endif
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;use_eager_rdma&quot;, NULL, &quot;Use RDMA for eager messages &quot;</span>
+<span class="lineNum">     429 </span>            :                   &quot;(-1 = use device default, 0 = do not use eager RDMA, &quot;
+<span class="lineNum">     430 </span>            :                   &quot;1 = use eager RDMA)&quot;,
+<span class="lineNum">     431 </span>            :                   -1, &amp;mca_btl_openib_component.use_eager_rdma, 0));
+<span class="lineNum">     432 </span>            : 
+<span class="lineNum">     433 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;eager_rdma_threshold&quot;, NULL,</span>
+<span class="lineNum">     434 </span>            :                   &quot;Use RDMA for short messages after this number of &quot;
+<span class="lineNum">     435 </span>            :                   &quot;messages are received from a given peer &quot;
+<span class="lineNum">     436 </span>            :                   &quot;(must be &gt;= 1)&quot;,
+<span class="lineNum">     437 </span>            :                   16, &amp;mca_btl_openib_component.eager_rdma_threshold, REGINT_GE_ONE));
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;max_eager_rdma&quot;, NULL, &quot;Maximum number of peers allowed to use &quot;</span>
+<span class="lineNum">     440 </span>            :                   &quot;RDMA for short messages (RDMA is used for all long &quot;
+<span class="lineNum">     441 </span>            :                   &quot;messages, except if explicitly disabled, such as &quot;
+<span class="lineNum">     442 </span>            :                   &quot;with the \&quot;dr\&quot; pml) &quot;
+<span class="lineNum">     443 </span>            :                   &quot;(must be &gt;= 0)&quot;,
+<span class="lineNum">     444 </span>            :                   16, &amp;mca_btl_openib_component.max_eager_rdma, REGINT_GE_ZERO));
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;eager_rdma_num&quot;, NULL, &quot;Number of RDMA buffers to allocate &quot;</span>
+<span class="lineNum">     447 </span>            :                   &quot;for small messages &quot;
+<span class="lineNum">     448 </span>            :                   &quot;(must be &gt;= 1)&quot;,
+<span class="lineNum">     449 </span>            :                   16, &amp;mca_btl_openib_component.eager_rdma_num, REGINT_GE_ONE));
+<span class="lineNum">     450 </span><span class="lineCov">          2 :     mca_btl_openib_component.eager_rdma_num++;</span>
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;btls_per_lid&quot;, NULL, &quot;Number of BTLs to create for each &quot;</span>
+<span class="lineNum">     453 </span>            :                   &quot;InfiniBand LID &quot;
+<span class="lineNum">     454 </span>            :                   &quot;(must be &gt;= 1)&quot;,
+<span class="lineNum">     455 </span>            :                   1, &amp;mca_btl_openib_component.btls_per_lid, REGINT_GE_ONE));
+<span class="lineNum">     456 </span>            : 
+<span class="lineNum">     457 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;max_lmc&quot;, NULL, &quot;Maximum number of LIDs to use for each device port &quot;</span>
+<span class="lineNum">     458 </span>            :                    &quot;(must be &gt;= 0, where 0 = use all available)&quot;,
+<span class="lineNum">     459 </span>            :                    1, &amp;mca_btl_openib_component.max_lmc, 0));
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;enable_apm_over_lmc&quot;, NULL, &quot;Maximum number of alternative paths for each device port &quot;</span>
+<span class="lineNum">     462 </span>            :                   &quot;(must be &gt;= -1, where 0 = disable apm, -1 = all available alternative paths )&quot;,
+<span class="lineNum">     463 </span>            :                   0, &amp;mca_btl_openib_component.apm_lmc, REGINT_NEG_ONE_OK|REGINT_GE_ZERO));
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;enable_apm_over_ports&quot;, NULL, &quot;Enable alternative path migration (APM) over different ports of the same device &quot;</span>
+<span class="lineNum">     466 </span>            :                   &quot;(must be &gt;= 0, where 0 = disable APM over ports, 1 = enable APM over ports of the same device)&quot;,
+<span class="lineNum">     467 </span>            :                   0, &amp;mca_btl_openib_component.apm_ports, REGINT_GE_ZERO));
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span><span class="lineCov">          2 :     CHECK(reg_bool(&quot;use_async_event_thread&quot;, NULL,</span>
+<span class="lineNum">     470 </span>            :                    &quot;If nonzero, use the thread that will handle InfiniBand asynchronous events&quot;,
+<span class="lineNum">     471 </span>            :                    true, &amp;mca_btl_openib_component.use_async_event_thread));
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span>            : #if BTL_OPENIB_FAILOVER_ENABLED
+<span class="lineNum">     474 </span>            :     /* failover specific output */
+<span class="lineNum">     475 </span>            :     CHECK(reg_int(&quot;verbose_failover&quot;, NULL,
+<span class="lineNum">     476 </span>            :                   &quot;Output some verbose OpenIB BTL failover information &quot;
+<span class="lineNum">     477 </span>            :                   &quot;(0 = no output, nonzero = output)&quot;, 0, &amp;btl_openib_verbose_failover, 0));
+<span class="lineNum">     478 </span>            :     mca_btl_openib_component.verbose_failover = opal_output_open(NULL);
+<span class="lineNum">     479 </span>            :     opal_output_set_verbosity(mca_btl_openib_component.verbose_failover, btl_openib_verbose_failover);
+<span class="lineNum">     480 </span>            : 
+<span class="lineNum">     481 </span>            :     CHECK(reg_bool(&quot;port_error_failover&quot;, NULL,
+<span class="lineNum">     482 </span>            :                    &quot;If nonzero, asynchronous port errors will trigger failover&quot;,
+<span class="lineNum">     483 </span>            :                    0, &amp;mca_btl_openib_component.port_error_failover));
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span>            :     /* Make non writeable parameter that indicates failover is configured in. */
+<span class="lineNum">     486 </span>            :     tmp = mca_base_component_var_register(&amp;mca_btl_openib_component.super.btl_version,
+<span class="lineNum">     487 </span>            :                                           &quot;failover_enabled&quot;,
+<span class="lineNum">     488 </span>            :                                           &quot;openib failover is configured: run with bfo PML to support failover between openib BTLs&quot;,
+<span class="lineNum">     489 </span>            :                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0,
+<span class="lineNum">     490 </span>            :                                           MCA_BASE_VAR_FLAG_DEFAULT_ONLY,
+<span class="lineNum">     491 </span>            :                                           OPAL_INFO_LVL_9,
+<span class="lineNum">     492 </span>            :                                           MCA_BASE_VAR_SCOPE_CONSTANT,
+<span class="lineNum">     493 </span>            :                                           &amp;btl_openib_failover_enabled);
+<span class="lineNum">     494 </span>            :     if (0 &gt; tmp) ret = tmp;
+<span class="lineNum">     495 </span>            : #endif
+<span class="lineNum">     496 </span>            : 
+<span class="lineNum">     497 </span><span class="lineCov">          2 :     CHECK(reg_bool(&quot;enable_srq_resize&quot;, NULL,</span>
+<span class="lineNum">     498 </span>            :                    &quot;Enable/Disable on demand SRQ resize. &quot;
+<span class="lineNum">     499 </span>            :                    &quot;(0 = without resizing, nonzero = with resizing)&quot;, 1,
+<span class="lineNum">     500 </span>            :                    &amp;mca_btl_openib_component.enable_srq_resize));
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span>            : #if HAVE_DECL_IBV_LINK_LAYER_ETHERNET
+<span class="lineNum">     503 </span><span class="lineCov">          2 :     CHECK(reg_bool(&quot;rroce_enable&quot;, NULL,</span>
+<span class="lineNum">     504 </span>            :                    &quot;Enable/Disable routing between different subnets&quot;
+<span class="lineNum">     505 </span>            :                    &quot;(0 = disable, nonzero = enable)&quot;, false,
+<span class="lineNum">     506 </span>            :                    &amp;mca_btl_openib_component.rroce_enable));
+<span class="lineNum">     507 </span>            : #endif
+<span class="lineNum">     508 </span>            : 
+<span class="lineNum">     509 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;buffer_alignment&quot;, NULL,</span>
+<span class="lineNum">     510 </span>            :                    &quot;Preferred communication buffer alignment, in bytes &quot;
+<span class="lineNum">     511 </span>            :                    &quot;(must be &gt; 0 and power of two)&quot;,
+<span class="lineNum">     512 </span>            :                    64, &amp;mca_btl_openib_component.buffer_alignment, 0));
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span><span class="lineCov">          2 :     CHECK(reg_bool(&quot;use_message_coalescing&quot;, NULL,</span>
+<span class="lineNum">     515 </span>            :                    &quot;If nonzero, use message coalescing&quot;, false,
+<span class="lineNum">     516 </span>            :                    &amp;mca_btl_openib_component.use_message_coalescing));
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;cq_poll_ratio&quot;, NULL,</span>
+<span class="lineNum">     519 </span>            :                    &quot;How often to poll high priority CQ versus low priority CQ&quot;,
+<span class="lineNum">     520 </span>            :                    100, &amp;mca_btl_openib_component.cq_poll_ratio, REGINT_GE_ONE));
+<span class="lineNum">     521 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;eager_rdma_poll_ratio&quot;, NULL,</span>
+<span class="lineNum">     522 </span>            :                    &quot;How often to poll eager RDMA channel versus CQ&quot;,
+<span class="lineNum">     523 </span>            :                    100, &amp;mca_btl_openib_component.eager_rdma_poll_ratio, REGINT_GE_ONE));
+<span class="lineNum">     524 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;hp_cq_poll_per_progress&quot;, NULL,</span>
+<span class="lineNum">     525 </span>            :                   &quot;Max number of completion events to process for each call &quot;
+<span class="lineNum">     526 </span>            :                   &quot;of BTL progress engine&quot;,
+<span class="lineNum">     527 </span>            :                   10, &amp;mca_btl_openib_component.cq_poll_progress, REGINT_GE_ONE));
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span><span class="lineCov">          2 :     CHECK(reg_uint(&quot;max_hw_msg_size&quot;, NULL,</span>
+<span class="lineNum">     530 </span>            :                    &quot;Maximum size (in bytes) of a single fragment of a long message when using the RDMA protocols (must be &gt; 0 and &lt;= hw capabilities).&quot;,
+<span class="lineNum">     531 </span>            :                    0, &amp;mca_btl_openib_component.max_hw_msg_size, 0));
+<span class="lineNum">     532 </span>            : 
+<span class="lineNum">     533 </span><span class="lineCov">          2 :     CHECK(reg_bool(&quot;allow_max_memory_registration&quot;, NULL,</span>
+<span class="lineNum">     534 </span>            :                   &quot;Allow maximum possible memory to register with HCA&quot;,
+<span class="lineNum">     535 </span>            :                    1, &amp;mca_btl_openib_component.allow_max_memory_registration));
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span>            :     /* Help debug memory registration issues */
+<span class="lineNum">     538 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;memory_registration_verbose&quot;, NULL,</span>
+<span class="lineNum">     539 </span>            :                   &quot;Output some verbose memory registration information &quot;
+<span class="lineNum">     540 </span>            :                   &quot;(0 = no output, nonzero = output)&quot;, 0,
+<span class="lineNum">     541 </span>            :                   &amp;mca_btl_openib_component.memory_registration_verbose_level, 0));
+<span class="lineNum">     542 </span>            : 
+<span class="lineNum">     543 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;ignore_locality&quot;, NULL,</span>
+<span class="lineNum">     544 </span>            :                   &quot;Ignore any locality information and use all devices &quot;
+<span class="lineNum">     545 </span>            :                   &quot;(0 = use locality informaiton and use only close devices, nonzero = ignore locality information)&quot;, 0,
+<span class="lineNum">     546 </span>            :                   &amp;mca_btl_openib_component.ignore_locality, REGINT_GE_ZERO));
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span>            :     /* Info only */
+<span class="lineNum">     549 </span><span class="lineCov">          2 :     tmp = mca_base_component_var_register(&amp;mca_btl_openib_component.super.btl_version,</span>
+<span class="lineNum">     550 </span>            :                                           &quot;have_fork_support&quot;,
+<span class="lineNum">     551 </span>            :                                           &quot;Whether the OpenFabrics stack supports applications that invoke the \&quot;fork()\&quot; system call or not (0 = no, 1 = yes). &quot;
+<span class="lineNum">     552 </span>            :                                           &quot;Note that this value does NOT indicate whether the system being run on supports \&quot;fork()\&quot; with OpenFabrics applications or not.&quot;,
+<span class="lineNum">     553 </span>            :                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0,
+<span class="lineNum">     554 </span>            :                                           MCA_BASE_VAR_FLAG_DEFAULT_ONLY,
+<span class="lineNum">     555 </span>            :                                           OPAL_INFO_LVL_9,
+<span class="lineNum">     556 </span>            :                                           MCA_BASE_VAR_SCOPE_CONSTANT,
+<span class="lineNum">     557 </span>            :                                           &amp;btl_openib_have_fork_support);
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span><span class="lineCov">          2 :     mca_btl_openib_module.super.btl_exclusivity = MCA_BTL_EXCLUSIVITY_DEFAULT;</span>
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span><span class="lineCov">          2 :     mca_btl_openib_module.super.btl_eager_limit = 12 * 1024;</span>
+<span class="lineNum">     562 </span><span class="lineCov">          2 :     mca_btl_openib_module.super.btl_rndv_eager_limit = 12 * 1024;</span>
+<span class="lineNum">     563 </span><span class="lineCov">          2 :     mca_btl_openib_module.super.btl_max_send_size = 64 * 1024;</span>
+<span class="lineNum">     564 </span><span class="lineCov">          2 :     mca_btl_openib_module.super.btl_rdma_pipeline_send_length = 1024 * 1024;</span>
+<span class="lineNum">     565 </span><span class="lineCov">          2 :     mca_btl_openib_module.super.btl_rdma_pipeline_frag_size = 1024 * 1024;</span>
+<span class="lineNum">     566 </span><span class="lineCov">          2 :     mca_btl_openib_module.super.btl_min_rdma_pipeline_size = 256 * 1024;</span>
+<span class="lineNum">     567 </span><span class="lineCov">          2 :     mca_btl_openib_module.super.btl_flags = MCA_BTL_FLAGS_RDMA |</span>
+<span class="lineNum">     568 </span>            :         MCA_BTL_FLAGS_NEED_ACK | MCA_BTL_FLAGS_NEED_CSUM | MCA_BTL_FLAGS_HETEROGENEOUS_RDMA;
+<span class="lineNum">     569 </span>            : #if BTL_OPENIB_FAILOVER_ENABLED
+<span class="lineNum">     570 </span>            :     mca_btl_openib_module.super.btl_flags |= MCA_BTL_FLAGS_FAILOVER_SUPPORT;
+<span class="lineNum">     571 </span>            : #endif
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span>            : #if HAVE_DECL_IBV_ATOMIC_HCA
+<span class="lineNum">     574 </span><span class="lineCov">          2 :     mca_btl_openib_module.super.btl_flags |= MCA_BTL_FLAGS_ATOMIC_FOPS;</span>
+<span class="lineNum">     575 </span><span class="lineCov">          2 :     mca_btl_openib_module.super.btl_atomic_flags = MCA_BTL_ATOMIC_SUPPORTS_ADD | MCA_BTL_ATOMIC_SUPPORTS_CSWAP;</span>
+<span class="lineNum">     576 </span>            : #endif
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span>            :     /* Default to bandwidth auto-detection */
+<span class="lineNum">     579 </span><span class="lineCov">          2 :     mca_btl_openib_module.super.btl_bandwidth = 0;</span>
+<span class="lineNum">     580 </span><span class="lineCov">          2 :     mca_btl_openib_module.super.btl_latency = 4;</span>
+<span class="lineNum">     581 </span>            : #if OPAL_CUDA_SUPPORT /* CUDA_ASYNC_RECV */
+<span class="lineNum">     582 </span>            :     /* Default is enabling CUDA asynchronous send copies */
+<span class="lineNum">     583 </span>            :     CHECK(reg_bool(&quot;cuda_async_send&quot;, NULL,
+<span class="lineNum">     584 </span>            :                    &quot;Enable or disable CUDA async send copies &quot;
+<span class="lineNum">     585 </span>            :                    &quot;(true = async; false = sync)&quot;,
+<span class="lineNum">     586 </span>            :                    true, &amp;mca_btl_openib_component.cuda_async_send));
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span>            :     /* Default is enabling CUDA asynchronous receive copies */
+<span class="lineNum">     589 </span>            :     CHECK(reg_bool(&quot;cuda_async_recv&quot;, NULL,
+<span class="lineNum">     590 </span>            :                    &quot;Enable or disable CUDA async recv copies &quot;
+<span class="lineNum">     591 </span>            :                    &quot;(true = async; false = sync)&quot;,
+<span class="lineNum">     592 </span>            :                    true, &amp;mca_btl_openib_component.cuda_async_recv));
+<span class="lineNum">     593 </span>            :     /* Also make the max send size larger for better GPU buffer performance */
+<span class="lineNum">     594 </span>            :     mca_btl_openib_module.super.btl_max_send_size = 128 * 1024;
+<span class="lineNum">     595 </span>            :     /* Turn of message coalescing - not sure if it works with GPU buffers */
+<span class="lineNum">     596 </span>            :     mca_btl_openib_component.use_message_coalescing = 0;
+<span class="lineNum">     597 </span>            : 
+<span class="lineNum">     598 </span>            :     /* Indicates if library was built with GPU Direct RDMA support.  Not changeable.  */
+<span class="lineNum">     599 </span>            :     mca_btl_openib_component.cuda_have_gdr = OPAL_INT_TO_BOOL(OPAL_CUDA_GDR_SUPPORT);
+<span class="lineNum">     600 </span>            :     (void) mca_base_component_var_register(&amp;mca_btl_openib_component.super.btl_version, &quot;have_cuda_gdr&quot;,
+<span class="lineNum">     601 </span>            :                                            &quot;Whether CUDA GPU Direct RDMA support is built into library or not&quot;,
+<span class="lineNum">     602 </span>            :                                            MCA_BASE_VAR_TYPE_BOOL, NULL, 0,
+<span class="lineNum">     603 </span>            :                                            MCA_BASE_VAR_FLAG_DEFAULT_ONLY,
+<span class="lineNum">     604 </span>            :                                            OPAL_INFO_LVL_5,
+<span class="lineNum">     605 </span>            :                                            MCA_BASE_VAR_SCOPE_CONSTANT,
+<span class="lineNum">     606 </span>            :                                            &amp;mca_btl_openib_component.cuda_have_gdr);
+<span class="lineNum">     607 </span>            : 
+<span class="lineNum">     608 </span>            :     /* Indicates if driver has GPU Direct RDMA support.  Not changeable.  */
+<span class="lineNum">     609 </span>            :     if (OPAL_SUCCESS == opal_os_dirpath_access(&quot;/sys/kernel/mm/memory_peers/nv_mem/version&quot;, S_IRUSR)) {
+<span class="lineNum">     610 </span>            :         mca_btl_openib_component.driver_have_gdr = 1;
+<span class="lineNum">     611 </span>            :     } else {
+<span class="lineNum">     612 </span>            :         mca_btl_openib_component.driver_have_gdr = 0;
+<span class="lineNum">     613 </span>            :     }
+<span class="lineNum">     614 </span>            :     (void) mca_base_component_var_register(&amp;mca_btl_openib_component.super.btl_version, &quot;have_driver_gdr&quot;,
+<span class="lineNum">     615 </span>            :                                            &quot;Whether Infiniband driver has GPU Direct RDMA support&quot;,
+<span class="lineNum">     616 </span>            :                                            MCA_BASE_VAR_TYPE_BOOL, NULL, 0,
+<span class="lineNum">     617 </span>            :                                            MCA_BASE_VAR_FLAG_DEFAULT_ONLY,
+<span class="lineNum">     618 </span>            :                                            OPAL_INFO_LVL_5,
+<span class="lineNum">     619 </span>            :                                            MCA_BASE_VAR_SCOPE_CONSTANT,
+<span class="lineNum">     620 </span>            :                                            &amp;mca_btl_openib_component.driver_have_gdr);
+<span class="lineNum">     621 </span>            : 
+<span class="lineNum">     622 </span>            :     /* Default for GPU Direct RDMA is off for now */
+<span class="lineNum">     623 </span>            :     CHECK(reg_bool(&quot;want_cuda_gdr&quot;, NULL,
+<span class="lineNum">     624 </span>            :                    &quot;Enable or disable CUDA GPU Direct RDMA support &quot;
+<span class="lineNum">     625 </span>            :                    &quot;(true = enabled; false = disabled)&quot;,
+<span class="lineNum">     626 </span>            :                    false, &amp;mca_btl_openib_component.cuda_want_gdr));
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span>            :     if (mca_btl_openib_component.cuda_want_gdr &amp;&amp; !mca_btl_openib_component.cuda_have_gdr) {
+<span class="lineNum">     629 </span>            :         opal_show_help(&quot;help-mpi-btl-openib.txt&quot;,
+<span class="lineNum">     630 </span>            :                        &quot;CUDA_no_gdr_support&quot;, true,
+<span class="lineNum">     631 </span>            :                        opal_process_info.nodename);
+<span class="lineNum">     632 </span>            :         return OPAL_ERROR;
+<span class="lineNum">     633 </span>            :     }
+<span class="lineNum">     634 </span>            :     if (mca_btl_openib_component.cuda_want_gdr &amp;&amp; !mca_btl_openib_component.driver_have_gdr) {
+<span class="lineNum">     635 </span>            :         opal_show_help(&quot;help-mpi-btl-openib.txt&quot;,
+<span class="lineNum">     636 </span>            :                        &quot;driver_no_gdr_support&quot;, true,
+<span class="lineNum">     637 </span>            :                        opal_process_info.nodename);
+<span class="lineNum">     638 </span>            :         return OPAL_ERROR;
+<span class="lineNum">     639 </span>            :     }
+<span class="lineNum">     640 </span>            : #if OPAL_CUDA_GDR_SUPPORT
+<span class="lineNum">     641 </span>            :     if (mca_btl_openib_component.cuda_want_gdr) {
+<span class="lineNum">     642 </span>            :         mca_btl_openib_module.super.btl_flags |= MCA_BTL_FLAGS_CUDA_GET;
+<span class="lineNum">     643 </span>            :         mca_btl_openib_module.super.btl_cuda_eager_limit = SIZE_MAX; /* magic number - indicates set it to minimum */
+<span class="lineNum">     644 </span>            :         mca_btl_openib_module.super.btl_cuda_rdma_limit = 30000;  /* default switchover is 30,000 to pipeline */
+<span class="lineNum">     645 </span>            :     } else {
+<span class="lineNum">     646 </span>            :         mca_btl_openib_module.super.btl_cuda_eager_limit = 0; /* Turns off any of the GPU Direct RDMA code */
+<span class="lineNum">     647 </span>            :         mca_btl_openib_module.super.btl_cuda_rdma_limit = 0;  /* Unused */
+<span class="lineNum">     648 </span>            :     }
+<span class="lineNum">     649 </span>            : #endif /* OPAL_CUDA_GDR_SUPPORT */
+<span class="lineNum">     650 </span>            : #endif /* OPAL_CUDA_SUPPORT */
+<span class="lineNum">     651 </span><span class="lineCov">          2 :     CHECK(mca_btl_base_param_register(</span>
+<span class="lineNum">     652 </span>            :             &amp;mca_btl_openib_component.super.btl_version,
+<span class="lineNum">     653 </span>            :             &amp;mca_btl_openib_module.super));
+<span class="lineNum">     654 </span>            : 
+<span class="lineNum">     655 </span>            :     /* setup all the qp stuff */
+<span class="lineNum">     656 </span>            :     /* round mid_qp_size to smallest power of two */
+<span class="lineNum">     657 </span><span class="lineCov">          2 :     mid_qp_size = opal_next_poweroftwo (mca_btl_openib_module.super.btl_eager_limit / 4) &gt;&gt; 1;</span>
+<span class="lineNum">     658 </span>            : 
+<span class="lineNum">     659 </span>            :     /* mid_qp_size = MAX (mid_qp_size, 1024); ?! */
+<span class="lineNum">     660 </span><span class="lineCov">          2 :     if(mid_qp_size &lt;= 128) {</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :         mid_qp_size = 1024;</span>
+<span class="lineNum">     662 </span>            :     }
+<span class="lineNum">     663 </span>            : 
+<span class="lineNum">     664 </span><span class="lineCov">          4 :     asprintf(&amp;default_qps,</span>
+<span class="lineNum">     665 </span>            :             &quot;P,128,256,192,128:S,%u,1024,1008,64:S,%u,1024,1008,64:S,%u,1024,1008,64&quot;,
+<span class="lineNum">     666 </span>            :             mid_qp_size,
+<span class="lineNum">     667 </span><span class="lineCov">          2 :             (uint32_t)mca_btl_openib_module.super.btl_eager_limit,</span>
+<span class="lineNum">     668 </span><span class="lineCov">          2 :             (uint32_t)mca_btl_openib_module.super.btl_max_send_size);</span>
+<span class="lineNum">     669 </span><span class="lineCov">          2 :     if (NULL == default_qps) {</span>
+<span class="lineNum">     670 </span>            :         /* Don't try to recover from this */
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     672 </span>            :     }
+<span class="lineNum">     673 </span><span class="lineCov">          2 :     mca_btl_openib_component.default_recv_qps = default_qps;</span>
+<span class="lineNum">     674 </span><span class="lineCov">          2 :     CHECK(reg_string(&quot;receive_queues&quot;, NULL,</span>
+<span class="lineNum">     675 </span>            :                      &quot;Colon-delimited, comma-delimited list of receive queues: P,4096,8,6,4:P,32768,8,6,4&quot;,
+<span class="lineNum">     676 </span>            :                      default_qps, &amp;mca_btl_openib_component.receive_queues,
+<span class="lineNum">     677 </span>            :                      0
+<span class="lineNum">     678 </span>            :                 ));
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span><span class="lineCov">          2 :     CHECK(reg_string(&quot;if_include&quot;, NULL,</span>
+<span class="lineNum">     681 </span>            :                      &quot;Comma-delimited list of devices/ports to be used (e.g. \&quot;mthca0,mthca1:2\&quot;; empty value means to use all ports found).  Mutually exclusive with btl_openib_if_exclude.&quot;,
+<span class="lineNum">     682 </span>            :                      NULL, &amp;mca_btl_openib_component.if_include,
+<span class="lineNum">     683 </span>            :                      0));
+<span class="lineNum">     684 </span>            : 
+<span class="lineNum">     685 </span><span class="lineCov">          2 :     CHECK(reg_string(&quot;if_exclude&quot;, NULL,</span>
+<span class="lineNum">     686 </span>            :                      &quot;Comma-delimited list of device/ports to be excluded (empty value means to not exclude any ports).  Mutually exclusive with btl_openib_if_include.&quot;,
+<span class="lineNum">     687 </span>            :                      NULL, &amp;mca_btl_openib_component.if_exclude,
+<span class="lineNum">     688 </span>            :                      0));
+<span class="lineNum">     689 </span>            : 
+<span class="lineNum">     690 </span><span class="lineCov">          2 :     CHECK(reg_string(&quot;ipaddr_include&quot;, NULL,</span>
+<span class="lineNum">     691 </span>            :                      &quot;Comma-delimited list of IP Addresses to be used (e.g. \&quot;192.168.1.0/24\&quot;).  Mutually exclusive with btl_openib_ipaddr_exclude.&quot;,
+<span class="lineNum">     692 </span>            :                      NULL, &amp;mca_btl_openib_component.ipaddr_include,
+<span class="lineNum">     693 </span>            :                      0));
+<span class="lineNum">     694 </span>            : 
+<span class="lineNum">     695 </span><span class="lineCov">          2 :     CHECK(reg_string(&quot;ipaddr_exclude&quot;, NULL,</span>
+<span class="lineNum">     696 </span>            :                      &quot;Comma-delimited list of IP Addresses to be excluded (e.g. \&quot;192.168.1.0/24\&quot;).  Mutually exclusive with btl_openib_ipaddr_include.&quot;,
+<span class="lineNum">     697 </span>            :                      NULL, &amp;mca_btl_openib_component.ipaddr_exclude,
+<span class="lineNum">     698 </span>            :                      0));
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;gid_index&quot;, NULL,</span>
+<span class="lineNum">     701 </span>            :                   &quot;GID index to use on verbs device ports&quot;,
+<span class="lineNum">     702 </span>            :                   0, &amp;mca_btl_openib_component.gid_index,
+<span class="lineNum">     703 </span>            :                   REGINT_GE_ZERO));
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span>            : #if BTL_OPENIB_MALLOC_HOOKS_ENABLED
+<span class="lineNum">     706 </span><span class="lineCov">          2 :     CHECK(reg_int(&quot;memalign&quot;, NULL,</span>
+<span class="lineNum">     707 </span>            :                   &quot;[64 | 32 | 0] - Enable (64bit or 32bit)/Disable(0) memory&quot;
+<span class="lineNum">     708 </span>            :                   &quot;alignment for all malloc calls if btl openib is used.&quot;,
+<span class="lineNum">     709 </span>            :                   32, &amp;mca_btl_openib_component.use_memalign,
+<span class="lineNum">     710 </span>            :                   REGINT_GE_ZERO));
+<span class="lineNum">     711 </span>            : 
+<span class="lineNum">     712 </span><span class="lineCov">          2 :     mca_btl_openib_component.memalign_threshold =</span>
+<span class="lineNum">     713 </span><span class="lineCov">          2 :         mca_btl_openib_module.super.btl_eager_limit;</span>
+<span class="lineNum">     714 </span><span class="lineCov">          2 :     tmp = mca_base_component_var_register(&amp;mca_btl_openib_component.super.btl_version,</span>
+<span class="lineNum">     715 </span>            :                                           &quot;memalign_threshold&quot;,
+<span class="lineNum">     716 </span>            :                                           &quot;Allocating memory more than btl_openib_memalign_threshhold&quot;
+<span class="lineNum">     717 </span>            :                                           &quot;bytes will automatically be algined to the value of btl_openib_memalign bytes.&quot;
+<span class="lineNum">     718 </span>            :                                           &quot;memalign_threshhold defaults to the same value as mca_btl_openib_eager_limit.&quot;,
+<span class="lineNum">     719 </span>            :                                           MCA_BASE_VAR_TYPE_SIZE_T, NULL, 0, 0,
+<span class="lineNum">     720 </span>            :                                           OPAL_INFO_LVL_9,
+<span class="lineNum">     721 </span>            :                                           MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     722 </span>            :                                           &amp;mca_btl_openib_component.memalign_threshold);
+<span class="lineNum">     723 </span><span class="lineCov">          2 :     if (0 &gt; tmp) ret = tmp;</span>
+<span class="lineNum">     724 </span>            : #endif
+<span class="lineNum">     725 </span>            : 
+<span class="lineNum">     726 </span>            :     /* Register any MCA params for the connect pseudo-components */
+<span class="lineNum">     727 </span><span class="lineCov">          2 :     if (OPAL_SUCCESS == ret) {</span>
+<span class="lineNum">     728 </span><span class="lineCov">          2 :         ret = opal_btl_openib_connect_base_register();</span>
+<span class="lineNum">     729 </span>            :     }
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span><span class="lineCov">          2 :     return btl_openib_verify_mca_params();</span>
+<a name="732"><span class="lineNum">     732 </span>            : }</a>
+<span class="lineNum">     733 </span>            : 
+<span class="lineNum">     734 </span><span class="lineCov">          2 : int btl_openib_verify_mca_params (void)</span>
+<span class="lineNum">     735 </span>            : {
+<span class="lineNum">     736 </span><span class="lineCov">          2 :     if (mca_btl_openib_component.cq_poll_batch &gt; MCA_BTL_OPENIB_CQ_POLL_BATCH_DEFAULT) {</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :         mca_btl_openib_component.cq_poll_batch = MCA_BTL_OPENIB_CQ_POLL_BATCH_DEFAULT;</span>
+<span class="lineNum">     738 </span>            :     }
+<span class="lineNum">     739 </span>            : 
+<span class="lineNum">     740 </span>            : #if !HAVE_IBV_FORK_INIT
+<span class="lineNum">     741 </span>            :     if (1 == mca_btl_openib_component.want_fork_support) {
+<span class="lineNum">     742 </span>            :         opal_show_help(&quot;help-mpi-btl-openib.txt&quot;,
+<span class="lineNum">     743 </span>            :                        &quot;ibv_fork requested but not supported&quot;, true,
+<span class="lineNum">     744 </span>            :                        opal_process_info.nodename);
+<span class="lineNum">     745 </span>            :         return OPAL_ERR_BAD_PARAM;
+<span class="lineNum">     746 </span>            :     }
+<span class="lineNum">     747 </span>            : #endif
+<span class="lineNum">     748 </span>            : 
+<span class="lineNum">     749 </span><span class="lineCov">          2 :     mca_btl_openib_component.ib_pkey_val &amp;= MCA_BTL_IB_PKEY_MASK;</span>
+<span class="lineNum">     750 </span>            : 
+<span class="lineNum">     751 </span><span class="lineCov">          2 :     if (mca_btl_openib_component.ib_min_rnr_timer &gt; 31) {</span>
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :         opal_show_help(&quot;help-mpi-btl-openib.txt&quot;, &quot;invalid mca param value&quot;,</span>
+<span class="lineNum">     753 </span>            :                        true, &quot;btl_openib_ib_min_rnr_timer &gt; 31&quot;,
+<span class="lineNum">     754 </span>            :                        &quot;btl_openib_ib_min_rnr_timer reset to 31&quot;);
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :         mca_btl_openib_component.ib_min_rnr_timer = 31;</span>
+<span class="lineNum">     756 </span>            :     }
+<span class="lineNum">     757 </span>            : 
+<span class="lineNum">     758 </span><span class="lineCov">          2 :     if (mca_btl_openib_component.ib_timeout &gt; 31) {</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :         opal_show_help(&quot;help-mpi-btl-openib.txt&quot;, &quot;invalid mca param value&quot;,</span>
+<span class="lineNum">     760 </span>            :                        true, &quot;btl_openib_ib_timeout &gt; 31&quot;,
+<span class="lineNum">     761 </span>            :                        &quot;btl_openib_ib_timeout reset to 31&quot;);
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :         mca_btl_openib_component.ib_timeout = 31;</span>
+<span class="lineNum">     763 </span>            :     }
+<span class="lineNum">     764 </span>            : 
+<span class="lineNum">     765 </span><span class="lineCov">          2 :     if (mca_btl_openib_component.ib_retry_count &gt; 7) {</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :         opal_show_help(&quot;help-mpi-btl-openib.txt&quot;, &quot;invalid mca param value&quot;,</span>
+<span class="lineNum">     767 </span>            :                        true, &quot;btl_openib_ib_retry_count &gt; 7&quot;,
+<span class="lineNum">     768 </span>            :                        &quot;btl_openib_ib_retry_count reset to 7&quot;);
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :         mca_btl_openib_component.ib_retry_count = 7;</span>
+<span class="lineNum">     770 </span>            :     }
+<span class="lineNum">     771 </span>            : 
+<span class="lineNum">     772 </span><span class="lineCov">          2 :     if (mca_btl_openib_component.ib_rnr_retry &gt; 7) {</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :         opal_show_help(&quot;help-mpi-btl-openib.txt&quot;, &quot;invalid mca param value&quot;,</span>
+<span class="lineNum">     774 </span>            :                        true, &quot;btl_openib_ib_rnr_retry &gt; 7&quot;,
+<span class="lineNum">     775 </span>            :                        &quot;btl_openib_ib_rnr_retry reset to 7&quot;);
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :         mca_btl_openib_component.ib_rnr_retry = 7;</span>
+<span class="lineNum">     777 </span>            :     }
+<span class="lineNum">     778 </span>            : 
+<span class="lineNum">     779 </span><span class="lineCov">          2 :     if (mca_btl_openib_component.ib_service_level &gt; 15) {</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :         opal_show_help(&quot;help-mpi-btl-openib.txt&quot;, &quot;invalid mca param value&quot;,</span>
+<span class="lineNum">     781 </span>            :                        true, &quot;btl_openib_ib_service_level &gt; 15&quot;,
+<span class="lineNum">     782 </span>            :                        &quot;btl_openib_ib_service_level reset to 15&quot;);
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :         mca_btl_openib_component.ib_service_level = 15;</span>
+<span class="lineNum">     784 </span>            :     }
+<span class="lineNum">     785 </span>            : 
+<span class="lineNum">     786 </span><span class="lineCov">          4 :     if(mca_btl_openib_component.buffer_alignment &lt;= 1 ||</span>
+<span class="lineNum">     787 </span><span class="lineCov">          2 :        (mca_btl_openib_component.buffer_alignment &amp; (mca_btl_openib_component.buffer_alignment - 1))) {</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :         opal_show_help(&quot;help-mpi-btl-openib.txt&quot;, &quot;wrong buffer alignment&quot;,</span>
+<span class="lineNum">     789 </span>            :                 true, mca_btl_openib_component.buffer_alignment, opal_process_info.nodename, 64);
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :         mca_btl_openib_component.buffer_alignment = 64;</span>
+<span class="lineNum">     791 </span>            :     }
+<span class="lineNum">     792 </span>            : 
+<span class="lineNum">     793 </span>            : #if OPAL_CUDA_SUPPORT /* CUDA_ASYNC_RECV */
+<span class="lineNum">     794 </span>            :     if (mca_btl_openib_component.cuda_async_send) {
+<span class="lineNum">     795 </span>            :         mca_btl_openib_module.super.btl_flags |= MCA_BTL_FLAGS_CUDA_COPY_ASYNC_SEND;
+<span class="lineNum">     796 </span>            :     } else {
+<span class="lineNum">     797 </span>            :         mca_btl_openib_module.super.btl_flags &amp;= ~MCA_BTL_FLAGS_CUDA_COPY_ASYNC_SEND;
+<span class="lineNum">     798 </span>            :     }
+<span class="lineNum">     799 </span>            : 
+<span class="lineNum">     800 </span>            :     if (mca_btl_openib_component.cuda_async_recv) {
+<span class="lineNum">     801 </span>            :         mca_btl_openib_module.super.btl_flags |= MCA_BTL_FLAGS_CUDA_COPY_ASYNC_RECV;
+<span class="lineNum">     802 </span>            :     } else {
+<span class="lineNum">     803 </span>            :         mca_btl_openib_module.super.btl_flags &amp;= ~MCA_BTL_FLAGS_CUDA_COPY_ASYNC_RECV;
+<span class="lineNum">     804 </span>            :     }
+<span class="lineNum">     805 </span>            : #if 0 /* Disable this check for now while fork support code is worked out. */
+<span class="lineNum">     806 </span>            :     /* Cannot have fork support and GDR on at the same time.  If the user asks for both,
+<span class="lineNum">     807 </span>            :      * then print a message and return error.  If the user does not explicitly ask for
+<span class="lineNum">     808 </span>            :      * fork support, then turn it off in the presence of GDR.  */
+<span class="lineNum">     809 </span>            :     if (mca_btl_openib_component.cuda_want_gdr &amp;&amp; mca_btl_openib_component.cuda_have_gdr &amp;&amp;
+<span class="lineNum">     810 </span>            :         mca_btl_openib_component.driver_have_gdr) {
+<span class="lineNum">     811 </span>            :         if (1 == opal_common_verbs_want_fork_support) {
+<span class="lineNum">     812 </span>            :               opal_show_help(&quot;help-mpi-btl-openib.txt&quot;, &quot;no_fork_with_gdr&quot;,
+<span class="lineNum">     813 </span>            :                              true, opal_process_info.nodename);
+<span class="lineNum">     814 </span>            :               return OPAL_ERR_BAD_PARAM;
+<span class="lineNum">     815 </span>            :         }
+<span class="lineNum">     816 </span>            :     }
+<span class="lineNum">     817 </span>            : #endif /* Workaround */
+<span class="lineNum">     818 </span>            :     if (0 != mca_btl_openib_module.super.btl_cuda_max_send_size) {
+<span class="lineNum">     819 </span>            :         opal_show_help(&quot;help-mpi-btl-openib.txt&quot;, &quot;do_not_set_openib_value&quot;,
+<span class="lineNum">     820 </span>            :                        true, opal_process_info.nodename);
+<span class="lineNum">     821 </span>            :         mca_btl_openib_module.super.btl_cuda_max_send_size = 0;
+<span class="lineNum">     822 </span>            :     }
+<span class="lineNum">     823 </span>            : #endif
+<span class="lineNum">     824 </span>            : 
+<span class="lineNum">     825 </span>            : #if BTL_OPENIB_MALLOC_HOOKS_ENABLED
+<span class="lineNum">     826 </span><span class="lineCov">          2 :     if (mca_btl_openib_component.use_memalign != 32</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :         &amp;&amp; mca_btl_openib_component.use_memalign != 64</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :         &amp;&amp; mca_btl_openib_component.use_memalign != 0){</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :         opal_show_help(&quot;help-mpi-btl-openib.txt&quot;, &quot;invalid mca param value&quot;,</span>
+<span class="lineNum">     830 </span>            :                        true, &quot;Wrong btl_openib_memalign parameter value. Allowed values: 64, 32, 0.&quot;,
+<span class="lineNum">     831 </span>            :                        &quot;btl_openib_memalign is reset to 32&quot;);
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :         mca_btl_openib_component.use_memalign = 32;</span>
+<span class="lineNum">     833 </span>            :     }
+<span class="lineNum">     834 </span>            : #endif
+<span class="lineNum">     835 </span>            : 
+<span class="lineNum">     836 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     837 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,1372 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/dfs/app/dfs_app.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/dfs/app</a> - dfs_app.c<span style="font-size: 80%;"> (source / <a href="dfs_app.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">599</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">20</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2012-2013 Los Alamos National Security, LLC.
+<span class="lineNum">       3 </span>            :  *                         All rights reserved.
+<span class="lineNum">       4 </span>            :  * Copyright (c) 2014-2015 Intel, Inc. All rights reserved
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2014      Research Organization for Information Science
+<span class="lineNum">       6 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">       7 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * $HEADER$
+<span class="lineNum">      12 </span>            :  */
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      17 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      18 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      19 </span>            : #endif  /* HAVE_UNISTD_H */
+<span class="lineNum">      20 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      21 </span>            : #ifdef HAVE_FCNTL_H
+<span class="lineNum">      22 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      23 </span>            : #endif
+<span class="lineNum">      24 </span>            : #include &lt;sys/stat.h&gt;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;opal/util/if.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;opal/util/uri.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;opal/dss/dss.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;opal/mca/dstore/dstore.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &quot;orte/util/error_strings.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;orte/util/proc_info.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;orte/util/show_help.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;orte/mca/rml/rml.h&quot;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : #include &quot;orte/mca/dfs/base/base.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;dfs_app.h&quot;
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : /*
+<span class="lineNum">      44 </span>            :  * Module functions: Global
+<span class="lineNum">      45 </span>            :  */
+<span class="lineNum">      46 </span>            : static int init(void);
+<span class="lineNum">      47 </span>            : static int finalize(void);
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : static void dfs_open(char *uri,
+<span class="lineNum">      50 </span>            :                      orte_dfs_open_callback_fn_t cbfunc,
+<span class="lineNum">      51 </span>            :                      void *cbdata);
+<span class="lineNum">      52 </span>            : static void dfs_close(int fd,
+<span class="lineNum">      53 </span>            :                       orte_dfs_close_callback_fn_t cbfunc,
+<span class="lineNum">      54 </span>            :                       void *cbdata);
+<span class="lineNum">      55 </span>            : static void dfs_get_file_size(int fd,
+<span class="lineNum">      56 </span>            :                               orte_dfs_size_callback_fn_t cbfunc,
+<span class="lineNum">      57 </span>            :                               void *cbdata);
+<span class="lineNum">      58 </span>            : static void dfs_seek(int fd, long offset, int whence,
+<span class="lineNum">      59 </span>            :                      orte_dfs_seek_callback_fn_t cbfunc,
+<span class="lineNum">      60 </span>            :                      void *cbdata);
+<span class="lineNum">      61 </span>            : static void dfs_read(int fd, uint8_t *buffer,
+<span class="lineNum">      62 </span>            :                      long length,
+<span class="lineNum">      63 </span>            :                      orte_dfs_read_callback_fn_t cbfunc,
+<span class="lineNum">      64 </span>            :                      void *cbdata);
+<span class="lineNum">      65 </span>            : static void dfs_post_file_map(opal_buffer_t *bo,
+<span class="lineNum">      66 </span>            :                               orte_dfs_post_callback_fn_t cbfunc,
+<span class="lineNum">      67 </span>            :                               void *cbdata);
+<span class="lineNum">      68 </span>            : static void dfs_get_file_map(orte_process_name_t *target,
+<span class="lineNum">      69 </span>            :                              orte_dfs_fm_callback_fn_t cbfunc,
+<span class="lineNum">      70 </span>            :                              void *cbdata);
+<span class="lineNum">      71 </span>            : static void dfs_load_file_maps(orte_jobid_t jobid,
+<span class="lineNum">      72 </span>            :                                opal_buffer_t *bo,
+<span class="lineNum">      73 </span>            :                                orte_dfs_load_callback_fn_t cbfunc,
+<span class="lineNum">      74 </span>            :                                void *cbdata);
+<span class="lineNum">      75 </span>            : static void dfs_purge_file_maps(orte_jobid_t jobid,
+<span class="lineNum">      76 </span>            :                                 orte_dfs_purge_callback_fn_t cbfunc,
+<span class="lineNum">      77 </span>            :                                 void *cbdata);
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : /******************
+<span class="lineNum">      80 </span>            :  * APP module
+<span class="lineNum">      81 </span>            :  ******************/
+<span class="lineNum">      82 </span>            : orte_dfs_base_module_t orte_dfs_app_module = {
+<span class="lineNum">      83 </span>            :     init,
+<span class="lineNum">      84 </span>            :     finalize,
+<span class="lineNum">      85 </span>            :     dfs_open,
+<span class="lineNum">      86 </span>            :     dfs_close,
+<span class="lineNum">      87 </span>            :     dfs_get_file_size,
+<span class="lineNum">      88 </span>            :     dfs_seek,
+<span class="lineNum">      89 </span>            :     dfs_read,
+<span class="lineNum">      90 </span>            :     dfs_post_file_map,
+<span class="lineNum">      91 </span>            :     dfs_get_file_map,
+<span class="lineNum">      92 </span>            :     dfs_load_file_maps,
+<span class="lineNum">      93 </span>            :     dfs_purge_file_maps
+<span class="lineNum">      94 </span>            : };
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            : static opal_list_t requests, active_files;
+<span class="lineNum">      97 </span>            : static int local_fd = 0;
+<span class="lineNum">      98 </span>            : static uint64_t req_id = 0;
+<span class="lineNum">      99 </span>            : static void recv_dfs(int status, orte_process_name_t* sender,
+<span class="lineNum">     100 </span>            :                      opal_buffer_t* buffer, orte_rml_tag_t tag,
+<a name="101"><span class="lineNum">     101 </span>            :                      void* cbdata);</a>
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 : static int init(void)</span>
+<span class="lineNum">     104 </span>            : {
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;requests, opal_list_t);</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;active_files, opal_list_t);</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD,</span>
+<span class="lineNum">     108 </span>            :                             ORTE_RML_TAG_DFS_DATA,
+<span class="lineNum">     109 </span>            :                             ORTE_RML_PERSISTENT,
+<span class="lineNum">     110 </span>            :                             recv_dfs,
+<span class="lineNum">     111 </span>            :                             NULL);
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="113"><span class="lineNum">     113 </span>            : }</a>
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 : static int finalize(void)</span>
+<span class="lineNum">     116 </span>            : {
+<span class="lineNum">     117 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     orte_rml.recv_cancel(ORTE_NAME_WILDCARD, ORTE_RML_TAG_DFS_DATA);</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     while (NULL != (item = opal_list_remove_first(&amp;requests))) {</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item);</span>
+<span class="lineNum">     122 </span>            :     }
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;requests);</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     while (NULL != (item = opal_list_remove_first(&amp;active_files))) {</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item);</span>
+<span class="lineNum">     126 </span>            :     }
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;active_files);</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     129 </span>            : }
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            : /* receives take place in an event, so we are free to process
+<a name="132"><span class="lineNum">     132 </span>            :  * the request list without fear of getting things out-of-order</a>
+<span class="lineNum">     133 </span>            :  */
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 : static void recv_dfs(int status, orte_process_name_t* sender,</span>
+<span class="lineNum">     135 </span>            :                      opal_buffer_t* buffer, orte_rml_tag_t tag,
+<span class="lineNum">     136 </span>            :                      void* cbdata)
+<span class="lineNum">     137 </span>            : {
+<span class="lineNum">     138 </span>            :     orte_dfs_cmd_t cmd;
+<span class="lineNum">     139 </span>            :     int32_t cnt;
+<span class="lineNum">     140 </span>            :     orte_dfs_request_t *dfs, *dptr;
+<span class="lineNum">     141 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     142 </span>            :     int remote_fd, rc;
+<span class="lineNum">     143 </span>            :     int64_t i64;
+<span class="lineNum">     144 </span>            :     uint64_t rid;
+<span class="lineNum">     145 </span>            :     orte_dfs_tracker_t *trk;
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            :     /* unpack the command this message is responding to */
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     cnt = 1;</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;cmd, &amp;cnt, ORTE_DFS_CMD_T))) {</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     152 </span>            :     }
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     155 </span>            :                         &quot;%s recvd cmd %d from sender %s&quot;,
+<span class="lineNum">     156 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), (int)cmd,
+<span class="lineNum">     157 </span>            :                         ORTE_NAME_PRINT(sender));
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     switch (cmd) {</span>
+<span class="lineNum">     160 </span>            :     case ORTE_DFS_OPEN_CMD:
+<span class="lineNum">     161 </span>            :         /* unpack the request id */
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :         cnt = 1;</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;rid, &amp;cnt, OPAL_UINT64))) {</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     166 </span>            :         }
+<span class="lineNum">     167 </span>            :         /* unpack the remote fd */
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :         cnt = 1;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;remote_fd, &amp;cnt, OPAL_INT))) {</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     172 </span>            :         }
+<span class="lineNum">     173 </span>            :         /* search our list of requests to find the matching one */
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :         dfs = NULL;</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :         for (item = opal_list_get_first(&amp;requests);</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :              item != opal_list_get_end(&amp;requests);</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :              item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :             dptr = (orte_dfs_request_t*)item;</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :             if (dptr-&gt;id == rid) {</span>
+<span class="lineNum">     180 </span>            :                 /* as the request has been fulfilled, remove it */
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;requests, item);</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :                 dfs = dptr;</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     184 </span>            :             }
+<span class="lineNum">     185 </span>            :         }
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         if (NULL == dfs) {</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :             opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     188 </span>            :                                 &quot;%s recvd open file - no corresponding request found for local fd %d&quot;,
+<span class="lineNum">     189 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), local_fd);
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     192 </span>            :         }
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :         /* if the remote_fd &lt; 0, then we had an error, so return
+<span class="lineNum">     195 </span>            :          * the error value to the caller
+<span class="lineNum">     196 </span>            :          */
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         if (remote_fd &lt; 0) {</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :             opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     199 </span>            :                                 &quot;%s recvd open file response error file %s [error: %d]&quot;,
+<span class="lineNum">     200 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     201 </span>            :                                 dfs-&gt;uri, remote_fd);
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :             if (NULL != dfs-&gt;open_cbfunc) {</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :                 dfs-&gt;open_cbfunc(remote_fd, dfs-&gt;cbdata);</span>
+<span class="lineNum">     204 </span>            :             }
+<span class="lineNum">     205 </span>            :             /* release the request */
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     208 </span>            :         }
+<span class="lineNum">     209 </span>            :         /* otherwise, create a tracker for this file */
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :         trk = OBJ_NEW(orte_dfs_tracker_t);</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :         trk-&gt;requestor.jobid = ORTE_PROC_MY_NAME-&gt;jobid;</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :         trk-&gt;requestor.vpid = ORTE_PROC_MY_NAME-&gt;vpid;</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :         trk-&gt;host_daemon.jobid = sender-&gt;jobid;</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         trk-&gt;host_daemon.vpid = sender-&gt;vpid;</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :         trk-&gt;uri = strdup(dfs-&gt;uri);</span>
+<span class="lineNum">     216 </span>            :         /* break the uri down into scheme and filename */
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         trk-&gt;scheme = opal_uri_get_scheme(dfs-&gt;uri);</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         trk-&gt;filename = opal_filename_from_uri(dfs-&gt;uri, NULL);</span>
+<span class="lineNum">     219 </span>            :         /* define the local fd */
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         trk-&gt;local_fd = local_fd++;</span>
+<span class="lineNum">     221 </span>            :         /* record the remote file descriptor */
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         trk-&gt;remote_fd = remote_fd;</span>
+<span class="lineNum">     223 </span>            :         /* add it to our list of active files */
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :         opal_list_append(&amp;active_files, &amp;trk-&gt;super);</span>
+<span class="lineNum">     225 </span>            :         /* return the local_fd to the caller for
+<span class="lineNum">     226 </span>            :          * subsequent operations
+<span class="lineNum">     227 </span>            :          */
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :         opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     229 </span>            :                             &quot;%s recvd open file completed for file %s [local fd: %d remote fd: %d]&quot;,
+<span class="lineNum">     230 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     231 </span>            :                             dfs-&gt;uri, trk-&gt;local_fd, remote_fd);
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         if (NULL != dfs-&gt;open_cbfunc) {</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :             dfs-&gt;open_cbfunc(trk-&gt;local_fd, dfs-&gt;cbdata);</span>
+<span class="lineNum">     234 </span>            :         }
+<span class="lineNum">     235 </span>            :         /* release the request */
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            :     case ORTE_DFS_SIZE_CMD:
+<span class="lineNum">     240 </span>            :         /* unpack the request id for this request */
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         cnt = 1;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;rid, &amp;cnt, OPAL_UINT64))) {</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     245 </span>            :         }
+<span class="lineNum">     246 </span>            :         /* search our list of requests to find the matching one */
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :         dfs = NULL;</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :         for (item = opal_list_get_first(&amp;requests);</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :              item != opal_list_get_end(&amp;requests);</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :              item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :             dptr = (orte_dfs_request_t*)item;</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :             if (dptr-&gt;id == rid) {</span>
+<span class="lineNum">     253 </span>            :                 /* request was fulfilled, so remove it */
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;requests, item);</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :                 dfs = dptr;</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     257 </span>            :             }
+<span class="lineNum">     258 </span>            :         }
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :         if (NULL == dfs) {</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :             opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     261 </span>            :                                 &quot;%s recvd size - no corresponding request found for local fd %d&quot;,
+<span class="lineNum">     262 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), local_fd);
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     265 </span>            :         }
+<span class="lineNum">     266 </span>            :         /* get the size */
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         cnt = 1;</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;i64, &amp;cnt, OPAL_INT64))) {</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     272 </span>            :         }
+<span class="lineNum">     273 </span>            :         /* pass it back to the original caller */
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         if (NULL != dfs-&gt;size_cbfunc) {</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :             dfs-&gt;size_cbfunc(i64, dfs-&gt;cbdata);</span>
+<span class="lineNum">     276 </span>            :         }
+<span class="lineNum">     277 </span>            :         /* release the request */
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span>            :     case ORTE_DFS_SEEK_CMD:
+<span class="lineNum">     282 </span>            :         /* unpack the request id for this read */
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :         cnt = 1;</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;rid, &amp;cnt, OPAL_UINT64))) {</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     287 </span>            :         }
+<span class="lineNum">     288 </span>            :         /* search our list of requests to find the matching one */
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :         dfs = NULL;</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :         for (item = opal_list_get_first(&amp;requests);</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :              item != opal_list_get_end(&amp;requests);</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :              item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :             dptr = (orte_dfs_request_t*)item;</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :             if (dptr-&gt;id == rid) {</span>
+<span class="lineNum">     295 </span>            :                 /* request was fulfilled, so remove it */
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;requests, item);</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :                 dfs = dptr;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     299 </span>            :             }
+<span class="lineNum">     300 </span>            :         }
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :         if (NULL == dfs) {</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :             opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     303 </span>            :                                 &quot;%s recvd seek - no corresponding request found for local fd %d&quot;,
+<span class="lineNum">     304 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), local_fd);
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     307 </span>            :         }
+<span class="lineNum">     308 </span>            :         /* get the returned offset/status */
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :         cnt = 1;</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;i64, &amp;cnt, OPAL_INT64))) {</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     314 </span>            :         }
+<span class="lineNum">     315 </span>            :         /* pass it back to the original caller */
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         if (NULL != dfs-&gt;seek_cbfunc) {</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :             dfs-&gt;seek_cbfunc(i64, dfs-&gt;cbdata);</span>
+<span class="lineNum">     318 </span>            :         }
+<span class="lineNum">     319 </span>            :         /* release the request */
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            :     case ORTE_DFS_READ_CMD:
+<span class="lineNum">     324 </span>            :         /* unpack the request id for this read */
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :         cnt = 1;</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;rid, &amp;cnt, OPAL_UINT64))) {</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     329 </span>            :         }
+<span class="lineNum">     330 </span>            :         /* search our list of requests to find the matching one */
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :         dfs = NULL;</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :         for (item = opal_list_get_first(&amp;requests);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :              item != opal_list_get_end(&amp;requests);</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :              item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :             dptr = (orte_dfs_request_t*)item;</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :             if (dptr-&gt;id == rid) {</span>
+<span class="lineNum">     337 </span>            :                 /* request was fulfilled, so remove it */
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;requests, item);</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :                 dfs = dptr;</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     341 </span>            :             }
+<span class="lineNum">     342 </span>            :         }
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :         if (NULL == dfs) {</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :             opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     345 </span>            :                                 &quot;%s recvd read - no corresponding request found for local fd %d&quot;,
+<span class="lineNum">     346 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), local_fd);
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     349 </span>            :         }
+<span class="lineNum">     350 </span>            :         /* get the bytes read */
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :         cnt = 1;</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;i64, &amp;cnt, OPAL_INT64))) {</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     356 </span>            :         }
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         if (0 &lt; i64) {</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :             cnt = i64;</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, dfs-&gt;read_buffer, &amp;cnt, OPAL_UINT8))) {</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     363 </span>            :             }
+<span class="lineNum">     364 </span>            :         }
+<span class="lineNum">     365 </span>            :         /* pass them back to the original caller */
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :         if (NULL != dfs-&gt;read_cbfunc) {</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :             dfs-&gt;read_cbfunc(i64, dfs-&gt;read_buffer, dfs-&gt;cbdata);</span>
+<span class="lineNum">     368 </span>            :         }
+<span class="lineNum">     369 </span>            :         /* release the request */
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span>            :     case ORTE_DFS_POST_CMD:
+<span class="lineNum">     374 </span>            :         /* unpack the request id for this read */
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :         cnt = 1;</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;rid, &amp;cnt, OPAL_UINT64))) {</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     379 </span>            :         }
+<span class="lineNum">     380 </span>            :         /* search our list of requests to find the matching one */
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :         dfs = NULL;</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :         for (item = opal_list_get_first(&amp;requests);</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :              item != opal_list_get_end(&amp;requests);</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :              item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :             dptr = (orte_dfs_request_t*)item;</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :             if (dptr-&gt;id == rid) {</span>
+<span class="lineNum">     387 </span>            :                 /* request was fulfilled, so remove it */
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;requests, item);</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :                 dfs = dptr;</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     391 </span>            :             }
+<span class="lineNum">     392 </span>            :         }
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :         if (NULL == dfs) {</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :             opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     395 </span>            :                                 &quot;%s recvd post - no corresponding request found&quot;,
+<span class="lineNum">     396 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     399 </span>            :         }
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :         if (NULL != dfs-&gt;post_cbfunc) {</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :             dfs-&gt;post_cbfunc(dfs-&gt;cbdata);</span>
+<span class="lineNum">     402 </span>            :         }
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            :     case ORTE_DFS_GETFM_CMD:
+<span class="lineNum">     407 </span>            :         /* unpack the request id for this read */
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :         cnt = 1;</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &amp;rid, &amp;cnt, OPAL_UINT64))) {</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     412 </span>            :         }
+<span class="lineNum">     413 </span>            :         /* search our list of requests to find the matching one */
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         dfs = NULL;</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :         for (item = opal_list_get_first(&amp;requests);</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :              item != opal_list_get_end(&amp;requests);</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :              item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :             dptr = (orte_dfs_request_t*)item;</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :             if (dptr-&gt;id == rid) {</span>
+<span class="lineNum">     420 </span>            :                 /* request was fulfilled, so remove it */
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;requests, item);</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :                 dfs = dptr;</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     424 </span>            :             }
+<span class="lineNum">     425 </span>            :         }
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         if (NULL == dfs) {</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :             opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     428 </span>            :                                 &quot;%s recvd getfm - no corresponding request found&quot;,
+<span class="lineNum">     429 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     432 </span>            :         }
+<span class="lineNum">     433 </span>            :         /* return it to caller */
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         if (NULL != dfs-&gt;fm_cbfunc) {</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :             dfs-&gt;fm_cbfunc(buffer, dfs-&gt;cbdata);</span>
+<span class="lineNum">     436 </span>            :         }
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span>            :     default:
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;APP:DFS:RECV WTF&quot;);</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     443 </span>            :     }
+<a name="444"><span class="lineNum">     444 </span>            : }</a>
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 : static void open_local_file(orte_dfs_request_t *dfs)</span>
+<span class="lineNum">     447 </span>            : {
+<span class="lineNum">     448 </span>            :     char *filename;
+<span class="lineNum">     449 </span>            :     orte_dfs_tracker_t *trk;
+<span class="lineNum">     450 </span>            : 
+<span class="lineNum">     451 </span>            :     /* extract the filename from the uri */
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     if (NULL == (filename = opal_filename_from_uri(dfs-&gt;uri, NULL))) {</span>
+<span class="lineNum">     453 </span>            :         /* something wrong - error was reported, so just get out */
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :         if (NULL != dfs-&gt;open_cbfunc) {</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :             dfs-&gt;open_cbfunc(-1, dfs-&gt;cbdata);</span>
+<span class="lineNum">     456 </span>            :         }
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     459 </span>            :     }
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     461 </span>            :                         &quot;%s opening local file %s&quot;,
+<span class="lineNum">     462 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     463 </span>            :                         filename);
+<span class="lineNum">     464 </span>            :     /* attempt to open the file */
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :     if (0 &gt; (dfs-&gt;remote_fd = open(filename, O_RDONLY))) {</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_FILE_OPEN_FAILURE);</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :         if (NULL != dfs-&gt;open_cbfunc) {</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :             dfs-&gt;open_cbfunc(dfs-&gt;remote_fd, dfs-&gt;cbdata);</span>
+<span class="lineNum">     469 </span>            :         }
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     471 </span>            :     }
+<span class="lineNum">     472 </span>            :     /* otherwise, create a tracker for this file */
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :     trk = OBJ_NEW(orte_dfs_tracker_t);</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :     trk-&gt;requestor.jobid = ORTE_PROC_MY_NAME-&gt;jobid;</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :     trk-&gt;requestor.vpid = ORTE_PROC_MY_NAME-&gt;vpid;</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     trk-&gt;uri = strdup(dfs-&gt;uri);</span>
+<span class="lineNum">     477 </span>            :     /* break the uri down into scheme and filename */
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     trk-&gt;scheme = opal_uri_get_scheme(dfs-&gt;uri);</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :     trk-&gt;filename = strdup(filename);</span>
+<span class="lineNum">     480 </span>            :     /* define the local fd */
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :     trk-&gt;local_fd = local_fd++;</span>
+<span class="lineNum">     482 </span>            :     /* record the remote file descriptor */
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     trk-&gt;remote_fd = dfs-&gt;remote_fd;</span>
+<span class="lineNum">     484 </span>            :     /* add it to our list of active files */
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;active_files, &amp;trk-&gt;super);</span>
+<span class="lineNum">     486 </span>            :     /* the file is locally hosted */
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     trk-&gt;host_daemon.jobid = ORTE_PROC_MY_DAEMON-&gt;jobid;</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     trk-&gt;host_daemon.vpid = ORTE_PROC_MY_DAEMON-&gt;vpid;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     490 </span>            :                         &quot;%s local file %s mapped localfd %d to remotefd %d&quot;,
+<span class="lineNum">     491 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     492 </span>            :                         filename, trk-&gt;local_fd, trk-&gt;remote_fd);
+<span class="lineNum">     493 </span>            :     /* let the caller know */
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :     if (NULL != dfs-&gt;open_cbfunc) {</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :         dfs-&gt;open_cbfunc(trk-&gt;local_fd, dfs-&gt;cbdata);</span>
+<span class="lineNum">     496 </span>            :     }
+<span class="lineNum">     497 </span>            :     /* request will be released by the calling routing */
+<a name="498"><span class="lineNum">     498 </span>            : }</a>
+<span class="lineNum">     499 </span>            : 
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 : static void process_opens(int fd, short args, void *cbdata)</span>
+<span class="lineNum">     501 </span>            : {
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     orte_dfs_request_t *dfs = (orte_dfs_request_t*)cbdata;</span>
+<span class="lineNum">     503 </span>            :     int rc;
+<span class="lineNum">     504 </span>            :     opal_buffer_t *buffer;
+<span class="lineNum">     505 </span>            :     char *scheme, *host, *filename;
+<span class="lineNum">     506 </span>            :     orte_process_name_t daemon;
+<span class="lineNum">     507 </span>            :     opal_list_t myvals;
+<span class="lineNum">     508 </span>            :     opal_value_t *kv;
+<span class="lineNum">     509 </span>            : 
+<span class="lineNum">     510 </span>            :     /* get the scheme to determine if we can process locally or not */
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :     if (NULL == (scheme = opal_uri_get_scheme(dfs-&gt;uri))) {</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     514 </span>            :     }
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     if (0 == strcmp(scheme, &quot;nfs&quot;)) {</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :         open_local_file(dfs);</span>
+<span class="lineNum">     518 </span>            :         /* the callback was done in the above function */
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     521 </span>            :     }
+<span class="lineNum">     522 </span>            : 
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     if (0 != strcmp(scheme, &quot;file&quot;)) {</span>
+<span class="lineNum">     524 </span>            :         /* not yet supported */
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :         orte_show_help(&quot;orte_dfs_help.txt&quot;, &quot;unsupported-filesystem&quot;,</span>
+<span class="lineNum">     526 </span>            :                        true, dfs-&gt;uri);
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     528 </span>            :     }
+<span class="lineNum">     529 </span>            : 
+<span class="lineNum">     530 </span>            :     /* dissect the uri to extract host and filename/path */
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :     if (NULL == (filename = opal_filename_from_uri(dfs-&gt;uri, &amp;host))) {</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     533 </span>            :     }
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :     if (NULL == host) {</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :         host = strdup(orte_process_info.nodename);</span>
+<span class="lineNum">     536 </span>            :     }
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span>            :     /* if the host is our own, then treat it as a local file */
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :     if (orte_ifislocal(host)) {</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :         opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     541 </span>            :                             &quot;%s file %s on local host&quot;,
+<span class="lineNum">     542 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     543 </span>            :                             filename);
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :         open_local_file(dfs);</span>
+<span class="lineNum">     545 </span>            :         /* the callback was done in the above function */
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     548 </span>            :     }
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span>            :     /* ident the daemon on that host */
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :     daemon.jobid = ORTE_PROC_MY_DAEMON-&gt;jobid;</span>
+<span class="lineNum">     552 </span>            :     /* fetch the daemon for this hostname */
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     554 </span>            :                         &quot;%s looking for daemon on host %s&quot;,
+<span class="lineNum">     555 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), host);
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;myvals, opal_list_t);</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = opal_dstore.fetch(opal_dstore_internal,</span>
+<span class="lineNum">     558 </span>            :                                                 ORTE_NAME_WILDCARD,
+<span class="lineNum">     559 </span>            :                                                 host, &amp;myvals))) {
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :         OPAL_LIST_DESTRUCT(&amp;myvals);</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     563 </span>            :     }
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :     kv = (opal_value_t*)opal_list_get_first(&amp;myvals);</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :     daemon.vpid = kv-&gt;data.uint32;</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :     OPAL_LIST_DESTRUCT(&amp;myvals);</span>
+<span class="lineNum">     567 </span>            : 
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     569 </span>            :                         &quot;%s file %s on host %s daemon %s&quot;,
+<span class="lineNum">     570 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     571 </span>            :                         filename, host, ORTE_NAME_PRINT(&amp;daemon));
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span>            :     /* double-check: if it is our local daemon, then we
+<span class="lineNum">     574 </span>            :      * treat this as local
+<span class="lineNum">     575 </span>            :      */
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :     if (daemon.vpid == ORTE_PROC_MY_DAEMON-&gt;vpid) {</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :         opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     578 </span>            :                             &quot;%s local file %s on same daemon&quot;,
+<span class="lineNum">     579 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     580 </span>            :                             filename);
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :         open_local_file(dfs);</span>
+<span class="lineNum">     582 </span>            :         /* the callback was done in the above function */
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     585 </span>            :     }
+<span class="lineNum">     586 </span>            : 
+<span class="lineNum">     587 </span>            :     /* add this request to our local list so we can
+<span class="lineNum">     588 </span>            :      * match it with the returned response when it comes
+<span class="lineNum">     589 </span>            :      */
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :     dfs-&gt;id = req_id++;</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;requests, &amp;dfs-&gt;super);</span>
+<span class="lineNum">     592 </span>            : 
+<span class="lineNum">     593 </span>            :     /* setup a message for the daemon telling
+<span class="lineNum">     594 </span>            :      * them what file we want to access
+<span class="lineNum">     595 </span>            :      */
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :     buffer = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;dfs-&gt;cmd, 1, ORTE_DFS_CMD_T))) {</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :         opal_list_remove_item(&amp;requests, &amp;dfs-&gt;super);</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     601 </span>            :     }
+<span class="lineNum">     602 </span>            :     /* pass the request id */
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;dfs-&gt;id, 1, OPAL_UINT64))) {</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :         opal_list_remove_item(&amp;requests, &amp;dfs-&gt;super);</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     607 </span>            :     }
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;filename, 1, OPAL_STRING))) {</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :         opal_list_remove_item(&amp;requests, &amp;dfs-&gt;super);</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     612 </span>            :     }
+<span class="lineNum">     613 </span>            : 
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     615 </span>            :                         &quot;%s sending open file request to %s file %s&quot;,
+<span class="lineNum">     616 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     617 </span>            :                         ORTE_NAME_PRINT(&amp;daemon),
+<span class="lineNum">     618 </span>            :                         filename);
+<span class="lineNum">     619 </span>            :     /* send it */
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :     if (0 &gt; (rc = orte_rml.send_buffer_nb(&amp;daemon, buffer,</span>
+<span class="lineNum">     621 </span>            :                                           ORTE_RML_TAG_DFS_CMD,
+<span class="lineNum">     622 </span>            :                                           orte_rml_send_callback, NULL))) {
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buffer);</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :         opal_list_remove_item(&amp;requests, &amp;dfs-&gt;super);</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     627 </span>            :     }
+<span class="lineNum">     628 </span>            :     /* don't release it */
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     630 </span>            : 
+<span class="lineNum">     631 </span>            :  complete:
+<span class="lineNum">     632 </span>            :     /* we get here if an error occurred - execute any
+<span class="lineNum">     633 </span>            :      * pending callback so the proc doesn't hang
+<span class="lineNum">     634 </span>            :      */
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :     if (NULL != dfs-&gt;open_cbfunc) {</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :         dfs-&gt;open_cbfunc(-1, dfs-&gt;cbdata);</span>
+<span class="lineNum">     637 </span>            :     }
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(dfs);</span>
+<span class="lineNum">     639 </span>            : }
+<span class="lineNum">     640 </span>            : 
+<span class="lineNum">     641 </span>            : 
+<span class="lineNum">     642 </span>            : /* in order to handle the possible opening/reading of files by
+<span class="lineNum">     643 </span>            :  * multiple threads, we have to ensure that all operations are
+<span class="lineNum">     644 </span>            :  * carried out in events - so the &quot;open&quot; cmd simply posts an
+<a name="645"><span class="lineNum">     645 </span>            :  * event containing the required info, and then returns</a>
+<span class="lineNum">     646 </span>            :  */
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 : static void dfs_open(char *uri,</span>
+<span class="lineNum">     648 </span>            :                      orte_dfs_open_callback_fn_t cbfunc,
+<span class="lineNum">     649 </span>            :                      void *cbdata)
+<span class="lineNum">     650 </span>            : {
+<span class="lineNum">     651 </span>            :     orte_dfs_request_t *dfs;
+<span class="lineNum">     652 </span>            : 
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     654 </span>            :                         &quot;%s opening file %s&quot;,
+<span class="lineNum">     655 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), uri);
+<span class="lineNum">     656 </span>            : 
+<span class="lineNum">     657 </span>            :     /* setup the request */
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :     dfs = OBJ_NEW(orte_dfs_request_t);</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :     dfs-&gt;cmd = ORTE_DFS_OPEN_CMD;</span>
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :     dfs-&gt;uri = strdup(uri);</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :     dfs-&gt;open_cbfunc = cbfunc;</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :     dfs-&gt;cbdata = cbdata;</span>
+<span class="lineNum">     663 </span>            : 
+<span class="lineNum">     664 </span>            :     /* post it for processing */
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :     ORTE_DFS_POST_REQUEST(dfs, process_opens);</span>
+<a name="666"><span class="lineNum">     666 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     667 </span>            : 
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 : static void process_close(int fd, short args, void *cbdata)</span>
+<span class="lineNum">     669 </span>            : {
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :     orte_dfs_request_t *close_dfs = (orte_dfs_request_t*)cbdata;</span>
+<span class="lineNum">     671 </span>            :     orte_dfs_tracker_t *tptr, *trk;
+<span class="lineNum">     672 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     673 </span>            :     opal_buffer_t *buffer;
+<span class="lineNum">     674 </span>            :     int rc;
+<span class="lineNum">     675 </span>            : 
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     677 </span>            :                         &quot;%s closing fd %d&quot;,
+<span class="lineNum">     678 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     679 </span>            :                         close_dfs-&gt;local_fd);
+<span class="lineNum">     680 </span>            : 
+<span class="lineNum">     681 </span>            :     /* look in our local records for this fd */
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :     trk = NULL;</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :     for (item = opal_list_get_first(&amp;active_files);</span>
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :          item != opal_list_get_end(&amp;active_files);</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :          item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :         tptr = (orte_dfs_tracker_t*)item;</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :         if (tptr-&gt;local_fd == close_dfs-&gt;local_fd) {</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :             trk = tptr;</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     690 </span>            :         }
+<span class="lineNum">     691 </span>            :     }
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :     if (NULL == trk) {</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :         if (NULL != close_dfs-&gt;close_cbfunc) {</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :             close_dfs-&gt;close_cbfunc(close_dfs-&gt;local_fd, close_dfs-&gt;cbdata);</span>
+<span class="lineNum">     696 </span>            :         }
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(close_dfs);</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     699 </span>            :     }
+<span class="lineNum">     700 </span>            : 
+<span class="lineNum">     701 </span>            :     /* if the file is local, close it */
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :     if (trk-&gt;host_daemon.vpid == ORTE_PROC_MY_DAEMON-&gt;vpid) {</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :         close(trk-&gt;remote_fd);</span>
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     705 </span>            :     }
+<span class="lineNum">     706 </span>            : 
+<span class="lineNum">     707 </span>            :     /* setup a message for the daemon telling
+<span class="lineNum">     708 </span>            :      * them what file to close
+<span class="lineNum">     709 </span>            :      */
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :     buffer = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;close_dfs-&gt;cmd, 1, ORTE_DFS_CMD_T))) {</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     714 </span>            :     }
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;trk-&gt;remote_fd, 1, OPAL_INT))) {</span>
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     718 </span>            :     }
+<span class="lineNum">     719 </span>            : 
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     721 </span>            :                         &quot;%s sending close file request to %s for fd %d&quot;,
+<span class="lineNum">     722 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :                         ORTE_NAME_PRINT(&amp;trk-&gt;host_daemon),</span>
+<span class="lineNum">     724 </span>            :                         trk-&gt;local_fd);
+<span class="lineNum">     725 </span>            :     /* send it */
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :     if (0 &gt; (rc = orte_rml.send_buffer_nb(&amp;trk-&gt;host_daemon, buffer,</span>
+<span class="lineNum">     727 </span>            :                                           ORTE_RML_TAG_DFS_CMD,
+<span class="lineNum">     728 </span>            :                                           orte_rml_send_callback, NULL))) {
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buffer);</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     732 </span>            :     }
+<span class="lineNum">     733 </span>            : 
+<span class="lineNum">     734 </span>            :  complete:
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :     opal_list_remove_item(&amp;active_files, &amp;trk-&gt;super);</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(trk);</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :     if (NULL != close_dfs-&gt;close_cbfunc) {</span>
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :         close_dfs-&gt;close_cbfunc(close_dfs-&gt;local_fd, close_dfs-&gt;cbdata);</span>
+<span class="lineNum">     739 </span>            :     }
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(close_dfs);</span>
+<a name="741"><span class="lineNum">     741 </span>            : }</a>
+<span class="lineNum">     742 </span>            : 
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 : static void dfs_close(int fd,</span>
+<span class="lineNum">     744 </span>            :                       orte_dfs_close_callback_fn_t cbfunc,
+<span class="lineNum">     745 </span>            :                       void *cbdata)
+<span class="lineNum">     746 </span>            : {
+<span class="lineNum">     747 </span>            :     orte_dfs_request_t *dfs;
+<span class="lineNum">     748 </span>            : 
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     750 </span>            :                         &quot;%s close called on fd %d&quot;,
+<span class="lineNum">     751 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), fd);
+<span class="lineNum">     752 </span>            : 
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :     dfs = OBJ_NEW(orte_dfs_request_t);</span>
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :     dfs-&gt;cmd = ORTE_DFS_CLOSE_CMD;</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :     dfs-&gt;local_fd = fd;</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :     dfs-&gt;close_cbfunc = cbfunc;</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :     dfs-&gt;cbdata = cbdata;</span>
+<span class="lineNum">     758 </span>            : 
+<span class="lineNum">     759 </span>            :     /* post it for processing */
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :     ORTE_DFS_POST_REQUEST(dfs, process_close);</span>
+<a name="761"><span class="lineNum">     761 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     762 </span>            : 
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 : static void process_sizes(int fd, short args, void *cbdata)</span>
+<span class="lineNum">     764 </span>            : {
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :     orte_dfs_request_t *size_dfs = (orte_dfs_request_t*)cbdata;</span>
+<span class="lineNum">     766 </span>            :     orte_dfs_tracker_t *tptr, *trk;
+<span class="lineNum">     767 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     768 </span>            :     opal_buffer_t *buffer;
+<span class="lineNum">     769 </span>            :     int rc;
+<span class="lineNum">     770 </span>            :     struct stat buf;
+<span class="lineNum">     771 </span>            : 
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     773 </span>            :                         &quot;%s processing get_size on fd %d&quot;,
+<span class="lineNum">     774 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     775 </span>            :                         size_dfs-&gt;local_fd);
+<span class="lineNum">     776 </span>            : 
+<span class="lineNum">     777 </span>            :     /* look in our local records for this fd */
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :     trk = NULL;</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :     for (item = opal_list_get_first(&amp;active_files);</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :          item != opal_list_get_end(&amp;active_files);</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :          item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :         tptr = (orte_dfs_tracker_t*)item;</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :         if (tptr-&gt;local_fd == size_dfs-&gt;local_fd) {</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :             trk = tptr;</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     786 </span>            :         }
+<span class="lineNum">     787 </span>            :     }
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :     if (NULL == trk) {</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(size_dfs);</span>
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     792 </span>            :     }
+<span class="lineNum">     793 </span>            : 
+<span class="lineNum">     794 </span>            :     /* if the file is local, execute the seek on it - we
+<span class="lineNum">     795 </span>            :      * stuck the &quot;whence&quot; value in the remote_fd
+<span class="lineNum">     796 </span>            :      */
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :     if (trk-&gt;host_daemon.vpid == ORTE_PROC_MY_DAEMON-&gt;vpid) {</span>
+<span class="lineNum">     798 </span>            :         /* stat the file and get its size */
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :         if (0 &gt; stat(trk-&gt;filename, &amp;buf)) {</span>
+<span class="lineNum">     800 </span>            :             /* cannot stat file */
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :             opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     802 </span>            :                                 &quot;%s could not stat %s&quot;,
+<span class="lineNum">     803 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     804 </span>            :                                 trk-&gt;filename);
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :             if (NULL != size_dfs-&gt;size_cbfunc) {</span>
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :                 size_dfs-&gt;size_cbfunc(-1, size_dfs-&gt;cbdata);</span>
+<span class="lineNum">     807 </span>            :             }
+<span class="lineNum">     808 </span>            :         } else {
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :             if (NULL != size_dfs-&gt;size_cbfunc) {</span>
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :                 size_dfs-&gt;size_cbfunc(buf.st_size, size_dfs-&gt;cbdata);</span>
+<span class="lineNum">     811 </span>            :             }
+<span class="lineNum">     812 </span>            :         }
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     814 </span>            :     }
+<span class="lineNum">     815 </span>            :     /* add this request to our local list so we can
+<span class="lineNum">     816 </span>            :      * match it with the returned response when it comes
+<span class="lineNum">     817 </span>            :      */
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :     size_dfs-&gt;id = req_id++;</span>
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;requests, &amp;size_dfs-&gt;super);</span>
+<span class="lineNum">     820 </span>            : 
+<span class="lineNum">     821 </span>            :     /* setup a message for the daemon telling
+<span class="lineNum">     822 </span>            :      * them what file we want to access
+<span class="lineNum">     823 </span>            :      */
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :     buffer = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;size_dfs-&gt;cmd, 1, ORTE_DFS_CMD_T))) {</span>
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :         opal_list_remove_item(&amp;requests, &amp;size_dfs-&gt;super);</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     829 </span>            :     }
+<span class="lineNum">     830 </span>            :     /* pass the request id */
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;size_dfs-&gt;id, 1, OPAL_UINT64))) {</span>
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :         opal_list_remove_item(&amp;requests, &amp;size_dfs-&gt;super);</span>
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     835 </span>            :     }
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;trk-&gt;remote_fd, 1, OPAL_INT))) {</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :         opal_list_remove_item(&amp;requests, &amp;size_dfs-&gt;super);</span>
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     840 </span>            :     }
+<span class="lineNum">     841 </span>            : 
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     843 </span>            :                         &quot;%s sending get_size request to %s for fd %d&quot;,
+<span class="lineNum">     844 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :                         ORTE_NAME_PRINT(&amp;trk-&gt;host_daemon),</span>
+<span class="lineNum">     846 </span>            :                         trk-&gt;local_fd);
+<span class="lineNum">     847 </span>            :     /* send it */
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :     if (0 &gt; (rc = orte_rml.send_buffer_nb(&amp;trk-&gt;host_daemon, buffer,</span>
+<span class="lineNum">     849 </span>            :                                           ORTE_RML_TAG_DFS_CMD,
+<span class="lineNum">     850 </span>            :                                           orte_rml_send_callback, NULL))) {
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buffer);</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :         opal_list_remove_item(&amp;requests, &amp;size_dfs-&gt;super);</span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :         if (NULL != size_dfs-&gt;size_cbfunc) {</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :             size_dfs-&gt;size_cbfunc(-1, size_dfs-&gt;cbdata);</span>
+<span class="lineNum">     856 </span>            :         }
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     858 </span>            :     }
+<span class="lineNum">     859 </span>            :     /* leave the request there */
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     861 </span>            : 
+<span class="lineNum">     862 </span>            :  complete:
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(size_dfs);</span>
+<a name="864"><span class="lineNum">     864 </span>            : }</a>
+<span class="lineNum">     865 </span>            : 
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 : static void dfs_get_file_size(int fd,</span>
+<span class="lineNum">     867 </span>            :                               orte_dfs_size_callback_fn_t cbfunc,
+<span class="lineNum">     868 </span>            :                               void *cbdata)
+<span class="lineNum">     869 </span>            : {
+<span class="lineNum">     870 </span>            :     orte_dfs_request_t *dfs;
+<span class="lineNum">     871 </span>            : 
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     873 </span>            :                         &quot;%s get_size called on fd %d&quot;,
+<span class="lineNum">     874 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), fd);
+<span class="lineNum">     875 </span>            : 
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :     dfs = OBJ_NEW(orte_dfs_request_t);</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :     dfs-&gt;cmd = ORTE_DFS_SIZE_CMD;</span>
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :     dfs-&gt;local_fd = fd;</span>
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :     dfs-&gt;size_cbfunc = cbfunc;</span>
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :     dfs-&gt;cbdata = cbdata;</span>
+<span class="lineNum">     881 </span>            : 
+<span class="lineNum">     882 </span>            :     /* post it for processing */
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :     ORTE_DFS_POST_REQUEST(dfs, process_sizes);</span>
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 : }</span>
+<a name="885"><span class="lineNum">     885 </span>            : </a>
+<span class="lineNum">     886 </span>            : 
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 : static void process_seeks(int fd, short args, void *cbdata)</span>
+<span class="lineNum">     888 </span>            : {
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :     orte_dfs_request_t *seek_dfs = (orte_dfs_request_t*)cbdata;</span>
+<span class="lineNum">     890 </span>            :     orte_dfs_tracker_t *tptr, *trk;
+<span class="lineNum">     891 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     892 </span>            :     opal_buffer_t *buffer;
+<span class="lineNum">     893 </span>            :     int64_t i64;
+<span class="lineNum">     894 </span>            :     int rc;
+<span class="lineNum">     895 </span>            :     struct stat buf;
+<span class="lineNum">     896 </span>            : 
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     898 </span>            :                         &quot;%s processing seek on fd %d&quot;,
+<span class="lineNum">     899 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     900 </span>            :                         seek_dfs-&gt;local_fd);
+<span class="lineNum">     901 </span>            : 
+<span class="lineNum">     902 </span>            :     /* look in our local records for this fd */
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :     trk = NULL;</span>
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :     for (item = opal_list_get_first(&amp;active_files);</span>
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :          item != opal_list_get_end(&amp;active_files);</span>
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :          item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :         tptr = (orte_dfs_tracker_t*)item;</span>
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :         if (tptr-&gt;local_fd == seek_dfs-&gt;local_fd) {</span>
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :             trk = tptr;</span>
+<span class="lineNum">     910 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     911 </span>            :         }
+<span class="lineNum">     912 </span>            :     }
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :     if (NULL == trk) {</span>
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(seek_dfs);</span>
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     917 </span>            :     }
+<span class="lineNum">     918 </span>            : 
+<span class="lineNum">     919 </span>            :     /* if the file is local, execute the seek on it - we
+<span class="lineNum">     920 </span>            :      * stuck the &quot;whence&quot; value in the remote_fd
+<span class="lineNum">     921 </span>            :      */
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :     if (trk-&gt;host_daemon.vpid == ORTE_PROC_MY_DAEMON-&gt;vpid) {</span>
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :         opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     924 </span>            :                             &quot;%s local seek on fd %d&quot;,
+<span class="lineNum">     925 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     926 </span>            :                             seek_dfs-&gt;local_fd);
+<span class="lineNum">     927 </span>            :         /* stat the file and get its size */
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :         if (0 &gt; stat(trk-&gt;filename, &amp;buf)) {</span>
+<span class="lineNum">     929 </span>            :             /* cannot stat file */
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :             opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     931 </span>            :                                 &quot;%s could not stat %s&quot;,
+<span class="lineNum">     932 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     933 </span>            :                                 trk-&gt;filename);
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :             if (NULL != seek_dfs-&gt;seek_cbfunc) {</span>
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :                 seek_dfs-&gt;seek_cbfunc(-1, seek_dfs-&gt;cbdata);</span>
+<span class="lineNum">     936 </span>            :             }
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :         } else if (buf.st_size &lt; seek_dfs-&gt;read_length &amp;&amp;</span>
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :                    SEEK_SET == seek_dfs-&gt;remote_fd) {</span>
+<span class="lineNum">     939 </span>            :             /* seek would take us past EOF */
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :             if (NULL != seek_dfs-&gt;seek_cbfunc) {</span>
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :                 seek_dfs-&gt;seek_cbfunc(-1, seek_dfs-&gt;cbdata);</span>
+<span class="lineNum">     942 </span>            :             }
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :         } else if (buf.st_size &lt; (off_t)(trk-&gt;location + seek_dfs-&gt;read_length) &amp;&amp;</span>
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :                    SEEK_CUR == seek_dfs-&gt;remote_fd) {</span>
+<span class="lineNum">     945 </span>            :             /* seek would take us past EOF */
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :             if (NULL != seek_dfs-&gt;seek_cbfunc) {</span>
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :                 seek_dfs-&gt;seek_cbfunc(-1, seek_dfs-&gt;cbdata);</span>
+<span class="lineNum">     948 </span>            :             }
+<span class="lineNum">     949 </span>            :         } else {
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :             lseek(trk-&gt;remote_fd, seek_dfs-&gt;read_length, seek_dfs-&gt;remote_fd);</span>
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :             if (SEEK_SET == seek_dfs-&gt;remote_fd) {</span>
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :                 trk-&gt;location = seek_dfs-&gt;read_length;</span>
+<span class="lineNum">     953 </span>            :             } else {
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :                 trk-&gt;location += seek_dfs-&gt;read_length;</span>
+<span class="lineNum">     955 </span>            :             }
+<span class="lineNum">     956 </span><span class="lineNoCov">          0 :             if (NULL != seek_dfs-&gt;seek_cbfunc) {</span>
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :                 seek_dfs-&gt;seek_cbfunc(seek_dfs-&gt;read_length, seek_dfs-&gt;cbdata);</span>
+<span class="lineNum">     958 </span>            :             }
+<span class="lineNum">     959 </span>            :         }
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     961 </span>            :     }
+<span class="lineNum">     962 </span>            :     /* add this request to our local list so we can
+<span class="lineNum">     963 </span>            :      * match it with the returned response when it comes
+<span class="lineNum">     964 </span>            :      */
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :     seek_dfs-&gt;id = req_id++;</span>
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;requests, &amp;seek_dfs-&gt;super);</span>
+<span class="lineNum">     967 </span>            : 
+<span class="lineNum">     968 </span>            :     /* setup a message for the daemon telling
+<span class="lineNum">     969 </span>            :      * them what file to seek
+<span class="lineNum">     970 </span>            :      */
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :     buffer = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;seek_dfs-&gt;cmd, 1, ORTE_DFS_CMD_T))) {</span>
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     975 </span>            :     }
+<span class="lineNum">     976 </span>            :     /* pass the request id */
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;seek_dfs-&gt;id, 1, OPAL_UINT64))) {</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :         opal_list_remove_item(&amp;requests, &amp;seek_dfs-&gt;super);</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     981 </span>            :     }
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;trk-&gt;remote_fd, 1, OPAL_INT))) {</span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     985 </span>            :     }
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :     i64 = (int64_t)seek_dfs-&gt;read_length;</span>
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;i64, 1, OPAL_INT64))) {</span>
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     990 </span>            :     }
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;seek_dfs-&gt;remote_fd, 1, OPAL_INT))) {</span>
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">     994 </span>            :     }
+<span class="lineNum">     995 </span>            : 
+<span class="lineNum">     996 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">     997 </span>            :                         &quot;%s sending seek file request to %s for fd %d&quot;,
+<span class="lineNum">     998 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     999 </span><span class="lineNoCov">          0 :                         ORTE_NAME_PRINT(&amp;trk-&gt;host_daemon),</span>
+<span class="lineNum">    1000 </span>            :                         trk-&gt;local_fd);
+<span class="lineNum">    1001 </span>            :     /* send it */
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :     if (0 &gt; (rc = orte_rml.send_buffer_nb(&amp;trk-&gt;host_daemon, buffer,</span>
+<span class="lineNum">    1003 </span>            :                                           ORTE_RML_TAG_DFS_CMD,
+<span class="lineNum">    1004 </span>            :                                           orte_rml_send_callback, NULL))) {
+<span class="lineNum">    1005 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buffer);</span>
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">    1008 </span>            :     }
+<span class="lineNum">    1009 </span>            :     /* leave the request */
+<span class="lineNum">    1010 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">    1011 </span>            : 
+<span class="lineNum">    1012 </span>            :  complete:
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(seek_dfs);</span>
+<span class="lineNum">    1014 </span>            : }
+<a name="1015"><span class="lineNum">    1015 </span>            : </a>
+<span class="lineNum">    1016 </span>            : 
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 : static void dfs_seek(int fd, long offset, int whence,</span>
+<span class="lineNum">    1018 </span>            :                      orte_dfs_seek_callback_fn_t cbfunc,
+<span class="lineNum">    1019 </span>            :                      void *cbdata)
+<span class="lineNum">    1020 </span>            : {
+<span class="lineNum">    1021 </span>            :     orte_dfs_request_t *dfs;
+<span class="lineNum">    1022 </span>            : 
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">    1024 </span>            :                         &quot;%s seek called on fd %d&quot;,
+<span class="lineNum">    1025 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), fd);
+<span class="lineNum">    1026 </span>            : 
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :     dfs = OBJ_NEW(orte_dfs_request_t);</span>
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :     dfs-&gt;cmd = ORTE_DFS_SEEK_CMD;</span>
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :     dfs-&gt;local_fd = fd;</span>
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :     dfs-&gt;read_length = offset;</span>
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :     dfs-&gt;remote_fd = whence;</span>
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :     dfs-&gt;seek_cbfunc = cbfunc;</span>
+<span class="lineNum">    1033 </span><span class="lineNoCov">          0 :     dfs-&gt;cbdata = cbdata;</span>
+<span class="lineNum">    1034 </span>            : 
+<span class="lineNum">    1035 </span>            :     /* post it for processing */
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :     ORTE_DFS_POST_REQUEST(dfs, process_seeks);</span>
+<a name="1037"><span class="lineNum">    1037 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1038 </span>            : 
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 : static void process_reads(int fd, short args, void *cbdata)</span>
+<span class="lineNum">    1040 </span>            : {
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :     orte_dfs_request_t *read_dfs = (orte_dfs_request_t*)cbdata;</span>
+<span class="lineNum">    1042 </span>            :     orte_dfs_tracker_t *tptr, *trk;
+<span class="lineNum">    1043 </span>            :     long nbytes;
+<span class="lineNum">    1044 </span>            :     opal_list_item_t *item;
+<span class="lineNum">    1045 </span>            :     opal_buffer_t *buffer;
+<span class="lineNum">    1046 </span>            :     int64_t i64;
+<span class="lineNum">    1047 </span>            :     int rc;
+<span class="lineNum">    1048 </span>            : 
+<span class="lineNum">    1049 </span>            :     /* look in our local records for this fd */
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :     trk = NULL;</span>
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :     for (item = opal_list_get_first(&amp;active_files);</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :          item != opal_list_get_end(&amp;active_files);</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :          item = opal_list_get_next(item)) {</span>
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :         tptr = (orte_dfs_tracker_t*)item;</span>
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :         if (tptr-&gt;local_fd == read_dfs-&gt;local_fd) {</span>
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :             trk = tptr;</span>
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">    1058 </span>            :         }
+<span class="lineNum">    1059 </span>            :     }
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :     if (NULL == trk) {</span>
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(read_dfs);</span>
+<span class="lineNum">    1063 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">    1064 </span>            :     }
+<span class="lineNum">    1065 </span>            : 
+<span class="lineNum">    1066 </span>            :     /* if the file is local, read the desired bytes */
+<span class="lineNum">    1067 </span><span class="lineNoCov">          0 :     if (trk-&gt;host_daemon.vpid == ORTE_PROC_MY_DAEMON-&gt;vpid) {</span>
+<span class="lineNum">    1068 </span><span class="lineNoCov">          0 :         nbytes = read(trk-&gt;remote_fd, read_dfs-&gt;read_buffer, read_dfs-&gt;read_length);</span>
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :         if (0 &lt; nbytes) {</span>
+<span class="lineNum">    1070 </span>            :             /* update our location */
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :             trk-&gt;location += nbytes;</span>
+<span class="lineNum">    1072 </span>            :         }
+<span class="lineNum">    1073 </span>            :         /* pass them back to the caller */
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :         if (NULL != read_dfs-&gt;read_cbfunc) {</span>
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :             read_dfs-&gt;read_cbfunc(nbytes, read_dfs-&gt;read_buffer, read_dfs-&gt;cbdata);</span>
+<span class="lineNum">    1076 </span>            :         }
+<span class="lineNum">    1077 </span>            :         /* request is complete */
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(read_dfs);</span>
+<span class="lineNum">    1079 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">    1080 </span>            :     }
+<span class="lineNum">    1081 </span>            :     /* add this request to our pending list */
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :     read_dfs-&gt;id = req_id++;</span>
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;requests, &amp;read_dfs-&gt;super);</span>
+<span class="lineNum">    1084 </span>            : 
+<span class="lineNum">    1085 </span>            :     /* setup a message for the daemon telling
+<span class="lineNum">    1086 </span>            :      * them what file to read
+<span class="lineNum">    1087 </span>            :      */
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :     buffer = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;read_dfs-&gt;cmd, 1, ORTE_DFS_CMD_T))) {</span>
+<span class="lineNum">    1090 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1091 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">    1092 </span>            :     }
+<span class="lineNum">    1093 </span>            :     /* include the request id */
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;read_dfs-&gt;id, 1, OPAL_UINT64))) {</span>
+<span class="lineNum">    1095 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">    1097 </span>            :     }
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;trk-&gt;remote_fd, 1, OPAL_INT))) {</span>
+<span class="lineNum">    1099 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">    1101 </span>            :     }
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :     i64 = (int64_t)read_dfs-&gt;read_length;</span>
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;i64, 1, OPAL_INT64))) {</span>
+<span class="lineNum">    1104 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1105 </span><span class="lineNoCov">          0 :         goto complete;</span>
+<span class="lineNum">    1106 </span>            :     }
+<span class="lineNum">    1107 </span>            : 
+<span class="lineNum">    1108 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_dfs_base_framework.framework_output,</span>
+<span class="lineNum">    1109 </span>            :                         &quot;%s sending read file request to %s for fd %d&quot;,
+<span class="lineNum">    1110 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 :                         ORTE_NAME_PRINT(&amp;trk-&gt;host_daemon),</span>
+<span class="lineNum">    1112 </span>            :                         trk-&gt;local_fd);
+<span class="lineNum">    1113 </span>            :     /* send it */
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :     if (0 &gt; (rc = orte_rml.send_buffer_nb(&amp;trk-&gt;host_daemon, buffer,</span>
+<span class="lineNum">    1115 </span>            :                                           ORTE_RML_TAG_DFS_CMD,
+<span class="lineNum">    1116 </span>            :                                           orte_rml_send_callback, NULL))) {
+<span class="lineNum">    1117 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buffer);</span>
+<span class="lineNum">    1119 </span>            :     }
+<span class="lineNum">    1120 </span>            :     /* don't release the request */
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">    1122 </span>            : 
+<span class="lineNum">    1123 </span>            :  complete:
+<span class="lineNum">    1124 </span>            :     /* don't need to hang on to this request */
+<span class="lineNum">    1125 </span><span class="lineNoCov">          0 :     opal_list_remove_item(&amp;requests, &amp;read_dfs-&gt;super);</span>
+<span class="lineNum">    1126 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(read_dfs);</span>
+<a name="1127"><span class="lineNum">    1127 </span>            : }</a>
+<span class="lineNum">    1128 </span>            : 
+<span class="lineNum">    1129 </span><span class="lineNoCov">          0 : static void dfs_read(int fd, uint8_t *buffer,</span>
+<span class="lineNum">    1130 </span>            :                      long length,
+<span class="lineNum">    1131 </span>            :                      orte_dfs_read_callback_fn_t cbfunc,
+<span class="lineNum">    1132 </span>            :                      void *cbdata)
+<span class="lineNum">    1133 </span>            : {
+<span class="lineNum">    1134 </span>            :     orte_dfs_request_t *dfs;
+<span class="lineNum">    1135 </span>            : 
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 :     dfs = OBJ_NEW(orte_dfs_request_t);</span>
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :     dfs-&gt;cmd = ORTE_DFS_READ_CMD;</span>
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :     dfs-&gt;local_fd = fd;</span>
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :     dfs-&gt;read_buffer = buffer;</span>
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :     dfs-&gt;read_length = length;</span>
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :     dfs-&gt;read_cbfunc = cbfunc;</span>
+<span class="lineNum">    1142 </span><span class="lineNoCov">          0 :     dfs-&gt;cbdata = cbdata;</span>
+<span class="lineNum">    1143 </span>            : 
+<span class="lineNum">    1144 </span>            :     /* post it for processing */
+<span class="lineNum">    1145 </span><span class="lineNoCov">          0 :     ORTE_DFS_POST_REQUEST(dfs, process_reads);</span>
+<a name="1146"><span class="lineNum">    1146 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1147 </span>            : 
+<span class="lineNum">    1148 </span><span class="lineNoCov">          0 : static void process_posts(int fd, short args, void *cbdata)</span>
+<span class="lineNum">    1149 </span>            : {
+<span class="lineNum">    1150 </span><span class="lineNoCov">          0 :     orte_dfs_request_t *dfs = (orte_dfs_request_t*)cbdata;</span>
+<span class="lineNum">    1151 </span>            :     opal_buffer_t *buffer;
+<span class="lineNum">    1152 </span>            :     int rc;
+<span class="lineNum">    1153 </span>            : 
+<span class="lineNum">    1154 </span>            :     /* we will get confirmation in our receive function, so
+<span class="lineNum">    1155 </span>            :      * add this request to our list */
+<span class="lineNum">    1156 </span><span class="lineNoCov">          0 :     dfs-&gt;id = req_id++;</span>
+<span class="lineNum">    1157 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;requests, &amp;dfs-&gt;super);</span>
+<span class="lineNum">    1158 </span>            : 
+<span class="lineNum">    1159 </span>            :     /* Send the buffer's contents to our local daemon for storage */
+<span class="lineNum">    1160 </span><span class="lineNoCov">          0 :     buffer = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">    1161 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;dfs-&gt;cmd, 1, ORTE_DFS_CMD_T))) {</span>
+<span class="lineNum">    1162 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1163 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">    1164 </span>            :     }
+<span class="lineNum">    1165 </span>            :     /* include the request id */
+<span class="lineNum">    1166 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;dfs-&gt;id, 1, OPAL_UINT64))) {</span>
+<span class="lineNum">    1167 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1168 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">    1169 </span>            :     }
+<span class="lineNum">    1170 </span>            :     /* add my name */
+<span class="lineNum">    1171 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, ORTE_PROC_MY_NAME, 1, ORTE_NAME))) {</span>
+<span class="lineNum">    1172 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1173 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">    1174 </span>            :     }
+<span class="lineNum">    1175 </span>            :     /* pack the payload */
+<span class="lineNum">    1176 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;dfs-&gt;bptr, 1, OPAL_BUFFER))) {</span>
+<span class="lineNum">    1177 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1178 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">    1179 </span>            :     }
+<span class="lineNum">    1180 </span>            :     /* send it */
+<span class="lineNum">    1181 </span><span class="lineNoCov">          0 :     if (0 &gt; (rc = orte_rml.send_buffer_nb(ORTE_PROC_MY_DAEMON, buffer,</span>
+<span class="lineNum">    1182 </span>            :                                           ORTE_RML_TAG_DFS_CMD,
+<span class="lineNum">    1183 </span>            :                                           orte_rml_send_callback, NULL))) {
+<span class="lineNum">    1184 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1185 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">    1186 </span>            :     }
+<span class="lineNum">    1187 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">    1188 </span>            : 
+<span class="lineNum">    1189 </span>            :  error:
+<span class="lineNum">    1190 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(buffer);</span>
+<span class="lineNum">    1191 </span><span class="lineNoCov">          0 :     opal_list_remove_item(&amp;requests, &amp;dfs-&gt;super);</span>
+<span class="lineNum">    1192 </span><span class="lineNoCov">          0 :     if (NULL != dfs-&gt;post_cbfunc) {</span>
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :         dfs-&gt;post_cbfunc(dfs-&gt;cbdata);</span>
+<span class="lineNum">    1194 </span>            :     }
+<span class="lineNum">    1195 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(dfs);</span>
+<a name="1196"><span class="lineNum">    1196 </span>            : }</a>
+<span class="lineNum">    1197 </span>            : 
+<span class="lineNum">    1198 </span><span class="lineNoCov">          0 : static void dfs_post_file_map(opal_buffer_t *bo,</span>
+<span class="lineNum">    1199 </span>            :                               orte_dfs_post_callback_fn_t cbfunc,
+<span class="lineNum">    1200 </span>            :                               void *cbdata)
+<span class="lineNum">    1201 </span>            : {
+<span class="lineNum">    1202 </span>            :     orte_dfs_request_t *dfs;
+<span class="lineNum">    1203 </span>            : 
+<span class="lineNum">    1204 </span><span class="lineNoCov">          0 :     dfs = OBJ_NEW(orte_dfs_request_t);</span>
+<span class="lineNum">    1205 </span><span class="lineNoCov">          0 :     dfs-&gt;cmd = ORTE_DFS_POST_CMD;</span>
+<span class="lineNum">    1206 </span><span class="lineNoCov">          0 :     dfs-&gt;bptr = bo;</span>
+<span class="lineNum">    1207 </span><span class="lineNoCov">          0 :     dfs-&gt;post_cbfunc = cbfunc;</span>
+<span class="lineNum">    1208 </span><span class="lineNoCov">          0 :     dfs-&gt;cbdata = cbdata;</span>
+<span class="lineNum">    1209 </span>            : 
+<span class="lineNum">    1210 </span>            :     /* post it for processing */
+<span class="lineNum">    1211 </span><span class="lineNoCov">          0 :     ORTE_DFS_POST_REQUEST(dfs, process_posts);</span>
+<a name="1212"><span class="lineNum">    1212 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1213 </span>            : 
+<span class="lineNum">    1214 </span><span class="lineNoCov">          0 : static void process_getfm(int fd, short args, void *cbdata)</span>
+<span class="lineNum">    1215 </span>            : {
+<span class="lineNum">    1216 </span><span class="lineNoCov">          0 :     orte_dfs_request_t *dfs = (orte_dfs_request_t*)cbdata;</span>
+<span class="lineNum">    1217 </span>            :     opal_buffer_t *buffer;
+<span class="lineNum">    1218 </span>            :     int rc;
+<span class="lineNum">    1219 </span>            : 
+<span class="lineNum">    1220 </span>            :     /* we will get confirmation in our receive function, so
+<span class="lineNum">    1221 </span>            :      * add this request to our list */
+<span class="lineNum">    1222 </span><span class="lineNoCov">          0 :     dfs-&gt;id = req_id++;</span>
+<span class="lineNum">    1223 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;requests, &amp;dfs-&gt;super);</span>
+<span class="lineNum">    1224 </span>            : 
+<span class="lineNum">    1225 </span>            :     /* Send the request to our local daemon */
+<span class="lineNum">    1226 </span><span class="lineNoCov">          0 :     buffer = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">    1227 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;dfs-&gt;cmd, 1, ORTE_DFS_CMD_T))) {</span>
+<span class="lineNum">    1228 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1229 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">    1230 </span>            :     }
+<span class="lineNum">    1231 </span>            :     /* include the request id */
+<span class="lineNum">    1232 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;dfs-&gt;id, 1, OPAL_UINT64))) {</span>
+<span class="lineNum">    1233 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1234 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">    1235 </span>            :     }
+<span class="lineNum">    1236 </span>            :     /* and the target */
+<span class="lineNum">    1237 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buffer, &amp;dfs-&gt;target, 1, ORTE_NAME))) {</span>
+<span class="lineNum">    1238 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1239 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">    1240 </span>            :     }
+<span class="lineNum">    1241 </span>            :     /* send it */
+<span class="lineNum">    1242 </span><span class="lineNoCov">          0 :     if (0 &gt; (rc = orte_rml.send_buffer_nb(ORTE_PROC_MY_DAEMON, buffer,</span>
+<span class="lineNum">    1243 </span>            :                                           ORTE_RML_TAG_DFS_CMD,
+<span class="lineNum">    1244 </span>            :                                           orte_rml_send_callback, NULL))) {
+<span class="lineNum">    1245 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">    1246 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">    1247 </span>            :     }
+<span class="lineNum">    1248 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">    1249 </span>            : 
+<span class="lineNum">    1250 </span>            :  error:
+<span class="lineNum">    1251 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(buffer);</span>
+<span class="lineNum">    1252 </span><span class="lineNoCov">          0 :     opal_list_remove_item(&amp;requests, &amp;dfs-&gt;super);</span>
+<span class="lineNum">    1253 </span><span class="lineNoCov">          0 :     if (NULL != dfs-&gt;fm_cbfunc) {</span>
+<span class="lineNum">    1254 </span><span class="lineNoCov">          0 :         dfs-&gt;fm_cbfunc(NULL, dfs-&gt;cbdata);</span>
+<span class="lineNum">    1255 </span>            :     }
+<span class="lineNum">    1256 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(dfs);</span>
+<a name="1257"><span class="lineNum">    1257 </span>            : }</a>
+<span class="lineNum">    1258 </span>            : 
+<span class="lineNum">    1259 </span><span class="lineNoCov">          0 : static void dfs_get_file_map(orte_process_name_t *target,</span>
+<span class="lineNum">    1260 </span>            :                              orte_dfs_fm_callback_fn_t cbfunc,
+<span class="lineNum">    1261 </span>            :                              void *cbdata)
+<span class="lineNum">    1262 </span>            : {
+<span class="lineNum">    1263 </span>            :     orte_dfs_request_t *dfs;
+<span class="lineNum">    1264 </span>            : 
+<span class="lineNum">    1265 </span><span class="lineNoCov">          0 :     dfs = OBJ_NEW(orte_dfs_request_t);</span>
+<span class="lineNum">    1266 </span><span class="lineNoCov">          0 :     dfs-&gt;cmd = ORTE_DFS_GETFM_CMD;</span>
+<span class="lineNum">    1267 </span><span class="lineNoCov">          0 :     dfs-&gt;target.jobid = target-&gt;jobid;</span>
+<span class="lineNum">    1268 </span><span class="lineNoCov">          0 :     dfs-&gt;target.vpid = target-&gt;vpid;</span>
+<span class="lineNum">    1269 </span><span class="lineNoCov">          0 :     dfs-&gt;fm_cbfunc = cbfunc;</span>
+<span class="lineNum">    1270 </span><span class="lineNoCov">          0 :     dfs-&gt;cbdata = cbdata;</span>
+<span class="lineNum">    1271 </span>            : 
+<span class="lineNum">    1272 </span>            :     /* post it for processing */
+<span class="lineNum">    1273 </span><span class="lineNoCov">          0 :     ORTE_DFS_POST_REQUEST(dfs, process_getfm);</span>
+<a name="1274"><span class="lineNum">    1274 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1275 </span>            : 
+<span class="lineNum">    1276 </span><span class="lineNoCov">          0 : static void dfs_load_file_maps(orte_jobid_t jobid,</span>
+<span class="lineNum">    1277 </span>            :                                opal_buffer_t *bo,
+<span class="lineNum">    1278 </span>            :                                orte_dfs_load_callback_fn_t cbfunc,
+<span class="lineNum">    1279 </span>            :                                void *cbdata)
+<span class="lineNum">    1280 </span>            : {
+<span class="lineNum">    1281 </span>            :     /* apps don't store file maps */
+<span class="lineNum">    1282 </span><span class="lineNoCov">          0 :     if (NULL != cbfunc) {</span>
+<span class="lineNum">    1283 </span><span class="lineNoCov">          0 :         cbfunc(cbdata);</span>
+<span class="lineNum">    1284 </span>            :     }
+<a name="1285"><span class="lineNum">    1285 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1286 </span>            : 
+<span class="lineNum">    1287 </span><span class="lineNoCov">          0 : static void dfs_purge_file_maps(orte_jobid_t jobid,</span>
+<span class="lineNum">    1288 </span>            :                                 orte_dfs_purge_callback_fn_t cbfunc,
+<span class="lineNum">    1289 </span>            :                                 void *cbdata)
+<span class="lineNum">    1290 </span>            : {
+<span class="lineNum">    1291 </span>            :     /* apps don't store file maps */
+<span class="lineNum">    1292 </span><span class="lineNoCov">          0 :     if (NULL != cbfunc) {</span>
+<span class="lineNum">    1293 </span><span class="lineNoCov">          0 :         cbfunc(cbdata);</span>
+<span class="lineNum">    1294 </span>            :     }
+<span class="lineNum">    1295 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1296 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

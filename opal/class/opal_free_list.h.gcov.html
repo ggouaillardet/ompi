@@ -1,0 +1,441 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/class/opal_free_list.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/class</a> - opal_free_list.h<span style="font-size: 80%;"> (source / <a href="opal_free_list.h.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">29</td>
+            <td class="headerCovTableEntryLo">55.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryLo">66.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2013 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2010      IBM Corporation.  All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2010-2015 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2014-2015 Los Alamos National Security, LLC. All rights
+<span class="lineNum">      16 </span>            :  *                         reserved.
+<span class="lineNum">      17 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * $HEADER$
+<span class="lineNum">      22 </span>            :  */
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #ifndef OPAL_FREE_LIST_H
+<span class="lineNum">      25 </span>            : #define OPAL_FREE_LIST_H
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;opal/class/opal_lifo.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;opal/prefetch.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;opal/threads/condition.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;opal/runtime/opal.h&quot;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : BEGIN_C_DECLS
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : struct mca_mem_pool_t;
+<span class="lineNum">      37 </span>            : struct opal_free_list_item_t;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : /**
+<span class="lineNum">      40 </span>            :  * Free list item initializtion function.
+<span class="lineNum">      41 </span>            :  *
+<span class="lineNum">      42 </span>            :  * @param item   (IN)  Free list item to initialize
+<span class="lineNum">      43 </span>            :  * @param ctx    (IN)  Free list initialization context
+<span class="lineNum">      44 </span>            :  *
+<span class="lineNum">      45 </span>            :  * @returns OPAL_SUCCESS on success
+<span class="lineNum">      46 </span>            :  * @returns opal error code on failure
+<span class="lineNum">      47 </span>            :  *
+<span class="lineNum">      48 </span>            :  * This function attempts to initialize the free list item
+<span class="lineNum">      49 </span>            :  * specified in item. If the item can be initialized the
+<span class="lineNum">      50 </span>            :  * function should return OPAL_SUCCESS. On any error
+<span class="lineNum">      51 </span>            :  * opal_free_list_grow will stop initializing new items.
+<span class="lineNum">      52 </span>            :  */
+<span class="lineNum">      53 </span>            : typedef int (*opal_free_list_item_init_fn_t) (
+<span class="lineNum">      54 </span>            :         struct opal_free_list_item_t *item, void *ctx);
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : struct opal_free_list_t {
+<span class="lineNum">      57 </span>            :     /** Items in a free list are stored last-in first-out */
+<span class="lineNum">      58 </span>            :     opal_lifo_t super;
+<span class="lineNum">      59 </span>            :     /** Maximum number of items to allocate in the free list */
+<span class="lineNum">      60 </span>            :     size_t fl_max_to_alloc;
+<span class="lineNum">      61 </span>            :     /** Current number of items allocated */
+<span class="lineNum">      62 </span>            :     size_t fl_num_allocated;
+<span class="lineNum">      63 </span>            :     /** Number of items to allocate when growing the free list */
+<span class="lineNum">      64 </span>            :     size_t fl_num_per_alloc;
+<span class="lineNum">      65 </span>            :     /** Number of threads waiting on free list item availability */
+<span class="lineNum">      66 </span>            :     size_t fl_num_waiting;
+<span class="lineNum">      67 </span>            :     /** Size of each free list item */
+<span class="lineNum">      68 </span>            :     size_t fl_frag_size;
+<span class="lineNum">      69 </span>            :     /** Free list item alignment */
+<span class="lineNum">      70 </span>            :     size_t fl_frag_alignment;
+<span class="lineNum">      71 </span>            :     /** Free list item buffer size */
+<span class="lineNum">      72 </span>            :     size_t fl_payload_buffer_size;
+<span class="lineNum">      73 </span>            :     /** Free list item buffer alignment */
+<span class="lineNum">      74 </span>            :     size_t fl_payload_buffer_alignment;
+<span class="lineNum">      75 </span>            :     /** Class of free list items */
+<span class="lineNum">      76 </span>            :     opal_class_t *fl_frag_class;
+<span class="lineNum">      77 </span>            :     /** mpool to use for free list buffer allocation (posix_memalign/malloc
+<span class="lineNum">      78 </span>            :      * are used if this is NULL) */
+<span class="lineNum">      79 </span>            :     struct mca_mpool_base_module_t *fl_mpool;
+<span class="lineNum">      80 </span>            :     /** Multi-threaded lock. Used when the free list is empty. */
+<span class="lineNum">      81 </span>            :     opal_mutex_t fl_lock;
+<span class="lineNum">      82 </span>            :     /** Multi-threaded condition. Used when threads are waiting on free
+<span class="lineNum">      83 </span>            :      * list item availability. */
+<span class="lineNum">      84 </span>            :     opal_condition_t fl_condition;
+<span class="lineNum">      85 </span>            :     /** List of free list allocation */
+<span class="lineNum">      86 </span>            :     opal_list_t fl_allocations;
+<span class="lineNum">      87 </span>            :     /** Flags to pass to the mpool register function */
+<span class="lineNum">      88 </span>            :     int fl_mpool_reg_flags;
+<span class="lineNum">      89 </span>            :     /** Free list item initialization function */
+<span class="lineNum">      90 </span>            :     opal_free_list_item_init_fn_t item_init;
+<span class="lineNum">      91 </span>            :     /** Initialization function context */
+<span class="lineNum">      92 </span>            :     void *ctx;
+<span class="lineNum">      93 </span>            : };
+<span class="lineNum">      94 </span>            : typedef struct opal_free_list_t opal_free_list_t;
+<span class="lineNum">      95 </span>            : OPAL_DECLSPEC OBJ_CLASS_DECLARATION(opal_free_list_t);
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            : struct mca_mpool_base_registration_t;
+<span class="lineNum">      98 </span>            : struct opal_free_list_item_t
+<span class="lineNum">      99 </span>            : {
+<span class="lineNum">     100 </span>            :     opal_list_item_t super;
+<span class="lineNum">     101 </span>            :     struct mca_mpool_base_registration_t *registration;
+<span class="lineNum">     102 </span>            :     void *ptr;
+<span class="lineNum">     103 </span>            : };
+<span class="lineNum">     104 </span>            : typedef struct opal_free_list_item_t opal_free_list_item_t;
+<span class="lineNum">     105 </span>            : OPAL_DECLSPEC OBJ_CLASS_DECLARATION(opal_free_list_item_t);
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            : /**
+<span class="lineNum">     109 </span>            :  * Initialize a free list.
+<span class="lineNum">     110 </span>            :  *
+<span class="lineNum">     111 </span>            :  * @param free_list                (IN)  Free list.
+<span class="lineNum">     112 </span>            :  * @param frag_size                (IN)  Size of each element - allocated by malloc.
+<span class="lineNum">     113 </span>            :  * @param frag_alignment           (IN)  Fragment alignment.
+<span class="lineNum">     114 </span>            :  * @param frag_class               (IN)  opal_class_t of element - used to initialize allocated elements.
+<span class="lineNum">     115 </span>            :  * @param payload_buffer_size      (IN)  Size of payload buffer - allocated from mpool.
+<span class="lineNum">     116 </span>            :  * @param payload_buffer_alignment (IN)  Payload buffer alignment.
+<span class="lineNum">     117 </span>            :  * @param num_elements_to_alloc    (IN)  Initial number of elements to allocate.
+<span class="lineNum">     118 </span>            :  * @param max_elements_to_alloc    (IN)  Maximum number of elements to allocate.
+<span class="lineNum">     119 </span>            :  * @param num_elements_per_alloc   (IN)  Number of elements to grow by per allocation.
+<span class="lineNum">     120 </span>            :  * @param mpool                    (IN)  Optional memory pool for allocations.
+<span class="lineNum">     121 </span>            :  * @param mpool_reg_flags          (IN)  Flags to pass to mpool registration function.
+<span class="lineNum">     122 </span>            :  * @param unused0                  (IN)  Future. Must be NULL.
+<span class="lineNum">     123 </span>            :  * @param item_init                (IN)  Optional item initialization function
+<span class="lineNum">     124 </span>            :  * @param ctx                      (IN)  Initialization function context.
+<span class="lineNum">     125 </span>            :  */
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            : OPAL_DECLSPEC int opal_free_list_init (opal_free_list_t *free_list,
+<span class="lineNum">     128 </span>            :                                        size_t frag_size,
+<span class="lineNum">     129 </span>            :                                        size_t frag_alignment,
+<span class="lineNum">     130 </span>            :                                        opal_class_t* frag_class,
+<span class="lineNum">     131 </span>            :                                        size_t payload_buffer_size,
+<span class="lineNum">     132 </span>            :                                        size_t payload_buffer_alignment,
+<span class="lineNum">     133 </span>            :                                        int num_elements_to_alloc,
+<span class="lineNum">     134 </span>            :                                        int max_elements_to_alloc,
+<span class="lineNum">     135 </span>            :                                        int num_elements_per_alloc,
+<span class="lineNum">     136 </span>            :                                        struct mca_mpool_base_module_t *mpool,
+<span class="lineNum">     137 </span>            :                                        int mpool_reg_flags,
+<span class="lineNum">     138 </span>            :                                        void *unused0,
+<span class="lineNum">     139 </span>            :                                        opal_free_list_item_init_fn_t item_init,
+<span class="lineNum">     140 </span>            :                                        void *ctx);
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            : /**
+<span class="lineNum">     143 </span>            :  * Grow the free list by at most num_elements elements.
+<span class="lineNum">     144 </span>            :  *
+<span class="lineNum">     145 </span>            :  * @param flist         (IN)   Free list to grow
+<span class="lineNum">     146 </span>            :  * @param num_elements  (IN)   Number of elements to add
+<span class="lineNum">     147 </span>            :  *
+<span class="lineNum">     148 </span>            :  * @returns OPAL_SUCCESS if any elements were added
+<span class="lineNum">     149 </span>            :  * @returns OPAL_ERR_OUT_OF_RESOURCE if no elements could be added
+<span class="lineNum">     150 </span>            :  *
+<span class="lineNum">     151 </span>            :  * This function will attempt to grow the free list by num_elements items. The
+<span class="lineNum">     152 </span>            :  * caller must hold the free list lock if calling this function on a free list
+<span class="lineNum">     153 </span>            :  * that may be accessed by multiple threads simultaneously. Note: this is an
+<span class="lineNum">     154 </span>            :  * internal function that will be used when needed by opal_free_list_get* and
+<span class="lineNum">     155 </span>            :  * opal_free_list_wait*.
+<span class="lineNum">     156 </span>            :  */
+<span class="lineNum">     157 </span>            : OPAL_DECLSPEC int opal_free_list_grow_st (opal_free_list_t *flist, size_t num_elements);
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            : /**
+<span class="lineNum">     160 </span>            :  * Grow the free list to be at least size elements.
+<span class="lineNum">     161 </span>            :  *
+<span class="lineNum">     162 </span>            :  * @param flist    (IN)   Free list to resize.
+<span class="lineNum">     163 </span>            :  * @param size     (IN)   New size
+<span class="lineNum">     164 </span>            :  *
+<span class="lineNum">     165 </span>            :  * @returns OPAL_SUCCESS if the free list was resized
+<span class="lineNum">     166 </span>            :  * @returns OPAL_ERR_OUT_OF_RESOURCE if resources could not be allocated
+<span class="lineNum">     167 </span>            :  *
+<span class="lineNum">     168 </span>            :  * This function will not shrink the list if it is already larger than size
+<span class="lineNum">     169 </span>            :  * and may grow it past size if necessary (it will grow in num_elements_per_alloc
+<span class="lineNum">     170 </span>            :  * chunks). This function is thread-safe and will obtain the free list lock before
+<span class="lineNum">     171 </span>            :  * growing the free list.
+<span class="lineNum">     172 </span>            :  */
+<span class="lineNum">     173 </span>            : OPAL_DECLSPEC int opal_free_list_resize_mt (opal_free_list_t *flist, size_t size);
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            : /**
+<span class="lineNum">     177 </span>            :  * Attemp to obtain an item from a free list.
+<span class="lineNum">     178 </span>            :  *
+<span class="lineNum">     179 </span>            :  * @param fl (IN)        Free list.
+<span class="lineNum">     180 </span>            :  * @param item (OUT)     Allocated item.
+<span class="lineNum">     181 </span>            :  *
+<span class="lineNum">     182 </span>            :  * If the requested item is not available the free list is grown to
+<span class="lineNum">     183 </span>            :  * accomodate the request - unless the max number of allocations has
+<span class="lineNum">     184 </span>            :  * been reached.  If this is the case - a NULL pointer is returned
+<span class="lineNum">     185 </span>            :  * to the caller. This function comes in three flavor: thread safe
+<span class="lineNum">     186 </span>            :  * (opal_free_list_get_mt), single threaded (opal_free_list_get_st),
+<span class="lineNum">     187 </span>            :  * and opal_using_threads conditioned (opal_free_list_get).
+<span class="lineNum">     188 </span>            :  */
+<span class="lineNum">     189 </span>            : static inline opal_free_list_item_t *opal_free_list_get_mt (opal_free_list_t *flist)
+<span class="lineNum">     190 </span>            : {
+<span class="lineNum">     191 </span>            :     opal_free_list_item_t *item =
+<span class="lineNum">     192 </span>            :         (opal_free_list_item_t*) opal_lifo_pop_atomic (&amp;flist-&gt;super);
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :     if (OPAL_UNLIKELY(NULL == item)) {
+<span class="lineNum">     195 </span>            :         opal_mutex_lock (&amp;flist-&gt;fl_lock);
+<span class="lineNum">     196 </span>            :         opal_free_list_grow_st (flist, flist-&gt;fl_num_per_alloc);
+<span class="lineNum">     197 </span>            :         opal_mutex_unlock (&amp;flist-&gt;fl_lock);
+<span class="lineNum">     198 </span>            :         item = (opal_free_list_item_t *) opal_lifo_pop_atomic (&amp;flist-&gt;super);
+<span class="lineNum">     199 </span>            :     }
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            :     return item;
+<a name="202"><span class="lineNum">     202 </span>            : }</a>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineCov">          6 : static inline opal_free_list_item_t *opal_free_list_get_st (opal_free_list_t *flist)</span>
+<span class="lineNum">     205 </span>            : {
+<span class="lineNum">     206 </span><span class="lineCov">          6 :     opal_free_list_item_t *item =</span>
+<span class="lineNum">     207 </span><span class="lineCov">          6 :         (opal_free_list_item_t*) opal_lifo_pop_st (&amp;flist-&gt;super);</span>
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span><span class="lineCov">          6 :     if (OPAL_UNLIKELY(NULL == item)) {</span>
+<span class="lineNum">     210 </span><span class="lineCov">          2 :         opal_free_list_grow_st (flist, flist-&gt;fl_num_per_alloc);</span>
+<span class="lineNum">     211 </span><span class="lineCov">          2 :         item = (opal_free_list_item_t *) opal_lifo_pop_atomic (&amp;flist-&gt;super);</span>
+<span class="lineNum">     212 </span>            :     }
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineCov">          6 :     return item;</span>
+<a name="215"><span class="lineNum">     215 </span>            : }</a>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineCov">          6 : static inline opal_free_list_item_t *opal_free_list_get (opal_free_list_t *flist)</span>
+<span class="lineNum">     218 </span>            : {
+<span class="lineNum">     219 </span>            :     if (opal_using_threads ()) {
+<span class="lineNum">     220 </span>            :         return opal_free_list_get_mt (flist);
+<span class="lineNum">     221 </span>            :     }
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineCov">          6 :     return opal_free_list_get_st (flist);</span>
+<span class="lineNum">     224 </span>            : }
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            : /** compatibility macro */
+<span class="lineNum">     227 </span>            : #define OPAL_FREE_LIST_GET(fl, item)            \
+<span class="lineNum">     228 </span>            :     (item) = opal_free_list_get (fl)
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span>            : /**
+<span class="lineNum">     231 </span>            :  * Blocking call to obtain an item from a free list.
+<span class="lineNum">     232 </span>            :  *
+<span class="lineNum">     233 </span>            :  * @param fl (IN)        Free list.
+<span class="lineNum">     234 </span>            :  * @param item (OUT)     Allocated item.
+<span class="lineNum">     235 </span>            :  *
+<span class="lineNum">     236 </span>            :  * If the requested item is not available the free list is grown to
+<span class="lineNum">     237 </span>            :  * accomodate the request - unless the max number of allocations has
+<span class="lineNum">     238 </span>            :  * been reached. In this case the caller is blocked until an item
+<span class="lineNum">     239 </span>            :  * is returned to the list.
+<span class="lineNum">     240 </span>            :  */
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            : /** compatibility macro */
+<span class="lineNum">     243 </span>            : #define OPAL_FREE_LIST_WAIT(fl, item)           \
+<span class="lineNum">     244 </span>            :     (item) = opal_free_list_wait (fl)
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            : static inline opal_free_list_item_t *opal_free_list_wait_mt (opal_free_list_t *fl)
+<span class="lineNum">     247 </span>            : {
+<span class="lineNum">     248 </span>            :     opal_free_list_item_t *item =
+<span class="lineNum">     249 </span>            :         (opal_free_list_item_t *) opal_lifo_pop (&amp;fl-&gt;super);
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            :     while (NULL == item) {
+<span class="lineNum">     252 </span>            :         if (!opal_mutex_trylock (&amp;fl-&gt;fl_lock)) {
+<span class="lineNum">     253 </span>            :             if (fl-&gt;fl_max_to_alloc &lt;= fl-&gt;fl_num_allocated ||
+<span class="lineNum">     254 </span>            :                 OPAL_SUCCESS != opal_free_list_grow_st (fl, fl-&gt;fl_num_per_alloc)) {
+<span class="lineNum">     255 </span>            :                 fl-&gt;fl_num_waiting++;
+<span class="lineNum">     256 </span>            :                 opal_condition_wait (&amp;fl-&gt;fl_condition, &amp;fl-&gt;fl_lock);
+<span class="lineNum">     257 </span>            :                 fl-&gt;fl_num_waiting--;
+<span class="lineNum">     258 </span>            :             } else {
+<span class="lineNum">     259 </span>            :                 if (0 &lt; fl-&gt;fl_num_waiting) {
+<span class="lineNum">     260 </span>            :                     if (1 == fl-&gt;fl_num_waiting) {
+<span class="lineNum">     261 </span>            :                         opal_condition_signal (&amp;fl-&gt;fl_condition);
+<span class="lineNum">     262 </span>            :                     } else {
+<span class="lineNum">     263 </span>            :                         opal_condition_broadcast (&amp;fl-&gt;fl_condition);
+<span class="lineNum">     264 </span>            :                     }
+<span class="lineNum">     265 </span>            :                 }
+<span class="lineNum">     266 </span>            :             }
+<span class="lineNum">     267 </span>            :         } else {
+<span class="lineNum">     268 </span>            :             /* If I wasn't able to get the lock in the begining when I finaly grab it
+<span class="lineNum">     269 </span>            :              * the one holding the lock in the begining already grow the list. I will
+<span class="lineNum">     270 </span>            :              * release the lock and try to get a new element until I succeed.
+<span class="lineNum">     271 </span>            :              */
+<span class="lineNum">     272 </span>            :             opal_mutex_lock (&amp;fl-&gt;fl_lock);
+<span class="lineNum">     273 </span>            :         }
+<span class="lineNum">     274 </span>            :         opal_mutex_unlock (&amp;fl-&gt;fl_lock);
+<span class="lineNum">     275 </span>            :         item = (opal_free_list_item_t *) opal_lifo_pop (&amp;fl-&gt;super);
+<span class="lineNum">     276 </span>            :     }
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span>            :     return item;
+<a name="279"><span class="lineNum">     279 </span>            : }</a>
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 : static inline opal_free_list_item_t *opal_free_list_wait_st (opal_free_list_t *fl)</span>
+<span class="lineNum">     282 </span>            : {
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     opal_free_list_item_t *item =</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :         (opal_free_list_item_t *) opal_lifo_pop (&amp;fl-&gt;super);</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     while (NULL == item) {</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :         if (fl-&gt;fl_max_to_alloc &lt;= fl-&gt;fl_num_allocated ||</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :             OPAL_SUCCESS != opal_free_list_grow_st (fl, fl-&gt;fl_num_per_alloc)) {</span>
+<span class="lineNum">     289 </span>            :             /* try to make progress */
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :             opal_progress ();</span>
+<span class="lineNum">     291 </span>            :         }
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :         item = (opal_free_list_item_t *) opal_lifo_pop (&amp;fl-&gt;super);</span>
+<span class="lineNum">     294 </span>            :     }
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     return item;</span>
+<a name="297"><span class="lineNum">     297 </span>            : }</a>
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 : static inline opal_free_list_item_t *opal_free_list_wait (opal_free_list_t *fl)</span>
+<span class="lineNum">     300 </span>            : {
+<span class="lineNum">     301 </span>            :     if (opal_using_threads ()) {
+<span class="lineNum">     302 </span>            :         return opal_free_list_wait_mt (fl);
+<span class="lineNum">     303 </span>            :     } else {
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         return opal_free_list_wait_st (fl);</span>
+<span class="lineNum">     305 </span>            :     }
+<span class="lineNum">     306 </span>            : }
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span>            : /**
+<span class="lineNum">     309 </span>            :  * Return an item to a free list.
+<span class="lineNum">     310 </span>            :  *
+<span class="lineNum">     311 </span>            :  * @param fl (IN)        Free list.
+<span class="lineNum">     312 </span>            :  * @param item (OUT)     Allocated item.
+<span class="lineNum">     313 </span>            :  *
+<span class="lineNum">     314 </span>            :  */
+<span class="lineNum">     315 </span>            : static inline void opal_free_list_return_mt (opal_free_list_t *flist,
+<span class="lineNum">     316 </span>            :                                              opal_free_list_item_t *item)
+<span class="lineNum">     317 </span>            : {
+<span class="lineNum">     318 </span>            :     opal_list_item_t* original;
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            :     original = opal_lifo_push_atomic (&amp;flist-&gt;super, &amp;item-&gt;super);
+<span class="lineNum">     321 </span>            :     if (&amp;flist-&gt;super.opal_lifo_ghost == original) {
+<span class="lineNum">     322 </span>            :         if (flist-&gt;fl_num_waiting &gt; 0) {
+<span class="lineNum">     323 </span>            :             /* one one item is being returned so it doesn't make sense to wake
+<span class="lineNum">     324 </span>            :              * more than a single waiting thread. additionally, posix thread
+<span class="lineNum">     325 </span>            :              * semantics do not require that the lock be held to signal the
+<span class="lineNum">     326 </span>            :              * condition variable. */
+<span class="lineNum">     327 </span>            :             opal_condition_signal (&amp;flist-&gt;fl_condition);
+<span class="lineNum">     328 </span>            :         }
+<span class="lineNum">     329 </span>            :     }
+<a name="330"><span class="lineNum">     330 </span>            : }</a>
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span><span class="lineCov">          1 : static inline void opal_free_list_return_st (opal_free_list_t *flist,</span>
+<span class="lineNum">     333 </span>            :                                              opal_free_list_item_t *item)
+<span class="lineNum">     334 </span>            : {
+<span class="lineNum">     335 </span>            :     opal_list_item_t* original;
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineCov">          1 :     original = opal_lifo_push_st (&amp;flist-&gt;super, &amp;item-&gt;super);</span>
+<span class="lineNum">     338 </span><span class="lineCov">          1 :     if (&amp;flist-&gt;super.opal_lifo_ghost == original) {</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :         if (flist-&gt;fl_num_waiting &gt; 0) {</span>
+<span class="lineNum">     340 </span>            :             /* one one item is being returned so it doesn't make sense to wake
+<span class="lineNum">     341 </span>            :              * more than a single waiting thread. additionally, posix thread
+<span class="lineNum">     342 </span>            :              * semantics do not require that the lock be held to signal the
+<span class="lineNum">     343 </span>            :              * condition variable. */
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :             opal_condition_signal (&amp;flist-&gt;fl_condition);</span>
+<span class="lineNum">     345 </span>            :         }
+<span class="lineNum">     346 </span>            :     }
+<a name="347"><span class="lineNum">     347 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span><span class="lineCov">          1 : static inline void opal_free_list_return (opal_free_list_t *flist,</span>
+<span class="lineNum">     350 </span>            :                                           opal_free_list_item_t *item)
+<span class="lineNum">     351 </span>            : {
+<span class="lineNum">     352 </span>            :     if (opal_using_threads ()) {
+<span class="lineNum">     353 </span>            :         opal_free_list_return_mt (flist, item);
+<span class="lineNum">     354 </span>            :     } else {
+<span class="lineNum">     355 </span><span class="lineCov">          1 :         opal_free_list_return_st (flist, item);</span>
+<span class="lineNum">     356 </span>            :     }
+<span class="lineNum">     357 </span><span class="lineCov">          1 : }</span>
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span>            : /** compatibility macro */
+<span class="lineNum">     360 </span>            : #define OPAL_FREE_LIST_RETURN(fl, item)         \
+<span class="lineNum">     361 </span>            :     opal_free_list_return (fl, item)
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span>            : END_C_DECLS
+<span class="lineNum">     364 </span>            : #endif
+<span class="lineNum">     365 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

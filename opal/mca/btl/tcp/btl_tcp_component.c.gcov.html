@@ -1,0 +1,1189 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/btl/tcp/btl_tcp_component.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/btl/tcp</a> - btl_tcp_component.c<span style="font-size: 80%;"> (source / <a href="btl_tcp_component.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">245</td>
+            <td class="headerCovTableEntry">350</td>
+            <td class="headerCovTableEntryLo">70.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntryMed">86.7 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2007 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2014 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2007-2015 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2008      Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2009      Oak Ridge National Laboratory
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2012-2015 Los Alamos National Security, LLC.  All rights
+<span class="lineNum">      17 </span>            :  *                         reserved.
+<span class="lineNum">      18 </span>            :  * Copyright (c) 2013-2015 NVIDIA Corporation.  All rights reserved.
+<span class="lineNum">      19 </span>            :  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+<span class="lineNum">      20 </span>            :  * Copyright (c) 2014-2015 Research Organization for Information Science
+<span class="lineNum">      21 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      22 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      23 </span>            :  *
+<span class="lineNum">      24 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      25 </span>            :  *
+<span class="lineNum">      26 </span>            :  * $HEADER$
+<span class="lineNum">      27 </span>            :  *
+<span class="lineNum">      28 </span>            :  */
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &quot;opal/opal_socket_errno.h&quot;
+<span class="lineNum">      33 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      34 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      35 </span>            : #endif
+<span class="lineNum">      36 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      38 </span>            : #ifdef HAVE_SYS_TYPES_H
+<span class="lineNum">      39 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      40 </span>            : #endif
+<span class="lineNum">      41 </span>            : #ifdef HAVE_SYS_SOCKET_H
+<span class="lineNum">      42 </span>            : #include &lt;sys/socket.h&gt;
+<span class="lineNum">      43 </span>            : #endif
+<span class="lineNum">      44 </span>            : #ifdef HAVE_NETINET_IN_H
+<span class="lineNum">      45 </span>            : #include &lt;netinet/in.h&gt;
+<span class="lineNum">      46 </span>            : #endif
+<span class="lineNum">      47 </span>            : #ifdef HAVE_ARPA_INET_H
+<span class="lineNum">      48 </span>            : #include &lt;arpa/inet.h&gt;
+<span class="lineNum">      49 </span>            : #endif
+<span class="lineNum">      50 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">      51 </span>            : #  ifdef HAVE_NETDB_H
+<span class="lineNum">      52 </span>            : #  include &lt;netdb.h&gt;
+<span class="lineNum">      53 </span>            : #  endif
+<span class="lineNum">      54 </span>            : #endif
+<span class="lineNum">      55 </span>            : #include &lt;ctype.h&gt;
+<span class="lineNum">      56 </span>            : #include &lt;limits.h&gt;
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : #include &quot;opal/mca/event/event.h&quot;
+<span class="lineNum">      59 </span>            : #include &quot;opal/util/if.h&quot;
+<span class="lineNum">      60 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      61 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      62 </span>            : #include &quot;opal/util/net.h&quot;
+<span class="lineNum">      63 </span>            : #include &quot;opal/util/proc.h&quot;
+<span class="lineNum">      64 </span>            : #include &quot;opal/util/show_help.h&quot;
+<span class="lineNum">      65 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      66 </span>            : #include &quot;opal/mca/btl/btl.h&quot;
+<span class="lineNum">      67 </span>            : #include &quot;opal/mca/btl/base/base.h&quot;
+<span class="lineNum">      68 </span>            : #include &quot;opal/mca/mpool/base/base.h&quot;
+<span class="lineNum">      69 </span>            : #include &quot;opal/mca/btl/base/btl_base_error.h&quot;
+<span class="lineNum">      70 </span>            : #include &quot;opal/mca/pmix/pmix.h&quot;
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : #include &quot;btl_tcp.h&quot;
+<span class="lineNum">      73 </span>            : #include &quot;btl_tcp_addr.h&quot;
+<span class="lineNum">      74 </span>            : #include &quot;btl_tcp_proc.h&quot;
+<span class="lineNum">      75 </span>            : #include &quot;btl_tcp_frag.h&quot;
+<span class="lineNum">      76 </span>            : #include &quot;btl_tcp_endpoint.h&quot;
+<span class="lineNum">      77 </span>            : #if OPAL_CUDA_SUPPORT
+<span class="lineNum">      78 </span>            : #include &quot;opal/mca/common/cuda/common_cuda.h&quot;
+<span class="lineNum">      79 </span>            : #endif /* OPAL_CUDA_SUPPORT */
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : /*
+<span class="lineNum">      82 </span>            :  * Local functions
+<span class="lineNum">      83 </span>            :  */
+<span class="lineNum">      84 </span>            : static int mca_btl_tcp_component_register(void);
+<span class="lineNum">      85 </span>            : static int mca_btl_tcp_component_open(void);
+<span class="lineNum">      86 </span>            : static int mca_btl_tcp_component_close(void);
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            : mca_btl_tcp_component_t mca_btl_tcp_component = {
+<span class="lineNum">      89 </span>            :     .super = {
+<span class="lineNum">      90 </span>            :         /* First, the mca_base_component_t struct containing meta information
+<span class="lineNum">      91 </span>            :            about the component itself */
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            :         .btl_version = {
+<span class="lineNum">      94 </span>            :             MCA_BTL_DEFAULT_VERSION(&quot;tcp&quot;),
+<span class="lineNum">      95 </span>            :             .mca_open_component = mca_btl_tcp_component_open,
+<span class="lineNum">      96 </span>            :             .mca_close_component = mca_btl_tcp_component_close,
+<span class="lineNum">      97 </span>            :             .mca_register_component_params = mca_btl_tcp_component_register,
+<span class="lineNum">      98 </span>            :         },
+<span class="lineNum">      99 </span>            :         .btl_data = {
+<span class="lineNum">     100 </span>            :             /* The component is checkpoint ready */
+<span class="lineNum">     101 </span>            :             .param_field = MCA_BASE_METADATA_PARAM_CHECKPOINT
+<span class="lineNum">     102 </span>            :         },
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            :         .btl_init = mca_btl_tcp_component_init,
+<span class="lineNum">     105 </span>            :     }
+<span class="lineNum">     106 </span>            : };
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            : /*
+<span class="lineNum">     109 </span>            :  * utility routines for parameter registration
+<a name="110"><span class="lineNum">     110 </span>            :  */</a>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineCov">          4 : static inline char* mca_btl_tcp_param_register_string(</span>
+<span class="lineNum">     113 </span>            :         const char* param_name,
+<span class="lineNum">     114 </span>            :         const char* help_string,
+<span class="lineNum">     115 </span>            :         const char* default_value,
+<span class="lineNum">     116 </span>            :         int level,
+<span class="lineNum">     117 </span>            :         char **storage)
+<span class="lineNum">     118 </span>            : {
+<span class="lineNum">     119 </span><span class="lineCov">          4 :     *storage = (char *) default_value;</span>
+<span class="lineNum">     120 </span><span class="lineCov">          4 :     (void) mca_base_component_var_register(&amp;mca_btl_tcp_component.super.btl_version,</span>
+<span class="lineNum">     121 </span>            :                                            param_name, help_string, MCA_BASE_VAR_TYPE_STRING,
+<span class="lineNum">     122 </span>            :                                            NULL, 0, 0, level,
+<span class="lineNum">     123 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY, storage);
+<span class="lineNum">     124 </span><span class="lineCov">          4 :     return *storage;</span>
+<a name="125"><span class="lineNum">     125 </span>            : }</a>
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span><span class="lineCov">         20 : static inline int mca_btl_tcp_param_register_int(</span>
+<span class="lineNum">     128 </span>            :         const char* param_name,
+<span class="lineNum">     129 </span>            :         const char* help_string,
+<span class="lineNum">     130 </span>            :         int default_value,
+<span class="lineNum">     131 </span>            :         int level,
+<span class="lineNum">     132 </span>            :         int *storage)
+<span class="lineNum">     133 </span>            : {
+<span class="lineNum">     134 </span><span class="lineCov">         20 :     *storage = default_value;</span>
+<span class="lineNum">     135 </span><span class="lineCov">         20 :     (void) mca_base_component_var_register(&amp;mca_btl_tcp_component.super.btl_version,</span>
+<span class="lineNum">     136 </span>            :                                            param_name, help_string, MCA_BASE_VAR_TYPE_INT,
+<span class="lineNum">     137 </span>            :                                            NULL, 0, 0, level,
+<span class="lineNum">     138 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY, storage);
+<span class="lineNum">     139 </span><span class="lineCov">         20 :     return *storage;</span>
+<a name="140"><span class="lineNum">     140 </span>            : }</a>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineCov">         18 : static inline unsigned int mca_btl_tcp_param_register_uint(</span>
+<span class="lineNum">     143 </span>            :         const char* param_name,
+<span class="lineNum">     144 </span>            :         const char* help_string,
+<span class="lineNum">     145 </span>            :         unsigned int default_value,
+<span class="lineNum">     146 </span>            :         int level,
+<span class="lineNum">     147 </span>            :         unsigned int *storage)
+<span class="lineNum">     148 </span>            : {
+<span class="lineNum">     149 </span><span class="lineCov">         18 :     *storage = default_value;</span>
+<span class="lineNum">     150 </span><span class="lineCov">         18 :     (void) mca_base_component_var_register(&amp;mca_btl_tcp_component.super.btl_version,</span>
+<span class="lineNum">     151 </span>            :                                            param_name, help_string, MCA_BASE_VAR_TYPE_UNSIGNED_INT,
+<span class="lineNum">     152 </span>            :                                            NULL, 0, 0, level,
+<span class="lineNum">     153 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY, storage);
+<span class="lineNum">     154 </span><span class="lineCov">         18 :     return *storage;</span>
+<span class="lineNum">     155 </span>            : }
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            : /*
+<span class="lineNum">     159 </span>            :  * Data structure for accepting connections.
+<span class="lineNum">     160 </span>            :  */
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span>            : struct mca_btl_tcp_event_t {
+<span class="lineNum">     163 </span>            :     opal_list_item_t item;
+<span class="lineNum">     164 </span>            :     opal_event_t event;
+<span class="lineNum">     165 </span>            : };
+<span class="lineNum">     166 </span>            : typedef struct mca_btl_tcp_event_t mca_btl_tcp_event_t;
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            : OBJ_CLASS_INSTANCE( mca_btl_tcp_event_t, opal_list_item_t,
+<span class="lineNum">     169 </span>            :                     NULL, NULL);
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            : /*
+<span class="lineNum">     173 </span>            :  * functions for receiving event callbacks
+<span class="lineNum">     174 </span>            :  */
+<span class="lineNum">     175 </span>            : static void mca_btl_tcp_component_recv_handler(int, short, void*);
+<a name="176"><span class="lineNum">     176 </span>            : static void mca_btl_tcp_component_accept_handler(int, short, void*);</a>
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span><span class="lineCov">          4 : static int mca_btl_tcp_component_verify(void)</span>
+<span class="lineNum">     179 </span>            : {
+<span class="lineNum">     180 </span><span class="lineCov">          4 :     if( mca_btl_tcp_component.tcp_port_min &gt; USHRT_MAX ) {</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         opal_show_help(&quot;help-mpi-btl-tcp.txt&quot;, &quot;invalid minimum port&quot;,</span>
+<span class="lineNum">     182 </span>            :                        true, &quot;v4&quot;, opal_process_info.nodename,
+<span class="lineNum">     183 </span>            :                        mca_btl_tcp_component.tcp_port_min );
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         mca_btl_tcp_component.tcp_port_min = 1024;</span>
+<span class="lineNum">     185 </span>            :     }
+<span class="lineNum">     186 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     187 </span>            :     if( mca_btl_tcp_component.tcp6_port_min &gt; USHRT_MAX ) {
+<span class="lineNum">     188 </span>            :         opal_show_help(&quot;help-mpi-btl-tcp.txt&quot;, &quot;invalid minimum port&quot;,
+<span class="lineNum">     189 </span>            :                        true, &quot;v6&quot;, opal_process_info.nodename,
+<span class="lineNum">     190 </span>            :                        mca_btl_tcp_component.tcp6_port_min );
+<span class="lineNum">     191 </span>            :         mca_btl_tcp_component.tcp6_port_min = 1024;
+<span class="lineNum">     192 </span>            :     }
+<span class="lineNum">     193 </span>            : #endif
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineCov">          4 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     196 </span>            : }
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : /*
+<span class="lineNum">     199 </span>            :  *  Called by MCA framework to open the component, registers
+<span class="lineNum">     200 </span>            :  *  component parameters.
+<a name="201"><span class="lineNum">     201 </span>            :  */</a>
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span><span class="lineCov">          2 : static int mca_btl_tcp_component_register(void)</span>
+<span class="lineNum">     204 </span>            : {
+<span class="lineNum">     205 </span>            :     char* message;
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            :     /* register TCP component parameters */
+<span class="lineNum">     208 </span><span class="lineCov">          2 :     mca_btl_tcp_param_register_uint(&quot;links&quot;, NULL, 1, OPAL_INFO_LVL_4, &amp;mca_btl_tcp_component.tcp_num_links);</span>
+<span class="lineNum">     209 </span><span class="lineCov">          2 :     mca_btl_tcp_param_register_string(&quot;if_include&quot;, &quot;Comma-delimited list of devices and/or CIDR notation of networks to use for MPI communication (e.g., \&quot;eth0,192.168.0.0/16\&quot;).  Mutually exclusive with btl_tcp_if_exclude.&quot;, &quot;&quot;, OPAL_INFO_LVL_1, &amp;mca_btl_tcp_component.tcp_if_include);</span>
+<span class="lineNum">     210 </span><span class="lineCov">          2 :     mca_btl_tcp_param_register_string(&quot;if_exclude&quot;, &quot;Comma-delimited list of devices and/or CIDR notation of networks to NOT use for MPI communication -- all devices not matching these specifications will be used (e.g., \&quot;eth0,192.168.0.0/16\&quot;).  If set to a non-default value, it is mutually exclusive with btl_tcp_if_include.&quot;,</span>
+<span class="lineNum">     211 </span>            :                                       &quot;127.0.0.1/8,sppp&quot;,
+<span class="lineNum">     212 </span>            :                                       OPAL_INFO_LVL_1, &amp;mca_btl_tcp_component.tcp_if_exclude);
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineCov">          2 :     mca_btl_tcp_param_register_int (&quot;free_list_num&quot;, NULL, 8, OPAL_INFO_LVL_5,  &amp;mca_btl_tcp_component.tcp_free_list_num);</span>
+<span class="lineNum">     215 </span><span class="lineCov">          2 :     mca_btl_tcp_param_register_int (&quot;free_list_max&quot;, NULL, -1, OPAL_INFO_LVL_5,  &amp;mca_btl_tcp_component.tcp_free_list_max);</span>
+<span class="lineNum">     216 </span><span class="lineCov">          2 :     mca_btl_tcp_param_register_int (&quot;free_list_inc&quot;, NULL, 32, OPAL_INFO_LVL_5,  &amp;mca_btl_tcp_component.tcp_free_list_inc);</span>
+<span class="lineNum">     217 </span><span class="lineCov">          2 :     mca_btl_tcp_param_register_int (&quot;sndbuf&quot;, NULL, 128*1024, OPAL_INFO_LVL_4, &amp;mca_btl_tcp_component.tcp_sndbuf);</span>
+<span class="lineNum">     218 </span><span class="lineCov">          2 :     mca_btl_tcp_param_register_int (&quot;rcvbuf&quot;, NULL, 128*1024, OPAL_INFO_LVL_4, &amp;mca_btl_tcp_component.tcp_rcvbuf);</span>
+<span class="lineNum">     219 </span><span class="lineCov">          2 :     mca_btl_tcp_param_register_int (&quot;endpoint_cache&quot;,</span>
+<span class="lineNum">     220 </span>            :         &quot;The size of the internal cache for each TCP connection. This cache is&quot;
+<span class="lineNum">     221 </span>            :         &quot; used to reduce the number of syscalls, by replacing them with memcpy.&quot;
+<span class="lineNum">     222 </span>            :         &quot; Every read will read the expected data plus the amount of the&quot;
+<span class="lineNum">     223 </span>            :                                     &quot; endpoint_cache&quot;, 30*1024, OPAL_INFO_LVL_4, &amp;mca_btl_tcp_component.tcp_endpoint_cache);
+<span class="lineNum">     224 </span><span class="lineCov">          2 :     mca_btl_tcp_param_register_int (&quot;use_nagle&quot;, &quot;Whether to use Nagle's algorithm or not (using Nagle's algorithm may increase short message latency)&quot;, 0, OPAL_INFO_LVL_4, &amp;mca_btl_tcp_component.tcp_not_use_nodelay);</span>
+<span class="lineNum">     225 </span><span class="lineCov">          2 :     mca_btl_tcp_param_register_int( &quot;port_min_v4&quot;,</span>
+<span class="lineNum">     226 </span>            :                                     &quot;The minimum port where the TCP BTL will try to bind (default 1024)&quot;,
+<span class="lineNum">     227 </span>            :                                     1024, OPAL_INFO_LVL_2, &amp;mca_btl_tcp_component.tcp_port_min);
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span><span class="lineCov">          2 :     asprintf( &amp;message,</span>
+<span class="lineNum">     230 </span>            :               &quot;The number of ports where the TCP BTL will try to bind (default %d).&quot;
+<span class="lineNum">     231 </span>            :               &quot; This parameter together with the port min, define a range of ports&quot;
+<span class="lineNum">     232 </span>            :               &quot; where Open MPI will open sockets.&quot;,
+<span class="lineNum">     233 </span><span class="lineCov">          2 :               (0x1 &lt;&lt; 16) - mca_btl_tcp_component.tcp_port_min - 1 );</span>
+<span class="lineNum">     234 </span><span class="lineCov">          2 :     mca_btl_tcp_param_register_int( &quot;port_range_v4&quot;, message,</span>
+<span class="lineNum">     235 </span><span class="lineCov">          2 :                                     (0x1 &lt;&lt; 16) - mca_btl_tcp_component.tcp_port_min - 1,</span>
+<span class="lineNum">     236 </span>            :                                     OPAL_INFO_LVL_2, &amp;mca_btl_tcp_component.tcp_port_range);
+<span class="lineNum">     237 </span><span class="lineCov">          2 :     free(message);</span>
+<span class="lineNum">     238 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     239 </span>            :     mca_btl_tcp_param_register_int( &quot;port_min_v6&quot;,
+<span class="lineNum">     240 </span>            :                                     &quot;The minimum port where the TCP BTL will try to bind (default 1024)&quot;, 1024,
+<span class="lineNum">     241 </span>            :                                     OPAL_INFO_LVL_2, &amp; mca_btl_tcp_component.tcp6_port_min );
+<span class="lineNum">     242 </span>            :     asprintf( &amp;message,
+<span class="lineNum">     243 </span>            :               &quot;The number of ports where the TCP BTL will try to bind (default %d).&quot;
+<span class="lineNum">     244 </span>            :               &quot; This parameter together with the port min, define a range of ports&quot;
+<span class="lineNum">     245 </span>            :               &quot; where Open MPI will open sockets.&quot;,
+<span class="lineNum">     246 </span>            :               (0x1 &lt;&lt; 16) - mca_btl_tcp_component.tcp6_port_min - 1 );
+<span class="lineNum">     247 </span>            :     mca_btl_tcp_param_register_int( &quot;port_range_v6&quot;, message,
+<span class="lineNum">     248 </span>            :                                     (0x1 &lt;&lt; 16) - mca_btl_tcp_component.tcp6_port_min - 1,
+<span class="lineNum">     249 </span>            :                                     OPAL_INFO_LVL_2, &amp;mca_btl_tcp_component.tcp6_port_range );
+<span class="lineNum">     250 </span>            :     free(message);
+<span class="lineNum">     251 </span>            : #endif
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineCov">          2 :     mca_btl_tcp_component.report_all_unfound_interfaces = false;</span>
+<span class="lineNum">     254 </span><span class="lineCov">          2 :     (void) mca_base_component_var_register(&amp;mca_btl_tcp_component.super.btl_version,</span>
+<span class="lineNum">     255 </span>            :                                            &quot;warn_all_unfound_interfaces&quot;,
+<span class="lineNum">     256 </span>            :                                            &quot;Issue a warning for all unfound interfaces included in if_exclude&quot;,
+<span class="lineNum">     257 </span>            :                                            MCA_BASE_VAR_TYPE_BOOL,
+<span class="lineNum">     258 </span>            :                                            NULL, 0, 0, OPAL_INFO_LVL_2,
+<span class="lineNum">     259 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY, &amp;mca_btl_tcp_component.report_all_unfound_interfaces);
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span><span class="lineCov">          2 :     mca_btl_tcp_module.super.btl_exclusivity =  MCA_BTL_EXCLUSIVITY_LOW + 100;</span>
+<span class="lineNum">     262 </span><span class="lineCov">          2 :     mca_btl_tcp_module.super.btl_eager_limit = 64*1024;</span>
+<span class="lineNum">     263 </span><span class="lineCov">          2 :     mca_btl_tcp_module.super.btl_rndv_eager_limit = 64*1024;</span>
+<span class="lineNum">     264 </span><span class="lineCov">          2 :     mca_btl_tcp_module.super.btl_max_send_size = 128*1024;</span>
+<span class="lineNum">     265 </span><span class="lineCov">          2 :     mca_btl_tcp_module.super.btl_rdma_pipeline_send_length = 128*1024;</span>
+<span class="lineNum">     266 </span><span class="lineCov">          2 :     mca_btl_tcp_module.super.btl_rdma_pipeline_frag_size = INT_MAX;</span>
+<span class="lineNum">     267 </span><span class="lineCov">          2 :     mca_btl_tcp_module.super.btl_min_rdma_pipeline_size = 0;</span>
+<span class="lineNum">     268 </span><span class="lineCov">          2 :     mca_btl_tcp_module.super.btl_flags = MCA_BTL_FLAGS_PUT |</span>
+<span class="lineNum">     269 </span>            :                                        MCA_BTL_FLAGS_SEND_INPLACE |
+<span class="lineNum">     270 </span>            :                                        MCA_BTL_FLAGS_NEED_CSUM |
+<span class="lineNum">     271 </span>            :                                        MCA_BTL_FLAGS_NEED_ACK |
+<span class="lineNum">     272 </span>            :                                        MCA_BTL_FLAGS_HETEROGENEOUS_RDMA;
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span><span class="lineCov">          2 :     mca_btl_tcp_module.super.btl_bandwidth = 100;</span>
+<span class="lineNum">     275 </span><span class="lineCov">          2 :     mca_btl_tcp_module.super.btl_latency = 100;</span>
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span><span class="lineCov">          2 :     mca_btl_base_param_register(&amp;mca_btl_tcp_component.super.btl_version,</span>
+<span class="lineNum">     278 </span>            :                                 &amp;mca_btl_tcp_module.super);
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span><span class="lineCov">          2 :     mca_btl_tcp_param_register_int (&quot;disable_family&quot;, NULL, 0, OPAL_INFO_LVL_2,  &amp;mca_btl_tcp_component.tcp_disable_family);</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span><span class="lineCov">          2 :     return mca_btl_tcp_component_verify();</span>
+<a name="283"><span class="lineNum">     283 </span>            : }</a>
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span><span class="lineCov">          2 : static int mca_btl_tcp_component_open(void)</span>
+<span class="lineNum">     286 </span>            : {
+<span class="lineNum">     287 </span><span class="lineCov">          2 :     if (OPAL_SUCCESS != mca_btl_tcp_component_verify()) {</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     289 </span>            :     }
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span>            :     /* initialize state */
+<span class="lineNum">     292 </span><span class="lineCov">          2 :     mca_btl_tcp_component.tcp_listen_sd = -1;</span>
+<span class="lineNum">     293 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     294 </span>            :     mca_btl_tcp_component.tcp6_listen_sd = -1;
+<span class="lineNum">     295 </span>            : #endif
+<span class="lineNum">     296 </span><span class="lineCov">          2 :     mca_btl_tcp_component.tcp_num_btls=0;</span>
+<span class="lineNum">     297 </span><span class="lineCov">          2 :     mca_btl_tcp_component.tcp_addr_count = 0;</span>
+<span class="lineNum">     298 </span><span class="lineCov">          2 :     mca_btl_tcp_component.tcp_btls=NULL;</span>
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span>            :     /* initialize objects */
+<span class="lineNum">     301 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;mca_btl_tcp_component.tcp_lock, opal_mutex_t);</span>
+<span class="lineNum">     302 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;mca_btl_tcp_component.tcp_procs, opal_proc_table_t);</span>
+<span class="lineNum">     303 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;mca_btl_tcp_component.tcp_frag_eager, opal_free_list_t);</span>
+<span class="lineNum">     304 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;mca_btl_tcp_component.tcp_frag_max, opal_free_list_t);</span>
+<span class="lineNum">     305 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;mca_btl_tcp_component.tcp_frag_user, opal_free_list_t);</span>
+<span class="lineNum">     306 </span><span class="lineCov">          2 :     opal_proc_table_init(&amp;mca_btl_tcp_component.tcp_procs, 16, 256);</span>
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span>            :     /* if_include and if_exclude need to be mutually exclusive */
+<span class="lineNum">     309 </span><span class="lineCov">          2 :     if (OPAL_SUCCESS !=</span>
+<span class="lineNum">     310 </span><span class="lineCov">          2 :         mca_base_var_check_exclusive(&quot;ompi&quot;,</span>
+<span class="lineNum">     311 </span>            :         mca_btl_tcp_component.super.btl_version.mca_type_name,
+<span class="lineNum">     312 </span>            :         mca_btl_tcp_component.super.btl_version.mca_component_name,
+<span class="lineNum">     313 </span>            :         &quot;if_include&quot;,
+<span class="lineNum">     314 </span>            :         mca_btl_tcp_component.super.btl_version.mca_type_name,
+<span class="lineNum">     315 </span>            :         mca_btl_tcp_component.super.btl_version.mca_component_name,
+<span class="lineNum">     316 </span>            :         &quot;if_exclude&quot;)) {
+<span class="lineNum">     317 </span>            :         /* Return ERR_NOT_AVAILABLE so that a warning message about
+<span class="lineNum">     318 </span>            :            &quot;open&quot; failing is not printed */
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :         return OPAL_ERR_NOT_AVAILABLE;</span>
+<span class="lineNum">     320 </span>            :     }
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     323 </span>            : }
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span>            : /*
+<span class="lineNum">     327 </span>            :  * module cleanup - sanity checking of queue lengths
+<a name="328"><span class="lineNum">     328 </span>            :  */</a>
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineCov">          2 : static int mca_btl_tcp_component_close(void)</span>
+<span class="lineNum">     331 </span>            : {
+<span class="lineNum">     332 </span><span class="lineCov">          2 :     if (NULL != mca_btl_tcp_component.tcp_btls)</span>
+<span class="lineNum">     333 </span><span class="lineCov">          2 :         free(mca_btl_tcp_component.tcp_btls);</span>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineCov">          2 :     if (mca_btl_tcp_component.tcp_listen_sd &gt;= 0) {</span>
+<span class="lineNum">     336 </span><span class="lineCov">          2 :         opal_event_del(&amp;mca_btl_tcp_component.tcp_recv_event);</span>
+<span class="lineNum">     337 </span><span class="lineCov">          2 :         CLOSE_THE_SOCKET(mca_btl_tcp_component.tcp_listen_sd);</span>
+<span class="lineNum">     338 </span><span class="lineCov">          2 :         mca_btl_tcp_component.tcp_listen_sd = -1;</span>
+<span class="lineNum">     339 </span>            :     }
+<span class="lineNum">     340 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     341 </span>            :     if (mca_btl_tcp_component.tcp6_listen_sd &gt;= 0) {
+<span class="lineNum">     342 </span>            :         opal_event_del(&amp;mca_btl_tcp_component.tcp6_recv_event);
+<span class="lineNum">     343 </span>            :         CLOSE_THE_SOCKET(mca_btl_tcp_component.tcp6_listen_sd);
+<span class="lineNum">     344 </span>            :         mca_btl_tcp_component.tcp6_listen_sd = -1;
+<span class="lineNum">     345 </span>            :     }
+<span class="lineNum">     346 </span>            : #endif
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span>            :     /* release resources */
+<span class="lineNum">     349 </span><span class="lineCov">          2 :     OBJ_DESTRUCT(&amp;mca_btl_tcp_component.tcp_procs);</span>
+<span class="lineNum">     350 </span><span class="lineCov">          2 :     OBJ_DESTRUCT(&amp;mca_btl_tcp_component.tcp_frag_eager);</span>
+<span class="lineNum">     351 </span><span class="lineCov">          2 :     OBJ_DESTRUCT(&amp;mca_btl_tcp_component.tcp_frag_max);</span>
+<span class="lineNum">     352 </span><span class="lineCov">          2 :     OBJ_DESTRUCT(&amp;mca_btl_tcp_component.tcp_frag_user);</span>
+<span class="lineNum">     353 </span><span class="lineCov">          2 :     OBJ_DESTRUCT(&amp;mca_btl_tcp_component.tcp_lock);</span>
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span>            : #if OPAL_CUDA_SUPPORT
+<span class="lineNum">     356 </span>            :     mca_common_cuda_fini();
+<span class="lineNum">     357 </span>            : #endif /* OPAL_CUDA_SUPPORT */
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     360 </span>            : }
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span>            : /*
+<span class="lineNum">     364 </span>            :  *  Create a btl instance and add to modules list.
+<a name="365"><span class="lineNum">     365 </span>            :  */</a>
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span><span class="lineCov">          4 : static int mca_btl_tcp_create(int if_kindex, const char* if_name)</span>
+<span class="lineNum">     368 </span>            : {
+<span class="lineNum">     369 </span>            :     struct mca_btl_tcp_module_t* btl;
+<span class="lineNum">     370 </span>            :     char param[256];
+<span class="lineNum">     371 </span>            :     int i;
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span><span class="lineCov">          8 :     for( i = 0; i &lt; (int)mca_btl_tcp_component.tcp_num_links; i++ ) {</span>
+<span class="lineNum">     374 </span><span class="lineCov">          4 :         btl = (struct mca_btl_tcp_module_t *)malloc(sizeof(mca_btl_tcp_module_t));</span>
+<span class="lineNum">     375 </span><span class="lineCov">          4 :         if(NULL == btl)</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :             return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     377 </span><span class="lineCov">          4 :         memcpy(btl, &amp;mca_btl_tcp_module, sizeof(mca_btl_tcp_module));</span>
+<span class="lineNum">     378 </span><span class="lineCov">          4 :         OBJ_CONSTRUCT(&amp;btl-&gt;tcp_endpoints, opal_list_t);</span>
+<span class="lineNum">     379 </span><span class="lineCov">          4 :         mca_btl_tcp_component.tcp_btls[mca_btl_tcp_component.tcp_num_btls++] = btl;</span>
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            :         /* initialize the btl */
+<span class="lineNum">     382 </span><span class="lineCov">          4 :         btl-&gt;tcp_ifkindex = (uint16_t) if_kindex;</span>
+<span class="lineNum">     383 </span>            : #if MCA_BTL_TCP_STATISTICS
+<span class="lineNum">     384 </span>            :         btl-&gt;tcp_bytes_recv = 0;
+<span class="lineNum">     385 </span>            :         btl-&gt;tcp_bytes_sent = 0;
+<span class="lineNum">     386 </span>            :         btl-&gt;tcp_send_handler = 0;
+<span class="lineNum">     387 </span>            : #endif
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span>            :         /* allow user to specify interface bandwidth */
+<span class="lineNum">     390 </span><span class="lineCov">          4 :         sprintf(param, &quot;bandwidth_%s&quot;, if_name);</span>
+<span class="lineNum">     391 </span><span class="lineCov">          4 :         mca_btl_tcp_param_register_uint(param, NULL, btl-&gt;super.btl_bandwidth, OPAL_INFO_LVL_5, &amp;btl-&gt;super.btl_bandwidth);</span>
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span>            :         /* allow user to override/specify latency ranking */
+<span class="lineNum">     394 </span><span class="lineCov">          4 :         sprintf(param, &quot;latency_%s&quot;, if_name);</span>
+<span class="lineNum">     395 </span><span class="lineCov">          4 :         mca_btl_tcp_param_register_uint(param, NULL, btl-&gt;super.btl_latency, OPAL_INFO_LVL_5,  &amp;btl-&gt;super.btl_latency);</span>
+<span class="lineNum">     396 </span><span class="lineCov">          4 :         if( i &gt; 0 ) {</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :             btl-&gt;super.btl_bandwidth &gt;&gt;= 1;</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :             btl-&gt;super.btl_latency   &lt;&lt;= 1;</span>
+<span class="lineNum">     399 </span>            :         }
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span>            :         /* allow user to specify interface bandwidth */
+<span class="lineNum">     402 </span><span class="lineCov">          4 :         sprintf(param, &quot;bandwidth_%s:%d&quot;, if_name, i);</span>
+<span class="lineNum">     403 </span><span class="lineCov">          4 :         mca_btl_tcp_param_register_uint(param, NULL, btl-&gt;super.btl_bandwidth, OPAL_INFO_LVL_5, &amp;btl-&gt;super.btl_bandwidth);</span>
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span>            :         /* allow user to override/specify latency ranking */
+<span class="lineNum">     406 </span><span class="lineCov">          4 :         sprintf(param, &quot;latency_%s:%d&quot;, if_name, i);</span>
+<span class="lineNum">     407 </span><span class="lineCov">          4 :         mca_btl_tcp_param_register_uint(param, NULL, btl-&gt;super.btl_latency, OPAL_INFO_LVL_5, &amp;btl-&gt;super.btl_latency);</span>
+<span class="lineNum">     408 </span>            : #if 0 &amp;&amp; OPAL_ENABLE_DEBUG
+<span class="lineNum">     409 </span>            :         BTL_OUTPUT((&quot;interface %s instance %i: bandwidth %d latency %d\n&quot;, if_name, i,
+<span class="lineNum">     410 </span>            :                     btl-&gt;super.btl_bandwidth, btl-&gt;super.btl_latency));
+<span class="lineNum">     411 </span>            : #endif
+<span class="lineNum">     412 </span>            :     }
+<span class="lineNum">     413 </span><span class="lineCov">          4 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     414 </span>            : }
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span>            : /*
+<span class="lineNum">     417 </span>            :  * Go through a list of argv; if there are any subnet specifications
+<span class="lineNum">     418 </span>            :  * (a.b.c.d/e), resolve them to an interface name (Currently only
+<a name="419"><span class="lineNum">     419 </span>            :  * supporting IPv4).  If unresolvable, warn and remove.</a>
+<span class="lineNum">     420 </span>            :  */
+<span class="lineNum">     421 </span><span class="lineCov">          4 : static char **split_and_resolve(char **orig_str, char *name, bool reqd)</span>
+<span class="lineNum">     422 </span>            : {
+<span class="lineNum">     423 </span>            :     int i, ret, save, if_index;
+<span class="lineNum">     424 </span>            :     char **argv, *str, *tmp;
+<span class="lineNum">     425 </span>            :     char if_name[IF_NAMESIZE];
+<span class="lineNum">     426 </span>            :     struct sockaddr_storage argv_inaddr, if_inaddr;
+<span class="lineNum">     427 </span>            :     uint32_t argv_prefix;
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span>            :     /* Sanity check */
+<span class="lineNum">     430 </span><span class="lineCov">          4 :     if (NULL == orig_str || NULL == *orig_str) {</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     432 </span>            :     }
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span><span class="lineCov">          4 :     argv = opal_argv_split(*orig_str, ',');</span>
+<span class="lineNum">     435 </span><span class="lineCov">          4 :     if (NULL == argv) {</span>
+<span class="lineNum">     436 </span><span class="lineCov">          2 :         return NULL;</span>
+<span class="lineNum">     437 </span>            :     }
+<span class="lineNum">     438 </span><span class="lineCov">          6 :     for (save = i = 0; NULL != argv[i]; ++i) {</span>
+<span class="lineNum">     439 </span><span class="lineCov">          4 :         if (isalpha(argv[i][0])) {</span>
+<span class="lineNum">     440 </span><span class="lineCov">          2 :             argv[save++] = argv[i];</span>
+<span class="lineNum">     441 </span><span class="lineCov">          2 :             continue;</span>
+<span class="lineNum">     442 </span>            :         }
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span>            :         /* Found a subnet notation.  Convert it to an IP
+<span class="lineNum">     445 </span>            :            address/netmask.  Get the prefix first. */
+<span class="lineNum">     446 </span><span class="lineCov">          2 :         argv_prefix = 0;</span>
+<span class="lineNum">     447 </span><span class="lineCov">          2 :         tmp = strdup(argv[i]);</span>
+<span class="lineNum">     448 </span><span class="lineCov">          2 :         str = strchr(argv[i], '/');</span>
+<span class="lineNum">     449 </span><span class="lineCov">          2 :         if (NULL == str) {</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :             opal_show_help(&quot;help-mpi-btl-tcp.txt&quot;, &quot;invalid if_inexclude&quot;,</span>
+<span class="lineNum">     451 </span>            :                            true, name, opal_process_info.nodename,
+<span class="lineNum">     452 </span>            :                            tmp, &quot;Invalid specification (missing \&quot;/\&quot;)&quot;);
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :             free(argv[i]);</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :             free(tmp);</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     456 </span>            :         }
+<span class="lineNum">     457 </span><span class="lineCov">          2 :         *str = '\0';</span>
+<span class="lineNum">     458 </span><span class="lineCov">          2 :         argv_prefix = atoi(str + 1);</span>
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span>            :         /* Now convert the IPv4 address */
+<span class="lineNum">     461 </span><span class="lineCov">          2 :         ((struct sockaddr*) &amp;argv_inaddr)-&gt;sa_family = AF_INET;</span>
+<span class="lineNum">     462 </span><span class="lineCov">          2 :         ret = inet_pton(AF_INET, argv[i],</span>
+<span class="lineNum">     463 </span><span class="lineCov">          2 :                         &amp;((struct sockaddr_in*) &amp;argv_inaddr)-&gt;sin_addr);</span>
+<span class="lineNum">     464 </span><span class="lineCov">          2 :         free(argv[i]);</span>
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span><span class="lineCov">          2 :         if (1 != ret) {</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :             opal_show_help(&quot;help-mpi-btl-tcp.txt&quot;, &quot;invalid if_inexclude&quot;,</span>
+<span class="lineNum">     468 </span>            :                            true, name, opal_process_info.nodename, tmp,
+<span class="lineNum">     469 </span>            :                            &quot;Invalid specification (inet_pton() failed)&quot;);
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :             free(tmp);</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     472 </span>            :         }
+<span class="lineNum">     473 </span><span class="lineCov">          2 :         opal_output_verbose(20, opal_btl_base_framework.framework_output,</span>
+<span class="lineNum">     474 </span>            :                             &quot;btl: tcp: Searching for %s address+prefix: %s / %u&quot;,
+<span class="lineNum">     475 </span>            :                             name,
+<span class="lineNum">     476 </span>            :                             opal_net_get_hostname((struct sockaddr*) &amp;argv_inaddr),
+<span class="lineNum">     477 </span>            :                             argv_prefix);
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span>            :         /* Go through all interfaces and see if we can find a match */
+<span class="lineNum">     480 </span><span class="lineCov">          4 :         for (if_index = opal_ifbegin(); if_index &gt;= 0;</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :              if_index = opal_ifnext(if_index)) {</span>
+<span class="lineNum">     482 </span><span class="lineCov">          2 :             opal_ifindextoaddr(if_index,</span>
+<span class="lineNum">     483 </span>            :                                (struct sockaddr*) &amp;if_inaddr,
+<span class="lineNum">     484 </span>            :                                sizeof(if_inaddr));
+<span class="lineNum">     485 </span><span class="lineCov">          2 :             if (opal_net_samenetwork((struct sockaddr*) &amp;argv_inaddr,</span>
+<span class="lineNum">     486 </span>            :                                      (struct sockaddr*) &amp;if_inaddr,
+<span class="lineNum">     487 </span>            :                                      argv_prefix)) {
+<span class="lineNum">     488 </span><span class="lineCov">          2 :                 break;</span>
+<span class="lineNum">     489 </span>            :             }
+<span class="lineNum">     490 </span>            :         }
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span>            :         /* If we didn't find a match, keep trying */
+<span class="lineNum">     493 </span><span class="lineCov">          2 :         if (if_index &lt; 0) {</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :             if (reqd || mca_btl_tcp_component.report_all_unfound_interfaces) {</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :                 opal_show_help(&quot;help-mpi-btl-tcp.txt&quot;, &quot;invalid if_inexclude&quot;,</span>
+<span class="lineNum">     496 </span>            :                                true, name, opal_process_info.nodename, tmp,
+<span class="lineNum">     497 </span>            :                                &quot;Did not find interface matching this subnet&quot;);
+<span class="lineNum">     498 </span>            :             }
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :             free(tmp);</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     501 </span>            :         }
+<span class="lineNum">     502 </span>            : 
+<span class="lineNum">     503 </span>            :         /* We found a match; get the name and replace it in the
+<span class="lineNum">     504 </span>            :            argv */
+<span class="lineNum">     505 </span><span class="lineCov">          2 :         opal_ifindextoname(if_index, if_name, sizeof(if_name));</span>
+<span class="lineNum">     506 </span><span class="lineCov">          2 :         opal_output_verbose(20, opal_btl_base_framework.framework_output,</span>
+<span class="lineNum">     507 </span>            :                             &quot;btl: tcp: Found match: %s (%s)&quot;,
+<span class="lineNum">     508 </span>            :                             opal_net_get_hostname((struct sockaddr*) &amp;if_inaddr),
+<span class="lineNum">     509 </span>            :                             if_name);
+<span class="lineNum">     510 </span><span class="lineCov">          2 :         argv[save++] = strdup(if_name);</span>
+<span class="lineNum">     511 </span><span class="lineCov">          2 :         free(tmp);</span>
+<span class="lineNum">     512 </span>            :     }
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span>            :     /* The list may have been compressed if there were invalid
+<span class="lineNum">     515 </span>            :        entries, so ensure we end it with a NULL entry */
+<span class="lineNum">     516 </span><span class="lineCov">          2 :     argv[save] = NULL;</span>
+<span class="lineNum">     517 </span><span class="lineCov">          2 :     free(*orig_str);</span>
+<span class="lineNum">     518 </span><span class="lineCov">          2 :     *orig_str = opal_argv_join(argv, ',');</span>
+<span class="lineNum">     519 </span><span class="lineCov">          2 :     return argv;</span>
+<span class="lineNum">     520 </span>            : }
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span>            : 
+<span class="lineNum">     523 </span>            : /*
+<span class="lineNum">     524 </span>            :  * Create a TCP BTL instance for either:
+<span class="lineNum">     525 </span>            :  * (1) all interfaces specified by the user
+<span class="lineNum">     526 </span>            :  * (2) all available interfaces
+<span class="lineNum">     527 </span>            :  * (3) all available interfaces except for those excluded by the user
+<a name="528"><span class="lineNum">     528 </span>            :  */</a>
+<span class="lineNum">     529 </span>            : 
+<span class="lineNum">     530 </span><span class="lineCov">          2 : static int mca_btl_tcp_component_create_instances(void)</span>
+<span class="lineNum">     531 </span>            : {
+<span class="lineNum">     532 </span><span class="lineCov">          2 :     const int if_count = opal_ifcount();</span>
+<span class="lineNum">     533 </span>            :     int if_index;
+<span class="lineNum">     534 </span><span class="lineCov">          2 :     int kif_count = 0;</span>
+<span class="lineNum">     535 </span>            :     int *kindexes; /* this array is way too large, but never too small */
+<span class="lineNum">     536 </span><span class="lineCov">          2 :     char **include = NULL;</span>
+<span class="lineNum">     537 </span><span class="lineCov">          2 :     char **exclude = NULL;</span>
+<span class="lineNum">     538 </span>            :     char **argv;
+<span class="lineNum">     539 </span><span class="lineCov">          2 :     int ret = OPAL_SUCCESS;</span>
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span><span class="lineCov">          2 :     if(if_count &lt;= 0) {</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     543 </span>            :     }
+<span class="lineNum">     544 </span>            : 
+<span class="lineNum">     545 </span><span class="lineCov">          2 :     kindexes = (int *) malloc(sizeof(int) * if_count);</span>
+<span class="lineNum">     546 </span><span class="lineCov">          2 :     if (NULL == kindexes) {</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     548 </span>            :     }
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span>            :     /* calculate the number of kernel indexes (number of IP interfaces) */
+<span class="lineNum">     551 </span>            :     {
+<span class="lineNum">     552 </span>            :         int j;
+<span class="lineNum">     553 </span>            : 
+<span class="lineNum">     554 </span>            :         /* initialize array to 0. Assumption: 0 isn't a valid kernel
+<span class="lineNum">     555 </span>            :            index */
+<span class="lineNum">     556 </span><span class="lineCov">          2 :         memset (kindexes, 0, sizeof(int) * if_count);</span>
+<span class="lineNum">     557 </span>            : 
+<span class="lineNum">     558 </span>            :         /* assign the corresponding kernel indexes for all opal_list
+<span class="lineNum">     559 </span>            :          * indexes (loop over all addresses)
+<span class="lineNum">     560 </span>            :          */
+<span class="lineNum">     561 </span><span class="lineCov">          8 :         for(if_index = opal_ifbegin(); if_index &gt;= 0; if_index = opal_ifnext(if_index)){</span>
+<span class="lineNum">     562 </span><span class="lineCov">          6 :             int index = opal_ifindextokindex (if_index);</span>
+<span class="lineNum">     563 </span><span class="lineCov">          6 :             if (index &gt; 0) {</span>
+<span class="lineNum">     564 </span><span class="lineCov">          6 :                 bool want_this_if = true;</span>
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span>            :                 /* Have we seen this if already? */
+<span class="lineNum">     567 </span><span class="lineCov">         12 :                 for (j = 0; want_this_if &amp;&amp; (j &lt; kif_count); j++) {</span>
+<span class="lineNum">     568 </span><span class="lineCov">          6 :                     if (kindexes[j] == index) {</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :                         want_this_if = false;</span>
+<span class="lineNum">     570 </span>            :                     }
+<span class="lineNum">     571 </span>            :                 }
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span><span class="lineCov">          6 :                 if (want_this_if) {</span>
+<span class="lineNum">     574 </span><span class="lineCov">          6 :                     kindexes[kif_count] = index;</span>
+<span class="lineNum">     575 </span><span class="lineCov">          6 :                     kif_count++;</span>
+<span class="lineNum">     576 </span>            :                 }
+<span class="lineNum">     577 </span>            :             }
+<span class="lineNum">     578 </span>            :         }
+<span class="lineNum">     579 </span>            :     }
+<span class="lineNum">     580 </span>            : 
+<span class="lineNum">     581 </span>            :     /* allocate memory for btls */
+<span class="lineNum">     582 </span><span class="lineCov">          2 :     mca_btl_tcp_component.tcp_btls = (mca_btl_tcp_module_t**)malloc(mca_btl_tcp_component.tcp_num_links *</span>
+<span class="lineNum">     583 </span>            :                                                                     kif_count * sizeof(mca_btl_tcp_module_t*));
+<span class="lineNum">     584 </span><span class="lineCov">          2 :     if(NULL == mca_btl_tcp_component.tcp_btls) {</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :         ret = OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :         goto cleanup;</span>
+<span class="lineNum">     587 </span>            :     }
+<span class="lineNum">     588 </span>            : 
+<span class="lineNum">     589 </span><span class="lineCov">          2 :     mca_btl_tcp_component.tcp_addr_count = if_count;</span>
+<span class="lineNum">     590 </span>            : 
+<span class="lineNum">     591 </span>            :     /* if the user specified an interface list - use these exclusively */
+<span class="lineNum">     592 </span><span class="lineCov">          2 :     argv = include = split_and_resolve(&amp;mca_btl_tcp_component.tcp_if_include,</span>
+<span class="lineNum">     593 </span>            :                                        &quot;include&quot;, true);
+<span class="lineNum">     594 </span><span class="lineCov">          4 :     while(argv &amp;&amp; *argv) {</span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :         char* if_name = *argv;</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :         int if_index = opal_ifnametokindex(if_name);</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :         if(if_index &lt; 0) {</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :             BTL_ERROR((&quot;invalid interface \&quot;%s\&quot;&quot;, if_name));</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :             ret = OPAL_ERR_NOT_FOUND;</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :             goto cleanup;</span>
+<span class="lineNum">     601 </span>            :         }
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :         mca_btl_tcp_create(if_index, if_name);</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :         argv++;</span>
+<span class="lineNum">     604 </span>            :     }
+<span class="lineNum">     605 </span>            : 
+<span class="lineNum">     606 </span>            :     /* If we made any modules, then the &quot;include&quot; list was non-empty,
+<span class="lineNum">     607 </span>            :        and therefore we're done. */
+<span class="lineNum">     608 </span><span class="lineCov">          2 :     if (mca_btl_tcp_component.tcp_num_btls &gt; 0) {</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :         ret = OPAL_SUCCESS;</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :         goto cleanup;</span>
+<span class="lineNum">     611 </span>            :     }
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span>            :     /* if the interface list was not specified by the user, create
+<span class="lineNum">     614 </span>            :      * a BTL for each interface that was not excluded.
+<span class="lineNum">     615 </span>            :     */
+<span class="lineNum">     616 </span><span class="lineCov">          2 :     exclude = split_and_resolve(&amp;mca_btl_tcp_component.tcp_if_exclude,</span>
+<span class="lineNum">     617 </span>            :                                 &quot;exclude&quot;, false);
+<span class="lineNum">     618 </span>            :     {
+<span class="lineNum">     619 </span>            :         int i;
+<span class="lineNum">     620 </span><span class="lineCov">          8 :         for(i = 0; i &lt; kif_count; i++) {</span>
+<span class="lineNum">     621 </span>            :             /* IF_NAMESIZE is defined in opal/util/if.h */
+<span class="lineNum">     622 </span>            :             char if_name[IF_NAMESIZE];
+<span class="lineNum">     623 </span><span class="lineCov">          6 :             if_index = kindexes[i];</span>
+<span class="lineNum">     624 </span>            : 
+<span class="lineNum">     625 </span><span class="lineCov">          6 :             opal_ifkindextoname(if_index, if_name, sizeof(if_name));</span>
+<span class="lineNum">     626 </span>            : 
+<span class="lineNum">     627 </span>            :             /* check to see if this interface exists in the exclude list */
+<span class="lineNum">     628 </span><span class="lineCov">          6 :             argv = exclude;</span>
+<span class="lineNum">     629 </span><span class="lineCov">         20 :             while(argv &amp;&amp; *argv) {</span>
+<span class="lineNum">     630 </span><span class="lineCov">         10 :                 if(strncmp(*argv,if_name,strlen(*argv)) == 0)</span>
+<span class="lineNum">     631 </span><span class="lineCov">          2 :                     break;</span>
+<span class="lineNum">     632 </span><span class="lineCov">          8 :                 argv++;</span>
+<span class="lineNum">     633 </span>            :             }
+<span class="lineNum">     634 </span>            :             /* if this interface was not found in the excluded list, create a BTL */
+<span class="lineNum">     635 </span><span class="lineCov">          6 :             if(argv == 0 || *argv == 0) {</span>
+<span class="lineNum">     636 </span><span class="lineCov">          4 :                 mca_btl_tcp_create(if_index, if_name);</span>
+<span class="lineNum">     637 </span>            :             }
+<span class="lineNum">     638 </span>            :         }
+<span class="lineNum">     639 </span>            :     }
+<span class="lineNum">     640 </span>            : 
+<span class="lineNum">     641 </span>            :  cleanup:
+<span class="lineNum">     642 </span><span class="lineCov">          2 :     if (NULL != include) {</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :         opal_argv_free(include);</span>
+<span class="lineNum">     644 </span>            :     }
+<span class="lineNum">     645 </span><span class="lineCov">          2 :     if (NULL != exclude) {</span>
+<span class="lineNum">     646 </span><span class="lineCov">          2 :         opal_argv_free(exclude);</span>
+<span class="lineNum">     647 </span>            :     }
+<span class="lineNum">     648 </span><span class="lineCov">          2 :     if (NULL != kindexes) {</span>
+<span class="lineNum">     649 </span><span class="lineCov">          2 :         free(kindexes);</span>
+<span class="lineNum">     650 </span>            :     }
+<span class="lineNum">     651 </span><span class="lineCov">          2 :     return ret;</span>
+<span class="lineNum">     652 </span>            : }
+<span class="lineNum">     653 </span>            : 
+<span class="lineNum">     654 </span>            : /*
+<span class="lineNum">     655 </span>            :  * Create a listen socket and bind to all interfaces
+<a name="656"><span class="lineNum">     656 </span>            :  */</a>
+<span class="lineNum">     657 </span>            : 
+<span class="lineNum">     658 </span><span class="lineCov">          2 : static int mca_btl_tcp_component_create_listen(uint16_t af_family)</span>
+<span class="lineNum">     659 </span>            : {
+<span class="lineNum">     660 </span>            :     int flags;
+<span class="lineNum">     661 </span>            :     int sd;
+<span class="lineNum">     662 </span>            :     struct sockaddr_storage inaddr;
+<span class="lineNum">     663 </span>            :     opal_socklen_t addrlen;
+<span class="lineNum">     664 </span>            : 
+<span class="lineNum">     665 </span>            :     /* create a listen socket for incoming connections */
+<span class="lineNum">     666 </span><span class="lineCov">          2 :     sd = socket(af_family, SOCK_STREAM, 0);</span>
+<span class="lineNum">     667 </span><span class="lineCov">          2 :     if(sd &lt; 0) {</span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :         if (EAFNOSUPPORT != opal_socket_errno) {</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :             BTL_ERROR((&quot;socket() failed: %s (%d)&quot;,</span>
+<span class="lineNum">     670 </span>            :                        strerror(opal_socket_errno), opal_socket_errno));
+<span class="lineNum">     671 </span>            :         }
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :         return OPAL_ERR_IN_ERRNO;</span>
+<span class="lineNum">     673 </span>            :     }
+<span class="lineNum">     674 </span>            : 
+<span class="lineNum">     675 </span><span class="lineCov">          2 :     mca_btl_tcp_set_socket_options(sd);</span>
+<span class="lineNum">     676 </span>            : 
+<span class="lineNum">     677 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     678 </span>            :     {
+<span class="lineNum">     679 </span>            :         struct addrinfo hints, *res = NULL;
+<span class="lineNum">     680 </span>            :         int error;
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span>            :         memset (&amp;hints, 0, sizeof(hints));
+<span class="lineNum">     683 </span>            :         hints.ai_family = af_family;
+<span class="lineNum">     684 </span>            :         hints.ai_socktype = SOCK_STREAM;
+<span class="lineNum">     685 </span>            :         hints.ai_flags = AI_PASSIVE;
+<span class="lineNum">     686 </span>            : 
+<span class="lineNum">     687 </span>            :         if ((error = getaddrinfo(NULL, &quot;0&quot;, &amp;hints, &amp;res))) {
+<span class="lineNum">     688 </span>            :             opal_output (0,
+<span class="lineNum">     689 </span>            :                &quot;mca_btl_tcp_create_listen: unable to resolve. %s\n&quot;,
+<span class="lineNum">     690 </span>            :                gai_strerror (error));
+<span class="lineNum">     691 </span>            :             CLOSE_THE_SOCKET(sd);
+<span class="lineNum">     692 </span>            :             return OPAL_ERROR;
+<span class="lineNum">     693 </span>            :         }
+<span class="lineNum">     694 </span>            : 
+<span class="lineNum">     695 </span>            :         memcpy (&amp;inaddr, res-&gt;ai_addr, res-&gt;ai_addrlen);
+<span class="lineNum">     696 </span>            :         addrlen = res-&gt;ai_addrlen;
+<span class="lineNum">     697 </span>            :         freeaddrinfo (res);
+<span class="lineNum">     698 </span>            : 
+<span class="lineNum">     699 </span>            : #ifdef IPV6_V6ONLY
+<span class="lineNum">     700 </span>            :         /* in case of AF_INET6, disable v4-mapped addresses */
+<span class="lineNum">     701 </span>            :         if (AF_INET6 == af_family) {
+<span class="lineNum">     702 </span>            :             int flg = 1;
+<span class="lineNum">     703 </span>            :             if (setsockopt (sd, IPPROTO_IPV6, IPV6_V6ONLY,
+<span class="lineNum">     704 </span>            :                             (char *) &amp;flg, sizeof (flg)) &lt; 0) {
+<span class="lineNum">     705 </span>            :                 opal_output(0,
+<span class="lineNum">     706 </span>            :                     &quot;mca_btl_tcp_create_listen: unable to disable v4-mapped addresses\n&quot;);
+<span class="lineNum">     707 </span>            :             }
+<span class="lineNum">     708 </span>            :         }
+<span class="lineNum">     709 </span>            : #endif /* IPV6_V6ONLY */
+<span class="lineNum">     710 </span>            :     }
+<span class="lineNum">     711 </span>            : #else
+<span class="lineNum">     712 </span><span class="lineCov">          2 :     ((struct sockaddr_in*) &amp;inaddr)-&gt;sin_family = AF_INET;</span>
+<span class="lineNum">     713 </span><span class="lineCov">          2 :     ((struct sockaddr_in*) &amp;inaddr)-&gt;sin_addr.s_addr = INADDR_ANY;</span>
+<span class="lineNum">     714 </span><span class="lineCov">          2 :     addrlen = sizeof(struct sockaddr_in);</span>
+<span class="lineNum">     715 </span>            : #endif
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span>            :     {  /* Don't reuse ports */
+<span class="lineNum">     718 </span><span class="lineCov">          2 :         int flg = 0;</span>
+<span class="lineNum">     719 </span><span class="lineCov">          2 :         if (setsockopt (sd, SOL_SOCKET, SO_REUSEADDR, (const char *)&amp;flg, sizeof (flg)) &lt; 0) {</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :             BTL_ERROR((&quot;mca_btl_tcp_create_listen: unable to unset the &quot;</span>
+<span class="lineNum">     721 </span>            :                        &quot;SO_REUSEADDR option (%s:%d)\n&quot;,
+<span class="lineNum">     722 </span>            :                        strerror(opal_socket_errno), opal_socket_errno));
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :             return OPAL_ERROR;</span>
+<span class="lineNum">     725 </span>            :         }
+<span class="lineNum">     726 </span>            :     }
+<span class="lineNum">     727 </span>            : 
+<span class="lineNum">     728 </span>            :     {
+<span class="lineNum">     729 </span>            :         int index, range, port;
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     732 </span>            :         if (AF_INET6 == af_family) {
+<span class="lineNum">     733 </span>            :             range = mca_btl_tcp_component.tcp6_port_range;
+<span class="lineNum">     734 </span>            :             port = mca_btl_tcp_component.tcp6_port_min;
+<span class="lineNum">     735 </span>            :         } else
+<span class="lineNum">     736 </span>            : #endif  /* OPAL_ENABLE_IPV6 */
+<span class="lineNum">     737 </span>            :         {
+<span class="lineNum">     738 </span><span class="lineCov">          2 :             range = mca_btl_tcp_component.tcp_port_range;</span>
+<span class="lineNum">     739 </span><span class="lineCov">          2 :             port = mca_btl_tcp_component.tcp_port_min;</span>
+<span class="lineNum">     740 </span>            :         }
+<span class="lineNum">     741 </span>            : 
+<span class="lineNum">     742 </span><span class="lineCov">          6 :         for( index = 0;  index &lt; range; index++ ) {</span>
+<span class="lineNum">     743 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     744 </span>            :             ((struct sockaddr_in6*) &amp;inaddr)-&gt;sin6_port = htons(port + index);
+<span class="lineNum">     745 </span>            : #else
+<span class="lineNum">     746 </span><span class="lineCov">          3 :             ((struct sockaddr_in*) &amp;inaddr)-&gt;sin_port = htons(port + index);</span>
+<span class="lineNum">     747 </span>            : #endif  /* OPAL_ENABLE_IPV6 */
+<span class="lineNum">     748 </span><span class="lineCov">          3 :             if(bind(sd, (struct sockaddr*)&amp;inaddr, addrlen) &lt; 0) {</span>
+<span class="lineNum">     749 </span><span class="lineCov">          1 :                 if( (EADDRINUSE == opal_socket_errno) || (EADDRNOTAVAIL == opal_socket_errno) ) {</span>
+<span class="lineNum">     750 </span><span class="lineCov">          1 :                     continue;</span>
+<span class="lineNum">     751 </span>            :                 }
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :                 BTL_ERROR((&quot;bind() failed: %s (%d)&quot;,</span>
+<span class="lineNum">     753 </span>            :                           strerror(opal_socket_errno), opal_socket_errno));
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :                 CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :                 return OPAL_ERROR;</span>
+<span class="lineNum">     756 </span>            :             }
+<span class="lineNum">     757 </span><span class="lineCov">          2 :             goto socket_binded;</span>
+<span class="lineNum">     758 </span>            :         }
+<span class="lineNum">     759 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     760 </span>            :         if (AF_INET6 == af_family) {
+<span class="lineNum">     761 </span>            :             BTL_ERROR((&quot;bind6() failed: no port available in the range [%d..%d]&quot;,
+<span class="lineNum">     762 </span>            :                        mca_btl_tcp_component.tcp6_port_min,
+<span class="lineNum">     763 </span>            :                        mca_btl_tcp_component.tcp6_port_min + range));
+<span class="lineNum">     764 </span>            :         } else
+<span class="lineNum">     765 </span>            : #endif  /* OPAL_ENABLE_IPV6 */
+<span class="lineNum">     766 </span>            :         {
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :             BTL_ERROR((&quot;bind() failed: no port available in the range [%d..%d]&quot;,</span>
+<span class="lineNum">     768 </span>            :                        mca_btl_tcp_component.tcp_port_min,
+<span class="lineNum">     769 </span>            :                        mca_btl_tcp_component.tcp_port_min + range));
+<span class="lineNum">     770 </span>            :         }
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :         CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     773 </span>            :     }
+<span class="lineNum">     774 </span>            :   socket_binded:
+<span class="lineNum">     775 </span>            :     /* resolve system assignend port */
+<span class="lineNum">     776 </span><span class="lineCov">          2 :     if(getsockname(sd, (struct sockaddr*)&amp;inaddr, &amp;addrlen) &lt; 0) {</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;getsockname() failed: %s (%d)&quot;,</span>
+<span class="lineNum">     778 </span>            :                    strerror(opal_socket_errno), opal_socket_errno));
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :         CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     781 </span>            :     }
+<span class="lineNum">     782 </span>            : 
+<span class="lineNum">     783 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     784 </span>            :     if (AF_INET6 == af_family) {
+<span class="lineNum">     785 </span>            :         mca_btl_tcp_component.tcp6_listen_port = ((struct sockaddr_in6*) &amp;inaddr)-&gt;sin6_port;
+<span class="lineNum">     786 </span>            :         mca_btl_tcp_component.tcp6_listen_sd = sd;
+<span class="lineNum">     787 </span>            :     } else
+<span class="lineNum">     788 </span>            : #endif
+<span class="lineNum">     789 </span>            :     {
+<span class="lineNum">     790 </span><span class="lineCov">          2 :         mca_btl_tcp_component.tcp_listen_port = ((struct sockaddr_in*) &amp;inaddr)-&gt;sin_port;</span>
+<span class="lineNum">     791 </span><span class="lineCov">          2 :         mca_btl_tcp_component.tcp_listen_sd = sd;</span>
+<span class="lineNum">     792 </span>            :     }
+<span class="lineNum">     793 </span>            : 
+<span class="lineNum">     794 </span>            :     /* setup listen backlog to maximum allowed by kernel */
+<span class="lineNum">     795 </span><span class="lineCov">          2 :     if(listen(sd, SOMAXCONN) &lt; 0) {</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;listen() failed: %s (%d)&quot;,</span>
+<span class="lineNum">     797 </span>            :                    strerror(opal_socket_errno), opal_socket_errno));
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :         CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     800 </span>            :     }
+<span class="lineNum">     801 </span>            : 
+<span class="lineNum">     802 </span>            :     /* set socket up to be non-blocking, otherwise accept could block */
+<span class="lineNum">     803 </span><span class="lineCov">          2 :     if((flags = fcntl(sd, F_GETFL, 0)) &lt; 0) {</span>
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;fcntl(F_GETFL) failed: %s (%d)&quot;,</span>
+<span class="lineNum">     805 </span>            :                    strerror(opal_socket_errno), opal_socket_errno));
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :         CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     808 </span>            :     } else {
+<span class="lineNum">     809 </span><span class="lineCov">          2 :         flags |= O_NONBLOCK;</span>
+<span class="lineNum">     810 </span><span class="lineCov">          2 :         if(fcntl(sd, F_SETFL, flags) &lt; 0) {</span>
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :             BTL_ERROR((&quot;fcntl(F_SETFL) failed: %s (%d)&quot;,</span>
+<span class="lineNum">     812 </span>            :                        strerror(opal_socket_errno), opal_socket_errno));
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :             return OPAL_ERROR;</span>
+<span class="lineNum">     815 </span>            :         }
+<span class="lineNum">     816 </span>            :     }
+<span class="lineNum">     817 </span>            : 
+<span class="lineNum">     818 </span>            :     /* register listen port */
+<span class="lineNum">     819 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     820 </span>            :     if (AF_INET6 == af_family) {
+<span class="lineNum">     821 </span>            :         opal_event_set(opal_sync_event_base, &amp;mca_btl_tcp_component.tcp6_recv_event,
+<span class="lineNum">     822 </span>            :                         mca_btl_tcp_component.tcp6_listen_sd,
+<span class="lineNum">     823 </span>            :                         OPAL_EV_READ|OPAL_EV_PERSIST,
+<span class="lineNum">     824 </span>            :                         mca_btl_tcp_component_accept_handler,
+<span class="lineNum">     825 </span>            :                         0 );
+<span class="lineNum">     826 </span>            :         opal_event_add(&amp;mca_btl_tcp_component.tcp6_recv_event, 0);
+<span class="lineNum">     827 </span>            :     } else
+<span class="lineNum">     828 </span>            : #endif
+<span class="lineNum">     829 </span>            :     {
+<span class="lineNum">     830 </span><span class="lineCov">          2 :         opal_event_set(opal_sync_event_base, &amp;mca_btl_tcp_component.tcp_recv_event,</span>
+<span class="lineNum">     831 </span>            :                         mca_btl_tcp_component.tcp_listen_sd,
+<span class="lineNum">     832 </span>            :                         OPAL_EV_READ|OPAL_EV_PERSIST,
+<span class="lineNum">     833 </span>            :                         mca_btl_tcp_component_accept_handler,
+<span class="lineNum">     834 </span>            :                         0 );
+<span class="lineNum">     835 </span><span class="lineCov">          2 :         opal_event_add(&amp;mca_btl_tcp_component.tcp_recv_event, 0);</span>
+<span class="lineNum">     836 </span>            :     }
+<span class="lineNum">     837 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     838 </span>            : }
+<span class="lineNum">     839 </span>            : 
+<span class="lineNum">     840 </span>            : /*
+<span class="lineNum">     841 </span>            :  *  Register TCP module addressing information. The MCA framework
+<span class="lineNum">     842 </span>            :  *  will make this available to all peers.
+<a name="843"><span class="lineNum">     843 </span>            :  */</a>
+<span class="lineNum">     844 </span>            : 
+<span class="lineNum">     845 </span><span class="lineCov">          2 : static int mca_btl_tcp_component_exchange(void)</span>
+<span class="lineNum">     846 </span>            : {
+<span class="lineNum">     847 </span><span class="lineCov">          2 :      int rc = 0, index;</span>
+<span class="lineNum">     848 </span><span class="lineCov">          2 :      size_t i = 0;</span>
+<span class="lineNum">     849 </span><span class="lineCov">          6 :      size_t size = mca_btl_tcp_component.tcp_addr_count *</span>
+<span class="lineNum">     850 </span><span class="lineCov">          4 :                    mca_btl_tcp_component.tcp_num_links * sizeof(mca_btl_tcp_addr_t);</span>
+<span class="lineNum">     851 </span>            :      /* adi@2007-04-12:
+<span class="lineNum">     852 </span>            :       *
+<span class="lineNum">     853 </span>            :       * We'll need to explain things a bit here:
+<span class="lineNum">     854 </span>            :       *    1. We normally have as many BTLs as physical NICs.
+<span class="lineNum">     855 </span>            :       *    2. With num_links, we now have num_btl = num_links * #NICs
+<span class="lineNum">     856 </span>            :       *    3. we might have more than one address per NIC
+<span class="lineNum">     857 </span>            :       */
+<span class="lineNum">     858 </span><span class="lineCov">          2 :      size_t xfer_size = 0; /* real size to transfer (may differ from 'size') */</span>
+<span class="lineNum">     859 </span><span class="lineCov">          2 :      size_t current_addr = 0;</span>
+<span class="lineNum">     860 </span>            : 
+<span class="lineNum">     861 </span><span class="lineCov">          2 :      if(mca_btl_tcp_component.tcp_num_btls != 0) {</span>
+<span class="lineNum">     862 </span><span class="lineCov">          2 :          mca_btl_tcp_addr_t *addrs = (mca_btl_tcp_addr_t *)malloc(size);</span>
+<span class="lineNum">     863 </span><span class="lineCov">          2 :          memset(addrs, 0, size);</span>
+<span class="lineNum">     864 </span>            : 
+<span class="lineNum">     865 </span>            :          /* here we start populating our addresses */
+<span class="lineNum">     866 </span><span class="lineCov">          6 :          for( i = 0; i &lt; mca_btl_tcp_component.tcp_num_btls; i++ ) {</span>
+<span class="lineNum">     867 </span><span class="lineCov">         20 :              for (index = opal_ifbegin(); index &gt;= 0;</span>
+<span class="lineNum">     868 </span><span class="lineCov">         12 :                      index = opal_ifnext(index)) {</span>
+<span class="lineNum">     869 </span>            :                  struct sockaddr_storage my_ss;
+<span class="lineNum">     870 </span>            : 
+<span class="lineNum">     871 </span>            :                  /* Look if the module's address belongs to this
+<span class="lineNum">     872 </span>            :                   * kernel IP interface.  If not, go to next address.
+<span class="lineNum">     873 </span>            :                   */
+<span class="lineNum">     874 </span><span class="lineCov">         24 :                  if (opal_ifindextokindex (index) !=</span>
+<span class="lineNum">     875 </span><span class="lineCov">         12 :                      mca_btl_tcp_component.tcp_btls[i]-&gt;tcp_ifkindex) {</span>
+<span class="lineNum">     876 </span><span class="lineCov">         16 :                      continue;</span>
+<span class="lineNum">     877 </span>            :                  }
+<span class="lineNum">     878 </span>            : 
+<span class="lineNum">     879 </span><span class="lineCov">          4 :                  if (OPAL_SUCCESS !=</span>
+<span class="lineNum">     880 </span><span class="lineCov">          4 :                      opal_ifindextoaddr(index, (struct sockaddr*) &amp;my_ss,</span>
+<span class="lineNum">     881 </span>            :                                         sizeof (my_ss))) {
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :                      opal_output (0,</span>
+<span class="lineNum">     883 </span>            :                              &quot;btl_tcp_component: problems getting address for index %i (kernel index %i)\n&quot;,
+<span class="lineNum">     884 </span>            :                              index, opal_ifindextokindex (index));
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :                      continue;</span>
+<span class="lineNum">     886 </span>            :                  }
+<span class="lineNum">     887 </span>            : 
+<span class="lineNum">     888 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     889 </span>            :                  if ((AF_INET6 == my_ss.ss_family) &amp;&amp;
+<span class="lineNum">     890 </span>            :                      (6 != mca_btl_tcp_component.tcp_disable_family)) {
+<span class="lineNum">     891 </span>            :                      memcpy(&amp;addrs[current_addr].addr_inet,
+<span class="lineNum">     892 </span>            :                              &amp;((struct sockaddr_in6*)&amp;my_ss)-&gt;sin6_addr,
+<span class="lineNum">     893 </span>            :                              sizeof(addrs[0].addr_inet));
+<span class="lineNum">     894 </span>            :                      addrs[current_addr].addr_port =
+<span class="lineNum">     895 </span>            :                          mca_btl_tcp_component.tcp6_listen_port;
+<span class="lineNum">     896 </span>            :                      addrs[current_addr].addr_family = MCA_BTL_TCP_AF_INET6;
+<span class="lineNum">     897 </span>            :                      xfer_size += sizeof (mca_btl_tcp_addr_t);
+<span class="lineNum">     898 </span>            :                      addrs[current_addr].addr_inuse   = 0;
+<span class="lineNum">     899 </span>            :                      addrs[current_addr].addr_ifkindex =
+<span class="lineNum">     900 </span>            :                          opal_ifindextokindex (index);
+<span class="lineNum">     901 </span>            :                      current_addr++;
+<span class="lineNum">     902 </span>            :                  } else
+<span class="lineNum">     903 </span>            : #endif
+<span class="lineNum">     904 </span><span class="lineCov">          8 :                  if ((AF_INET == my_ss.ss_family) &amp;&amp;</span>
+<span class="lineNum">     905 </span><span class="lineCov">          4 :                      (4 != mca_btl_tcp_component.tcp_disable_family)) {</span>
+<span class="lineNum">     906 </span><span class="lineCov">          4 :                      memcpy(&amp;addrs[current_addr].addr_inet,</span>
+<span class="lineNum">     907 </span><span class="lineCov">          4 :                              &amp;((struct sockaddr_in*)&amp;my_ss)-&gt;sin_addr,</span>
+<span class="lineNum">     908 </span>            :                              sizeof(addrs[0].addr_inet));
+<span class="lineNum">     909 </span><span class="lineCov">          8 :                      addrs[current_addr].addr_port =</span>
+<span class="lineNum">     910 </span><span class="lineCov">          4 :                          mca_btl_tcp_component.tcp_listen_port;</span>
+<span class="lineNum">     911 </span><span class="lineCov">          4 :                      addrs[current_addr].addr_family = MCA_BTL_TCP_AF_INET;</span>
+<span class="lineNum">     912 </span><span class="lineCov">          4 :                      xfer_size += sizeof (mca_btl_tcp_addr_t);</span>
+<span class="lineNum">     913 </span><span class="lineCov">          4 :                      addrs[current_addr].addr_inuse   = 0;</span>
+<span class="lineNum">     914 </span><span class="lineCov">          8 :                      addrs[current_addr].addr_ifkindex =</span>
+<span class="lineNum">     915 </span><span class="lineCov">          4 :                          opal_ifindextokindex (index);</span>
+<span class="lineNum">     916 </span><span class="lineCov">          4 :                      current_addr++;</span>
+<span class="lineNum">     917 </span>            :                  }
+<span class="lineNum">     918 </span>            :              } /* end of for opal_ifbegin() */
+<span class="lineNum">     919 </span>            :          } /* end of for tcp_num_btls */
+<span class="lineNum">     920 </span><span class="lineCov">          2 :          OPAL_MODEX_SEND(rc, PMIX_SYNC_REQD, PMIX_GLOBAL,</span>
+<span class="lineNum">     921 </span>            :                          &amp;mca_btl_tcp_component.super.btl_version,
+<span class="lineNum">     922 </span>            :                          addrs, xfer_size);
+<span class="lineNum">     923 </span><span class="lineCov">          2 :          free(addrs);</span>
+<span class="lineNum">     924 </span>            :      } /* end if */
+<span class="lineNum">     925 </span><span class="lineCov">          2 :      return rc;</span>
+<span class="lineNum">     926 </span>            : }
+<span class="lineNum">     927 </span>            : 
+<span class="lineNum">     928 </span>            : /*
+<span class="lineNum">     929 </span>            :  *  TCP module initialization:
+<span class="lineNum">     930 </span>            :  *  (1) read interface list from kernel and compare against module parameters
+<span class="lineNum">     931 </span>            :  *      then create a BTL instance for selected interfaces
+<span class="lineNum">     932 </span>            :  *  (2) setup TCP listen socket for incoming connection attempts
+<a name="933"><span class="lineNum">     933 </span>            :  *  (3) register BTL parameters with the MCA</a>
+<span class="lineNum">     934 </span>            :  */
+<span class="lineNum">     935 </span><span class="lineCov">          2 : mca_btl_base_module_t** mca_btl_tcp_component_init(int *num_btl_modules,</span>
+<span class="lineNum">     936 </span>            :                                                    bool enable_progress_threads,
+<span class="lineNum">     937 </span>            :                                                    bool enable_mpi_threads)
+<span class="lineNum">     938 </span>            : {
+<span class="lineNum">     939 </span><span class="lineCov">          2 :     int ret = OPAL_SUCCESS;</span>
+<span class="lineNum">     940 </span>            :     mca_btl_base_module_t **btls;
+<span class="lineNum">     941 </span><span class="lineCov">          2 :     *num_btl_modules = 0;</span>
+<span class="lineNum">     942 </span>            : 
+<span class="lineNum">     943 </span>            :     /* initialize free lists */
+<span class="lineNum">     944 </span><span class="lineCov">          4 :     opal_free_list_init( &amp;mca_btl_tcp_component.tcp_frag_eager,</span>
+<span class="lineNum">     945 </span>            :                          sizeof (mca_btl_tcp_frag_eager_t) +
+<span class="lineNum">     946 </span><span class="lineCov">          2 :                          mca_btl_tcp_module.super.btl_eager_limit,</span>
+<span class="lineNum">     947 </span>            :                          opal_cache_line_size,
+<span class="lineNum">     948 </span>            :                          OBJ_CLASS (mca_btl_tcp_frag_eager_t),
+<span class="lineNum">     949 </span>            :                          0,opal_cache_line_size,
+<span class="lineNum">     950 </span>            :                          mca_btl_tcp_component.tcp_free_list_num,
+<span class="lineNum">     951 </span>            :                          mca_btl_tcp_component.tcp_free_list_max,
+<span class="lineNum">     952 </span>            :                          mca_btl_tcp_component.tcp_free_list_inc,
+<span class="lineNum">     953 </span>            :                          NULL, 0, NULL, NULL, NULL );
+<span class="lineNum">     954 </span>            : 
+<span class="lineNum">     955 </span><span class="lineCov">          4 :     opal_free_list_init( &amp;mca_btl_tcp_component.tcp_frag_max,</span>
+<span class="lineNum">     956 </span>            :                          sizeof (mca_btl_tcp_frag_max_t) +
+<span class="lineNum">     957 </span><span class="lineCov">          2 :                          mca_btl_tcp_module.super.btl_max_send_size,</span>
+<span class="lineNum">     958 </span>            :                          opal_cache_line_size,
+<span class="lineNum">     959 </span>            :                          OBJ_CLASS (mca_btl_tcp_frag_max_t),
+<span class="lineNum">     960 </span>            :                          0,opal_cache_line_size,
+<span class="lineNum">     961 </span>            :                          mca_btl_tcp_component.tcp_free_list_num,
+<span class="lineNum">     962 </span>            :                          mca_btl_tcp_component.tcp_free_list_max,
+<span class="lineNum">     963 </span>            :                          mca_btl_tcp_component.tcp_free_list_inc,
+<span class="lineNum">     964 </span>            :                          NULL, 0, NULL, NULL, NULL );
+<span class="lineNum">     965 </span>            : 
+<span class="lineNum">     966 </span><span class="lineCov">          2 :     opal_free_list_init( &amp;mca_btl_tcp_component.tcp_frag_user,</span>
+<span class="lineNum">     967 </span>            :                          sizeof (mca_btl_tcp_frag_user_t),
+<span class="lineNum">     968 </span>            :                          opal_cache_line_size,
+<span class="lineNum">     969 </span>            :                          OBJ_CLASS (mca_btl_tcp_frag_user_t),
+<span class="lineNum">     970 </span>            :                          0,opal_cache_line_size,
+<span class="lineNum">     971 </span>            :                          mca_btl_tcp_component.tcp_free_list_num,
+<span class="lineNum">     972 </span>            :                          mca_btl_tcp_component.tcp_free_list_max,
+<span class="lineNum">     973 </span>            :                          mca_btl_tcp_component.tcp_free_list_inc,
+<span class="lineNum">     974 </span>            :                          NULL, 0, NULL, NULL, NULL );
+<span class="lineNum">     975 </span>            : 
+<span class="lineNum">     976 </span>            :     /* create a BTL TCP module for selected interfaces */
+<span class="lineNum">     977 </span><span class="lineCov">          2 :     if(OPAL_SUCCESS != (ret = mca_btl_tcp_component_create_instances() )) {</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     979 </span>            :     }
+<span class="lineNum">     980 </span>            : 
+<span class="lineNum">     981 </span>            :     /* create a TCP listen socket for incoming connection attempts */
+<span class="lineNum">     982 </span><span class="lineCov">          2 :     if(OPAL_SUCCESS != (ret = mca_btl_tcp_component_create_listen(AF_INET) )) {</span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     984 </span>            :     }
+<span class="lineNum">     985 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     986 </span>            :     if((ret = mca_btl_tcp_component_create_listen(AF_INET6)) != OPAL_SUCCESS) {
+<span class="lineNum">     987 </span>            :         if (!(OPAL_ERR_IN_ERRNO == ret &amp;&amp;
+<span class="lineNum">     988 </span>            :               EAFNOSUPPORT == opal_socket_errno)) {
+<span class="lineNum">     989 </span>            :             opal_output (0, &quot;mca_btl_tcp_component: IPv6 listening socket failed\n&quot;);
+<span class="lineNum">     990 </span>            :             return 0;
+<span class="lineNum">     991 </span>            :         }
+<span class="lineNum">     992 </span>            :     }
+<span class="lineNum">     993 </span>            : #endif
+<span class="lineNum">     994 </span>            : 
+<span class="lineNum">     995 </span>            :     /* publish TCP parameters with the MCA framework */
+<span class="lineNum">     996 </span><span class="lineCov">          2 :     if(OPAL_SUCCESS != (ret = mca_btl_tcp_component_exchange() )) {</span>
+<span class="lineNum">     997 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     998 </span>            :     }
+<span class="lineNum">     999 </span>            : 
+<span class="lineNum">    1000 </span><span class="lineCov">          2 :     btls = (mca_btl_base_module_t **)malloc(mca_btl_tcp_component.tcp_num_btls *</span>
+<span class="lineNum">    1001 </span>            :                   sizeof(mca_btl_base_module_t*));
+<span class="lineNum">    1002 </span><span class="lineCov">          2 :     if(NULL == btls) {</span>
+<span class="lineNum">    1003 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">    1004 </span>            :     }
+<span class="lineNum">    1005 </span>            : 
+<span class="lineNum">    1006 </span>            : #if OPAL_CUDA_SUPPORT
+<span class="lineNum">    1007 </span>            :     mca_common_cuda_stage_one_init();
+<span class="lineNum">    1008 </span>            : #endif /* OPAL_CUDA_SUPPORT */
+<span class="lineNum">    1009 </span>            : 
+<span class="lineNum">    1010 </span><span class="lineCov">          2 :     memcpy(btls, mca_btl_tcp_component.tcp_btls, mca_btl_tcp_component.tcp_num_btls*sizeof(mca_btl_tcp_module_t*));</span>
+<span class="lineNum">    1011 </span><span class="lineCov">          2 :     *num_btl_modules = mca_btl_tcp_component.tcp_num_btls;</span>
+<span class="lineNum">    1012 </span><span class="lineCov">          2 :     return btls;</span>
+<span class="lineNum">    1013 </span>            : }
+<span class="lineNum">    1014 </span>            : 
+<span class="lineNum">    1015 </span>            : 
+<span class="lineNum">    1016 </span>            : /**
+<span class="lineNum">    1017 </span>            :  * Called by the event engine when the listening socket has
+<span class="lineNum">    1018 </span>            :  * a connection event. Accept the incoming connection request
+<a name="1019"><span class="lineNum">    1019 </span>            :  * and queue them for completion of the connection handshake.</a>
+<span class="lineNum">    1020 </span>            :  */
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 : static void mca_btl_tcp_component_accept_handler( int incoming_sd,</span>
+<span class="lineNum">    1022 </span>            :                                                   short ignored,
+<span class="lineNum">    1023 </span>            :                                                   void* unused )
+<span class="lineNum">    1024 </span>            : {
+<span class="lineNum">    1025 </span>            :     while(true) {
+<span class="lineNum">    1026 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">    1027 </span>            :         struct sockaddr_in6 addr;
+<span class="lineNum">    1028 </span>            : #else
+<span class="lineNum">    1029 </span>            :         struct sockaddr_in addr;
+<span class="lineNum">    1030 </span>            : #endif
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :         opal_socklen_t addrlen = sizeof(addr);</span>
+<span class="lineNum">    1032 </span>            : 
+<span class="lineNum">    1033 </span>            :         mca_btl_tcp_event_t *event;
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :         int sd = accept(incoming_sd, (struct sockaddr*)&amp;addr, &amp;addrlen);</span>
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :         if(sd &lt; 0) {</span>
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :             if(opal_socket_errno == EINTR)</span>
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :             if (opal_socket_errno != EAGAIN &amp;&amp;</span>
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :                 opal_socket_errno != EWOULDBLOCK) {</span>
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :                 opal_show_help(&quot;help-mpi-btl-tcp.txt&quot;, &quot;accept failed&quot;,</span>
+<span class="lineNum">    1041 </span>            :                                true, opal_process_info.nodename,
+<span class="lineNum">    1042 </span>            :                                getpid(),
+<span class="lineNum">    1043 </span><span class="lineNoCov">          0 :                                opal_socket_errno,</span>
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 :                                strerror(opal_socket_errno));</span>
+<span class="lineNum">    1045 </span>            :             }
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">    1047 </span>            :         }
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :         mca_btl_tcp_set_socket_options(sd);</span>
+<span class="lineNum">    1049 </span>            : 
+<span class="lineNum">    1050 </span>            :         /* wait for receipt of peers process identifier to complete this connection */
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :         event = OBJ_NEW(mca_btl_tcp_event_t);</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :         opal_event_set(opal_sync_event_base, &amp;event-&gt;event, sd, OPAL_EV_READ, mca_btl_tcp_component_recv_handler, event);</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :         opal_event_add(&amp;event-&gt;event, 0);</span>
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1055 </span>            : }
+<span class="lineNum">    1056 </span>            : 
+<span class="lineNum">    1057 </span>            : 
+<span class="lineNum">    1058 </span>            : /**
+<span class="lineNum">    1059 </span>            :  * Event callback when there is data available on the registered
+<span class="lineNum">    1060 </span>            :  * socket to recv. This callback is triggered only once per lifetime
+<span class="lineNum">    1061 </span>            :  * for any socket, in the beginning when we setup the handshake
+<a name="1062"><span class="lineNum">    1062 </span>            :  * protocol.</a>
+<span class="lineNum">    1063 </span>            :  */
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 : static void mca_btl_tcp_component_recv_handler(int sd, short flags, void* user)</span>
+<span class="lineNum">    1065 </span>            : {
+<span class="lineNum">    1066 </span>            :     opal_process_name_t guid;
+<span class="lineNum">    1067 </span>            :     struct sockaddr_storage addr;
+<span class="lineNum">    1068 </span>            :     int retval;
+<span class="lineNum">    1069 </span>            :     mca_btl_tcp_proc_t* btl_proc;
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :     opal_socklen_t addr_len = sizeof(addr);</span>
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :     mca_btl_tcp_event_t *event = (mca_btl_tcp_event_t *)user;</span>
+<span class="lineNum">    1072 </span>            : 
+<span class="lineNum">    1073 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(event);</span>
+<span class="lineNum">    1074 </span>            : 
+<span class="lineNum">    1075 </span>            :     /* recv the process identifier */
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :     retval = recv(sd, (char *)&amp;guid, sizeof(guid), 0);</span>
+<span class="lineNum">    1077 </span><span class="lineNoCov">          0 :     if(retval != sizeof(guid)) {</span>
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :         CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">    1079 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">    1080 </span>            :     }
+<span class="lineNum">    1081 </span>            :     OPAL_PROCESS_NAME_NTOH(guid);
+<span class="lineNum">    1082 </span>            : 
+<span class="lineNum">    1083 </span>            :     /* now set socket up to be non-blocking */
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :     if((flags = fcntl(sd, F_GETFL, 0)) &lt; 0) {</span>
+<span class="lineNum">    1085 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;fcntl(F_GETFL) failed: %s (%d)&quot;,</span>
+<span class="lineNum">    1086 </span>            :                    strerror(opal_socket_errno), opal_socket_errno));
+<span class="lineNum">    1087 </span>            :     } else {
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :         flags |= O_NONBLOCK;</span>
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :         if(fcntl(sd, F_SETFL, flags) &lt; 0) {</span>
+<span class="lineNum">    1090 </span><span class="lineNoCov">          0 :             BTL_ERROR((&quot;fcntl(F_SETFL) failed: %s (%d)&quot;,</span>
+<span class="lineNum">    1091 </span>            :                        strerror(opal_socket_errno), opal_socket_errno));
+<span class="lineNum">    1092 </span>            :         }
+<span class="lineNum">    1093 </span>            :     }
+<span class="lineNum">    1094 </span>            : 
+<span class="lineNum">    1095 </span>            :     /* lookup the corresponding process */
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 :     btl_proc = mca_btl_tcp_proc_lookup(&amp;guid);</span>
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :     if(NULL == btl_proc) {</span>
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :         CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">    1099 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">    1100 </span>            :     }
+<span class="lineNum">    1101 </span>            : 
+<span class="lineNum">    1102 </span>            :     /* lookup peer address */
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :     if(getpeername(sd, (struct sockaddr*)&amp;addr, &amp;addr_len) != 0) {</span>
+<span class="lineNum">    1104 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;getpeername() failed: %s (%d)&quot;,</span>
+<span class="lineNum">    1105 </span>            :                    strerror(opal_socket_errno), opal_socket_errno));
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :         CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">    1107 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">    1108 </span>            :     }
+<span class="lineNum">    1109 </span>            : 
+<span class="lineNum">    1110 </span>            :     /* are there any existing peer instances will to accept this connection */
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 :     (void)mca_btl_tcp_proc_accept(btl_proc, (struct sockaddr*)&amp;addr, sd);</span>
+<span class="lineNum">    1112 </span>            : }
+<span class="lineNum">    1113 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,390 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/class/opal_hotel.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/class</a> - opal_hotel.h<span style="font-size: 80%;"> (source / <a href="opal_hotel.h.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">38</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2012-2013 Cisco Systems, Inc. All rights reserved.
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2012      Los Alamos National Security, LLC. All rights reserved
+<span class="lineNum">       4 </span>            :  * Copyright (c) 2015      Intel, Inc. All rights reserved.
+<span class="lineNum">       5 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       6 </span>            :  *
+<span class="lineNum">       7 </span>            :  * Additional copyrights may follow
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * $HEADER$
+<span class="lineNum">      10 </span>            :  */
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : /** @file
+<span class="lineNum">      13 </span>            :  *
+<span class="lineNum">      14 </span>            :  * This file provides a &quot;hotel&quot; class:
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * - A hotel has a fixed number of rooms (i.e., storage slots)
+<span class="lineNum">      17 </span>            :  * - An arbitrary data pointer can check into an empty room at any time
+<span class="lineNum">      18 </span>            :  * - The occupant of a room can check out at any time
+<span class="lineNum">      19 </span>            :  * - Optionally, the occupant of a room can be forcibly evicted at a
+<span class="lineNum">      20 </span>            :  *   given time (i.e., when an opal timer event expires).
+<span class="lineNum">      21 </span>            :  * - The hotel has finite occupancy; if you try to checkin a new
+<span class="lineNum">      22 </span>            :  *   occupant and the hotel is already full, it will gracefully fail
+<span class="lineNum">      23 </span>            :  *   to checkin.
+<span class="lineNum">      24 </span>            :  *
+<span class="lineNum">      25 </span>            :  * One use case for this class is for ACK-based network retransmission
+<span class="lineNum">      26 </span>            :  * schemes (NACK-based retransmission schemes probably can use
+<span class="lineNum">      27 </span>            :  * opal_ring_buffer).
+<span class="lineNum">      28 </span>            :  *
+<span class="lineNum">      29 </span>            :  * For ACK-based retransmission schemes, a hotel might be used
+<span class="lineNum">      30 </span>            :  * something like this:
+<span class="lineNum">      31 </span>            :  *
+<span class="lineNum">      32 </span>            :  * - when a message is sent, check it in to a hotel with a timer
+<span class="lineNum">      33 </span>            :  * - if an ACK is received, check it out of the hotel (which also cancels
+<span class="lineNum">      34 </span>            :  *   the timer)
+<span class="lineNum">      35 </span>            :  * - if an ACK isn't received in time, the timer will expire and the
+<span class="lineNum">      36 </span>            :  *   upper layer will get a callback with the message
+<span class="lineNum">      37 </span>            :  * - if an ACK is received late (i.e., after its timer has expired),
+<span class="lineNum">      38 </span>            :  *   then checkout will gracefully fail
+<span class="lineNum">      39 </span>            :  *
+<span class="lineNum">      40 </span>            :  * Note that this class intentionally provides pretty minimal
+<span class="lineNum">      41 </span>            :  * functionality.  It is intended to be used in performance-critical
+<span class="lineNum">      42 </span>            :  * code paths -- extra functionality would simply add latency.
+<span class="lineNum">      43 </span>            :  *
+<span class="lineNum">      44 </span>            :  * There is an opal_hotel_init() function to create a hotel, but no
+<span class="lineNum">      45 </span>            :  * corresponding finalize; the destructor will handle all finalization
+<span class="lineNum">      46 </span>            :  * issues.  Note that when a hotel is destroyed, it will delete all
+<span class="lineNum">      47 </span>            :  * pending events from the event base (i.e., all pending eviction
+<span class="lineNum">      48 </span>            :  * callbacks); no further eviction callbacks will be invoked.
+<span class="lineNum">      49 </span>            :  */
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            : #ifndef OPAL_HOTEL_H
+<span class="lineNum">      52 </span>            : #define OPAL_HOTEL_H
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : #include &quot;opal/prefetch.h&quot;
+<span class="lineNum">      57 </span>            : #include &quot;opal/class/opal_object.h&quot;
+<span class="lineNum">      58 </span>            : #include &quot;opal/mca/event/event.h&quot;
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : BEGIN_C_DECLS
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : struct opal_hotel_t;
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : /* User-supplied function to be invoked when an occupant is evicted. */
+<span class="lineNum">      65 </span>            : typedef void (*opal_hotel_eviction_callback_fn_t)(struct opal_hotel_t *hotel,
+<span class="lineNum">      66 </span>            :                                                   int room_num,
+<span class="lineNum">      67 </span>            :                                                   void *occupant);
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : /* Note that this is an internal data structure; it is not part of the
+<span class="lineNum">      70 </span>            :    public opal_hotel interface.  Public consumers of opal_hotel
+<span class="lineNum">      71 </span>            :    shouldn't need to use this struct at all (we only have it here in
+<span class="lineNum">      72 </span>            :    this .h file because some functions are inlined for speed, and need
+<span class="lineNum">      73 </span>            :    to get to the internals of this struct).
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            :    The room struct should be as small as possible to be cache
+<span class="lineNum">      76 </span>            :    friendly.  Specifically: it would be great if multiple rooms could
+<span class="lineNum">      77 </span>            :    fit in a single cache line because we'll always allocate a
+<span class="lineNum">      78 </span>            :    contiguous set of rooms in an array. */
+<span class="lineNum">      79 </span>            : typedef struct {
+<span class="lineNum">      80 </span>            :     void *occupant;
+<span class="lineNum">      81 </span>            :     opal_event_t eviction_timer_event;
+<span class="lineNum">      82 </span>            : } opal_hotel_room_t;
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            : /* Note that this is an internal data structure; it is not part of the
+<span class="lineNum">      85 </span>            :    public opal_hotel interface.  Public consumers of opal_hotel
+<span class="lineNum">      86 </span>            :    shouldn't need to use this struct at all (we only have it here in
+<span class="lineNum">      87 </span>            :    this .h file because some functions are inlined for speed, and need
+<span class="lineNum">      88 </span>            :    to get to the internals of this struct).
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :    Use a unique struct for holding the arguments for eviction
+<span class="lineNum">      91 </span>            :    callbacks.  We *could* make the to-be-evicted opal_hotel_room_t
+<span class="lineNum">      92 </span>            :    instance as the argument, but we don't, for 2 reasons:
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            :    1. We want as many opal_hotel_room_t's to fit in a cache line as
+<span class="lineNum">      95 </span>            :       possible (i.e., to be as cache-friendly as possible).  The
+<span class="lineNum">      96 </span>            :       common/fast code path only needs to access the data in the
+<span class="lineNum">      97 </span>            :       opal_hotel_room_t (and not the callback argument data).
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            :    2. Evictions will be uncommon, so we don't mind penalizing them a
+<span class="lineNum">     100 </span>            :       bit by making the data be in a separate cache line.
+<span class="lineNum">     101 </span>            : */
+<span class="lineNum">     102 </span>            : typedef struct {
+<span class="lineNum">     103 </span>            :     struct opal_hotel_t *hotel;
+<span class="lineNum">     104 </span>            :     int room_num;
+<span class="lineNum">     105 </span>            : } opal_hotel_room_eviction_callback_arg_t;
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            : typedef struct opal_hotel_t {
+<span class="lineNum">     108 </span>            :     /* make this an object */
+<span class="lineNum">     109 </span>            :     opal_object_t super;
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :     /* Max number of rooms in the hotel */
+<span class="lineNum">     112 </span>            :     int num_rooms;
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :     /* event base to be used for eviction timeout */
+<span class="lineNum">     115 </span>            :     opal_event_base_t *evbase;
+<span class="lineNum">     116 </span>            :     struct timeval eviction_timeout;
+<span class="lineNum">     117 </span>            :     opal_hotel_eviction_callback_fn_t evict_callback_fn;
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            :     /* All rooms in this hotel */
+<span class="lineNum">     120 </span>            :     opal_hotel_room_t *rooms;
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span>            :     /* Separate array for all the eviction callback arguments (see
+<span class="lineNum">     123 </span>            :        rationale above for why this is a separate array) */
+<span class="lineNum">     124 </span>            :     opal_hotel_room_eviction_callback_arg_t *eviction_args;
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            :     /* All currently unoccupied rooms in this hotel (not necessarily
+<span class="lineNum">     127 </span>            :        in any particular order) */
+<span class="lineNum">     128 </span>            :     int *unoccupied_rooms;
+<span class="lineNum">     129 </span>            :     int last_unoccupied_room;
+<span class="lineNum">     130 </span>            : } opal_hotel_t;
+<span class="lineNum">     131 </span>            : OBJ_CLASS_DECLARATION(opal_hotel_t);
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span>            : /**
+<span class="lineNum">     134 </span>            :  * Initialize the hotel.
+<span class="lineNum">     135 </span>            :  *
+<span class="lineNum">     136 </span>            :  * @param hotel Pointer to a hotel (IN)
+<span class="lineNum">     137 </span>            :  * @param num_rooms The total number of rooms in the hotel (IN)
+<span class="lineNum">     138 </span>            :  * @param evbase Pointer to event base used for eviction timeout
+<span class="lineNum">     139 </span>            :  * @param eviction_timeout Max length of a stay at the hotel before
+<span class="lineNum">     140 </span>            :  * the eviction callback is invoked (in microseconds)
+<span class="lineNum">     141 </span>            :  * @param eviction_event_priority Event lib priority for the eviction timeout
+<span class="lineNum">     142 </span>            :  * @param evict_callback_fn Callback function invoked if an occupant
+<span class="lineNum">     143 </span>            :  * does not check out before the eviction_timeout.
+<span class="lineNum">     144 </span>            :  *
+<span class="lineNum">     145 </span>            :  * NOTE: If the callback function is NULL, then no eviction timer
+<span class="lineNum">     146 </span>            :  * will be set - occupants will remain checked into the hotel until
+<span class="lineNum">     147 </span>            :  * explicitly checked out.
+<span class="lineNum">     148 </span>            :  *
+<span class="lineNum">     149 </span>            :  * @return OPAL_SUCCESS if all initializations were succesful. Otherwise,
+<span class="lineNum">     150 </span>            :  *  the error indicate what went wrong in the function.
+<span class="lineNum">     151 </span>            :  */
+<span class="lineNum">     152 </span>            : OPAL_DECLSPEC int opal_hotel_init(opal_hotel_t *hotel, int num_rooms,
+<span class="lineNum">     153 </span>            :                                   opal_event_base_t *evbase,
+<span class="lineNum">     154 </span>            :                                   uint32_t eviction_timeout,
+<span class="lineNum">     155 </span>            :                                   int eviction_event_priority,
+<span class="lineNum">     156 </span>            :                                   opal_hotel_eviction_callback_fn_t evict_callback_fn);
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            : /**
+<span class="lineNum">     159 </span>            :  * Check in an occupant to the hotel.
+<span class="lineNum">     160 </span>            :  *
+<span class="lineNum">     161 </span>            :  * @param hotel Pointer to hotel (IN)
+<span class="lineNum">     162 </span>            :  * @param occupant Occupant to check in (opaque to the hotel) (IN)
+<span class="lineNum">     163 </span>            :  * @param room The room number that identifies this occupant in the
+<span class="lineNum">     164 </span>            :  * hotel (OUT).
+<span class="lineNum">     165 </span>            :  *
+<span class="lineNum">     166 </span>            :  * If there is room in the hotel, the occupant is checked in and the
+<span class="lineNum">     167 </span>            :  * timer for that occupant is started.  The occupant's room is
+<span class="lineNum">     168 </span>            :  * returned in the &quot;room&quot; param.
+<span class="lineNum">     169 </span>            :  *
+<span class="lineNum">     170 </span>            :  * Note that once a room's checkout_expire timer expires, the occupant
+<span class="lineNum">     171 </span>            :  * is forcibly checked out, and then the eviction callback is invoked.
+<span class="lineNum">     172 </span>            :  *
+<span class="lineNum">     173 </span>            :  * @return OPAL_SUCCESS if the occupant is successfully checked in,
+<span class="lineNum">     174 </span>            :  * and the room parameter will contain a valid value.
+<span class="lineNum">     175 </span>            :  * @return OPAL_ERR_TEMP_OUT_OF_RESOURCE is the hotel is full.  Try
+<a name="176"><span class="lineNum">     176 </span>            :  * again later.</a>
+<span class="lineNum">     177 </span>            :  */
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 : static inline int opal_hotel_checkin(opal_hotel_t *hotel,</span>
+<span class="lineNum">     179 </span>            :                                      void *occupant,
+<span class="lineNum">     180 </span>            :                                      int *room_num)
+<span class="lineNum">     181 </span>            : {
+<span class="lineNum">     182 </span>            :     opal_hotel_room_t *room;
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            :     /* Do we have any rooms available? */
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     if (OPAL_UNLIKELY(hotel-&gt;last_unoccupied_room &lt; 0)) {</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         return OPAL_ERR_TEMP_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     187 </span>            :     }
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span>            :     /* Put this occupant into the first empty room that we have */
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :     *room_num = hotel-&gt;unoccupied_rooms[hotel-&gt;last_unoccupied_room--];</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     room = &amp;(hotel-&gt;rooms[*room_num]);</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     room-&gt;occupant = occupant;</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :     /* Assign the event and make it pending */
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     if (NULL != hotel-&gt;evbase) {</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :         opal_event_add(&amp;(room-&gt;eviction_timer_event),</span>
+<span class="lineNum">     197 </span>            :                        &amp;(hotel-&gt;eviction_timeout));
+<span class="lineNum">     198 </span>            :     }
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     201 </span>            : }
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span>            : /**
+<span class="lineNum">     204 </span>            :  * Same as opal_hotel_checkin(), but slightly optimized for when the
+<span class="lineNum">     205 </span>            :  * caller *knows* that there is a room available.
+<span class="lineNum">     206 </span>            :  */
+<span class="lineNum">     207 </span>            : static inline void opal_hotel_checkin_with_res(opal_hotel_t *hotel,
+<span class="lineNum">     208 </span>            :                                      void *occupant,
+<span class="lineNum">     209 </span>            :                                      int *room_num)
+<span class="lineNum">     210 </span>            : {
+<span class="lineNum">     211 </span>            :     opal_hotel_room_t *room;
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            :     /* Put this occupant into the first empty room that we have */
+<span class="lineNum">     214 </span>            :     *room_num = hotel-&gt;unoccupied_rooms[hotel-&gt;last_unoccupied_room--];
+<span class="lineNum">     215 </span>            :     room = &amp;(hotel-&gt;rooms[*room_num]);
+<span class="lineNum">     216 </span>            :     assert(room-&gt;occupant == NULL);
+<span class="lineNum">     217 </span>            :     room-&gt;occupant = occupant;
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            :     /* Assign the event and make it pending */
+<span class="lineNum">     220 </span>            :     if (NULL != hotel-&gt;evbase) {
+<span class="lineNum">     221 </span>            :         opal_event_add(&amp;(room-&gt;eviction_timer_event),
+<span class="lineNum">     222 </span>            :                        &amp;(hotel-&gt;eviction_timeout));
+<span class="lineNum">     223 </span>            :     }
+<span class="lineNum">     224 </span>            : }
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            : /**
+<span class="lineNum">     227 </span>            :  * Check the specified occupant out of the hotel.
+<span class="lineNum">     228 </span>            :  *
+<span class="lineNum">     229 </span>            :  * @param hotel Pointer to hotel (IN)
+<span class="lineNum">     230 </span>            :  * @param room Room number to checkout (IN)
+<span class="lineNum">     231 </span>            :  *
+<span class="lineNum">     232 </span>            :  * If there is an occupant in the room, their timer is canceled and
+<span class="lineNum">     233 </span>            :  * they are checked out.
+<span class="lineNum">     234 </span>            :  *
+<a name="235"><span class="lineNum">     235 </span>            :  * Nothing is returned (as a minor optimization).</a>
+<span class="lineNum">     236 </span>            :  */
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 : static inline void opal_hotel_checkout(opal_hotel_t *hotel, int room_num)</span>
+<span class="lineNum">     238 </span>            : {
+<span class="lineNum">     239 </span>            :     opal_hotel_room_t *room;
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span>            :     /* Bozo check */
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     assert(room_num &lt; hotel-&gt;num_rooms);</span>
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span>            :     /* If there's an occupant in the room, check them out */
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     room = &amp;(hotel-&gt;rooms[room_num]);</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     if (OPAL_LIKELY(NULL != room-&gt;occupant)) {</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :         room-&gt;occupant = NULL;</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :         if (NULL != hotel-&gt;evbase) {</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :             opal_event_del(&amp;(room-&gt;eviction_timer_event));</span>
+<span class="lineNum">     250 </span>            :         }
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :         hotel-&gt;last_unoccupied_room++;</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         assert(hotel-&gt;last_unoccupied_room &lt; hotel-&gt;num_rooms);</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         hotel-&gt;unoccupied_rooms[hotel-&gt;last_unoccupied_room] = room_num;</span>
+<span class="lineNum">     254 </span>            :     }
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            :     /* Don't bother returning whether we actually checked someone out
+<span class="lineNum">     257 </span>            :        or not (because this is in the critical performance path) --
+<span class="lineNum">     258 </span>            :        assume the upper layer knows what it's doing. */
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            : /**
+<span class="lineNum">     262 </span>            :  * Check the specified occupant out of the hotel and return the occupant.
+<span class="lineNum">     263 </span>            :  *
+<span class="lineNum">     264 </span>            :  * @param hotel Pointer to hotel (IN)
+<span class="lineNum">     265 </span>            :  * @param room Room number to checkout (IN)
+<span class="lineNum">     266 </span>            :  * @param void * occupant (OUT)
+<span class="lineNum">     267 </span>            :  * If there is an occupant in the room, their timer is canceled and
+<span class="lineNum">     268 </span>            :  * they are checked out.
+<span class="lineNum">     269 </span>            :  *
+<a name="270"><span class="lineNum">     270 </span>            :  * Use this checkout and when caller needs the occupant</a>
+<span class="lineNum">     271 </span>            :  */
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 : static inline void opal_hotel_checkout_and_return_occupant(opal_hotel_t *hotel, int room_num, void **occupant)</span>
+<span class="lineNum">     273 </span>            : {
+<span class="lineNum">     274 </span>            :     opal_hotel_room_t *room;
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span>            :     /* Bozo check */
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     assert(room_num &lt; hotel-&gt;num_rooms);</span>
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span>            :     /* If there's an occupant in the room, check them out */
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     room = &amp;(hotel-&gt;rooms[room_num]);</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     if (OPAL_LIKELY(NULL != room-&gt;occupant)) {</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :         opal_output (10, &quot;checking out occupant %p from room num %d&quot;, room-&gt;occupant, room_num);</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :         *occupant = room-&gt;occupant;</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :         room-&gt;occupant = NULL;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :         if (NULL != hotel-&gt;evbase) {</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :             opal_event_del(&amp;(room-&gt;eviction_timer_event));</span>
+<span class="lineNum">     287 </span>            :         }
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         hotel-&gt;last_unoccupied_room++;</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :         assert(hotel-&gt;last_unoccupied_room &lt; hotel-&gt;num_rooms);</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :         hotel-&gt;unoccupied_rooms[hotel-&gt;last_unoccupied_room] = room_num;</span>
+<span class="lineNum">     291 </span>            :     }
+<span class="lineNum">     292 </span>            :     else {
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :         opal_output( 0, &quot; OOPS there is no occupant in room_num %d&quot;, room_num);</span>
+<span class="lineNum">     294 </span>            :    }
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span>            : /**
+<span class="lineNum">     299 </span>            :  * Returns true if the hotel is empty (no occupant)
+<span class="lineNum">     300 </span>            :  * @param hotel Pointer to hotel (IN)
+<span class="lineNum">     301 </span>            :  * @return bool true if empty false if there is a occupant(s)
+<a name="302"><span class="lineNum">     302 </span>            :  *</a>
+<span class="lineNum">     303 </span>            :  */
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 : static inline bool opal_hotel_is_empty (opal_hotel_t *hotel)</span>
+<span class="lineNum">     305 </span>            : {
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     if (hotel-&gt;last_unoccupied_room == hotel-&gt;num_rooms - 1)</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     308 </span>            :     else
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     310 </span>            : }
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span>            : END_C_DECLS
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span>            : #endif /* OPAL_HOTEL_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,583 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/util/stacktrace.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/util</a> - stacktrace.c<span style="font-size: 80%;"> (source / <a href="stacktrace.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">26</td>
+            <td class="headerCovTableEntry">167</td>
+            <td class="headerCovTableEntryLo">15.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryLo">25.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2005 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2006      Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2008-2009 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      14 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * $HEADER$
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      24 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      25 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      26 </span>            : #endif
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;signal.h&gt;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &quot;opal/util/stacktrace.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;opal/mca/backtrace/backtrace.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;opal/util/show_help.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;opal/runtime/opal_params.h&quot;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : #ifndef _NSIG
+<span class="lineNum">      40 </span>            : #define _NSIG 32
+<span class="lineNum">      41 </span>            : #endif
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : #define HOSTFORMAT &quot;[%s:%05d] &quot;
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : static char stacktrace_hostname[64];
+<span class="lineNum">      46 </span>            : static char *unable_to_print_msg = &quot;Unable to print stack trace!\n&quot;;
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : /**
+<span class="lineNum">      49 </span>            :  * This function is being called as a signal-handler in response
+<span class="lineNum">      50 </span>            :  * to a user-specified signal (e.g. SIGFPE or SIGSEGV).
+<span class="lineNum">      51 </span>            :  * For Linux/Glibc, it then uses backtrace and backtrace_symbols_fd
+<span class="lineNum">      52 </span>            :  * to figure the current stack and print that out to stderr.
+<span class="lineNum">      53 </span>            :  * Where available, the BSD libexecinfo is used to provide Linux/Glibc
+<span class="lineNum">      54 </span>            :  * compatible backtrace and backtrace_symbols_fd functions.
+<span class="lineNum">      55 </span>            :  *
+<span class="lineNum">      56 </span>            :  *  @param signo with the signal number raised
+<span class="lineNum">      57 </span>            :  *  @param info with information regarding the reason/send of the signal
+<span class="lineNum">      58 </span>            :  *  @param p
+<span class="lineNum">      59 </span>            :  *
+<span class="lineNum">      60 </span>            :  * FIXME: Should distinguish for systems, which don't have siginfo...
+<a name="61"><span class="lineNum">      61 </span>            :  */</a>
+<span class="lineNum">      62 </span>            : #if OPAL_WANT_PRETTY_PRINT_STACKTRACE
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 : static void show_stackframe (int signo, siginfo_t * info, void * p)</span>
+<span class="lineNum">      64 </span>            : {
+<span class="lineNum">      65 </span>            :     char print_buffer[1024];
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     char * tmp = print_buffer;</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     int size = sizeof (print_buffer);</span>
+<span class="lineNum">      68 </span>            :     int ret;
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     char *si_code_str = &quot;&quot;;</span>
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            :     /* write out the footer information */
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     memset (print_buffer, 0, sizeof (print_buffer));</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     ret = snprintf(print_buffer, sizeof(print_buffer),</span>
+<span class="lineNum">      74 </span>            :                    HOSTFORMAT &quot;*** Process received signal ***\n&quot;,
+<span class="lineNum">      75 </span>            :                    stacktrace_hostname, getpid());
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     write(fileno(stderr), print_buffer, ret);</span>
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     memset (print_buffer, 0, sizeof (print_buffer));</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : #ifdef HAVE_STRSIGNAL
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     ret = snprintf (tmp, size, HOSTFORMAT &quot;Signal: %s (%d)\n&quot;,</span>
+<span class="lineNum">      83 </span>            :                     stacktrace_hostname, getpid(), strsignal(signo), signo);
+<span class="lineNum">      84 </span>            : #else
+<span class="lineNum">      85 </span>            :     ret = snprintf (tmp, size, HOSTFORMAT &quot;Signal: %d\n&quot;,
+<span class="lineNum">      86 </span>            :                     stacktrace_hostname, getpid(), signo);
+<span class="lineNum">      87 </span>            : #endif
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     size -= ret;</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     tmp += ret;</span>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     if (NULL != info) {</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         switch (signo)</span>
+<span class="lineNum">      93 </span>            :         {
+<span class="lineNum">      94 </span>            :         case SIGILL:
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :             switch (info-&gt;si_code)</span>
+<span class="lineNum">      96 </span>            :             {
+<span class="lineNum">      97 </span>            : #ifdef ILL_ILLOPC
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :             case ILL_ILLOPC: si_code_str = &quot;Illegal opcode&quot;; break;</span>
+<span class="lineNum">      99 </span>            : #endif
+<span class="lineNum">     100 </span>            : #ifdef ILL_ILLOPN
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :             case ILL_ILLOPN: si_code_str = &quot;Illegal operand&quot;; break;</span>
+<span class="lineNum">     102 </span>            : #endif
+<span class="lineNum">     103 </span>            : #ifdef ILL_ILLADR
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :             case ILL_ILLADR: si_code_str = &quot;Illegal addressing mode&quot;; break;</span>
+<span class="lineNum">     105 </span>            : #endif
+<span class="lineNum">     106 </span>            : #ifdef ILL_ILLTRP
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :             case ILL_ILLTRP: si_code_str = &quot;Illegal trap&quot;; break;</span>
+<span class="lineNum">     108 </span>            : #endif
+<span class="lineNum">     109 </span>            : #ifdef ILL_PRVOPC
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :             case ILL_PRVOPC: si_code_str = &quot;Privileged opcode&quot;; break;</span>
+<span class="lineNum">     111 </span>            : #endif
+<span class="lineNum">     112 </span>            : #ifdef ILL_PRVREG
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :             case ILL_PRVREG: si_code_str = &quot;Privileged register&quot;; break;</span>
+<span class="lineNum">     114 </span>            : #endif
+<span class="lineNum">     115 </span>            : #ifdef ILL_COPROC
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :             case ILL_COPROC: si_code_str = &quot;Coprocessor error&quot;; break;</span>
+<span class="lineNum">     117 </span>            : #endif
+<span class="lineNum">     118 </span>            : #ifdef ILL_BADSTK
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :             case ILL_BADSTK: si_code_str = &quot;Internal stack error&quot;; break;</span>
+<span class="lineNum">     120 </span>            : #endif
+<span class="lineNum">     121 </span>            :             }
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     123 </span>            :         case SIGFPE:
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :             switch (info-&gt;si_code)</span>
+<span class="lineNum">     125 </span>            :             {
+<span class="lineNum">     126 </span>            : #ifdef FPE_INTDIV
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :             case FPE_INTDIV: si_code_str = &quot;Integer divide-by-zero&quot;; break;</span>
+<span class="lineNum">     128 </span>            : #endif
+<span class="lineNum">     129 </span>            : #ifdef FPE_INTOVF
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :             case FPE_INTOVF: si_code_str = &quot;Integer overflow&quot;; break;</span>
+<span class="lineNum">     131 </span>            : #endif
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :             case FPE_FLTDIV: si_code_str = &quot;Floating point divide-by-zero&quot;; break;</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :             case FPE_FLTOVF: si_code_str = &quot;Floating point overflow&quot;; break;</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :             case FPE_FLTUND: si_code_str = &quot;Floating point underflow&quot;; break;</span>
+<span class="lineNum">     135 </span>            : #ifdef FPE_FLTRES
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :             case FPE_FLTRES: si_code_str = &quot;Floating point inexact result&quot;; break;</span>
+<span class="lineNum">     137 </span>            : #endif
+<span class="lineNum">     138 </span>            : #ifdef FPE_FLTINV
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :             case FPE_FLTINV: si_code_str = &quot;Invalid floating point operation&quot;; break;</span>
+<span class="lineNum">     140 </span>            : #endif
+<span class="lineNum">     141 </span>            : #ifdef FPE_FLTSUB
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :             case FPE_FLTSUB: si_code_str = &quot;Subscript out of range&quot;; break;</span>
+<span class="lineNum">     143 </span>            : #endif
+<span class="lineNum">     144 </span>            :             }
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     146 </span>            :         case SIGSEGV:
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :             switch (info-&gt;si_code)</span>
+<span class="lineNum">     148 </span>            :             {
+<span class="lineNum">     149 </span>            : #ifdef SEGV_MAPERR
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :             case SEGV_MAPERR: si_code_str = &quot;Address not mapped&quot;; break;</span>
+<span class="lineNum">     151 </span>            : #endif
+<span class="lineNum">     152 </span>            : #ifdef SEGV_ACCERR
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :             case SEGV_ACCERR: si_code_str = &quot;Invalid permissions&quot;; break;</span>
+<span class="lineNum">     154 </span>            : #endif
+<span class="lineNum">     155 </span>            :             }
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     157 </span>            :         case SIGBUS:
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :             switch (info-&gt;si_code)</span>
+<span class="lineNum">     159 </span>            :             {
+<span class="lineNum">     160 </span>            : #ifdef BUS_ADRALN
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :             case BUS_ADRALN: si_code_str = &quot;Invalid address alignment&quot;; break;</span>
+<span class="lineNum">     162 </span>            : #endif
+<span class="lineNum">     163 </span>            : #ifdef BUS_ADRERR
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :             case BUS_ADRERR: si_code_str = &quot;Non-existant physical address&quot;; break;</span>
+<span class="lineNum">     165 </span>            : #endif
+<span class="lineNum">     166 </span>            : #ifdef BUS_OBJERR
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :             case BUS_OBJERR: si_code_str = &quot;Objet-specific hardware error&quot;; break;</span>
+<span class="lineNum">     168 </span>            : #endif
+<span class="lineNum">     169 </span>            :             }
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     171 </span>            :         case SIGTRAP:
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :             switch (info-&gt;si_code)</span>
+<span class="lineNum">     173 </span>            :             {
+<span class="lineNum">     174 </span>            : #ifdef TRAP_BRKPT
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :             case TRAP_BRKPT: si_code_str = &quot;Process breakpoint&quot;; break;</span>
+<span class="lineNum">     176 </span>            : #endif
+<span class="lineNum">     177 </span>            : #ifdef TRAP_TRACE
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :             case TRAP_TRACE: si_code_str = &quot;Process trace trap&quot;; break;</span>
+<span class="lineNum">     179 </span>            : #endif
+<span class="lineNum">     180 </span>            :             }
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     182 </span>            :         case SIGCHLD:
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :             switch (info-&gt;si_code)</span>
+<span class="lineNum">     184 </span>            :             {
+<span class="lineNum">     185 </span>            : #ifdef CLD_EXITED
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :             case CLD_EXITED: si_code_str = &quot;Child has exited&quot;; break;</span>
+<span class="lineNum">     187 </span>            : #endif
+<span class="lineNum">     188 </span>            : #ifdef CLD_KILLED
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :             case CLD_KILLED: si_code_str = &quot;Child has terminated abnormally and did not create a core file&quot;; break;</span>
+<span class="lineNum">     190 </span>            : #endif
+<span class="lineNum">     191 </span>            : #ifdef CLD_DUMPED
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :             case CLD_DUMPED: si_code_str = &quot;Child has terminated abnormally and created a core file&quot;; break;</span>
+<span class="lineNum">     193 </span>            : #endif
+<span class="lineNum">     194 </span>            : #ifdef CLD_WTRAPPED
+<span class="lineNum">     195 </span>            :             case CLD_TRAPPED: si_code_str = &quot;Traced child has trapped&quot;; break;
+<span class="lineNum">     196 </span>            : #endif
+<span class="lineNum">     197 </span>            : #ifdef CLD_STOPPED
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :             case CLD_STOPPED: si_code_str = &quot;Child has stopped&quot;; break;</span>
+<span class="lineNum">     199 </span>            : #endif
+<span class="lineNum">     200 </span>            : #ifdef CLD_CONTINUED
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :             case CLD_CONTINUED: si_code_str = &quot;Stopped child has continued&quot;; break;</span>
+<span class="lineNum">     202 </span>            : #endif
+<span class="lineNum">     203 </span>            :             }
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     205 </span>            : #ifdef SIGPOLL
+<span class="lineNum">     206 </span>            :         case SIGPOLL:
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :             switch (info-&gt;si_code)</span>
+<span class="lineNum">     208 </span>            :             {
+<span class="lineNum">     209 </span>            : #ifdef POLL_IN
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :             case POLL_IN: si_code_str = &quot;Data input available&quot;; break;</span>
+<span class="lineNum">     211 </span>            : #endif
+<span class="lineNum">     212 </span>            : #ifdef POLL_OUT
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :             case POLL_OUT: si_code_str = &quot;Output buffers available&quot;; break;</span>
+<span class="lineNum">     214 </span>            : #endif
+<span class="lineNum">     215 </span>            : #ifdef POLL_MSG
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :             case POLL_MSG: si_code_str = &quot;Input message available&quot;; break;</span>
+<span class="lineNum">     217 </span>            : #endif
+<span class="lineNum">     218 </span>            : #ifdef POLL_ERR
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :             case POLL_ERR: si_code_str = &quot;I/O error&quot;; break;</span>
+<span class="lineNum">     220 </span>            : #endif
+<span class="lineNum">     221 </span>            : #ifdef POLL_PRI
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :             case POLL_PRI: si_code_str = &quot;High priority input available&quot;; break;</span>
+<span class="lineNum">     223 </span>            : #endif
+<span class="lineNum">     224 </span>            : #ifdef POLL_HUP
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :             case POLL_HUP: si_code_str = &quot;Device disconnected&quot;; break;</span>
+<span class="lineNum">     226 </span>            : #endif
+<span class="lineNum">     227 </span>            :             }
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     229 </span>            : #endif /* SIGPOLL */
+<span class="lineNum">     230 </span>            :         default:
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :             switch (info-&gt;si_code)</span>
+<span class="lineNum">     232 </span>            :             {
+<span class="lineNum">     233 </span>            : #ifdef SI_ASYNCNL
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :             case SI_ASYNCNL: si_code_str = &quot;SI_ASYNCNL&quot;; break;</span>
+<span class="lineNum">     235 </span>            : #endif
+<span class="lineNum">     236 </span>            : #ifdef SI_SIGIO
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :             case SI_SIGIO: si_code_str = &quot;Queued SIGIO&quot;; break;</span>
+<span class="lineNum">     238 </span>            : #endif
+<span class="lineNum">     239 </span>            : #ifdef SI_ASYNCIO
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :             case SI_ASYNCIO: si_code_str = &quot;Asynchronous I/O request completed&quot;; break;</span>
+<span class="lineNum">     241 </span>            : #endif
+<span class="lineNum">     242 </span>            : #ifdef SI_MESGQ
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :             case SI_MESGQ: si_code_str = &quot;Message queue state changed&quot;; break;</span>
+<span class="lineNum">     244 </span>            : #endif
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :             case SI_TIMER: si_code_str = &quot;Timer expiration&quot;; break;</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :             case SI_QUEUE: si_code_str = &quot;Sigqueue() signal&quot;; break;</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :             case SI_USER: si_code_str = &quot;User function (kill, sigsend, abort, etc.)&quot;; break;</span>
+<span class="lineNum">     248 </span>            : #ifdef SI_KERNEL
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :             case SI_KERNEL: si_code_str = &quot;Kernel signal&quot;; break;</span>
+<span class="lineNum">     250 </span>            : #endif
+<span class="lineNum">     251 </span>            : /* Dragonfly defines SI_USER and SI_UNDEFINED both as zero: */
+<span class="lineNum">     252 </span>            : /* For some reason, the PGI compiler will not let us combine these two
+<span class="lineNum">     253 </span>            :    #if tests into a single statement.  Sigh. */
+<span class="lineNum">     254 </span>            : #if defined(SI_UNDEFINED)
+<span class="lineNum">     255 </span>            : #if SI_UNDEFINED != SI_USER
+<span class="lineNum">     256 </span>            :             case SI_UNDEFINED: si_code_str = &quot;Undefined code&quot;; break;
+<span class="lineNum">     257 </span>            : #endif
+<span class="lineNum">     258 </span>            : #endif
+<span class="lineNum">     259 </span>            :             }
+<span class="lineNum">     260 </span>            :         }
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span>            :         /* print signal errno information */
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         if (0 != info-&gt;si_errno) {</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             ret = snprintf(tmp, size, HOSTFORMAT &quot;Associated errno: %s (%d)\n&quot;,</span>
+<span class="lineNum">     265 </span>            :                            stacktrace_hostname, getpid(),
+<span class="lineNum">     266 </span>            :                            strerror (info-&gt;si_errno), info-&gt;si_errno);
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :             size -= ret;</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :             tmp += ret;</span>
+<span class="lineNum">     269 </span>            :         }
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :         ret = snprintf(tmp, size, HOSTFORMAT &quot;Signal code: %s (%d)\n&quot;,</span>
+<span class="lineNum">     272 </span>            :                        stacktrace_hostname, getpid(),
+<span class="lineNum">     273 </span>            :                        si_code_str, info-&gt;si_code);
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         size -= ret;</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :         tmp += ret;</span>
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :         switch (signo)</span>
+<span class="lineNum">     278 </span>            :         {
+<span class="lineNum">     279 </span>            :         case SIGILL:
+<span class="lineNum">     280 </span>            :         case SIGFPE:
+<span class="lineNum">     281 </span>            :         case SIGSEGV:
+<span class="lineNum">     282 </span>            :         case SIGBUS:
+<span class="lineNum">     283 </span>            :         {
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :             ret = snprintf(tmp, size, HOSTFORMAT &quot;Failing at address: %p\n&quot;,</span>
+<span class="lineNum">     285 </span>            :                            stacktrace_hostname, getpid(), info-&gt;si_addr);
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :             size -= ret;</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :             tmp += ret;</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     289 </span>            :         }
+<span class="lineNum">     290 </span>            :         case SIGCHLD:
+<span class="lineNum">     291 </span>            :         {
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :             ret = snprintf(tmp, size, HOSTFORMAT &quot;Sending PID: %d, Sending UID: %d, Status: %d\n&quot;,</span>
+<span class="lineNum">     293 </span>            :                            stacktrace_hostname, getpid(),
+<span class="lineNum">     294 </span>            :                            info-&gt;si_pid, info-&gt;si_uid, info-&gt;si_status);
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :             size -= ret;</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :             tmp += ret;</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     298 </span>            :         }
+<span class="lineNum">     299 </span>            : #ifdef SIGPOLL
+<span class="lineNum">     300 </span>            :         case SIGPOLL:
+<span class="lineNum">     301 </span>            :         {
+<span class="lineNum">     302 </span>            : #ifdef HAVE_SIGINFO_T_SI_FD
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :             ret = snprintf(tmp, size, HOSTFORMAT &quot;Band event: %ld, File Descriptor : %d\n&quot;,</span>
+<span class="lineNum">     304 </span>            :                            stacktrace_hostname, getpid(), (long)info-&gt;si_band, info-&gt;si_fd);
+<span class="lineNum">     305 </span>            : #elif HAVE_SIGINFO_T_SI_BAND
+<span class="lineNum">     306 </span>            :             ret = snprintf(tmp, size, HOSTFORMAT &quot;Band event: %ld\n&quot;,
+<span class="lineNum">     307 </span>            :                            stacktrace_hostname, getpid(), (long)info-&gt;si_band);
+<span class="lineNum">     308 </span>            : #else
+<span class="lineNum">     309 </span>            :             ret = 0;
+<span class="lineNum">     310 </span>            : #endif
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :             size -= ret;</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :             tmp += ret;</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     314 </span>            :         }
+<span class="lineNum">     315 </span>            : #endif
+<span class="lineNum">     316 </span>            :         }
+<span class="lineNum">     317 </span>            :     } else {
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :         ret = snprintf(tmp, size,</span>
+<span class="lineNum">     319 </span>            :                        HOSTFORMAT &quot;siginfo is NULL, additional information unavailable\n&quot;,
+<span class="lineNum">     320 </span>            :                        stacktrace_hostname, getpid());
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         size -= ret;</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         tmp += ret;</span>
+<span class="lineNum">     323 </span>            :     }
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            :     /* write out the signal information generated above */
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     write(fileno(stderr), print_buffer, sizeof(print_buffer)-size);</span>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span>            :     /* print out the stack trace */
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     snprintf(print_buffer, sizeof(print_buffer), HOSTFORMAT,</span>
+<span class="lineNum">     330 </span>            :              stacktrace_hostname, getpid());
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     ret = opal_backtrace_print(stderr, print_buffer, 2);</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != ret) {</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :         write(fileno(stderr), unable_to_print_msg, strlen(unable_to_print_msg));</span>
+<span class="lineNum">     334 </span>            :     }
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span>            :     /* write out the footer information */
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     memset (print_buffer, 0, sizeof (print_buffer));</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     ret = snprintf(print_buffer, sizeof(print_buffer),</span>
+<span class="lineNum">     339 </span>            :                    HOSTFORMAT &quot;*** End of error message ***\n&quot;,
+<span class="lineNum">     340 </span>            :                    stacktrace_hostname, getpid());
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     if (ret &gt; 0) {</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :         write(fileno(stderr), print_buffer, ret);</span>
+<span class="lineNum">     343 </span>            :     } else {
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :         write(fileno(stderr), unable_to_print_msg, strlen(unable_to_print_msg));</span>
+<span class="lineNum">     345 </span>            :     }
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span>            : #endif /* OPAL_WANT_PRETTY_PRINT_STACKTRACE */
+<span class="lineNum">     349 </span>            : 
+<a name="350"><span class="lineNum">     350 </span>            : </a>
+<span class="lineNum">     351 </span>            : #if OPAL_WANT_PRETTY_PRINT_STACKTRACE
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 : void opal_stackframe_output(int stream)</span>
+<span class="lineNum">     353 </span>            : {
+<span class="lineNum">     354 </span>            :     int traces_size;
+<span class="lineNum">     355 </span>            :     char **traces;
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            :     /* print out the stack trace */
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS == opal_backtrace_buffer(&amp;traces, &amp;traces_size)) {</span>
+<span class="lineNum">     359 </span>            :         int i;
+<span class="lineNum">     360 </span>            :         /* since we have the opportunity, strip off the bottom two
+<span class="lineNum">     361 </span>            :            function calls, which will be this function and
+<span class="lineNum">     362 </span>            :            opal_backtrace_buffer(). */
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :         for (i = 2; i &lt; traces_size; ++i) {</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :             opal_output(stream, &quot;%s&quot;, traces[i]);</span>
+<span class="lineNum">     365 </span>            :         }
+<span class="lineNum">     366 </span>            :     } else {
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :         opal_backtrace_print(stderr, NULL, 2);</span>
+<span class="lineNum">     368 </span>            :     }
+<a name="369"><span class="lineNum">     369 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 : char *opal_stackframe_output_string(void)</span>
+<span class="lineNum">     372 </span>            : {
+<span class="lineNum">     373 </span>            :     int traces_size, i;
+<span class="lineNum">     374 </span>            :     size_t len;
+<span class="lineNum">     375 </span>            :     char *output, **traces;
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     len = 0;</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != opal_backtrace_buffer(&amp;traces, &amp;traces_size)) {</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     380 </span>            :     }
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span>            :     /* Calculate the space needed for the string */
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     for (i = 3; i &lt; traces_size; i++) {</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :             if (NULL == traces[i]) {</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     386 </span>            :         }
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :         len += strlen(traces[i]) + 1;</span>
+<span class="lineNum">     388 </span>            :     }
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     output = (char *) malloc(len + 1);</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :     if (NULL == output) {</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     393 </span>            :     }
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :     *output = '\0';</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     for (i = 3; i &lt; traces_size; i++) {</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :         if (NULL == traces[i]) {</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     399 </span>            :         }
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :         strcat(output, traces[i]);</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         strcat(output, &quot;\n&quot;);</span>
+<span class="lineNum">     402 </span>            :     }
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     free(traces);</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     return output;</span>
+<span class="lineNum">     406 </span>            : }
+<span class="lineNum">     407 </span>            : 
+<span class="lineNum">     408 </span>            : #endif /* OPAL_WANT_PRETTY_PRINT_STACKTRACE */
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span>            : /**
+<span class="lineNum">     411 </span>            :  * Here we register the show_stackframe function for signals
+<span class="lineNum">     412 </span>            :  * passed to OpenMPI by the mpi_signal-parameter passed to mpirun
+<span class="lineNum">     413 </span>            :  * by the user.
+<span class="lineNum">     414 </span>            :  *
+<span class="lineNum">     415 </span>            :  *  @returnvalue OPAL_SUCCESS
+<span class="lineNum">     416 </span>            :  *  @returnvalue OPAL_ERR_BAD_PARAM if the value in the signal-list
+<span class="lineNum">     417 </span>            :  *    is not a valid signal-number
+<a name="418"><span class="lineNum">     418 </span>            :  *</a>
+<span class="lineNum">     419 </span>            :  */
+<span class="lineNum">     420 </span><span class="lineCov">          2 : int opal_util_register_stackhandlers (void)</span>
+<span class="lineNum">     421 </span>            : {
+<span class="lineNum">     422 </span>            : #if OPAL_WANT_PRETTY_PRINT_STACKTRACE
+<span class="lineNum">     423 </span>            :     struct sigaction act, old;
+<span class="lineNum">     424 </span>            :     char * tmp;
+<span class="lineNum">     425 </span>            :     char * next;
+<span class="lineNum">     426 </span>            :     int i;
+<span class="lineNum">     427 </span><span class="lineCov">          2 :     bool complain, showed_help = false;</span>
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineCov">          2 :     gethostname(stacktrace_hostname, sizeof(stacktrace_hostname));</span>
+<span class="lineNum">     430 </span><span class="lineCov">          2 :     stacktrace_hostname[sizeof(stacktrace_hostname) - 1] = '\0';</span>
+<span class="lineNum">     431 </span>            :     /* to keep these somewhat readable, only print the machine name */
+<span class="lineNum">     432 </span><span class="lineCov">          6 :     for (i = 0 ; i &lt; (int)strlen(stacktrace_hostname) ; ++i) {</span>
+<span class="lineNum">     433 </span><span class="lineCov">          6 :         if (stacktrace_hostname[i] == '.') {</span>
+<span class="lineNum">     434 </span><span class="lineCov">          2 :             stacktrace_hostname[i] = '\0';</span>
+<span class="lineNum">     435 </span><span class="lineCov">          2 :             break;</span>
+<span class="lineNum">     436 </span>            :         }
+<span class="lineNum">     437 </span>            :     }
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineCov">          2 :     memset(&amp;act, 0, sizeof(act));</span>
+<span class="lineNum">     440 </span><span class="lineCov">          2 :     act.sa_sigaction = show_stackframe;</span>
+<span class="lineNum">     441 </span><span class="lineCov">          2 :     act.sa_flags = SA_SIGINFO;</span>
+<span class="lineNum">     442 </span>            : #ifdef SA_ONESHOT
+<span class="lineNum">     443 </span><span class="lineCov">          2 :     act.sa_flags |= SA_ONESHOT;</span>
+<span class="lineNum">     444 </span>            : #else
+<span class="lineNum">     445 </span>            :     act.sa_flags |= SA_RESETHAND;
+<span class="lineNum">     446 </span>            : #endif
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span><span class="lineCov">         12 :     for (tmp = next = opal_signal_string ;</span>
+<span class="lineNum">     449 </span><span class="lineCov">         20 :          next != NULL &amp;&amp; *next != '\0';</span>
+<span class="lineNum">     450 </span><span class="lineCov">          8 :          tmp = next + 1)</span>
+<span class="lineNum">     451 </span>            :     {
+<span class="lineNum">     452 </span>            :       int sig;
+<span class="lineNum">     453 </span>            :       int ret;
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span><span class="lineCov">          8 :       complain = false;</span>
+<span class="lineNum">     456 </span><span class="lineCov">          8 :       sig = strtol (tmp, &amp;next, 10);</span>
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span>            :       /*
+<span class="lineNum">     459 </span>            :        *  If there is no sensible number in the string, exit.
+<span class="lineNum">     460 </span>            :        *  Similarly for any number which is not in the signal-number range
+<span class="lineNum">     461 </span>            :        */
+<span class="lineNum">     462 </span><span class="lineCov">          8 :       if (((0 == sig) &amp;&amp; (tmp == next)) || (0 &gt; sig) || (_NSIG &lt;= sig)) {</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :           opal_show_help(&quot;help-opal-util.txt&quot;,</span>
+<span class="lineNum">     464 </span>            :                          &quot;stacktrace bad signal&quot;, true,
+<span class="lineNum">     465 </span>            :                          opal_signal_string, tmp);
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :           return OPAL_ERR_SILENT;</span>
+<span class="lineNum">     467 </span><span class="lineCov">          8 :       } else if (next == NULL) {</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :          return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     469 </span><span class="lineCov">          8 :       } else if (':' == *next &amp;&amp;</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :                  0 == strncasecmp(next, &quot;:complain&quot;, 9)) {</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :           complain = true;</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :           next += 9;</span>
+<span class="lineNum">     473 </span><span class="lineCov">          8 :       } else if (',' != *next &amp;&amp; '\0' != *next) {</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :           return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     475 </span>            :       }
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span>            :       /* Just query first */
+<span class="lineNum">     478 </span><span class="lineCov">          8 :       ret = sigaction (sig, NULL, &amp;old);</span>
+<span class="lineNum">     479 </span><span class="lineCov">          8 :       if (0 != ret) {</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :           return OPAL_ERR_IN_ERRNO;</span>
+<span class="lineNum">     481 </span>            :       }
+<span class="lineNum">     482 </span>            :       /* Was there something already there? */
+<span class="lineNum">     483 </span><span class="lineCov">          8 :       if (SIG_IGN != old.sa_handler &amp;&amp; SIG_DFL != old.sa_handler) {</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :           if (!showed_help &amp;&amp; complain) {</span>
+<span class="lineNum">     485 </span>            :               /* JMS This is icky; there is no error message
+<span class="lineNum">     486 </span>            :                  aggregation here so this message may be repeated for
+<span class="lineNum">     487 </span>            :                  every single MPI process... */
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :               opal_show_help(&quot;help-opal-util.txt&quot;,</span>
+<span class="lineNum">     489 </span>            :                              &quot;stacktrace signal override&quot;,
+<span class="lineNum">     490 </span>            :                              true, sig, sig, sig, opal_signal_string);
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :               showed_help = true;</span>
+<span class="lineNum">     492 </span>            :           }
+<span class="lineNum">     493 </span>            :       }
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span>            :       /* Nope, nothing was there, so put in ours */
+<span class="lineNum">     496 </span>            :       else {
+<span class="lineNum">     497 </span><span class="lineCov">          8 :           if (0 != sigaction(sig, &amp;act, NULL)) {</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :               return OPAL_ERR_IN_ERRNO;</span>
+<span class="lineNum">     499 </span>            :           }
+<span class="lineNum">     500 </span>            :       }
+<span class="lineNum">     501 </span>            :     }
+<span class="lineNum">     502 </span>            : 
+<span class="lineNum">     503 </span>            : #endif /* OPAL_WANT_PRETTY_PRINT_STACKTRACE */
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     506 </span>            : }
+<span class="lineNum">     507 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,658 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - ompi/mca/pubsub/orte/pubsub_orte.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/pubsub/orte</a> - pubsub_orte.c<span style="font-size: 80%;"> (source / <a href="pubsub_orte.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">217</td>
+            <td class="headerCovTableEntryLo">1.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryLo">33.3 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2011 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2007      Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2012-2013 Los Alamos National Security, LLC.  All rights
+<span class="lineNum">      14 </span>            :  *                         reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2013      Intel, Inc.  All rights reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      17 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      18 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      21 </span>            :  *
+<span class="lineNum">      22 </span>            :  * $HEADER$
+<span class="lineNum">      23 </span>            :  */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;ompi/constants.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;ctype.h&gt;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &quot;opal/util/show_help.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;opal/dss/dss.h&quot;
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;orte/mca/rml/rml.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;orte/mca/rml/rml_types.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;orte/mca/rml/base/rml_contact.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;orte/mca/routed/routed.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;orte/runtime/orte_data_server.h&quot;
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : #include &quot;ompi/info/info.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;ompi/mca/rte/rte.h&quot;
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : #include &quot;ompi/mca/pubsub/base/base.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;pubsub_orte.h&quot;
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            : /* Establish contact with the server
+<span class="lineNum">      52 </span>            :  *
+<span class="lineNum">      53 </span>            :  * NOTE: we do not do this automatically during init to avoid
+<span class="lineNum">      54 </span>            :  * forcing every process to pay the time penalty during MPI_Init
+<span class="lineNum">      55 </span>            :  * when only a few, if any, will ever call pub/lookup/unpub. In
+<span class="lineNum">      56 </span>            :  * addition, those that -do- call these functions may well only
+<span class="lineNum">      57 </span>            :  * use local (as opposed to global) storage, and hence will have
+<span class="lineNum">      58 </span>            :  * no need to talk to the server, even though a sys admin may
+<span class="lineNum">      59 </span>            :  * have set one up. So we do a lazy setup of the server contact
+<span class="lineNum">      60 </span>            :  * info - it only gets setup the first time we call a function
+<span class="lineNum">      61 </span>            :  * that wants to talk to the global server
+<span class="lineNum">      62 </span>            :  */
+<a name="63"><span class="lineNum">      63 </span>            : static bool server_setup=false;</a>
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 : static void setup_server(void)</span>
+<span class="lineNum">      66 </span>            : {
+<span class="lineNum">      67 </span>            :     opal_buffer_t buf;
+<span class="lineNum">      68 </span>            :     int rc;
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, ompi_pubsub_base_framework.framework_output,</span>
+<span class="lineNum">      71 </span>            :                          &quot;%s pubsub:orte: setting up server at URI %s&quot;,
+<span class="lineNum">      72 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">      73 </span>            :                          (NULL == mca_pubsub_orte_component.server_uri) ? &quot;NULL&quot; : mca_pubsub_orte_component.server_uri));
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            :     /* flag setup as completed so we only pass through here once */
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     server_setup = true;</span>
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     if (NULL == mca_pubsub_orte_component.server_uri) {</span>
+<span class="lineNum">      79 </span>            :         /* if the contact info for the server is NULL, then there
+<span class="lineNum">      80 </span>            :          * is nothing we can do - there is no path to the server
+<span class="lineNum">      81 </span>            :          */
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :         mca_pubsub_orte_component.server_found = false;</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">      84 </span>            :     }
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            :     /* init the route to the server - init_routes wants a buffer
+<span class="lineNum">      87 </span>            :      * passed to it, so we have to package the server's contact
+<span class="lineNum">      88 </span>            :      * info into a buffer
+<span class="lineNum">      89 </span>            :      */
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;buf, opal_buffer_t);</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     opal_dss.pack(&amp;buf, &amp;mca_pubsub_orte_component.server_uri, 1, OPAL_STRING);</span>
+<span class="lineNum">      92 </span>            :     /* extract the server's name so we have its jobid */
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = orte_rml_base_parse_uris(mca_pubsub_orte_component.server_uri,</span>
+<span class="lineNum">      94 </span>            :                                                        &amp;mca_pubsub_orte_component.server, NULL))) {
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;buf);</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :         mca_pubsub_orte_component.server_found = false;</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">      99 </span>            :     }
+<span class="lineNum">     100 </span>            :     /* init routes to the server's job */
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = orte_routed.init_routes(mca_pubsub_orte_component.server.jobid, &amp;buf))) {</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :         mca_pubsub_orte_component.server_found = false;</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;buf);</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     106 </span>            :     }
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;buf);</span>
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            :     /* flag the server as found */
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     mca_pubsub_orte_component.server_found = true;</span>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, ompi_pubsub_base_framework.framework_output,</span>
+<span class="lineNum">     113 </span>            :                          &quot;%s pubsub:orte: server %s setup&quot;,
+<span class="lineNum">     114 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     115 </span>            :                          ORTE_NAME_PRINT(&amp;mca_pubsub_orte_component.server)));
+<span class="lineNum">     116 </span>            : }
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            : /*
+<a name="119"><span class="lineNum">     119 </span>            :  * Init the module</a>
+<span class="lineNum">     120 </span>            :  */
+<span class="lineNum">     121 </span><span class="lineCov">          2 : static int init(void)</span>
+<span class="lineNum">     122 </span>            : {
+<span class="lineNum">     123 </span><span class="lineCov">          2 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     124 </span>            : }
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            : /*
+<span class="lineNum">     127 </span>            :  * publish the port_name for the specified service_name. This will
+<span class="lineNum">     128 </span>            :  * be published under our process name, so only we will be allowed
+<span class="lineNum">     129 </span>            :  * to remove it later.
+<span class="lineNum">     130 </span>            :  */
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 : static int publish ( const char *service_name, ompi_info_t *info, const char *port_name )</span>
+<span class="lineNum">     132 </span>            : {
+<span class="lineNum">     133 </span>            :     int rc, ret, flag;
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     bool global_scope = false;</span>
+<span class="lineNum">     135 </span>            :     orte_process_name_t *info_host;
+<span class="lineNum">     136 </span>            :     opal_buffer_t *buf;
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     orte_data_server_cmd_t cmd=ORTE_DATA_SERVER_PUBLISH;</span>
+<span class="lineNum">     138 </span>            :     orte_std_cntr_t cnt;
+<span class="lineNum">     139 </span>            :     orte_rml_recv_cb_t xfer;
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     bool unique=false;</span>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     ompi_info_get_bool(info, &quot;ompi_global_scope&quot;, &amp;global_scope, &amp;flag);</span>
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     if (0 == flag) {</span>
+<span class="lineNum">     145 </span>            :         /* scope was not defined - see if server exists */
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         if (!server_setup) {</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :             setup_server();</span>
+<span class="lineNum">     148 </span>            :         }
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :         if (mca_pubsub_orte_component.server_found) {</span>
+<span class="lineNum">     150 </span>            :             /* server was found - use it as our default store */
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :             info_host = &amp;mca_pubsub_orte_component.server;</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :             global_scope = true;</span>
+<span class="lineNum">     153 </span>            :         } else {
+<span class="lineNum">     154 </span>            :             /* server was not found - use our HNP as default store */
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :             info_host = ORTE_PROC_MY_HNP;</span>
+<span class="lineNum">     156 </span>            :         }
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     } else if (!global_scope) {</span>
+<span class="lineNum">     158 </span>            :         /* if the scope is not global, then store the value on the HNP */
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :         info_host = ORTE_PROC_MY_HNP;</span>
+<span class="lineNum">     160 </span>            :     } else {
+<span class="lineNum">     161 </span>            :         /* has the server been setup yet? */
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :         if (!server_setup) {</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :             setup_server();</span>
+<span class="lineNum">     164 </span>            :         }
+<span class="lineNum">     165 </span>            :         /* store the value on the global ompi_server, but error
+<span class="lineNum">     166 </span>            :          * if that server wasn't contacted
+<span class="lineNum">     167 </span>            :          */
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :         if (!mca_pubsub_orte_component.server_found) {</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :             opal_show_help(&quot;help-ompi-pubsub-orte.txt&quot;, &quot;pubsub-orte:no-server&quot;,</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :                            true, (long)ORTE_PROC_MY_NAME-&gt;vpid, &quot;publish to&quot;);</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :             return OMPI_ERR_NOT_FOUND;</span>
+<span class="lineNum">     172 </span>            :         }
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :         info_host = &amp;mca_pubsub_orte_component.server;</span>
+<span class="lineNum">     174 </span>            :     }
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, ompi_pubsub_base_framework.framework_output,</span>
+<span class="lineNum">     177 </span>            :                          &quot;%s pubsub:orte: publishing service %s scope %s&quot;,
+<span class="lineNum">     178 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     179 </span>            :                          service_name, global_scope ? &quot;Global&quot; : &quot;Local&quot;));
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     ompi_info_get_bool(info, &quot;ompi_unique&quot;, &amp;unique, &amp;flag);</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     if (0 == flag) {</span>
+<span class="lineNum">     183 </span>            :         /* uniqueness not specified - overwrite by default */
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         unique = false;</span>
+<span class="lineNum">     185 </span>            :     }
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span>            :     /* construct the buffer */
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :     buf = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            :     /* pack the publish command */
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buf, &amp;cmd, 1, ORTE_DATA_SERVER_CMD))) {</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buf);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     195 </span>            :     }
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            :     /* pack the service name */
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buf, &amp;service_name, 1, OPAL_STRING))) {</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buf);</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     202 </span>            :     }
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            :     /* pack the port name */
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buf, &amp;port_name, 1, OPAL_STRING))) {</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buf);</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     209 </span>            :     }
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span>            :     /* pack the uniqueness flag */
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buf, &amp;unique, 1, OPAL_BOOL))) {</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buf);</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     216 </span>            :     }
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            :     /* send the data */
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     if (0 &gt; (rc = orte_rml.send_buffer_nb(info_host, buf,</span>
+<span class="lineNum">     220 </span>            :                                           ORTE_RML_TAG_DATA_SERVER,
+<span class="lineNum">     221 </span>            :                                           orte_rml_send_callback, NULL))) {
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buf);</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     225 </span>            :     }
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span>            :     /* get the answer */
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;xfer, orte_rml_recv_cb_t);</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     xfer.active = true;</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD,</span>
+<span class="lineNum">     231 </span>            :                             ORTE_RML_TAG_DATA_CLIENT,
+<span class="lineNum">     232 </span>            :                             ORTE_RML_NON_PERSISTENT,
+<span class="lineNum">     233 </span>            :                             orte_rml_recv_callback, &amp;xfer);
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     OMPI_WAIT_FOR_COMPLETION(xfer.active);</span>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            :     /* unpack the result */
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     cnt = 1;</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.unpack(&amp;xfer.data, &amp;ret, &amp;cnt, OPAL_INT))) {</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     240 </span>            :     }
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     rc = ret;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;xfer);</span>
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span>            : CLEANUP:
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     246 </span>            : }
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span>            : enum { NONE, LOCAL, GLOBAL };
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 : static char* lookup ( const char *service_name, ompi_info_t *info )</span>
+<span class="lineNum">     251 </span>            : {
+<span class="lineNum">     252 </span>            :     orte_process_name_t *info_host;
+<span class="lineNum">     253 </span>            :     opal_buffer_t *buf;
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     orte_data_server_cmd_t cmd=ORTE_DATA_SERVER_LOOKUP;</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     orte_std_cntr_t cnt=0;</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :     char *port_name=NULL;</span>
+<span class="lineNum">     257 </span>            :     int ret, rc, flag, i;
+<span class="lineNum">     258 </span>            :     char value[256], **tokens, *ptr;
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     int lookup[2] = { GLOBAL, LOCAL };</span>
+<span class="lineNum">     260 </span>            :     size_t num_tokens;
+<span class="lineNum">     261 </span>            :     orte_rml_recv_cb_t xfer;
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span>            :     /* Look in the MPI_Info (ompi_info_t*) for the key
+<span class="lineNum">     264 </span>            :      * &quot;ompi_lookup_order&quot;.  Acceptable values are:
+<span class="lineNum">     265 </span>            :      *
+<span class="lineNum">     266 </span>            :      * - &quot;local&quot; -- only check the local scope
+<span class="lineNum">     267 </span>            :      * - &quot;global&quot; -- only check the global scope
+<span class="lineNum">     268 </span>            :      * - &quot;local,global&quot; -- check the local scope first, then check the
+<span class="lineNum">     269 </span>            :      *   global scope
+<span class="lineNum">     270 </span>            :      * - &quot;global,local&quot; -- check the global scope first, then check the
+<span class="lineNum">     271 </span>            :      *   local scope
+<span class="lineNum">     272 </span>            :      *
+<span class="lineNum">     273 </span>            :      * Give a little leeway in terms of whitespace in the value.
+<span class="lineNum">     274 </span>            :      *
+<span class="lineNum">     275 </span>            :      * The lookup[2] array will contain the results: lookup[0] is the
+<span class="lineNum">     276 </span>            :      * first scope to check, lookup[1] is the 2nd.  Either value may
+<span class="lineNum">     277 </span>            :      * be NONE, LOCAL, or GLOBAL.  If both are NONE, clearly that's an
+<span class="lineNum">     278 </span>            :      * error.  :-)
+<span class="lineNum">     279 </span>            :      */
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     ompi_info_get(info, &quot;ompi_lookup_order&quot;, sizeof(value) - 1, value, &amp;flag);</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     if (flag) {</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :         ptr = &amp;value[0];</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :         while (isspace(*ptr) &amp;&amp; (ptr - value) &lt; (int)sizeof(value)) {</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :             ++ptr;</span>
+<span class="lineNum">     285 </span>            :         }
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         if (ptr - value &lt; (int)sizeof(value)) {</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :             tokens = opal_argv_split(ptr, ',');</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :             if (NULL != tokens) {</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :                 if ((num_tokens = opal_argv_count(tokens)) &gt; 2) {</span>
+<span class="lineNum">     290 </span>            :                     /* too many values in the comma-delimited list */
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :                     opal_show_help(&quot;help-ompi-pubsub-orte.txt&quot;,</span>
+<span class="lineNum">     292 </span>            :                                    &quot;pubsub-orte:too-many-orders&quot;,
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :                                    true, (long)ORTE_PROC_MY_NAME-&gt;vpid,</span>
+<span class="lineNum">     294 </span>            :                                    (long)num_tokens);
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :                     opal_argv_free(tokens);</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :                     return NULL;</span>
+<span class="lineNum">     297 </span>            :                 }
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :                 for (i = 0; i &lt; 2; ++i) {</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :                     if (NULL != tokens[i]) {</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :                         if (0 == strcasecmp(tokens[i], &quot;local&quot;)) {</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :                             lookup[i] = LOCAL;</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :                         } else if (0 == strcasecmp(tokens[i], &quot;global&quot;)) {</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :                             lookup[i] = GLOBAL;</span>
+<span class="lineNum">     304 </span>            :                         } else {
+<span class="lineNum">     305 </span>            :                             /* unrecognized value -- that's an error */
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :                             opal_show_help(&quot;help-ompi-pubsub-orte.txt&quot;,</span>
+<span class="lineNum">     307 </span>            :                                            &quot;pubsub-orte:unknown-order&quot;,
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :                                            true, (long)ORTE_PROC_MY_NAME-&gt;vpid);</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :                             opal_argv_free(tokens);</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :                             return NULL;</span>
+<span class="lineNum">     311 </span>            :                         }
+<span class="lineNum">     312 </span>            :                     } else {
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :                         lookup[i] = NONE;</span>
+<span class="lineNum">     314 </span>            :                     }
+<span class="lineNum">     315 </span>            :                 }
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :                 opal_argv_free(tokens);</span>
+<span class="lineNum">     317 </span>            :             }
+<span class="lineNum">     318 </span>            :         }
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :         if (NONE == lookup[0]) {</span>
+<span class="lineNum">     321 </span>            :             /* if the user provided an info key, then we at least must
+<span class="lineNum">     322 </span>            :              * be given one place to look
+<span class="lineNum">     323 </span>            :              */
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :             opal_show_help(&quot;help-ompi-pubsub-orte.txt&quot;,</span>
+<span class="lineNum">     325 </span>            :                            &quot;pubsub-orte:unknown-order&quot;,
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :                            true, (long)ORTE_PROC_MY_NAME-&gt;vpid);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :             return NULL;</span>
+<span class="lineNum">     328 </span>            :         }
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span>            :     } else {
+<span class="lineNum">     331 </span>            :         /* if no info key was provided, then we default to the global
+<span class="lineNum">     332 </span>            :          * server IF it is active
+<span class="lineNum">     333 </span>            :          */
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :         if (!server_setup) {</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :             setup_server();</span>
+<span class="lineNum">     336 </span>            :         }
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :         lookup[1] = NONE;</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         if (mca_pubsub_orte_component.server_found) {</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :             lookup[0] = GLOBAL;</span>
+<span class="lineNum">     340 </span>            :         } else {
+<span class="lineNum">     341 </span>            :             /* global server was not found - just look local */
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :             lookup[0] = LOCAL;</span>
+<span class="lineNum">     343 </span>            :         }
+<span class="lineNum">     344 </span>            :     }
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, ompi_pubsub_base_framework.framework_output,</span>
+<span class="lineNum">     347 </span>            :                          &quot;%s pubsub:orte: lookup service %s scope %d&quot;,
+<span class="lineNum">     348 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     349 </span>            :                          service_name, lookup[0]));
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span>            :     /* go find the value */
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; 2; i++) {</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :         if (LOCAL == lookup[i]) {</span>
+<span class="lineNum">     354 </span>            :             /* if the scope is local, then lookup the value on the HNP */
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :             info_host = ORTE_PROC_MY_HNP;</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :         } else if (GLOBAL == lookup[i]) {</span>
+<span class="lineNum">     357 </span>            :             /* has the server been setup yet? */
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :             if (!server_setup) {</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :                 setup_server();</span>
+<span class="lineNum">     360 </span>            :             }
+<span class="lineNum">     361 </span>            :             /* lookup the value on the global ompi_server, but error
+<span class="lineNum">     362 </span>            :              * if that server wasn't contacted
+<span class="lineNum">     363 </span>            :              */
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :             if (!mca_pubsub_orte_component.server_found) {</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :                 opal_show_help(&quot;help-ompi-pubsub-orte.txt&quot;,</span>
+<span class="lineNum">     366 </span>            :                                &quot;pubsub-orte:no-server&quot;,
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :                                true, (long)ORTE_PROC_MY_NAME-&gt;vpid,</span>
+<span class="lineNum">     368 </span>            :                                &quot;lookup from&quot;);
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :                 return NULL;</span>
+<span class="lineNum">     370 </span>            :             }
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :             info_host = &amp;mca_pubsub_orte_component.server;</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :         } else if (NONE == lookup[i]) {</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     374 </span>            :         } else {
+<span class="lineNum">     375 </span>            :             /* unknown host! */
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :             opal_show_help(&quot;help-ompi-pubsub-orte.txt&quot;,</span>
+<span class="lineNum">     377 </span>            :                            &quot;pubsub-orte:unknown-order&quot;,
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                            true, (long)ORTE_PROC_MY_NAME-&gt;vpid);</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :             return NULL;</span>
+<span class="lineNum">     380 </span>            :         }
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span>            :         /* go look it up */
+<span class="lineNum">     383 </span>            :         /* construct the buffer */
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         buf = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span>            :         /* pack the lookup command */
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (ret = opal_dss.pack(buf, &amp;cmd, 1, ORTE_DATA_SERVER_CMD))) {</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(buf);</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :             goto CLEANUP;</span>
+<span class="lineNum">     391 </span>            :         }
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span>            :         /* pack the service name */
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (ret = opal_dss.pack(buf, &amp;service_name, 1, OPAL_STRING))) {</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(buf);</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :             goto CLEANUP;</span>
+<span class="lineNum">     398 </span>            :         }
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            :         /* send the cmd */
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         if (0 &gt; (ret = orte_rml.send_buffer_nb(info_host, buf,</span>
+<span class="lineNum">     402 </span>            :                                                ORTE_RML_TAG_DATA_SERVER,
+<span class="lineNum">     403 </span>            :                                                orte_rml_send_callback, NULL))) {
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(buf);</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :             goto CLEANUP;</span>
+<span class="lineNum">     407 </span>            :         }
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span>            :         /* get the answer */
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :         OBJ_CONSTRUCT(&amp;xfer, orte_rml_recv_cb_t);</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         xfer.active = true;</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD,</span>
+<span class="lineNum">     413 </span>            :                                 ORTE_RML_TAG_DATA_CLIENT,
+<span class="lineNum">     414 </span>            :                                 ORTE_RML_NON_PERSISTENT,
+<span class="lineNum">     415 </span>            :                                 orte_rml_recv_callback, &amp;xfer);
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :         OMPI_WAIT_FOR_COMPLETION(xfer.active);</span>
+<span class="lineNum">     417 </span>            : 
+<span class="lineNum">     418 </span>            :         /* unpack the return code */
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :         cnt = 1;</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (ret = opal_dss.unpack(&amp;xfer.data, &amp;rc, &amp;cnt, OPAL_INT))) {</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :             goto CLEANUP;</span>
+<span class="lineNum">     423 </span>            :         }
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((1, ompi_pubsub_base_framework.framework_output,</span>
+<span class="lineNum">     426 </span>            :                              &quot;%s pubsub:orte: lookup returned status %d&quot;,
+<span class="lineNum">     427 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), rc));
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS == rc) {</span>
+<span class="lineNum">     430 </span>            :             /* the server was able to lookup the port - unpack the port name */
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :             cnt=1;</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (ret = opal_dss.unpack(&amp;xfer.data, &amp;port_name, &amp;cnt, OPAL_STRING))) {</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :                 OBJ_DESTRUCT(&amp;xfer);</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :                 goto CLEANUP;</span>
+<span class="lineNum">     436 </span>            :             }
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((1, ompi_pubsub_base_framework.framework_output,</span>
+<span class="lineNum">     439 </span>            :                                  &quot;%s pubsub:orte: lookup returned port %s&quot;,
+<span class="lineNum">     440 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     441 </span>            :                                  (NULL == port_name) ? &quot;NULL&quot; : port_name));
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :             if (NULL != port_name) {</span>
+<span class="lineNum">     444 </span>            :                 /* got an answer - return it */
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :                 OBJ_DESTRUCT(&amp;xfer);</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :                 return port_name;</span>
+<span class="lineNum">     447 </span>            :             }
+<span class="lineNum">     448 </span>            :         }
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span>            :         /* if we didn't get a port_name, then continue */
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;xfer);</span>
+<span class="lineNum">     452 </span>            :     }
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span>            :     /* only get here if we tried both options and failed - since the
+<span class="lineNum">     455 </span>            :      * buffer will already have been cleaned up, just return
+<span class="lineNum">     456 </span>            :      */
+<span class="lineNum">     457 </span>            :  CLEANUP:
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     459 </span>            : }
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span>            : /*
+<span class="lineNum">     462 </span>            :  * delete the entry. Only the process who has published
+<span class="lineNum">     463 </span>            :  * the service_name has the right to remove this
+<span class="lineNum">     464 </span>            :  * service - the server will verify and report the result
+<span class="lineNum">     465 </span>            :  */
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 : static int unpublish ( const char *service_name, ompi_info_t *info )</span>
+<span class="lineNum">     467 </span>            : {
+<span class="lineNum">     468 </span>            :     int rc, ret, flag;
+<span class="lineNum">     469 </span>            :     bool global_scope;
+<span class="lineNum">     470 </span>            :     orte_process_name_t *info_host;
+<span class="lineNum">     471 </span>            :     opal_buffer_t *buf;
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :     orte_data_server_cmd_t cmd=ORTE_DATA_SERVER_UNPUBLISH;</span>
+<span class="lineNum">     473 </span>            :     orte_std_cntr_t cnt;
+<span class="lineNum">     474 </span>            :     orte_rml_recv_cb_t xfer;
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     ompi_info_get_bool(info, &quot;ompi_global_scope&quot;, &amp;global_scope, &amp;flag);</span>
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     if (0 == flag) {</span>
+<span class="lineNum">     479 </span>            :         /* scope was not defined - see if server exists */
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :         if (!server_setup) {</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :             setup_server();</span>
+<span class="lineNum">     482 </span>            :         }
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :         if (mca_pubsub_orte_component.server_found) {</span>
+<span class="lineNum">     484 </span>            :             /* server was found - use it as our default store */
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :             info_host = &amp;mca_pubsub_orte_component.server;</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :             global_scope = true;</span>
+<span class="lineNum">     487 </span>            :         } else {
+<span class="lineNum">     488 </span>            :             /* server was not found - use our HNP as default store */
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :             info_host = ORTE_PROC_MY_HNP;</span>
+<span class="lineNum">     490 </span>            :         }
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     } else if (!global_scope) {</span>
+<span class="lineNum">     492 </span>            :         /* if the scope is not global, then unpublish the value from the HNP */
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :         info_host = ORTE_PROC_MY_HNP;</span>
+<span class="lineNum">     494 </span>            :     } else {
+<span class="lineNum">     495 </span>            :         /* has the server been setup yet? */
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :         if (!server_setup) {</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :             setup_server();</span>
+<span class="lineNum">     498 </span>            :         }
+<span class="lineNum">     499 </span>            :         /* unpublish the value from the global ompi_server, but error
+<span class="lineNum">     500 </span>            :         * if that server wasn't contacted
+<span class="lineNum">     501 </span>            :         */
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :         if (!mca_pubsub_orte_component.server_found) {</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :             opal_show_help(&quot;help-ompi-pubsub-orte.txt&quot;, &quot;pubsub-orte:no-server&quot;,</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :                            true, (long)ORTE_PROC_MY_NAME-&gt;vpid, &quot;unpublish from&quot;);</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :             return OMPI_ERR_NOT_FOUND;</span>
+<span class="lineNum">     506 </span>            :         }
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :         info_host = &amp;mca_pubsub_orte_component.server;</span>
+<span class="lineNum">     508 </span>            :     }
+<span class="lineNum">     509 </span>            : 
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, ompi_pubsub_base_framework.framework_output,</span>
+<span class="lineNum">     511 </span>            :                          &quot;%s pubsub:orte: unpublish service %s scope %s&quot;,
+<span class="lineNum">     512 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     513 </span>            :                          service_name, global_scope ? &quot;Global&quot; : &quot;Local&quot;));
+<span class="lineNum">     514 </span>            : 
+<span class="lineNum">     515 </span>            :     /* construct the buffer */
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     buf = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span>            :     /* pack the unpublish command */
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buf, &amp;cmd, 1, ORTE_DATA_SERVER_CMD))) {</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buf);</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     523 </span>            :     }
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span>            :     /* pack the service name */
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.pack(buf, &amp;service_name, 1, OPAL_STRING))) {</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buf);</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     530 </span>            :     }
+<span class="lineNum">     531 </span>            : 
+<span class="lineNum">     532 </span>            :     /* send the command */
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :     if (0 &gt; (rc = orte_rml.send_buffer_nb(info_host, buf, ORTE_RML_TAG_DATA_SERVER,</span>
+<span class="lineNum">     534 </span>            :                                           orte_rml_send_callback, NULL))) {
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(buf);</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     538 </span>            :     }
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span>            :     /* get the answer */
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;xfer, orte_rml_recv_cb_t);</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :     xfer.active = true;</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :     orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_DATA_CLIENT,</span>
+<span class="lineNum">     544 </span>            :                             ORTE_RML_NON_PERSISTENT,
+<span class="lineNum">     545 </span>            :                             orte_rml_recv_callback, &amp;xfer);
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :     OMPI_WAIT_FOR_COMPLETION(xfer.active);</span>
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span>            :     /* unpack the result */
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :     cnt = 1;</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_dss.unpack(&amp;xfer.data, &amp;ret, &amp;cnt, OPAL_INT))) {</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;xfer);</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     554 </span>            :     }
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;xfer);</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :     rc = ret;</span>
+<span class="lineNum">     557 </span>            : 
+<span class="lineNum">     558 </span>            : CLEANUP:
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     560 </span>            : }
+<span class="lineNum">     561 </span>            : 
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span>            : /*
+<a name="564"><span class="lineNum">     564 </span>            :  * finalize the module</a>
+<span class="lineNum">     565 </span>            :  */
+<span class="lineNum">     566 </span><span class="lineCov">          2 : static int finalize(void)</span>
+<span class="lineNum">     567 </span>            : {
+<span class="lineNum">     568 </span><span class="lineCov">          2 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     569 </span>            : }
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span>            : /*
+<span class="lineNum">     572 </span>            :  * instantiate the module
+<span class="lineNum">     573 </span>            :  */
+<span class="lineNum">     574 </span>            : ompi_pubsub_base_module_t ompi_pubsub_orte_module = {
+<span class="lineNum">     575 </span>            :     init,
+<span class="lineNum">     576 </span>            :     publish,
+<span class="lineNum">     577 </span>            :     unpublish,
+<span class="lineNum">     578 </span>            :     lookup,
+<span class="lineNum">     579 </span>            :     finalize
+<span class="lineNum">     580 </span>            : };
+<span class="lineNum">     581 </span>            : 
+<span class="lineNum">     582 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

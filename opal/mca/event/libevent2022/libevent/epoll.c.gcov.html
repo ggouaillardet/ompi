@@ -1,0 +1,549 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/event/libevent2022/libevent/epoll.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../index.html">top level</a> - <a href="index.html">opal/mca/event/libevent2022/libevent</a> - epoll.c<span style="font-size: 80%;"> (source / <a href="epoll.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">171</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright 2000-2007 Niels Provos &lt;provos@citi.umich.edu&gt;
+<span class="lineNum">       3 </span>            :  * Copyright 2007-2012 Niels Provos, Nick Mathewson
+<span class="lineNum">       4 </span>            :  *
+<span class="lineNum">       5 </span>            :  * Redistribution and use in source and binary forms, with or without
+<span class="lineNum">       6 </span>            :  * modification, are permitted provided that the following conditions
+<span class="lineNum">       7 </span>            :  * are met:
+<span class="lineNum">       8 </span>            :  * 1. Redistributions of source code must retain the above copyright
+<span class="lineNum">       9 </span>            :  *    notice, this list of conditions and the following disclaimer.
+<span class="lineNum">      10 </span>            :  * 2. Redistributions in binary form must reproduce the above copyright
+<span class="lineNum">      11 </span>            :  *    notice, this list of conditions and the following disclaimer in the
+<span class="lineNum">      12 </span>            :  *    documentation and/or other materials provided with the distribution.
+<span class="lineNum">      13 </span>            :  * 3. The name of the author may not be used to endorse or promote products
+<span class="lineNum">      14 </span>            :  *    derived from this software without specific prior written permission.
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+<span class="lineNum">      17 </span>            :  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+<span class="lineNum">      18 </span>            :  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+<span class="lineNum">      19 </span>            :  * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+<span class="lineNum">      20 </span>            :  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+<span class="lineNum">      21 </span>            :  * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+<span class="lineNum">      22 </span>            :  * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+<span class="lineNum">      23 </span>            :  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+<span class="lineNum">      24 </span>            :  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+<span class="lineNum">      25 </span>            :  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+<span class="lineNum">      26 </span>            :  */
+<span class="lineNum">      27 </span>            : #include &quot;event2/event-config.h&quot;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &lt;stdint.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;sys/resource.h&gt;
+<span class="lineNum">      32 </span>            : #ifdef _EVENT_HAVE_SYS_TIME_H
+<span class="lineNum">      33 </span>            : #include &lt;sys/time.h&gt;
+<span class="lineNum">      34 </span>            : #endif
+<span class="lineNum">      35 </span>            : #include &lt;sys/queue.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;sys/epoll.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;signal.h&gt;
+<span class="lineNum">      38 </span>            : #include &lt;limits.h&gt;
+<span class="lineNum">      39 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      40 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      41 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      42 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      43 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      44 </span>            : #ifdef _EVENT_HAVE_FCNTL_H
+<span class="lineNum">      45 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      46 </span>            : #endif
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : #include &quot;event-internal.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;evsignal-internal.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;event2/thread.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;evthread-internal.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;log-internal.h&quot;
+<span class="lineNum">      53 </span>            : #include &quot;evmap-internal.h&quot;
+<span class="lineNum">      54 </span>            : #include &quot;changelist-internal.h&quot;
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : struct epollop {
+<span class="lineNum">      57 </span>            :         struct epoll_event *events;
+<span class="lineNum">      58 </span>            :         int nevents;
+<span class="lineNum">      59 </span>            :         int epfd;
+<span class="lineNum">      60 </span>            : };
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : static void *epoll_init(struct event_base *);
+<span class="lineNum">      63 </span>            : static int epoll_dispatch(struct event_base *, struct timeval *);
+<span class="lineNum">      64 </span>            : static void epoll_dealloc(struct event_base *);
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : static const struct eventop epollops_changelist = {
+<span class="lineNum">      67 </span>            :         &quot;epoll (with changelist)&quot;,
+<span class="lineNum">      68 </span>            :         epoll_init,
+<span class="lineNum">      69 </span>            :         event_changelist_add,
+<span class="lineNum">      70 </span>            :         event_changelist_del,
+<span class="lineNum">      71 </span>            :         epoll_dispatch,
+<span class="lineNum">      72 </span>            :         epoll_dealloc,
+<span class="lineNum">      73 </span>            :         1, /* need reinit */
+<span class="lineNum">      74 </span>            :         EV_FEATURE_ET|EV_FEATURE_O1,
+<span class="lineNum">      75 </span>            :         EVENT_CHANGELIST_FDINFO_SIZE
+<span class="lineNum">      76 </span>            : };
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : static int epoll_nochangelist_add(struct event_base *base, evutil_socket_t fd,
+<span class="lineNum">      80 </span>            :     short old, short events, void *p);
+<span class="lineNum">      81 </span>            : static int epoll_nochangelist_del(struct event_base *base, evutil_socket_t fd,
+<span class="lineNum">      82 </span>            :     short old, short events, void *p);
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            : const struct eventop epollops = {
+<span class="lineNum">      85 </span>            :         &quot;epoll&quot;,
+<span class="lineNum">      86 </span>            :         epoll_init,
+<span class="lineNum">      87 </span>            :         epoll_nochangelist_add,
+<span class="lineNum">      88 </span>            :         epoll_nochangelist_del,
+<span class="lineNum">      89 </span>            :         epoll_dispatch,
+<span class="lineNum">      90 </span>            :         epoll_dealloc,
+<span class="lineNum">      91 </span>            :         1, /* need reinit */
+<span class="lineNum">      92 </span>            :         EV_FEATURE_ET|EV_FEATURE_O1,
+<span class="lineNum">      93 </span>            :         0
+<span class="lineNum">      94 </span>            : };
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            : #define INITIAL_NEVENT 32
+<span class="lineNum">      97 </span>            : #define MAX_NEVENT 4096
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            : /* On Linux kernels at least up to 2.6.24.4, epoll can't handle timeout
+<span class="lineNum">     100 </span>            :  * values bigger than (LONG_MAX - 999ULL)/HZ.  HZ in the wild can be
+<span class="lineNum">     101 </span>            :  * as big as 1000, and LONG_MAX can be as small as (1&lt;&lt;31)-1, so the
+<span class="lineNum">     102 </span>            :  * largest number of msec we can support here is 2147482.  Let's
+<span class="lineNum">     103 </span>            :  * round that down by 47 seconds.
+<span class="lineNum">     104 </span>            :  */
+<span class="lineNum">     105 </span>            : #define MAX_EPOLL_TIMEOUT_MSEC (35*60*1000)
+<a name="106"><span class="lineNum">     106 </span>            : </a>
+<span class="lineNum">     107 </span>            : static void *
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 : epoll_init(struct event_base *base)</span>
+<span class="lineNum">     109 </span>            : {
+<span class="lineNum">     110 </span>            :         int epfd;
+<span class="lineNum">     111 </span>            :         struct epollop *epollop;
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            :         /* Initialize the kernel queue.  (The size field is ignored since
+<span class="lineNum">     114 </span>            :          * 2.6.8.) */
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :         if ((epfd = epoll_create(32000)) == -1) {</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :                 if (errno != ENOSYS)</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :                         event_warn(&quot;epoll_create&quot;);</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :                 return (NULL);</span>
+<span class="lineNum">     119 </span>            :         }
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         evutil_make_socket_closeonexec(epfd);</span>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :         if (!(epollop = mm_calloc(1, sizeof(struct epollop)))) {</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :                 close(epfd);</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :                 return (NULL);</span>
+<span class="lineNum">     126 </span>            :         }
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         epollop-&gt;epfd = epfd;</span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            :         /* Initialize fields */
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         epollop-&gt;events = mm_calloc(INITIAL_NEVENT, sizeof(struct epoll_event));</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :         if (epollop-&gt;events == NULL) {</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :                 mm_free(epollop);</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :                 close(epfd);</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :                 return (NULL);</span>
+<span class="lineNum">     136 </span>            :         }
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :         epollop-&gt;nevents = INITIAL_NEVENT;</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :         if ((base-&gt;flags &amp; EVENT_BASE_FLAG_EPOLL_USE_CHANGELIST) != 0 ||</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :             ((base-&gt;flags &amp; EVENT_BASE_FLAG_IGNORE_ENV) == 0 &amp;&amp;</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :                 evutil_getenv(&quot;EVENT_EPOLL_USE_CHANGELIST&quot;) != NULL))</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :                 base-&gt;evsel = &amp;epollops_changelist;</span>
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         evsig_init(base);</span>
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         return (epollop);</span>
+<span class="lineNum">     147 </span>            : }
+<a name="148"><span class="lineNum">     148 </span>            : </a>
+<span class="lineNum">     149 </span>            : static const char *
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 : change_to_string(int change)</span>
+<span class="lineNum">     151 </span>            : {
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         change &amp;= (EV_CHANGE_ADD|EV_CHANGE_DEL);</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         if (change == EV_CHANGE_ADD) {</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :                 return &quot;add&quot;;</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :         } else if (change == EV_CHANGE_DEL) {</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :                 return &quot;del&quot;;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :         } else if (change == 0) {</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :                 return &quot;none&quot;;</span>
+<span class="lineNum">     159 </span>            :         } else {
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                 return &quot;???&quot;;</span>
+<span class="lineNum">     161 </span>            :         }
+<span class="lineNum">     162 </span>            : }
+<a name="163"><span class="lineNum">     163 </span>            : </a>
+<span class="lineNum">     164 </span>            : static const char *
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 : epoll_op_to_string(int op)</span>
+<span class="lineNum">     166 </span>            : {
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :         return op == EPOLL_CTL_ADD?&quot;ADD&quot;:</span>
+<span class="lineNum">     168 </span>            :             op == EPOLL_CTL_DEL?&quot;DEL&quot;:
+<span class="lineNum">     169 </span>            :             op == EPOLL_CTL_MOD?&quot;MOD&quot;:
+<span class="lineNum">     170 </span>            :             &quot;???&quot;;
+<span class="lineNum">     171 </span>            : }
+<a name="172"><span class="lineNum">     172 </span>            : </a>
+<span class="lineNum">     173 </span>            : static int
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 : epoll_apply_one_change(struct event_base *base,</span>
+<span class="lineNum">     175 </span>            :     struct epollop *epollop,
+<span class="lineNum">     176 </span>            :     const struct event_change *ch)
+<span class="lineNum">     177 </span>            : {
+<span class="lineNum">     178 </span>            :         struct epoll_event epev;
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         int op, events = 0;</span>
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span>            :         if (1) {
+<span class="lineNum">     182 </span>            :                 /* The logic here is a little tricky.  If we had no events set
+<span class="lineNum">     183 </span>            :                    on the fd before, we need to set op=&quot;ADD&quot; and set
+<span class="lineNum">     184 </span>            :                    events=the events we want to add.  If we had any events set
+<span class="lineNum">     185 </span>            :                    on the fd before, and we want any events to remain on the
+<span class="lineNum">     186 </span>            :                    fd, we need to say op=&quot;MOD&quot; and set events=the events we
+<span class="lineNum">     187 </span>            :                    want to remain.  But if we want to delete the last event,
+<span class="lineNum">     188 </span>            :                    we say op=&quot;DEL&quot; and set events=the remaining events.  What
+<span class="lineNum">     189 </span>            :                    fun!
+<span class="lineNum">     190 </span>            :                 */
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            :                 /* TODO: Turn this into a switch or a table lookup. */
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :                 if ((ch-&gt;read_change &amp; EV_CHANGE_ADD) ||</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :                     (ch-&gt;write_change &amp; EV_CHANGE_ADD)) {</span>
+<span class="lineNum">     196 </span>            :                         /* If we are adding anything at all, we'll want to do
+<span class="lineNum">     197 </span>            :                          * either an ADD or a MOD. */
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :                         events = 0;</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :                         op = EPOLL_CTL_ADD;</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :                         if (ch-&gt;read_change &amp; EV_CHANGE_ADD) {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :                                 events |= EPOLLIN;</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :                         } else if (ch-&gt;read_change &amp; EV_CHANGE_DEL) {</span>
+<span class="lineNum">     203 </span>            :                                 ;
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :                         } else if (ch-&gt;old_events &amp; EV_READ) {</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :                                 events |= EPOLLIN;</span>
+<span class="lineNum">     206 </span>            :                         }
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :                         if (ch-&gt;write_change &amp; EV_CHANGE_ADD) {</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :                                 events |= EPOLLOUT;</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :                         } else if (ch-&gt;write_change &amp; EV_CHANGE_DEL) {</span>
+<span class="lineNum">     210 </span>            :                                 ;
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :                         } else if (ch-&gt;old_events &amp; EV_WRITE) {</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :                                 events |= EPOLLOUT;</span>
+<span class="lineNum">     213 </span>            :                         }
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :                         if ((ch-&gt;read_change|ch-&gt;write_change) &amp; EV_ET)</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :                                 events |= EPOLLET;</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :                         if (ch-&gt;old_events) {</span>
+<span class="lineNum">     218 </span>            :                                 /* If MOD fails, we retry as an ADD, and if
+<span class="lineNum">     219 </span>            :                                  * ADD fails we will retry as a MOD.  So the
+<span class="lineNum">     220 </span>            :                                  * only hard part here is to guess which one
+<span class="lineNum">     221 </span>            :                                  * will work.  As a heuristic, we'll try
+<span class="lineNum">     222 </span>            :                                  * MOD first if we think there were old
+<span class="lineNum">     223 </span>            :                                  * events and ADD if we think there were none.
+<span class="lineNum">     224 </span>            :                                  *
+<span class="lineNum">     225 </span>            :                                  * We can be wrong about the MOD if the file
+<span class="lineNum">     226 </span>            :                                  * has in fact been closed and re-opened.
+<span class="lineNum">     227 </span>            :                                  *
+<span class="lineNum">     228 </span>            :                                  * We can be wrong about the ADD if the
+<span class="lineNum">     229 </span>            :                                  * the fd has been re-created with a dup()
+<span class="lineNum">     230 </span>            :                                  * of the same file that it was before.
+<span class="lineNum">     231 </span>            :                                  */
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :                                 op = EPOLL_CTL_MOD;</span>
+<span class="lineNum">     233 </span>            :                         }
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :                 } else if ((ch-&gt;read_change &amp; EV_CHANGE_DEL) ||</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :                     (ch-&gt;write_change &amp; EV_CHANGE_DEL)) {</span>
+<span class="lineNum">     236 </span>            :                         /* If we're deleting anything, we'll want to do a MOD
+<span class="lineNum">     237 </span>            :                          * or a DEL. */
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :                         op = EPOLL_CTL_DEL;</span>
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :                         if (ch-&gt;read_change &amp; EV_CHANGE_DEL) {</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :                                 if (ch-&gt;write_change &amp; EV_CHANGE_DEL) {</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :                                         events = EPOLLIN|EPOLLOUT;</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :                                 } else if (ch-&gt;old_events &amp; EV_WRITE) {</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :                                         events = EPOLLOUT;</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :                                         op = EPOLL_CTL_MOD;</span>
+<span class="lineNum">     246 </span>            :                                 } else {
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :                                         events = EPOLLIN;</span>
+<span class="lineNum">     248 </span>            :                                 }
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :                         } else if (ch-&gt;write_change &amp; EV_CHANGE_DEL) {</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :                                 if (ch-&gt;old_events &amp; EV_READ) {</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :                                         events = EPOLLIN;</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :                                         op = EPOLL_CTL_MOD;</span>
+<span class="lineNum">     253 </span>            :                                 } else {
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :                                         events = EPOLLOUT;</span>
+<span class="lineNum">     255 </span>            :                                 }
+<span class="lineNum">     256 </span>            :                         }
+<span class="lineNum">     257 </span>            :                 }
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :                 if (!events)</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :                         return 0;</span>
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :                 memset(&amp;epev, 0, sizeof(epev));</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :                 epev.data.fd = ch-&gt;fd;</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :                 epev.events = events;</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :                 if (epoll_ctl(epollop-&gt;epfd, op, ch-&gt;fd, &amp;epev) == -1) {</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :                         if (op == EPOLL_CTL_MOD &amp;&amp; errno == ENOENT) {</span>
+<span class="lineNum">     267 </span>            :                                 /* If a MOD operation fails with ENOENT, the
+<span class="lineNum">     268 </span>            :                                  * fd was probably closed and re-opened.  We
+<span class="lineNum">     269 </span>            :                                  * should retry the operation as an ADD.
+<span class="lineNum">     270 </span>            :                                  */
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :                                 if (epoll_ctl(epollop-&gt;epfd, EPOLL_CTL_ADD, ch-&gt;fd, &amp;epev) == -1) {</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :                                         event_warn(&quot;Epoll MOD(%d) on %d retried as ADD; that failed too&quot;,</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :                                             (int)epev.events, ch-&gt;fd);</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :                                         return -1;</span>
+<span class="lineNum">     275 </span>            :                                 } else {
+<span class="lineNum">     276 </span>            :                                         event_debug((&quot;Epoll MOD(%d) on %d retried as ADD; succeeded.&quot;,
+<span class="lineNum">     277 </span>            :                                                 (int)epev.events,
+<span class="lineNum">     278 </span>            :                                                 ch-&gt;fd));
+<span class="lineNum">     279 </span>            :                                 }
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :                         } else if (op == EPOLL_CTL_ADD &amp;&amp; errno == EEXIST) {</span>
+<span class="lineNum">     281 </span>            :                                 /* If an ADD operation fails with EEXIST,
+<span class="lineNum">     282 </span>            :                                  * either the operation was redundant (as with a
+<span class="lineNum">     283 </span>            :                                  * precautionary add), or we ran into a fun
+<span class="lineNum">     284 </span>            :                                  * kernel bug where using dup*() to duplicate the
+<span class="lineNum">     285 </span>            :                                  * same file into the same fd gives you the same epitem
+<span class="lineNum">     286 </span>            :                                  * rather than a fresh one.  For the second case,
+<span class="lineNum">     287 </span>            :                                  * we must retry with MOD. */
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :                                 if (epoll_ctl(epollop-&gt;epfd, EPOLL_CTL_MOD, ch-&gt;fd, &amp;epev) == -1) {</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :                                         event_warn(&quot;Epoll ADD(%d) on %d retried as MOD; that failed too&quot;,</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :                                             (int)epev.events, ch-&gt;fd);</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :                                         return -1;</span>
+<span class="lineNum">     292 </span>            :                                 } else {
+<span class="lineNum">     293 </span>            :                                         event_debug((&quot;Epoll ADD(%d) on %d retried as MOD; succeeded.&quot;,
+<span class="lineNum">     294 </span>            :                                                 (int)epev.events,
+<span class="lineNum">     295 </span>            :                                                 ch-&gt;fd));
+<span class="lineNum">     296 </span>            :                                 }
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :                         } else if (op == EPOLL_CTL_DEL &amp;&amp;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :                             (errno == ENOENT || errno == EBADF ||</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :                                 errno == EPERM)) {</span>
+<span class="lineNum">     300 </span>            :                                 /* If a delete fails with one of these errors,
+<span class="lineNum">     301 </span>            :                                  * that's fine too: we closed the fd before we
+<span class="lineNum">     302 </span>            :                                  * got around to calling epoll_dispatch. */
+<span class="lineNum">     303 </span>            :                                 event_debug((&quot;Epoll DEL(%d) on fd %d gave %s: DEL was unnecessary.&quot;,
+<span class="lineNum">     304 </span>            :                                         (int)epev.events,
+<span class="lineNum">     305 </span>            :                                         ch-&gt;fd,
+<span class="lineNum">     306 </span>            :                                         strerror(errno)));
+<span class="lineNum">     307 </span>            :                         } else {
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :                                 event_warn(&quot;Epoll %s(%d) on fd %d failed.  Old events were %d; read change was %d (%s); write change was %d (%s)&quot;,</span>
+<span class="lineNum">     309 </span>            :                                     epoll_op_to_string(op),
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :                                     (int)epev.events,</span>
+<span class="lineNum">     311 </span>            :                                     ch-&gt;fd,
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :                                     ch-&gt;old_events,</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :                                     ch-&gt;read_change,</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :                                     change_to_string(ch-&gt;read_change),</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :                                     ch-&gt;write_change,</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :                                     change_to_string(ch-&gt;write_change));</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :                                 return -1;</span>
+<span class="lineNum">     318 </span>            :                         }
+<span class="lineNum">     319 </span>            :                 } else {
+<span class="lineNum">     320 </span>            :                         event_debug((&quot;Epoll %s(%d) on fd %d okay. [old events were %d; read change was %d; write change was %d]&quot;,
+<span class="lineNum">     321 </span>            :                                 epoll_op_to_string(op),
+<span class="lineNum">     322 </span>            :                                 (int)epev.events,
+<span class="lineNum">     323 </span>            :                                 (int)ch-&gt;fd,
+<span class="lineNum">     324 </span>            :                                 ch-&gt;old_events,
+<span class="lineNum">     325 </span>            :                                 ch-&gt;read_change,
+<span class="lineNum">     326 </span>            :                                 ch-&gt;write_change));
+<span class="lineNum">     327 </span>            :                 }
+<span class="lineNum">     328 </span>            :         }
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     330 </span>            : }
+<a name="331"><span class="lineNum">     331 </span>            : </a>
+<span class="lineNum">     332 </span>            : static int
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 : epoll_apply_changes(struct event_base *base)</span>
+<span class="lineNum">     334 </span>            : {
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :         struct event_changelist *changelist = &amp;base-&gt;changelist;</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :         struct epollop *epollop = base-&gt;evbase;</span>
+<span class="lineNum">     337 </span>            :         struct event_change *ch;
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :         int r = 0;</span>
+<span class="lineNum">     340 </span>            :         int i;
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; changelist-&gt;n_changes; ++i) {</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :                 ch = &amp;changelist-&gt;changes[i];</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :                 if (epoll_apply_one_change(base, epollop, ch) &lt; 0)</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :                         r = -1;</span>
+<span class="lineNum">     346 </span>            :         }
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :         return (r);</span>
+<span class="lineNum">     349 </span>            : }
+<a name="350"><span class="lineNum">     350 </span>            : </a>
+<span class="lineNum">     351 </span>            : static int
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 : epoll_nochangelist_add(struct event_base *base, evutil_socket_t fd,</span>
+<span class="lineNum">     353 </span>            :     short old, short events, void *p)
+<span class="lineNum">     354 </span>            : {
+<span class="lineNum">     355 </span>            :         struct event_change ch;
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :         ch.fd = fd;</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         ch.old_events = old;</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :         ch.read_change = ch.write_change = 0;</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :         if (events &amp; EV_WRITE)</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :                 ch.write_change = EV_CHANGE_ADD |</span>
+<span class="lineNum">     361 </span>            :                     (events &amp; EV_ET);
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         if (events &amp; EV_READ)</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :                 ch.read_change = EV_CHANGE_ADD |</span>
+<span class="lineNum">     364 </span>            :                     (events &amp; EV_ET);
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :         return epoll_apply_one_change(base, base-&gt;evbase, &amp;ch);</span>
+<span class="lineNum">     367 </span>            : }
+<a name="368"><span class="lineNum">     368 </span>            : </a>
+<span class="lineNum">     369 </span>            : static int
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 : epoll_nochangelist_del(struct event_base *base, evutil_socket_t fd,</span>
+<span class="lineNum">     371 </span>            :     short old, short events, void *p)
+<span class="lineNum">     372 </span>            : {
+<span class="lineNum">     373 </span>            :         struct event_change ch;
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :         ch.fd = fd;</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :         ch.old_events = old;</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :         ch.read_change = ch.write_change = 0;</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :         if (events &amp; EV_WRITE)</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                 ch.write_change = EV_CHANGE_DEL;</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :         if (events &amp; EV_READ)</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :                 ch.read_change = EV_CHANGE_DEL;</span>
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :         return epoll_apply_one_change(base, base-&gt;evbase, &amp;ch);</span>
+<span class="lineNum">     383 </span>            : }
+<a name="384"><span class="lineNum">     384 </span>            : </a>
+<span class="lineNum">     385 </span>            : static int
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 : epoll_dispatch(struct event_base *base, struct timeval *tv)</span>
+<span class="lineNum">     387 </span>            : {
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         struct epollop *epollop = base-&gt;evbase;</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :         struct epoll_event *events = epollop-&gt;events;</span>
+<span class="lineNum">     390 </span>            :         int i, res;
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :         long timeout = -1;</span>
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :         if (tv != NULL) {</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :                 timeout = evutil_tv_to_msec(tv);</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :                 if (timeout &lt; 0 || timeout &gt; MAX_EPOLL_TIMEOUT_MSEC) {</span>
+<span class="lineNum">     396 </span>            :                         /* Linux kernels can wait forever if the timeout is
+<span class="lineNum">     397 </span>            :                          * too big; see comment on MAX_EPOLL_TIMEOUT_MSEC. */
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :                         timeout = MAX_EPOLL_TIMEOUT_MSEC;</span>
+<span class="lineNum">     399 </span>            :                 }
+<span class="lineNum">     400 </span>            :         }
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :         epoll_apply_changes(base);</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :         event_changelist_remove_all(&amp;base-&gt;changelist, base);</span>
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         EVBASE_RELEASE_LOCK(base, th_base_lock);</span>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :         res = epoll_wait(epollop-&gt;epfd, events, epollop-&gt;nevents, timeout);</span>
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :         EVBASE_ACQUIRE_LOCK(base, th_base_lock);</span>
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         if (res == -1) {</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :                 if (errno != EINTR) {</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :                         event_warn(&quot;epoll_wait&quot;);</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     415 </span>            :                 }
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">     418 </span>            :         }
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span>            :         event_debug((&quot;%s: epoll_wait reports %d&quot;, __func__, res));
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :         EVUTIL_ASSERT(res &lt;= epollop-&gt;nevents);</span>
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; res; i++) {</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :                 int what = events[i].events;</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :                 short ev = 0;</span>
+<span class="lineNum">     426 </span>            : 
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :                 if (what &amp; (EPOLLHUP|EPOLLERR)) {</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :                         ev = EV_READ | EV_WRITE;</span>
+<span class="lineNum">     429 </span>            :                 } else {
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :                         if (what &amp; EPOLLIN)</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :                                 ev |= EV_READ;</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :                         if (what &amp; EPOLLOUT)</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :                                 ev |= EV_WRITE;</span>
+<span class="lineNum">     434 </span>            :                 }
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :                 if (!ev)</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :                 evmap_io_active(base, events[i].data.fd, ev | EV_ET);</span>
+<span class="lineNum">     440 </span>            :         }
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :         if (res == epollop-&gt;nevents &amp;&amp; epollop-&gt;nevents &lt; MAX_NEVENT) {</span>
+<span class="lineNum">     443 </span>            :                 /* We used all of the event space this time.  We should
+<span class="lineNum">     444 </span>            :                    be ready for more events next time. */
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :                 int new_nevents = epollop-&gt;nevents * 2;</span>
+<span class="lineNum">     446 </span>            :                 struct epoll_event *new_events;
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :                 new_events = mm_realloc(epollop-&gt;events,</span>
+<span class="lineNum">     449 </span>            :                     new_nevents * sizeof(struct epoll_event));
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :                 if (new_events) {</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :                         epollop-&gt;events = new_events;</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :                         epollop-&gt;nevents = new_nevents;</span>
+<span class="lineNum">     453 </span>            :                 }
+<span class="lineNum">     454 </span>            :         }
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     457 </span>            : }
+<span class="lineNum">     458 </span>            : 
+<a name="459"><span class="lineNum">     459 </span>            : </a>
+<span class="lineNum">     460 </span>            : static void
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 : epoll_dealloc(struct event_base *base)</span>
+<span class="lineNum">     462 </span>            : {
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :         struct epollop *epollop = base-&gt;evbase;</span>
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :         evsig_dealloc(base);</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :         if (epollop-&gt;events)</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :                 mm_free(epollop-&gt;events);</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :         if (epollop-&gt;epfd &gt;= 0)</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :                 close(epollop-&gt;epfd);</span>
+<span class="lineNum">     470 </span>            : 
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :         memset(epollop, 0, sizeof(struct epollop));</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :         mm_free(epollop);</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

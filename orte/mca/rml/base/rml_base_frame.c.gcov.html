@@ -1,0 +1,453 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/rml/base/rml_base_frame.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/rml/base</a> - rml_base_frame.c<span style="font-size: 80%;"> (source / <a href="rml_base_frame.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">73</td>
+            <td class="headerCovTableEntry">149</td>
+            <td class="headerCovTableEntryLo">49.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">19</td>
+            <td class="headerCovTableEntryLo">42.1 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2011 The University of Tennessee and The University
+<span class="lineNum">       3 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       4 </span>            :  *                         reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.  All rights
+<span class="lineNum">       6 </span>            :  *                         reserved.
+<span class="lineNum">       7 </span>            :  * Copyright (c) 2013      Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2014-2015 Intel Corporation.  All rights reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      10 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      11 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * $HEADER$
+<span class="lineNum">      16 </span>            :  */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &quot;opal/dss/dss.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;orte/mca/mca.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;opal/mca/base/mca_base_component_repository.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &quot;orte/mca/rml/rml.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;orte/mca/state/state.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;orte/runtime/orte_wait.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &quot;orte/mca/rml/base/base.h&quot;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : /* The following file was created by configure.  It contains extern
+<span class="lineNum">      35 </span>            :  * statements and the definition of an array of pointers to each
+<span class="lineNum">      36 </span>            :  * component's public mca_base_component_t struct. */
+<span class="lineNum">      37 </span>            : #include &quot;orte/mca/rml/base/static-components.h&quot;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : orte_rml_module_t orte_rml = {0};
+<span class="lineNum">      40 </span>            : orte_rml_base_t   orte_rml_base = {{{0}}};
+<span class="lineNum">      41 </span>            : OPAL_TIMING_DECLARE(tm_rml)
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : orte_rml_component_t *orte_rml_component = NULL;
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : static bool selected = false;
+<a name="46"><span class="lineNum">      46 </span>            : static char *orte_rml_base_wrapper = NULL;</a>
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span><span class="lineCov">          2 : static int orte_rml_base_register(mca_base_register_flag_t flags)</span>
+<span class="lineNum">      49 </span>            : {
+<span class="lineNum">      50 </span>            :     int var_id;
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            :     /*
+<span class="lineNum">      53 </span>            :      * Which RML Wrapper component to use, if any
+<span class="lineNum">      54 </span>            :      *  - NULL or &quot;&quot; = No wrapper
+<span class="lineNum">      55 </span>            :      *  - ow. select that specific wrapper component
+<span class="lineNum">      56 </span>            :      */
+<span class="lineNum">      57 </span><span class="lineCov">          2 :     orte_rml_base_wrapper = NULL;</span>
+<span class="lineNum">      58 </span><span class="lineCov">          2 :     var_id = mca_base_var_register(&quot;orte&quot;, &quot;rml&quot;, &quot;base&quot;, &quot;wrapper&quot;,</span>
+<span class="lineNum">      59 </span>            :                                    &quot;Use a Wrapper component around the selected RML component&quot;,
+<span class="lineNum">      60 </span>            :                                    MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+<span class="lineNum">      61 </span>            :                                    OPAL_INFO_LVL_9,
+<span class="lineNum">      62 </span>            :                                    MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">      63 </span>            :                                    &amp;orte_rml_base_wrapper);
+<span class="lineNum">      64 </span><span class="lineCov">          2 :     (void) mca_base_var_register_synonym(var_id, &quot;orte&quot;, &quot;rml&quot;,NULL,&quot;wrapper&quot;, 0);</span>
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : #if OPAL_ENABLE_TIMING
+<span class="lineNum">      67 </span>            :     orte_rml_base.timing = false;
+<span class="lineNum">      68 </span>            :     (void) mca_base_var_register (&quot;orte&quot;, &quot;rml&quot;, &quot;base&quot;, &quot;timing&quot;,
+<span class="lineNum">      69 </span>            :                                   &quot;Enable RML timings&quot;,
+<span class="lineNum">      70 </span>            :                                   MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+<span class="lineNum">      71 </span>            :                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">      72 </span>            :                                   &amp;orte_rml_base.timing);
+<span class="lineNum">      73 </span>            : #endif
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span><span class="lineCov">          2 :     return ORTE_SUCCESS;</span>
+<a name="76"><span class="lineNum">      76 </span>            : }</a>
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineCov">          2 : static void cleanup(int sd, short args, void *cbdata)</span>
+<span class="lineNum">      79 </span>            : {
+<span class="lineNum">      80 </span><span class="lineCov">          2 :     bool *active = (bool*)cbdata;</span>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span><span class="lineCov">         16 :     OPAL_LIST_DESTRUCT(&amp;orte_rml_base.posted_recvs);</span>
+<span class="lineNum">      83 </span><span class="lineCov">          2 :     if (NULL != active) {</span>
+<span class="lineNum">      84 </span><span class="lineCov">          2 :         *active = false;</span>
+<span class="lineNum">      85 </span>            :     }
+<a name="86"><span class="lineNum">      86 </span><span class="lineCov">          2 : }</span></a>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span><span class="lineCov">          2 : static int orte_rml_base_close(void)</span>
+<span class="lineNum">      89 </span>            : {
+<span class="lineNum">      90 </span>            :     bool active;
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            :     /* because the RML posted recvs list is in a separate
+<span class="lineNum">      93 </span>            :      * async thread for apps, we can't just destruct it here.
+<span class="lineNum">      94 </span>            :      * Instead, we push it into that event thread and destruct
+<span class="lineNum">      95 </span>            :      * it there */
+<span class="lineNum">      96 </span><span class="lineCov">          2 :      if (ORTE_PROC_IS_APP) {</span>
+<span class="lineNum">      97 </span>            :         opal_event_t ev;
+<span class="lineNum">      98 </span><span class="lineCov">          2 :         active = true;</span>
+<span class="lineNum">      99 </span><span class="lineCov">          2 :         opal_event_set(orte_event_base, &amp;ev, -1,</span>
+<span class="lineNum">     100 </span>            :                        OPAL_EV_WRITE, cleanup, &amp;active);
+<span class="lineNum">     101 </span><span class="lineCov">          2 :         opal_event_set_priority(&amp;ev, ORTE_ERROR_PRI);</span>
+<span class="lineNum">     102 </span><span class="lineCov">          2 :         opal_event_active(&amp;ev, OPAL_EV_WRITE, 1);</span>
+<span class="lineNum">     103 </span><span class="lineCov">          2 :         ORTE_WAIT_FOR_COMPLETION(active);</span>
+<span class="lineNum">     104 </span>            :      } else {
+<span class="lineNum">     105 </span>            :         /* we can call the destruct directly */
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :         cleanup(0, 0, NULL);</span>
+<span class="lineNum">     107 </span>            :      }
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            :     OPAL_TIMING_REPORT(orte_rml_base.timing, &amp;tm_rml);
+<span class="lineNum">     110 </span><span class="lineCov">          2 :     OBJ_DESTRUCT(&amp;orte_rml_base.open_channels);</span>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineCov">          2 :     return mca_base_framework_components_close(&amp;orte_rml_base_framework, NULL);</span>
+<a name="113"><span class="lineNum">     113 </span>            : }</a>
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span><span class="lineCov">          2 : static int orte_rml_base_open(mca_base_open_flag_t flags)</span>
+<span class="lineNum">     116 </span>            : {
+<span class="lineNum">     117 </span>            :     /* Initialize globals */
+<span class="lineNum">     118 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;orte_rml_base.posted_recvs, opal_list_t);</span>
+<span class="lineNum">     119 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;orte_rml_base.unmatched_msgs, opal_list_t);</span>
+<span class="lineNum">     120 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;orte_rml_base.open_channels, opal_pointer_array_t);</span>
+<span class="lineNum">     121 </span><span class="lineCov">          2 :     if (OPAL_SUCCESS != opal_pointer_array_init(&amp;orte_rml_base.open_channels, 0,</span>
+<span class="lineNum">     122 </span>            :                                                 INT_MAX, 1)) {
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     124 </span>            :     }
+<span class="lineNum">     125 </span>            :     OPAL_TIMING_INIT(&amp;tm_rml);
+<span class="lineNum">     126 </span>            :     /* Open up all available components */
+<span class="lineNum">     127 </span><span class="lineCov">          2 :     return mca_base_framework_components_open(&amp;orte_rml_base_framework, flags);</span>
+<span class="lineNum">     128 </span>            : }
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            : MCA_BASE_FRAMEWORK_DECLARE(orte, rml, &quot;ORTE Run-Time Messaging Layer&quot;,
+<span class="lineNum">     131 </span>            :                            orte_rml_base_register, orte_rml_base_open, orte_rml_base_close,
+<span class="lineNum">     132 </span>            :                            mca_rml_base_static_components, 0);
+<a name="133"><span class="lineNum">     133 </span>            : </a>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineCov">          2 : int orte_rml_base_select(void)</span>
+<span class="lineNum">     136 </span>            : {
+<span class="lineNum">     137 </span>            :     opal_list_item_t *item, *next;
+<span class="lineNum">     138 </span>            :     mca_base_component_list_item_t *cli;
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span><span class="lineCov">          2 :     int selected_priority = -1;</span>
+<span class="lineNum">     141 </span><span class="lineCov">          2 :     orte_rml_component_t *selected_component = NULL;</span>
+<span class="lineNum">     142 </span><span class="lineCov">          2 :     orte_rml_module_t *selected_module = NULL;</span>
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span><span class="lineCov">          2 :     orte_rml_component_t *wrapper_component = NULL;</span>
+<span class="lineNum">     145 </span><span class="lineCov">          2 :     bool return_silent=false;</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineCov">          2 :     if (selected) {</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     149 </span>            :     }
+<span class="lineNum">     150 </span><span class="lineCov">          2 :     selected = true;</span>
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span><span class="lineCov">          4 :     OPAL_LIST_FOREACH(cli, &amp;orte_rml_base_framework.framework_components, mca_base_component_list_item_t ) {</span>
+<span class="lineNum">     153 </span>            :         orte_rml_component_t* component;
+<span class="lineNum">     154 </span><span class="lineCov">          2 :         component = (orte_rml_component_t *) cli-&gt;cli_component;</span>
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineCov">          2 :         opal_output_verbose(10, orte_rml_base_framework.framework_output,</span>
+<span class="lineNum">     157 </span>            :                             &quot;orte_rml_base_select: initializing %s component %s&quot;,
+<span class="lineNum">     158 </span><span class="lineCov">          2 :                             component-&gt;rml_version.mca_type_name,</span>
+<span class="lineNum">     159 </span><span class="lineCov">          2 :                             component-&gt;rml_version.mca_component_name);</span>
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineCov">          2 :         if (NULL == component-&gt;rml_init) {</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :             opal_output_verbose(10, orte_rml_base_framework.framework_output,</span>
+<span class="lineNum">     163 </span>            :                                 &quot;orte_rml_base_select: no init function; ignoring component&quot;);
+<span class="lineNum">     164 </span>            :         } else {
+<span class="lineNum">     165 </span><span class="lineCov">          2 :             int priority = 0;</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineCov">          2 :             orte_rml_module_t* module = component-&gt;rml_init(&amp;priority);</span>
+<span class="lineNum">     168 </span><span class="lineCov">          2 :             if (NULL == module) {</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :                 opal_output_verbose(10, orte_rml_base_framework.framework_output,</span>
+<span class="lineNum">     170 </span>            :                                     &quot;orte_rml_base_select: init returned failure&quot;);
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :                 if (priority &lt; 0) {</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :                     return_silent = true;</span>
+<span class="lineNum">     173 </span>            :                 }
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     175 </span>            :             }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineCov">          2 :             if(NULL != orte_rml_base_wrapper &amp;&amp;</span>
+<span class="lineNum">     178 </span>            :                /* If this is a wrapper component then save it for later */
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :                RML_SELECT_WRAPPER_PRIORITY &gt;= priority) {</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :                 if( 0 == strncmp(component-&gt;rml_version.mca_component_name,</span>
+<span class="lineNum">     181 </span>            :                                  orte_rml_base_wrapper,
+<span class="lineNum">     182 </span>            :                                  strlen(orte_rml_base_wrapper) ) ) {
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :                     wrapper_component = component;</span>
+<span class="lineNum">     184 </span>            :                 }
+<span class="lineNum">     185 </span><span class="lineCov">          2 :             } else if (priority &gt; selected_priority) {</span>
+<span class="lineNum">     186 </span>            :                 /* Otherwise this is a normal module and subject to normal selection */
+<span class="lineNum">     187 </span><span class="lineCov">          2 :                 if (NULL != selected_module &amp;&amp; NULL != selected_module-&gt;finalize) {</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :                     selected_module-&gt;finalize();</span>
+<span class="lineNum">     189 </span>            :                 }
+<span class="lineNum">     190 </span><span class="lineCov">          2 :                 selected_priority = priority;</span>
+<span class="lineNum">     191 </span><span class="lineCov">          2 :                 selected_component = component;</span>
+<span class="lineNum">     192 </span><span class="lineCov">          2 :                 selected_module = module;</span>
+<span class="lineNum">     193 </span>            :             }
+<span class="lineNum">     194 </span>            :         }
+<span class="lineNum">     195 </span>            :     }
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            :     /*
+<span class="lineNum">     198 </span>            :      * Unload all components that were not selected
+<span class="lineNum">     199 </span>            :      */
+<span class="lineNum">     200 </span><span class="lineCov">          4 :     OPAL_LIST_FOREACH_SAFE(item, next, &amp;orte_rml_base_framework.framework_components, opal_list_item_t) {</span>
+<span class="lineNum">     201 </span><span class="lineCov">          2 :         mca_base_component_list_item_t *cli = (mca_base_component_list_item_t *) item;</span>
+<span class="lineNum">     202 </span><span class="lineCov">          2 :         orte_rml_component_t* component = (orte_rml_component_t *) cli-&gt;cli_component;</span>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            :         /* Keep it if it is the wrapper component */
+<span class="lineNum">     205 </span><span class="lineCov">          2 :         if ((component == wrapper_component) || (component == selected_component)) {</span>
+<span class="lineNum">     206 </span><span class="lineCov">          2 :             continue;</span>
+<span class="lineNum">     207 </span>            :         }
+<span class="lineNum">     208 </span>            :         /* Not the selected component */
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :         opal_output_verbose(10, orte_rml_base_framework.framework_output,</span>
+<span class="lineNum">     210 </span>            :                             &quot;orte_rml_base_select: module %s unloaded&quot;,
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :                             component-&gt;rml_version.mca_component_name);</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :         opal_list_remove_item(&amp;orte_rml_base_framework.framework_components, item);</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :         mca_base_component_repository_release((mca_base_component_t *) component);</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item);</span>
+<span class="lineNum">     215 </span>            :     }
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            :     /* setup reference to selected module */
+<span class="lineNum">     218 </span><span class="lineCov">          2 :     if (NULL != selected_module) {</span>
+<span class="lineNum">     219 </span><span class="lineCov">          2 :         orte_rml = *selected_module;</span>
+<span class="lineNum">     220 </span><span class="lineCov">          2 :         orte_rml_component = selected_component;</span>
+<span class="lineNum">     221 </span>            :     }
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            :     /* If a wrapper component was requested then
+<span class="lineNum">     224 </span>            :      * Make sure it can switch out the selected module
+<span class="lineNum">     225 </span>            :      */
+<span class="lineNum">     226 </span><span class="lineCov">          2 :     if( NULL != wrapper_component) {</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         wrapper_component-&gt;rml_init(NULL);</span>
+<span class="lineNum">     228 </span>            :     }
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineCov">          2 :     if (NULL == selected_component) {</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         if (return_silent) {</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :             return ORTE_ERR_SILENT;</span>
+<span class="lineNum">     233 </span>            :         }
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         return ORTE_ERROR;</span>
+<span class="lineNum">     235 </span>            :     }
+<span class="lineNum">     236 </span>            :     /* Post a persistent recieve for open channel request */
+<span class="lineNum">     237 </span><span class="lineCov">          2 :     orte_rml.recv_buffer_nb (ORTE_NAME_WILDCARD, ORTE_RML_TAG_OPEN_CHANNEL_REQ,</span>
+<span class="lineNum">     238 </span>            :                              ORTE_RML_PERSISTENT, orte_rml_open_channel_recv_callback,
+<span class="lineNum">     239 </span>            :                              NULL);
+<span class="lineNum">     240 </span>            :     /* post a persistent recieve for close channel request */
+<span class="lineNum">     241 </span><span class="lineCov">          2 :     orte_rml.recv_buffer_nb (ORTE_NAME_WILDCARD, ORTE_RML_TAG_CLOSE_CHANNEL_REQ,</span>
+<span class="lineNum">     242 </span>            :                              ORTE_RML_PERSISTENT, orte_rml_close_channel_recv_callback,
+<span class="lineNum">     243 </span>            :                              NULL);
+<span class="lineNum">     244 </span><span class="lineCov">          2 :     return ORTE_SUCCESS;</span>
+<a name="245"><span class="lineNum">     245 </span>            : }</a>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 : void orte_rml_send_callback(int status, orte_process_name_t *peer,</span>
+<span class="lineNum">     248 </span>            :                             opal_buffer_t* buffer, orte_rml_tag_t tag,
+<span class="lineNum">     249 </span>            :                             void* cbdata)
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            : {
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(buffer);</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != status) {</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         ORTE_ACTIVATE_PROC_STATE(peer, ORTE_PROC_STATE_UNABLE_TO_SEND_MSG);</span>
+<span class="lineNum">     255 </span>            :     }
+<a name="256"><span class="lineNum">     256 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 : void orte_rml_recv_callback(int status, orte_process_name_t* sender,</span>
+<span class="lineNum">     259 </span>            :                             opal_buffer_t *buffer,
+<span class="lineNum">     260 </span>            :                             orte_rml_tag_t tag, void *cbdata)
+<span class="lineNum">     261 </span>            : {
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     orte_rml_recv_cb_t *blob = (orte_rml_recv_cb_t*)cbdata;</span>
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            :     /* transfer the sender */
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     blob-&gt;name.jobid = sender-&gt;jobid;</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     blob-&gt;name.vpid = sender-&gt;vpid;</span>
+<span class="lineNum">     267 </span>            :     /* just copy the payload to the buf */
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     opal_dss.copy_payload(&amp;blob-&gt;data, buffer);</span>
+<span class="lineNum">     269 </span>            :     /* flag as complete */
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     blob-&gt;active = false;</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     272 </span>            : 
+<a name="273"><span class="lineNum">     273 </span>            : </a>
+<span class="lineNum">     274 </span>            : /***   RML CLASS INSTANCES   ***/
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 : static void send_cons(orte_rml_send_t *ptr)</span>
+<span class="lineNum">     276 </span>            : {
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     ptr-&gt;cbdata = NULL;</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     ptr-&gt;iov = NULL;</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     ptr-&gt;buffer = NULL;</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     ptr-&gt;data = NULL;</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     ptr-&gt;channel = NULL;</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :     ptr-&gt;dst_channel = ORTE_RML_INVALID_CHANNEL_NUM;</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     ptr-&gt;seq_num = 0xFFFFFFFF;</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     285 </span>            : OBJ_CLASS_INSTANCE(orte_rml_send_t,
+<span class="lineNum">     286 </span>            :                    opal_list_item_t,
+<a name="287"><span class="lineNum">     287 </span>            :                    send_cons, NULL);</a>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 : static void channel_cons(orte_rml_channel_t *ptr)</span>
+<span class="lineNum">     290 </span>            : {
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :     ptr-&gt;channel_num = ORTE_RML_INVALID_CHANNEL_NUM;</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :     ptr-&gt;qos = NULL;</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     ptr-&gt;qos_channel_ptr = NULL;</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     ptr-&gt;recv = false;</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            : OBJ_CLASS_INSTANCE(orte_rml_channel_t,
+<span class="lineNum">     298 </span>            :                    opal_list_item_t,
+<a name="299"><span class="lineNum">     299 </span>            :                    channel_cons, NULL);</a>
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 : static void open_channel_cons(orte_rml_open_channel_t *ptr)</span>
+<span class="lineNum">     302 </span>            : {
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     ptr-&gt;cbdata = NULL;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     ptr-&gt;qos_attributes = NULL;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     306 </span>            : OBJ_CLASS_INSTANCE(orte_rml_open_channel_t,
+<span class="lineNum">     307 </span>            :                    opal_list_item_t,
+<a name="308"><span class="lineNum">     308 </span>            :                    open_channel_cons, NULL);</a>
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 : static void close_channel_cons(orte_rml_close_channel_t *ptr)</span>
+<span class="lineNum">     311 </span>            : {
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :     ptr-&gt;cbdata = NULL;</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     ptr-&gt;channel = NULL;</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     315 </span>            : OBJ_CLASS_INSTANCE(orte_rml_close_channel_t,
+<span class="lineNum">     316 </span>            :                    opal_list_item_t,
+<a name="317"><span class="lineNum">     317 </span>            :                    close_channel_cons, NULL);</a>
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 : static void send_req_cons(orte_rml_send_request_t *ptr)</span>
+<span class="lineNum">     320 </span>            : {
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;ptr-&gt;post.send, orte_rml_send_t);</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;ptr-&gt;post.open_channel, orte_rml_open_channel_t);</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     324 </span>            : OBJ_CLASS_INSTANCE(orte_rml_send_request_t,
+<span class="lineNum">     325 </span>            :                    opal_object_t,
+<a name="326"><span class="lineNum">     326 </span>            :                    send_req_cons, NULL);</a>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 : static void recv_cons(orte_rml_recv_t *ptr)</span>
+<span class="lineNum">     329 </span>            : {
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     ptr-&gt;iov.iov_base = NULL;</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     ptr-&gt;iov.iov_len = 0;</span>
+<a name="332"><span class="lineNum">     332 </span><span class="lineNoCov">          0 :     ptr-&gt;channel_num = ORTE_RML_INVALID_CHANNEL_NUM;</span></a>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 : static void recv_des(orte_rml_recv_t *ptr)</span>
+<span class="lineNum">     335 </span>            : {
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :     if (NULL != ptr-&gt;iov.iov_base) {</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :         free(ptr-&gt;iov.iov_base);</span>
+<span class="lineNum">     338 </span>            :     }
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     340 </span>            : OBJ_CLASS_INSTANCE(orte_rml_recv_t,
+<span class="lineNum">     341 </span>            :                    opal_list_item_t,
+<a name="342"><span class="lineNum">     342 </span>            :                    recv_cons, recv_des);</a>
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 : static void rcv_cons(orte_rml_recv_cb_t *ptr)</span>
+<span class="lineNum">     345 </span>            : {
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;ptr-&gt;data, opal_buffer_t);</span>
+<a name="347"><span class="lineNum">     347 </span><span class="lineNoCov">          0 :     ptr-&gt;active = false;</span></a>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 : static void rcv_des(orte_rml_recv_cb_t *ptr)</span>
+<span class="lineNum">     350 </span>            : {
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;ptr-&gt;data);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     353 </span>            : OBJ_CLASS_INSTANCE(orte_rml_recv_cb_t, opal_object_t,
+<a name="354"><span class="lineNum">     354 </span>            :                    rcv_cons, rcv_des);</a>
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineCov">         26 : static void prcv_cons(orte_rml_posted_recv_t *ptr)</span>
+<span class="lineNum">     357 </span>            : {
+<span class="lineNum">     358 </span><span class="lineCov">         26 :     ptr-&gt;cbdata = NULL;</span>
+<span class="lineNum">     359 </span><span class="lineCov">         26 : }</span>
+<span class="lineNum">     360 </span>            : OBJ_CLASS_INSTANCE(orte_rml_posted_recv_t,
+<span class="lineNum">     361 </span>            :                    opal_list_item_t,
+<a name="362"><span class="lineNum">     362 </span>            :                    prcv_cons, NULL);</a>
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span><span class="lineCov">         26 : static void prq_cons(orte_rml_recv_request_t *ptr)</span>
+<span class="lineNum">     365 </span>            : {
+<span class="lineNum">     366 </span><span class="lineCov">         26 :     ptr-&gt;cancel = false;</span>
+<a name="367"><span class="lineNum">     367 </span><span class="lineCov">         26 :     ptr-&gt;post = OBJ_NEW(orte_rml_posted_recv_t);</span></a>
+<span class="lineNum">     368 </span><span class="lineCov">         26 : }</span>
+<span class="lineNum">     369 </span><span class="lineCov">         26 : static void prq_des(orte_rml_recv_request_t *ptr)</span>
+<span class="lineNum">     370 </span>            : {
+<span class="lineNum">     371 </span><span class="lineCov">         26 :     if (NULL != ptr-&gt;post) {</span>
+<span class="lineNum">     372 </span><span class="lineCov">         12 :         OBJ_RELEASE(ptr-&gt;post);</span>
+<span class="lineNum">     373 </span>            :     }
+<span class="lineNum">     374 </span><span class="lineCov">         26 : }</span>
+<span class="lineNum">     375 </span>            : OBJ_CLASS_INSTANCE(orte_rml_recv_request_t,
+<span class="lineNum">     376 </span>            :                    opal_object_t,
+<span class="lineNum">     377 </span>            :                    prq_cons, prq_des);
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

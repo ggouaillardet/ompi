@@ -1,0 +1,875 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/event/libevent2022/libevent/evmap.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../index.html">top level</a> - <a href="index.html">opal/mca/event/libevent2022/libevent</a> - evmap.c<span style="font-size: 80%;"> (source / <a href="evmap.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">121</td>
+            <td class="headerCovTableEntry">276</td>
+            <td class="headerCovTableEntryLo">43.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">23</td>
+            <td class="headerCovTableEntryLo">52.2 %</td>
+          </tr>
+          <tr><td><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2007-2012 Niels Provos and Nick Mathewson
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * Redistribution and use in source and binary forms, with or without
+<span class="lineNum">       5 </span>            :  * modification, are permitted provided that the following conditions
+<span class="lineNum">       6 </span>            :  * are met:
+<span class="lineNum">       7 </span>            :  * 1. Redistributions of source code must retain the above copyright
+<span class="lineNum">       8 </span>            :  *    notice, this list of conditions and the following disclaimer.
+<span class="lineNum">       9 </span>            :  * 2. Redistributions in binary form must reproduce the above copyright
+<span class="lineNum">      10 </span>            :  *    notice, this list of conditions and the following disclaimer in the
+<span class="lineNum">      11 </span>            :  *    documentation and/or other materials provided with the distribution.
+<span class="lineNum">      12 </span>            :  * 3. The name of the author may not be used to endorse or promote products
+<span class="lineNum">      13 </span>            :  *    derived from this software without specific prior written permission.
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+<span class="lineNum">      16 </span>            :  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+<span class="lineNum">      17 </span>            :  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+<span class="lineNum">      18 </span>            :  * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+<span class="lineNum">      19 </span>            :  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+<span class="lineNum">      20 </span>            :  * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+<span class="lineNum">      21 </span>            :  * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+<span class="lineNum">      22 </span>            :  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+<span class="lineNum">      23 </span>            :  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+<span class="lineNum">      24 </span>            :  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+<span class="lineNum">      25 </span>            :  */
+<span class="lineNum">      26 </span>            : #include &quot;event2/event-config.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #ifdef WIN32
+<span class="lineNum">      29 </span>            : #include &lt;winsock2.h&gt;
+<span class="lineNum">      30 </span>            : #define WIN32_LEAN_AND_MEAN
+<span class="lineNum">      31 </span>            : #include &lt;windows.h&gt;
+<span class="lineNum">      32 </span>            : #undef WIN32_LEAN_AND_MEAN
+<span class="lineNum">      33 </span>            : #endif
+<span class="lineNum">      34 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      35 </span>            : #if !defined(WIN32) &amp;&amp; defined(_EVENT_HAVE_SYS_TIME_H)
+<span class="lineNum">      36 </span>            : #include &lt;sys/time.h&gt;
+<span class="lineNum">      37 </span>            : #endif
+<span class="lineNum">      38 </span>            : #include &lt;sys/queue.h&gt;
+<span class="lineNum">      39 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      40 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      41 </span>            : #ifndef WIN32
+<span class="lineNum">      42 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      43 </span>            : #endif
+<span class="lineNum">      44 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      45 </span>            : #include &lt;signal.h&gt;
+<span class="lineNum">      46 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      47 </span>            : #include &lt;time.h&gt;
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : #include &quot;event-internal.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;evmap-internal.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;mm-internal.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;changelist-internal.h&quot;
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : /** An entry for an evmap_io list: notes all the events that want to read or
+<span class="lineNum">      55 </span>            :         write on a given fd, and the number of each.
+<span class="lineNum">      56 </span>            :   */
+<span class="lineNum">      57 </span>            : struct evmap_io {
+<span class="lineNum">      58 </span>            :         struct event_list events;
+<span class="lineNum">      59 </span>            :         ev_uint16_t nread;
+<span class="lineNum">      60 </span>            :         ev_uint16_t nwrite;
+<span class="lineNum">      61 </span>            : };
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : /* An entry for an evmap_signal list: notes all the events that want to know
+<span class="lineNum">      64 </span>            :    when a signal triggers. */
+<span class="lineNum">      65 </span>            : struct evmap_signal {
+<span class="lineNum">      66 </span>            :         struct event_list events;
+<span class="lineNum">      67 </span>            : };
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : /* On some platforms, fds start at 0 and increment by 1 as they are
+<span class="lineNum">      70 </span>            :    allocated, and old numbers get used.  For these platforms, we
+<span class="lineNum">      71 </span>            :    implement io maps just like signal maps: as an array of pointers to
+<span class="lineNum">      72 </span>            :    struct evmap_io.  But on other platforms (windows), sockets are not
+<span class="lineNum">      73 </span>            :    0-indexed, not necessarily consecutive, and not necessarily reused.
+<span class="lineNum">      74 </span>            :    There, we use a hashtable to implement evmap_io.
+<span class="lineNum">      75 </span>            : */
+<span class="lineNum">      76 </span>            : #ifdef EVMAP_USE_HT
+<span class="lineNum">      77 </span>            : struct event_map_entry {
+<span class="lineNum">      78 </span>            :         HT_ENTRY(event_map_entry) map_node;
+<span class="lineNum">      79 </span>            :         evutil_socket_t fd;
+<span class="lineNum">      80 </span>            :         union { /* This is a union in case we need to make more things that can
+<span class="lineNum">      81 </span>            :                            be in the hashtable. */
+<span class="lineNum">      82 </span>            :                 struct evmap_io evmap_io;
+<span class="lineNum">      83 </span>            :         } ent;
+<span class="lineNum">      84 </span>            : };
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            : /* Helper used by the event_io_map hashtable code; tries to return a good hash
+<span class="lineNum">      87 </span>            :  * of the fd in e-&gt;fd. */
+<span class="lineNum">      88 </span>            : static inline unsigned
+<span class="lineNum">      89 </span>            : hashsocket(struct event_map_entry *e)
+<span class="lineNum">      90 </span>            : {
+<span class="lineNum">      91 </span>            :         /* On win32, in practice, the low 2-3 bits of a SOCKET seem not to
+<span class="lineNum">      92 </span>            :          * matter.  Our hashtable implementation really likes low-order bits,
+<span class="lineNum">      93 </span>            :          * though, so let's do the rotate-and-add trick. */
+<span class="lineNum">      94 </span>            :         unsigned h = (unsigned) e-&gt;fd;
+<span class="lineNum">      95 </span>            :         h += (h &gt;&gt; 2) | (h &lt;&lt; 30);
+<span class="lineNum">      96 </span>            :         return h;
+<span class="lineNum">      97 </span>            : }
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            : /* Helper used by the event_io_map hashtable code; returns true iff e1 and e2
+<span class="lineNum">     100 </span>            :  * have the same e-&gt;fd. */
+<span class="lineNum">     101 </span>            : static inline int
+<span class="lineNum">     102 </span>            : eqsocket(struct event_map_entry *e1, struct event_map_entry *e2)
+<span class="lineNum">     103 </span>            : {
+<span class="lineNum">     104 </span>            :         return e1-&gt;fd == e2-&gt;fd;
+<span class="lineNum">     105 </span>            : }
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            : HT_PROTOTYPE(event_io_map, event_map_entry, map_node, hashsocket, eqsocket)
+<span class="lineNum">     108 </span>            : HT_GENERATE(event_io_map, event_map_entry, map_node, hashsocket, eqsocket,
+<span class="lineNum">     109 </span>            :                         0.5, mm_malloc, mm_realloc, mm_free)
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            : #define GET_IO_SLOT(x, map, slot, type)                                 \
+<span class="lineNum">     112 </span>            :         do {                                                            \
+<span class="lineNum">     113 </span>            :                 struct event_map_entry _key, *_ent;                     \
+<span class="lineNum">     114 </span>            :                 _key.fd = slot;                                         \
+<span class="lineNum">     115 </span>            :                 _ent = HT_FIND(event_io_map, map, &amp;_key);           \
+<span class="lineNum">     116 </span>            :                 (x) = _ent ? &amp;_ent-&gt;ent.type : NULL;                     \
+<span class="lineNum">     117 </span>            :         } while (0);
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            : #define GET_IO_SLOT_AND_CTOR(x, map, slot, type, ctor, fdinfo_len)      \
+<span class="lineNum">     120 </span>            :         do {                                                            \
+<span class="lineNum">     121 </span>            :                 struct event_map_entry _key, *_ent;                     \
+<span class="lineNum">     122 </span>            :                 _key.fd = slot;                                         \
+<span class="lineNum">     123 </span>            :                 _HT_FIND_OR_INSERT(event_io_map, map_node, hashsocket, map, \
+<span class="lineNum">     124 </span>            :                     event_map_entry, &amp;_key, ptr,                    \
+<span class="lineNum">     125 </span>            :                     {                                                   \
+<span class="lineNum">     126 </span>            :                             _ent = *ptr;                                \
+<span class="lineNum">     127 </span>            :                     },                                                  \
+<span class="lineNum">     128 </span>            :                     {                                                   \
+<span class="lineNum">     129 </span>            :                             _ent = mm_calloc(1,sizeof(struct event_map_entry)+fdinfo_len); \
+<span class="lineNum">     130 </span>            :                             if (EVUTIL_UNLIKELY(_ent == NULL))          \
+<span class="lineNum">     131 </span>            :                                     return (-1);                        \
+<span class="lineNum">     132 </span>            :                             _ent-&gt;fd = slot;                         \
+<span class="lineNum">     133 </span>            :                             (ctor)(&amp;_ent-&gt;ent.type);                     \
+<span class="lineNum">     134 </span>            :                             _HT_FOI_INSERT(map_node, map, &amp;_key, _ent, ptr) \
+<span class="lineNum">     135 </span>            :                                 });                                     \
+<span class="lineNum">     136 </span>            :                 (x) = &amp;_ent-&gt;ent.type;                                   \
+<span class="lineNum">     137 </span>            :         } while (0)
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            : void evmap_io_initmap(struct event_io_map *ctx)
+<span class="lineNum">     140 </span>            : {
+<span class="lineNum">     141 </span>            :         HT_INIT(event_io_map, ctx);
+<span class="lineNum">     142 </span>            : }
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            : void evmap_io_clear(struct event_io_map *ctx)
+<span class="lineNum">     145 </span>            : {
+<span class="lineNum">     146 </span>            :         struct event_map_entry **ent, **next, *this;
+<span class="lineNum">     147 </span>            :         for (ent = HT_START(event_io_map, ctx); ent; ent = next) {
+<span class="lineNum">     148 </span>            :                 this = *ent;
+<span class="lineNum">     149 </span>            :                 next = HT_NEXT_RMV(event_io_map, ctx, ent);
+<span class="lineNum">     150 </span>            :                 mm_free(this);
+<span class="lineNum">     151 </span>            :         }
+<span class="lineNum">     152 </span>            :         HT_CLEAR(event_io_map, ctx); /* remove all storage held by the ctx. */
+<span class="lineNum">     153 </span>            : }
+<span class="lineNum">     154 </span>            : #endif
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            : /* Set the variable 'x' to the field in event_map 'map' with fields of type
+<span class="lineNum">     157 </span>            :    'struct type *' corresponding to the fd or signal 'slot'.  Set 'x' to NULL
+<span class="lineNum">     158 </span>            :    if there are no entries for 'slot'.  Does no bounds-checking. */
+<span class="lineNum">     159 </span>            : #define GET_SIGNAL_SLOT(x, map, slot, type)                     \
+<span class="lineNum">     160 </span>            :         (x) = (struct type *)((map)-&gt;entries[slot])
+<span class="lineNum">     161 </span>            : /* As GET_SLOT, but construct the entry for 'slot' if it is not present,
+<span class="lineNum">     162 </span>            :    by allocating enough memory for a 'struct type', and initializing the new
+<span class="lineNum">     163 </span>            :    value by calling the function 'ctor' on it.  Makes the function
+<span class="lineNum">     164 </span>            :    return -1 on allocation failure.
+<span class="lineNum">     165 </span>            :  */
+<span class="lineNum">     166 </span>            : #define GET_SIGNAL_SLOT_AND_CTOR(x, map, slot, type, ctor, fdinfo_len)  \
+<span class="lineNum">     167 </span>            :         do {                                                            \
+<span class="lineNum">     168 </span>            :                 if ((map)-&gt;entries[slot] == NULL) {                  \
+<span class="lineNum">     169 </span>            :                         (map)-&gt;entries[slot] =                               \
+<span class="lineNum">     170 </span>            :                             mm_calloc(1,sizeof(struct type)+fdinfo_len); \
+<span class="lineNum">     171 </span>            :                         if (EVUTIL_UNLIKELY((map)-&gt;entries[slot] == NULL)) \
+<span class="lineNum">     172 </span>            :                                 return (-1);                            \
+<span class="lineNum">     173 </span>            :                         (ctor)((struct type *)(map)-&gt;entries[slot]); \
+<span class="lineNum">     174 </span>            :                 }                                                       \
+<span class="lineNum">     175 </span>            :                 (x) = (struct type *)((map)-&gt;entries[slot]);         \
+<span class="lineNum">     176 </span>            :         } while (0)
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            : /* If we aren't using hashtables, then define the IO_SLOT macros and functions
+<span class="lineNum">     179 </span>            :    as thin aliases over the SIGNAL_SLOT versions. */
+<span class="lineNum">     180 </span>            : #ifndef EVMAP_USE_HT
+<span class="lineNum">     181 </span>            : #define GET_IO_SLOT(x,map,slot,type) GET_SIGNAL_SLOT(x,map,slot,type)
+<span class="lineNum">     182 </span>            : #define GET_IO_SLOT_AND_CTOR(x,map,slot,type,ctor,fdinfo_len)   \
+<span class="lineNum">     183 </span>            :         GET_SIGNAL_SLOT_AND_CTOR(x,map,slot,type,ctor,fdinfo_len)
+<a name="184"><span class="lineNum">     184 </span>            : #define FDINFO_OFFSET sizeof(struct evmap_io)</a>
+<span class="lineNum">     185 </span>            : void
+<span class="lineNum">     186 </span><span class="lineCov">          4 : evmap_io_initmap(struct event_io_map* ctx)</span>
+<span class="lineNum">     187 </span>            : {
+<span class="lineNum">     188 </span><span class="lineCov">          4 :         evmap_signal_initmap(ctx);</span>
+<a name="189"><span class="lineNum">     189 </span><span class="lineCov">          4 : }</span></a>
+<span class="lineNum">     190 </span>            : void
+<span class="lineNum">     191 </span><span class="lineCov">          2 : evmap_io_clear(struct event_io_map* ctx)</span>
+<span class="lineNum">     192 </span>            : {
+<span class="lineNum">     193 </span><span class="lineCov">          2 :         evmap_signal_clear(ctx);</span>
+<span class="lineNum">     194 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     195 </span>            : #endif
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : /** Expand 'map' with new entries of width 'msize' until it is big enough
+<span class="lineNum">     199 </span>            :         to store a value in 'slot'.
+<a name="200"><span class="lineNum">     200 </span>            :  */</a>
+<span class="lineNum">     201 </span>            : static int
+<span class="lineNum">     202 </span><span class="lineCov">          4 : evmap_make_space(struct event_signal_map *map, int slot, int msize)</span>
+<span class="lineNum">     203 </span>            : {
+<span class="lineNum">     204 </span><span class="lineCov">          4 :         if (map-&gt;nentries &lt;= slot) {</span>
+<span class="lineNum">     205 </span><span class="lineCov">          4 :                 int nentries = map-&gt;nentries ? map-&gt;nentries : 32;</span>
+<span class="lineNum">     206 </span>            :                 void **tmp;
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineCov">          8 :                 while (nentries &lt;= slot)</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :                         nentries &lt;&lt;= 1;</span>
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span><span class="lineCov">          4 :                 tmp = (void **)mm_realloc(map-&gt;entries, nentries * msize);</span>
+<span class="lineNum">     212 </span><span class="lineCov">          4 :                 if (tmp == NULL)</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineCov">          4 :                 memset(&amp;tmp[map-&gt;nentries], 0,</span>
+<span class="lineNum">     216 </span><span class="lineCov">          4 :                     (nentries - map-&gt;nentries) * msize);</span>
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineCov">          4 :                 map-&gt;nentries = nentries;</span>
+<span class="lineNum">     219 </span><span class="lineCov">          4 :                 map-&gt;entries = tmp;</span>
+<span class="lineNum">     220 </span>            :         }
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span><span class="lineCov">          4 :         return (0);</span>
+<span class="lineNum">     223 </span>            : }
+<a name="224"><span class="lineNum">     224 </span>            : </a>
+<span class="lineNum">     225 </span>            : void
+<span class="lineNum">     226 </span><span class="lineCov">          8 : evmap_signal_initmap(struct event_signal_map *ctx)</span>
+<span class="lineNum">     227 </span>            : {
+<span class="lineNum">     228 </span><span class="lineCov">          8 :         ctx-&gt;nentries = 0;</span>
+<span class="lineNum">     229 </span><span class="lineCov">          8 :         ctx-&gt;entries = NULL;</span>
+<span class="lineNum">     230 </span><span class="lineCov">          8 : }</span>
+<a name="231"><span class="lineNum">     231 </span>            : </a>
+<span class="lineNum">     232 </span>            : void
+<span class="lineNum">     233 </span><span class="lineCov">          4 : evmap_signal_clear(struct event_signal_map *ctx)</span>
+<span class="lineNum">     234 </span>            : {
+<span class="lineNum">     235 </span><span class="lineCov">          4 :         if (ctx-&gt;entries != NULL) {</span>
+<span class="lineNum">     236 </span>            :                 int i;
+<span class="lineNum">     237 </span><span class="lineCov">         66 :                 for (i = 0; i &lt; ctx-&gt;nentries; ++i) {</span>
+<span class="lineNum">     238 </span><span class="lineCov">         64 :                         if (ctx-&gt;entries[i] != NULL)</span>
+<span class="lineNum">     239 </span><span class="lineCov">          8 :                                 mm_free(ctx-&gt;entries[i]);</span>
+<span class="lineNum">     240 </span>            :                 }
+<span class="lineNum">     241 </span><span class="lineCov">          2 :                 mm_free(ctx-&gt;entries);</span>
+<span class="lineNum">     242 </span><span class="lineCov">          2 :                 ctx-&gt;entries = NULL;</span>
+<span class="lineNum">     243 </span>            :         }
+<span class="lineNum">     244 </span><span class="lineCov">          4 :         ctx-&gt;nentries = 0;</span>
+<span class="lineNum">     245 </span><span class="lineCov">          4 : }</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span>            : /* code specific to file descriptors */
+<span class="lineNum">     249 </span>            : 
+<a name="250"><span class="lineNum">     250 </span>            : /** Constructor for struct evmap_io */</a>
+<span class="lineNum">     251 </span>            : static void
+<span class="lineNum">     252 </span><span class="lineCov">         12 : evmap_io_init(struct evmap_io *entry)</span>
+<span class="lineNum">     253 </span>            : {
+<span class="lineNum">     254 </span><span class="lineCov">         12 :         TAILQ_INIT(&amp;entry-&gt;events);</span>
+<span class="lineNum">     255 </span><span class="lineCov">         12 :         entry-&gt;nread = 0;</span>
+<span class="lineNum">     256 </span><span class="lineCov">         12 :         entry-&gt;nwrite = 0;</span>
+<span class="lineNum">     257 </span><span class="lineCov">         12 : }</span>
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span>            : /* return -1 on error, 0 on success if nothing changed in the event backend,
+<a name="261"><span class="lineNum">     261 </span>            :  * and 1 on success if something did. */</a>
+<span class="lineNum">     262 </span>            : int
+<span class="lineNum">     263 </span><span class="lineCov">         24 : evmap_io_add(struct event_base *base, evutil_socket_t fd, struct event *ev)</span>
+<span class="lineNum">     264 </span>            : {
+<span class="lineNum">     265 </span><span class="lineCov">         24 :         const struct eventop *evsel = base-&gt;evsel;</span>
+<span class="lineNum">     266 </span><span class="lineCov">         24 :         struct event_io_map *io = &amp;base-&gt;io;</span>
+<span class="lineNum">     267 </span><span class="lineCov">         24 :         struct evmap_io *ctx = NULL;</span>
+<span class="lineNum">     268 </span><span class="lineCov">         24 :         int nread, nwrite, retval = 0;</span>
+<span class="lineNum">     269 </span><span class="lineCov">         24 :         short res = 0, old = 0;</span>
+<span class="lineNum">     270 </span>            :         struct event *old_ev;
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span><span class="lineCov">         24 :         EVUTIL_ASSERT(fd == ev-&gt;ev_fd);</span>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span><span class="lineCov">         24 :         if (fd &lt; 0)</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :                 return 0;</span>
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            : #ifndef EVMAP_USE_HT
+<span class="lineNum">     278 </span><span class="lineCov">         24 :         if (fd &gt;= io-&gt;nentries) {</span>
+<span class="lineNum">     279 </span><span class="lineCov">          4 :                 if (evmap_make_space(io, fd, sizeof(struct evmap_io *)) == -1)</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     281 </span>            :         }
+<span class="lineNum">     282 </span>            : #endif
+<span class="lineNum">     283 </span><span class="lineCov">         24 :         GET_IO_SLOT_AND_CTOR(ctx, io, fd, evmap_io, evmap_io_init,</span>
+<span class="lineNum">     284 </span>            :                                                  evsel-&gt;fdinfo_len);
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span><span class="lineCov">         24 :         nread = ctx-&gt;nread;</span>
+<span class="lineNum">     287 </span><span class="lineCov">         24 :         nwrite = ctx-&gt;nwrite;</span>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineCov">         24 :         if (nread)</span>
+<span class="lineNum">     290 </span><span class="lineCov">         10 :                 old |= EV_READ;</span>
+<span class="lineNum">     291 </span><span class="lineCov">         24 :         if (nwrite)</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                 old |= EV_WRITE;</span>
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineCov">         24 :         if (ev-&gt;ev_events &amp; EV_READ) {</span>
+<span class="lineNum">     295 </span><span class="lineCov">         14 :                 if (++nread == 1)</span>
+<span class="lineNum">     296 </span><span class="lineCov">         14 :                         res |= EV_READ;</span>
+<span class="lineNum">     297 </span>            :         }
+<span class="lineNum">     298 </span><span class="lineCov">         24 :         if (ev-&gt;ev_events &amp; EV_WRITE) {</span>
+<span class="lineNum">     299 </span><span class="lineCov">         10 :                 if (++nwrite == 1)</span>
+<span class="lineNum">     300 </span><span class="lineCov">         10 :                         res |= EV_WRITE;</span>
+<span class="lineNum">     301 </span>            :         }
+<span class="lineNum">     302 </span><span class="lineCov">         24 :         if (EVUTIL_UNLIKELY(nread &gt; 0xffff || nwrite &gt; 0xffff)) {</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :                 event_warnx(&quot;Too many events reading or writing on fd %d&quot;,</span>
+<span class="lineNum">     304 </span>            :                     (int)fd);
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :                 return -1;</span>
+<span class="lineNum">     306 </span>            :         }
+<span class="lineNum">     307 </span><span class="lineCov">         24 :         if (EVENT_DEBUG_MODE_IS_ON() &amp;&amp;</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :             (old_ev = TAILQ_FIRST(&amp;ctx-&gt;events)) &amp;&amp;</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :             (old_ev-&gt;ev_events&amp;EV_ET) != (ev-&gt;ev_events&amp;EV_ET)) {</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :                 event_warnx(&quot;Tried to mix edge-triggered and non-edge-triggered&quot;</span>
+<span class="lineNum">     311 </span>            :                     &quot; events on fd %d&quot;, (int)fd);
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :                 return -1;</span>
+<span class="lineNum">     313 </span>            :         }
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span><span class="lineCov">         24 :         if (res) {</span>
+<span class="lineNum">     316 </span><span class="lineCov">         24 :                 void *extra = ((char*)ctx) + sizeof(struct evmap_io);</span>
+<span class="lineNum">     317 </span>            :                 /* XXX(niels): we cannot mix edge-triggered and
+<span class="lineNum">     318 </span>            :                  * level-triggered, we should probably assert on
+<span class="lineNum">     319 </span>            :                  * this. */
+<span class="lineNum">     320 </span><span class="lineCov">         48 :                 if (evsel-&gt;add(base, ev-&gt;ev_fd,</span>
+<span class="lineNum">     321 </span><span class="lineCov">         24 :                         old, (ev-&gt;ev_events &amp; EV_ET) | res, extra) == -1)</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     323 </span><span class="lineCov">         24 :                 retval = 1;</span>
+<span class="lineNum">     324 </span>            :         }
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span><span class="lineCov">         24 :         ctx-&gt;nread = (ev_uint16_t) nread;</span>
+<span class="lineNum">     327 </span><span class="lineCov">         24 :         ctx-&gt;nwrite = (ev_uint16_t) nwrite;</span>
+<span class="lineNum">     328 </span><span class="lineCov">         24 :         TAILQ_INSERT_TAIL(&amp;ctx-&gt;events, ev, ev_io_next);</span>
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineCov">         24 :         return (retval);</span>
+<span class="lineNum">     331 </span>            : }
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span>            : /* return -1 on error, 0 on success if nothing changed in the event backend,
+<a name="334"><span class="lineNum">     334 </span>            :  * and 1 on success if something did. */</a>
+<span class="lineNum">     335 </span>            : int
+<span class="lineNum">     336 </span><span class="lineCov">         22 : evmap_io_del(struct event_base *base, evutil_socket_t fd, struct event *ev)</span>
+<span class="lineNum">     337 </span>            : {
+<span class="lineNum">     338 </span><span class="lineCov">         22 :         const struct eventop *evsel = base-&gt;evsel;</span>
+<span class="lineNum">     339 </span><span class="lineCov">         22 :         struct event_io_map *io = &amp;base-&gt;io;</span>
+<span class="lineNum">     340 </span>            :         struct evmap_io *ctx;
+<span class="lineNum">     341 </span><span class="lineCov">         22 :         int nread, nwrite, retval = 0;</span>
+<span class="lineNum">     342 </span><span class="lineCov">         22 :         short res = 0, old = 0;</span>
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span><span class="lineCov">         22 :         if (fd &lt; 0)</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :                 return 0;</span>
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span><span class="lineCov">         22 :         EVUTIL_ASSERT(fd == ev-&gt;ev_fd);</span>
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            : #ifndef EVMAP_USE_HT
+<span class="lineNum">     350 </span><span class="lineCov">         22 :         if (fd &gt;= io-&gt;nentries)</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     352 </span>            : #endif
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span><span class="lineCov">         22 :         GET_IO_SLOT(ctx, io, fd, evmap_io);</span>
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineCov">         22 :         nread = ctx-&gt;nread;</span>
+<span class="lineNum">     357 </span><span class="lineCov">         22 :         nwrite = ctx-&gt;nwrite;</span>
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span><span class="lineCov">         22 :         if (nread)</span>
+<span class="lineNum">     360 </span><span class="lineCov">         22 :                 old |= EV_READ;</span>
+<span class="lineNum">     361 </span><span class="lineCov">         22 :         if (nwrite)</span>
+<span class="lineNum">     362 </span><span class="lineCov">         10 :                 old |= EV_WRITE;</span>
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span><span class="lineCov">         22 :         if (ev-&gt;ev_events &amp; EV_READ) {</span>
+<span class="lineNum">     365 </span><span class="lineCov">         12 :                 if (--nread == 0)</span>
+<span class="lineNum">     366 </span><span class="lineCov">         12 :                         res |= EV_READ;</span>
+<span class="lineNum">     367 </span><span class="lineCov">         12 :                 EVUTIL_ASSERT(nread &gt;= 0);</span>
+<span class="lineNum">     368 </span>            :         }
+<span class="lineNum">     369 </span><span class="lineCov">         22 :         if (ev-&gt;ev_events &amp; EV_WRITE) {</span>
+<span class="lineNum">     370 </span><span class="lineCov">         10 :                 if (--nwrite == 0)</span>
+<span class="lineNum">     371 </span><span class="lineCov">         10 :                         res |= EV_WRITE;</span>
+<span class="lineNum">     372 </span><span class="lineCov">         10 :                 EVUTIL_ASSERT(nwrite &gt;= 0);</span>
+<span class="lineNum">     373 </span>            :         }
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span><span class="lineCov">         22 :         if (res) {</span>
+<span class="lineNum">     376 </span><span class="lineCov">         22 :                 void *extra = ((char*)ctx) + sizeof(struct evmap_io);</span>
+<span class="lineNum">     377 </span><span class="lineCov">         22 :                 if (evsel-&gt;del(base, ev-&gt;ev_fd, old, res, extra) == -1)</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     379 </span><span class="lineCov">         22 :                 retval = 1;</span>
+<span class="lineNum">     380 </span>            :         }
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineCov">         22 :         ctx-&gt;nread = nread;</span>
+<span class="lineNum">     383 </span><span class="lineCov">         22 :         ctx-&gt;nwrite = nwrite;</span>
+<span class="lineNum">     384 </span><span class="lineCov">         22 :         TAILQ_REMOVE(&amp;ctx-&gt;events, ev, ev_io_next);</span>
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineCov">         22 :         return (retval);</span>
+<span class="lineNum">     387 </span>            : }
+<a name="388"><span class="lineNum">     388 </span>            : </a>
+<span class="lineNum">     389 </span>            : void
+<span class="lineNum">     390 </span><span class="lineCov">         45 : evmap_io_active(struct event_base *base, evutil_socket_t fd, short events)</span>
+<span class="lineNum">     391 </span>            : {
+<span class="lineNum">     392 </span><span class="lineCov">         45 :         struct event_io_map *io = &amp;base-&gt;io;</span>
+<span class="lineNum">     393 </span>            :         struct evmap_io *ctx;
+<span class="lineNum">     394 </span>            :         struct event *ev;
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span>            : #ifndef EVMAP_USE_HT
+<span class="lineNum">     397 </span><span class="lineCov">         45 :         EVUTIL_ASSERT(fd &lt; io-&gt;nentries);</span>
+<span class="lineNum">     398 </span>            : #endif
+<span class="lineNum">     399 </span><span class="lineCov">         45 :         GET_IO_SLOT(ctx, io, fd, evmap_io);</span>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineCov">         45 :         EVUTIL_ASSERT(ctx);</span>
+<span class="lineNum">     402 </span><span class="lineCov">        100 :         TAILQ_FOREACH(ev, &amp;ctx-&gt;events, ev_io_next) {</span>
+<span class="lineNum">     403 </span><span class="lineCov">         55 :                 if (ev-&gt;ev_events &amp; events)</span>
+<span class="lineNum">     404 </span><span class="lineCov">         45 :                         event_active_nolock(ev, ev-&gt;ev_events &amp; events, 1);</span>
+<span class="lineNum">     405 </span>            :         }
+<span class="lineNum">     406 </span><span class="lineCov">         45 : }</span>
+<span class="lineNum">     407 </span>            : 
+<span class="lineNum">     408 </span>            : /* code specific to signals */
+<a name="409"><span class="lineNum">     409 </span>            : </a>
+<span class="lineNum">     410 </span>            : static void
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 : evmap_signal_init(struct evmap_signal *entry)</span>
+<span class="lineNum">     412 </span>            : {
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :         TAILQ_INIT(&amp;entry-&gt;events);</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     415 </span>            : 
+<a name="416"><span class="lineNum">     416 </span>            : </a>
+<span class="lineNum">     417 </span>            : int
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 : evmap_signal_add(struct event_base *base, int sig, struct event *ev)</span>
+<span class="lineNum">     419 </span>            : {
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :         const struct eventop *evsel = base-&gt;evsigsel;</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :         struct event_signal_map *map = &amp;base-&gt;sigmap;</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :         struct evmap_signal *ctx = NULL;</span>
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :         if (sig &gt;= map-&gt;nentries) {</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :                 if (evmap_make_space(</span>
+<span class="lineNum">     426 </span>            :                         map, sig, sizeof(struct evmap_signal *)) == -1)
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     428 </span>            :         }
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :         GET_SIGNAL_SLOT_AND_CTOR(ctx, map, sig, evmap_signal, evmap_signal_init,</span>
+<span class="lineNum">     430 </span>            :             base-&gt;evsigsel-&gt;fdinfo_len);
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :         if (TAILQ_EMPTY(&amp;ctx-&gt;events)) {</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :                 if (evsel-&gt;add(base, ev-&gt;ev_fd, 0, EV_SIGNAL, NULL)</span>
+<span class="lineNum">     434 </span>            :                     == -1)
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     436 </span>            :         }
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :         TAILQ_INSERT_TAIL(&amp;ctx-&gt;events, ev, ev_signal_next);</span>
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :         return (1);</span>
+<span class="lineNum">     441 </span>            : }
+<a name="442"><span class="lineNum">     442 </span>            : </a>
+<span class="lineNum">     443 </span>            : int
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 : evmap_signal_del(struct event_base *base, int sig, struct event *ev)</span>
+<span class="lineNum">     445 </span>            : {
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :         const struct eventop *evsel = base-&gt;evsigsel;</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :         struct event_signal_map *map = &amp;base-&gt;sigmap;</span>
+<span class="lineNum">     448 </span>            :         struct evmap_signal *ctx;
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :         if (sig &gt;= map-&gt;nentries)</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :         GET_SIGNAL_SLOT(ctx, map, sig, evmap_signal);</span>
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :         if (TAILQ_FIRST(&amp;ctx-&gt;events) == TAILQ_LAST(&amp;ctx-&gt;events, event_list)) {</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :                 if (evsel-&gt;del(base, ev-&gt;ev_fd, 0, EV_SIGNAL, NULL) == -1)</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     458 </span>            :         }
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :         TAILQ_REMOVE(&amp;ctx-&gt;events, ev, ev_signal_next);</span>
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :         return (1);</span>
+<span class="lineNum">     463 </span>            : }
+<a name="464"><span class="lineNum">     464 </span>            : </a>
+<span class="lineNum">     465 </span>            : void
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 : evmap_signal_active(struct event_base *base, evutil_socket_t sig, int ncalls)</span>
+<span class="lineNum">     467 </span>            : {
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :         struct event_signal_map *map = &amp;base-&gt;sigmap;</span>
+<span class="lineNum">     469 </span>            :         struct evmap_signal *ctx;
+<span class="lineNum">     470 </span>            :         struct event *ev;
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :         EVUTIL_ASSERT(sig &lt; map-&gt;nentries);</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :         GET_SIGNAL_SLOT(ctx, map, sig, evmap_signal);</span>
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :         TAILQ_FOREACH(ev, &amp;ctx-&gt;events, ev_signal_next)</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :                 event_active_nolock(ev, EV_SIGNAL, ncalls);</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 : }</span>
+<a name="478"><span class="lineNum">     478 </span>            : </a>
+<span class="lineNum">     479 </span>            : void *
+<span class="lineNum">     480 </span><span class="lineCov">          6 : evmap_io_get_fdinfo(struct event_io_map *map, evutil_socket_t fd)</span>
+<span class="lineNum">     481 </span>            : {
+<span class="lineNum">     482 </span>            :         struct evmap_io *ctx;
+<span class="lineNum">     483 </span><span class="lineCov">          6 :         GET_IO_SLOT(ctx, map, fd, evmap_io);</span>
+<span class="lineNum">     484 </span><span class="lineCov">          6 :         if (ctx)</span>
+<span class="lineNum">     485 </span><span class="lineCov">          6 :                 return ((char*)ctx) + sizeof(struct evmap_io);</span>
+<span class="lineNum">     486 </span>            :         else
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :                 return NULL;</span>
+<span class="lineNum">     488 </span>            : }
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span>            : /** Per-fd structure for use with changelists.  It keeps track, for each fd or
+<span class="lineNum">     491 </span>            :  * signal using the changelist, of where its entry in the changelist is.
+<span class="lineNum">     492 </span>            :  */
+<span class="lineNum">     493 </span>            : struct event_changelist_fdinfo {
+<span class="lineNum">     494 </span>            :         int idxplus1; /* this is the index +1, so that memset(0) will make it
+<span class="lineNum">     495 </span>            :                        * a no-such-element */
+<span class="lineNum">     496 </span>            : };
+<a name="497"><span class="lineNum">     497 </span>            : </a>
+<span class="lineNum">     498 </span>            : void
+<span class="lineNum">     499 </span><span class="lineCov">          6 : event_changelist_init(struct event_changelist *changelist)</span>
+<span class="lineNum">     500 </span>            : {
+<span class="lineNum">     501 </span><span class="lineCov">          6 :         changelist-&gt;changes = NULL;</span>
+<span class="lineNum">     502 </span><span class="lineCov">          6 :         changelist-&gt;changes_size = 0;</span>
+<span class="lineNum">     503 </span><span class="lineCov">          6 :         changelist-&gt;n_changes = 0;</span>
+<span class="lineNum">     504 </span><span class="lineCov">          6 : }</span>
+<span class="lineNum">     505 </span>            : 
+<a name="506"><span class="lineNum">     506 </span>            : /** Helper: return the changelist_fdinfo corresponding to a given change. */</a>
+<span class="lineNum">     507 </span>            : static inline struct event_changelist_fdinfo *
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 : event_change_get_fdinfo(struct event_base *base,</span>
+<span class="lineNum">     509 </span>            :     const struct event_change *change)
+<span class="lineNum">     510 </span>            : {
+<span class="lineNum">     511 </span>            :         char *ptr;
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :         if (change-&gt;read_change &amp; EV_CHANGE_SIGNAL) {</span>
+<span class="lineNum">     513 </span>            :                 struct evmap_signal *ctx;
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :                 GET_SIGNAL_SLOT(ctx, &amp;base-&gt;sigmap, change-&gt;fd, evmap_signal);</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :                 ptr = ((char*)ctx) + sizeof(struct evmap_signal);</span>
+<span class="lineNum">     516 </span>            :         } else {
+<span class="lineNum">     517 </span>            :                 struct evmap_io *ctx;
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :                 GET_IO_SLOT(ctx, &amp;base-&gt;io, change-&gt;fd, evmap_io);</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :                 ptr = ((char*)ctx) + sizeof(struct evmap_io);</span>
+<span class="lineNum">     520 </span>            :         }
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :         return (void*)ptr;</span>
+<span class="lineNum">     522 </span>            : }
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span>            : #ifdef DEBUG_CHANGELIST
+<span class="lineNum">     525 </span>            : /** Make sure that the changelist is consistent with the evmap structures. */
+<span class="lineNum">     526 </span>            : static void
+<span class="lineNum">     527 </span>            : event_changelist_check(struct event_base *base)
+<span class="lineNum">     528 </span>            : {
+<span class="lineNum">     529 </span>            :         int i;
+<span class="lineNum">     530 </span>            :         struct event_changelist *changelist = &amp;base-&gt;changelist;
+<span class="lineNum">     531 </span>            : 
+<span class="lineNum">     532 </span>            :         EVUTIL_ASSERT(changelist-&gt;changes_size &gt;= changelist-&gt;n_changes);
+<span class="lineNum">     533 </span>            :         for (i = 0; i &lt; changelist-&gt;n_changes; ++i) {
+<span class="lineNum">     534 </span>            :                 struct event_change *c = &amp;changelist-&gt;changes[i];
+<span class="lineNum">     535 </span>            :                 struct event_changelist_fdinfo *f;
+<span class="lineNum">     536 </span>            :                 EVUTIL_ASSERT(c-&gt;fd &gt;= 0);
+<span class="lineNum">     537 </span>            :                 f = event_change_get_fdinfo(base, c);
+<span class="lineNum">     538 </span>            :                 EVUTIL_ASSERT(f);
+<span class="lineNum">     539 </span>            :                 EVUTIL_ASSERT(f-&gt;idxplus1 == i + 1);
+<span class="lineNum">     540 </span>            :         }
+<span class="lineNum">     541 </span>            : 
+<span class="lineNum">     542 </span>            :         for (i = 0; i &lt; base-&gt;io.nentries; ++i) {
+<span class="lineNum">     543 </span>            :                 struct evmap_io *io = base-&gt;io.entries[i];
+<span class="lineNum">     544 </span>            :                 struct event_changelist_fdinfo *f;
+<span class="lineNum">     545 </span>            :                 if (!io)
+<span class="lineNum">     546 </span>            :                         continue;
+<span class="lineNum">     547 </span>            :                 f = (void*)
+<span class="lineNum">     548 </span>            :                     ( ((char*)io) + sizeof(struct evmap_io) );
+<span class="lineNum">     549 </span>            :                 if (f-&gt;idxplus1) {
+<span class="lineNum">     550 </span>            :                         struct event_change *c = &amp;changelist-&gt;changes[f-&gt;idxplus1 - 1];
+<span class="lineNum">     551 </span>            :                         EVUTIL_ASSERT(c-&gt;fd == i);
+<span class="lineNum">     552 </span>            :                 }
+<span class="lineNum">     553 </span>            :         }
+<span class="lineNum">     554 </span>            : }
+<span class="lineNum">     555 </span>            : #else
+<span class="lineNum">     556 </span>            : #define event_changelist_check(base)  ((void)0)
+<span class="lineNum">     557 </span>            : #endif
+<a name="558"><span class="lineNum">     558 </span>            : </a>
+<span class="lineNum">     559 </span>            : void
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 : event_changelist_remove_all(struct event_changelist *changelist,</span>
+<span class="lineNum">     561 </span>            :     struct event_base *base)
+<span class="lineNum">     562 </span>            : {
+<span class="lineNum">     563 </span>            :         int i;
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span>            :         event_changelist_check(base);
+<span class="lineNum">     566 </span>            : 
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; changelist-&gt;n_changes; ++i) {</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :                 struct event_change *ch = &amp;changelist-&gt;changes[i];</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :                 struct event_changelist_fdinfo *fdinfo =</span>
+<span class="lineNum">     570 </span>            :                     event_change_get_fdinfo(base, ch);
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :                 EVUTIL_ASSERT(fdinfo-&gt;idxplus1 == i + 1);</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :                 fdinfo-&gt;idxplus1 = 0;</span>
+<span class="lineNum">     573 </span>            :         }
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :         changelist-&gt;n_changes = 0;</span>
+<span class="lineNum">     576 </span>            : 
+<span class="lineNum">     577 </span>            :         event_changelist_check(base);
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 : }</span>
+<a name="579"><span class="lineNum">     579 </span>            : </a>
+<span class="lineNum">     580 </span>            : void
+<span class="lineNum">     581 </span><span class="lineCov">          2 : event_changelist_freemem(struct event_changelist *changelist)</span>
+<span class="lineNum">     582 </span>            : {
+<span class="lineNum">     583 </span><span class="lineCov">          2 :         if (changelist-&gt;changes)</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :                 mm_free(changelist-&gt;changes);</span>
+<span class="lineNum">     585 </span><span class="lineCov">          2 :         event_changelist_init(changelist); /* zero it all out. */</span>
+<span class="lineNum">     586 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     587 </span>            : 
+<a name="588"><span class="lineNum">     588 </span>            : /** Increase the size of 'changelist' to hold more changes. */</a>
+<span class="lineNum">     589 </span>            : static int
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 : event_changelist_grow(struct event_changelist *changelist)</span>
+<span class="lineNum">     591 </span>            : {
+<span class="lineNum">     592 </span>            :         int new_size;
+<span class="lineNum">     593 </span>            :         struct event_change *new_changes;
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :         if (changelist-&gt;changes_size &lt; 64)</span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :                 new_size = 64;</span>
+<span class="lineNum">     596 </span>            :         else
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :                 new_size = changelist-&gt;changes_size * 2;</span>
+<span class="lineNum">     598 </span>            : 
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :         new_changes = mm_realloc(changelist-&gt;changes,</span>
+<span class="lineNum">     600 </span>            :             new_size * sizeof(struct event_change));
+<span class="lineNum">     601 </span>            : 
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :         if (EVUTIL_UNLIKELY(new_changes == NULL))</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     604 </span>            : 
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :         changelist-&gt;changes = new_changes;</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :         changelist-&gt;changes_size = new_size;</span>
+<span class="lineNum">     607 </span>            : 
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     609 </span>            : }
+<span class="lineNum">     610 </span>            : 
+<span class="lineNum">     611 </span>            : /** Return a pointer to the changelist entry for the file descriptor or signal
+<span class="lineNum">     612 </span>            :  * 'fd', whose fdinfo is 'fdinfo'.  If none exists, construct it, setting its
+<span class="lineNum">     613 </span>            :  * old_events field to old_events.
+<a name="614"><span class="lineNum">     614 </span>            :  */</a>
+<span class="lineNum">     615 </span>            : static struct event_change *
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 : event_changelist_get_or_construct(struct event_changelist *changelist,</span>
+<span class="lineNum">     617 </span>            :     evutil_socket_t fd,
+<span class="lineNum">     618 </span>            :     short old_events,
+<span class="lineNum">     619 </span>            :     struct event_changelist_fdinfo *fdinfo)
+<span class="lineNum">     620 </span>            : {
+<span class="lineNum">     621 </span>            :         struct event_change *change;
+<span class="lineNum">     622 </span>            : 
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :         if (fdinfo-&gt;idxplus1 == 0) {</span>
+<span class="lineNum">     624 </span>            :                 int idx;
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :                 EVUTIL_ASSERT(changelist-&gt;n_changes &lt;= changelist-&gt;changes_size);</span>
+<span class="lineNum">     626 </span>            : 
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :                 if (changelist-&gt;n_changes == changelist-&gt;changes_size) {</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :                         if (event_changelist_grow(changelist) &lt; 0)</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :                                 return NULL;</span>
+<span class="lineNum">     630 </span>            :                 }
+<span class="lineNum">     631 </span>            : 
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :                 idx = changelist-&gt;n_changes++;</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :                 change = &amp;changelist-&gt;changes[idx];</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :                 fdinfo-&gt;idxplus1 = idx + 1;</span>
+<span class="lineNum">     635 </span>            : 
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :                 memset(change, 0, sizeof(struct event_change));</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :                 change-&gt;fd = fd;</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :                 change-&gt;old_events = old_events;</span>
+<span class="lineNum">     639 </span>            :         } else {
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :                 change = &amp;changelist-&gt;changes[fdinfo-&gt;idxplus1 - 1];</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :                 EVUTIL_ASSERT(change-&gt;fd == fd);</span>
+<span class="lineNum">     642 </span>            :         }
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :         return change;</span>
+<span class="lineNum">     644 </span>            : }
+<a name="645"><span class="lineNum">     645 </span>            : </a>
+<span class="lineNum">     646 </span>            : int
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 : event_changelist_add(struct event_base *base, evutil_socket_t fd, short old, short events,</span>
+<span class="lineNum">     648 </span>            :     void *p)
+<span class="lineNum">     649 </span>            : {
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :         struct event_changelist *changelist = &amp;base-&gt;changelist;</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :         struct event_changelist_fdinfo *fdinfo = p;</span>
+<span class="lineNum">     652 </span>            :         struct event_change *change;
+<span class="lineNum">     653 </span>            : 
+<span class="lineNum">     654 </span>            :         event_changelist_check(base);
+<span class="lineNum">     655 </span>            : 
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :         change = event_changelist_get_or_construct(changelist, fd, old, fdinfo);</span>
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :         if (!change)</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :                 return -1;</span>
+<span class="lineNum">     659 </span>            : 
+<span class="lineNum">     660 </span>            :         /* An add replaces any previous delete, but doesn't result in a no-op,
+<span class="lineNum">     661 </span>            :          * since the delete might fail (because the fd had been closed since
+<span class="lineNum">     662 </span>            :          * the last add, for instance. */
+<span class="lineNum">     663 </span>            : 
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :         if (events &amp; (EV_READ|EV_SIGNAL)) {</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :                 change-&gt;read_change = EV_CHANGE_ADD |</span>
+<span class="lineNum">     666 </span>            :                     (events &amp; (EV_ET|EV_PERSIST|EV_SIGNAL));
+<span class="lineNum">     667 </span>            :         }
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :         if (events &amp; EV_WRITE) {</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :                 change-&gt;write_change = EV_CHANGE_ADD |</span>
+<span class="lineNum">     670 </span>            :                     (events &amp; (EV_ET|EV_PERSIST|EV_SIGNAL));
+<span class="lineNum">     671 </span>            :         }
+<span class="lineNum">     672 </span>            : 
+<span class="lineNum">     673 </span>            :         event_changelist_check(base);
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     675 </span>            : }
+<a name="676"><span class="lineNum">     676 </span>            : </a>
+<span class="lineNum">     677 </span>            : int
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 : event_changelist_del(struct event_base *base, evutil_socket_t fd, short old, short events,</span>
+<span class="lineNum">     679 </span>            :     void *p)
+<span class="lineNum">     680 </span>            : {
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :         struct event_changelist *changelist = &amp;base-&gt;changelist;</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :         struct event_changelist_fdinfo *fdinfo = p;</span>
+<span class="lineNum">     683 </span>            :         struct event_change *change;
+<span class="lineNum">     684 </span>            : 
+<span class="lineNum">     685 </span>            :         event_changelist_check(base);
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :         change = event_changelist_get_or_construct(changelist, fd, old, fdinfo);</span>
+<span class="lineNum">     687 </span>            :         event_changelist_check(base);
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :         if (!change)</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :                 return -1;</span>
+<span class="lineNum">     690 </span>            : 
+<span class="lineNum">     691 </span>            :         /* A delete removes any previous add, rather than replacing it:
+<span class="lineNum">     692 </span>            :            on those platforms where &quot;add, delete, dispatch&quot; is not the same
+<span class="lineNum">     693 </span>            :            as &quot;no-op, dispatch&quot;, we want the no-op behavior.
+<span class="lineNum">     694 </span>            : 
+<span class="lineNum">     695 </span>            :            As well as checking the current operation we should also check
+<span class="lineNum">     696 </span>            :            the original set of events to make sure were not ignoring
+<span class="lineNum">     697 </span>            :            the case where the add operation is present on an event that
+<span class="lineNum">     698 </span>            :            was already set.
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span>            :            If we have a no-op item, we could remove it it from the list
+<span class="lineNum">     701 </span>            :            entirely, but really there's not much point: skipping the no-op
+<span class="lineNum">     702 </span>            :            change when we do the dispatch later is far cheaper than rejuggling
+<span class="lineNum">     703 </span>            :            the array now.
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span>            :            As this stands, it also lets through deletions of events that are
+<span class="lineNum">     706 </span>            :            not currently set.
+<span class="lineNum">     707 </span>            :          */
+<span class="lineNum">     708 </span>            : 
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :         if (events &amp; (EV_READ|EV_SIGNAL)) {</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :                 if (!(change-&gt;old_events &amp; (EV_READ | EV_SIGNAL)) &amp;&amp;</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :                     (change-&gt;read_change &amp; EV_CHANGE_ADD))</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :                         change-&gt;read_change = 0;</span>
+<span class="lineNum">     713 </span>            :                 else
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :                         change-&gt;read_change = EV_CHANGE_DEL;</span>
+<span class="lineNum">     715 </span>            :         }
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :         if (events &amp; EV_WRITE) {</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :                 if (!(change-&gt;old_events &amp; EV_WRITE) &amp;&amp;</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :                     (change-&gt;write_change &amp; EV_CHANGE_ADD))</span>
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :                         change-&gt;write_change = 0;</span>
+<span class="lineNum">     720 </span>            :                 else
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :                         change-&gt;write_change = EV_CHANGE_DEL;</span>
+<span class="lineNum">     722 </span>            :         }
+<span class="lineNum">     723 </span>            : 
+<span class="lineNum">     724 </span>            :         event_changelist_check(base);
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     726 </span>            : }
+<a name="727"><span class="lineNum">     727 </span>            : </a>
+<span class="lineNum">     728 </span>            : void
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 : evmap_check_integrity(struct event_base *base)</span>
+<span class="lineNum">     730 </span>            : {
+<span class="lineNum">     731 </span>            : #define EVLIST_X_SIGFOUND 0x1000
+<span class="lineNum">     732 </span>            : #define EVLIST_X_IOFOUND 0x2000
+<span class="lineNum">     733 </span>            : 
+<span class="lineNum">     734 </span>            :         evutil_socket_t i;
+<span class="lineNum">     735 </span>            :         struct event *ev;
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :         struct event_io_map *io = &amp;base-&gt;io;</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :         struct event_signal_map *sigmap = &amp;base-&gt;sigmap;</span>
+<span class="lineNum">     738 </span>            : #ifdef EVMAP_USE_HT
+<span class="lineNum">     739 </span>            :         struct event_map_entry **mapent;
+<span class="lineNum">     740 </span>            : #endif
+<span class="lineNum">     741 </span>            :         int nsignals, ntimers, nio;
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :         nsignals = ntimers = nio = 0;</span>
+<span class="lineNum">     743 </span>            : 
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :         TAILQ_FOREACH(ev, &amp;base-&gt;eventqueue, ev_next) {</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :                 EVUTIL_ASSERT(ev-&gt;ev_flags &amp; EVLIST_INSERTED);</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :                 EVUTIL_ASSERT(ev-&gt;ev_flags &amp; EVLIST_INIT);</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :                 ev-&gt;ev_flags &amp;= ~(EVLIST_X_SIGFOUND|EVLIST_X_IOFOUND);</span>
+<span class="lineNum">     748 </span>            :         }
+<span class="lineNum">     749 </span>            : 
+<span class="lineNum">     750 </span>            : #ifdef EVMAP_USE_HT
+<span class="lineNum">     751 </span>            :         HT_FOREACH(mapent, event_io_map, io) {
+<span class="lineNum">     752 </span>            :                 struct evmap_io *ctx = &amp;(*mapent)-&gt;ent.evmap_io;
+<span class="lineNum">     753 </span>            :                 i = (*mapent)-&gt;fd;
+<span class="lineNum">     754 </span>            : #else
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; io-&gt;nentries; ++i) {</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :                 struct evmap_io *ctx = io-&gt;entries[i];</span>
+<span class="lineNum">     757 </span>            : 
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :                 if (!ctx)</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     760 </span>            : #endif
+<span class="lineNum">     761 </span>            : 
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :                 TAILQ_FOREACH(ev, &amp;ctx-&gt;events, ev_io_next) {</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :                         EVUTIL_ASSERT(!(ev-&gt;ev_flags &amp; EVLIST_X_IOFOUND));</span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :                         EVUTIL_ASSERT(ev-&gt;ev_fd == i);</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :                         ev-&gt;ev_flags |= EVLIST_X_IOFOUND;</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :                         nio++;</span>
+<span class="lineNum">     767 </span>            :                 }
+<span class="lineNum">     768 </span>            :         }
+<span class="lineNum">     769 </span>            : 
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; sigmap-&gt;nentries; ++i) {</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :                 struct evmap_signal *ctx = sigmap-&gt;entries[i];</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :                 if (!ctx)</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     774 </span>            : 
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :                 TAILQ_FOREACH(ev, &amp;ctx-&gt;events, ev_signal_next) {</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :                         EVUTIL_ASSERT(!(ev-&gt;ev_flags &amp; EVLIST_X_SIGFOUND));</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :                         EVUTIL_ASSERT(ev-&gt;ev_fd == i);</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :                         ev-&gt;ev_flags |= EVLIST_X_SIGFOUND;</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :                         nsignals++;</span>
+<span class="lineNum">     780 </span>            :                 }
+<span class="lineNum">     781 </span>            :         }
+<span class="lineNum">     782 </span>            : 
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :         TAILQ_FOREACH(ev, &amp;base-&gt;eventqueue, ev_next) {</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :                 if (ev-&gt;ev_events &amp; (EV_READ|EV_WRITE)) {</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :                         EVUTIL_ASSERT(ev-&gt;ev_flags &amp; EVLIST_X_IOFOUND);</span>
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :                         --nio;</span>
+<span class="lineNum">     787 </span>            :                 }
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :                 if (ev-&gt;ev_events &amp; EV_SIGNAL) {</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :                         EVUTIL_ASSERT(ev-&gt;ev_flags &amp; EVLIST_X_SIGFOUND);</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :                         --nsignals;</span>
+<span class="lineNum">     791 </span>            :                 }
+<span class="lineNum">     792 </span>            :         }
+<span class="lineNum">     793 </span>            : 
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :         EVUTIL_ASSERT(nio == 0);</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :         EVUTIL_ASSERT(nsignals == 0);</span>
+<span class="lineNum">     796 </span>            :         /* There is no &quot;EVUTIL_ASSERT(ntimers == 0)&quot;: eventqueue is only for
+<span class="lineNum">     797 </span>            :          * pending signals and io events.
+<span class="lineNum">     798 </span>            :          */
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

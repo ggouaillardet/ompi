@@ -1,0 +1,298 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - ompi/mca/coll/tuned/coll_tuned_reduce_decision.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/coll/tuned</a> - coll_tuned_reduce_decision.c<span style="font-size: 80%;"> (source / <a href="coll_tuned_reduce_decision.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">25</td>
+            <td class="headerCovTableEntry">58</td>
+            <td class="headerCovTableEntryLo">43.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryLo">33.3 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2015 The University of Tennessee and The University
+<span class="lineNum">       4 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       5 </span>            :  *                         reserved.
+<span class="lineNum">       6 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * Additional copyrights may follow
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  * $HEADER$
+<span class="lineNum">      11 </span>            :  */
+<span class="lineNum">      12 </span>            : 
+<span class="lineNum">      13 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : #include &quot;mpi.h&quot;
+<span class="lineNum">      16 </span>            : #include &quot;ompi/constants.h&quot;
+<span class="lineNum">      17 </span>            : #include &quot;ompi/datatype/ompi_datatype.h&quot;
+<span class="lineNum">      18 </span>            : #include &quot;ompi/communicator/communicator.h&quot;
+<span class="lineNum">      19 </span>            : #include &quot;ompi/mca/coll/coll.h&quot;
+<span class="lineNum">      20 </span>            : #include &quot;ompi/mca/coll/base/coll_base_topo.h&quot;
+<span class="lineNum">      21 </span>            : #include &quot;ompi/mca/coll/base/coll_tags.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;ompi/mca/pml/pml.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;ompi/op/op.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;coll_tuned.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : /* reduce algorithm variables */
+<span class="lineNum">      27 </span>            : static int coll_tuned_reduce_forced_algorithm = 0;
+<span class="lineNum">      28 </span>            : static int coll_tuned_reduce_segment_size = 0;
+<span class="lineNum">      29 </span>            : static int coll_tuned_reduce_max_requests;
+<span class="lineNum">      30 </span>            : static int coll_tuned_reduce_tree_fanout;
+<span class="lineNum">      31 </span>            : static int coll_tuned_reduce_chain_fanout;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : /* valid values for coll_tuned_reduce_forced_algorithm */
+<span class="lineNum">      34 </span>            : static mca_base_var_enum_value_t reduce_algorithms[] = {
+<span class="lineNum">      35 </span>            :     {0, &quot;ignore&quot;},
+<span class="lineNum">      36 </span>            :     {1, &quot;linear&quot;},
+<span class="lineNum">      37 </span>            :     {2, &quot;chain&quot;},
+<span class="lineNum">      38 </span>            :     {3, &quot;pipeline&quot;},
+<span class="lineNum">      39 </span>            :     {4, &quot;binary&quot;},
+<span class="lineNum">      40 </span>            :     {5, &quot;binomial&quot;},
+<span class="lineNum">      41 </span>            :     {6, &quot;in-order_binary&quot;},
+<span class="lineNum">      42 </span>            :     {0, NULL}
+<span class="lineNum">      43 </span>            : };
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : /**
+<span class="lineNum">      46 </span>            :  * The following are used by dynamic and forced rules
+<span class="lineNum">      47 </span>            :  *
+<span class="lineNum">      48 </span>            :  * publish details of each algorithm and if its forced/fixed/locked in
+<span class="lineNum">      49 </span>            :  * as you add methods/algorithms you must update this and the query/map routines
+<span class="lineNum">      50 </span>            :  *
+<span class="lineNum">      51 </span>            :  * this routine is called by the component only
+<span class="lineNum">      52 </span>            :  * this makes sure that the mca parameters are set to their initial values and
+<span class="lineNum">      53 </span>            :  * perms module does not call this they call the forced_getvalues routine
+<span class="lineNum">      54 </span>            :  * instead.
+<a name="55"><span class="lineNum">      55 </span>            :  */</a>
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span><span class="lineCov">          2 : int ompi_coll_tuned_reduce_intra_check_forced_init (coll_tuned_force_algorithm_mca_param_indices_t *mca_param_indices)</span>
+<span class="lineNum">      58 </span>            : {
+<span class="lineNum">      59 </span>            :     mca_base_var_enum_t*new_enum;
+<span class="lineNum">      60 </span>            :     int cnt;
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span><span class="lineCov">          2 :     for( cnt = 0; NULL != reduce_algorithms[cnt].string; cnt++ );</span>
+<span class="lineNum">      63 </span><span class="lineCov">          2 :     ompi_coll_tuned_forced_max_algorithms[REDUCE] = cnt;</span>
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span><span class="lineCov">          2 :     (void) mca_base_component_var_register(&amp;mca_coll_tuned_component.super.collm_version,</span>
+<span class="lineNum">      66 </span>            :                                            &quot;reduce_algorithm_count&quot;,
+<span class="lineNum">      67 </span>            :                                            &quot;Number of reduce algorithms available&quot;,
+<span class="lineNum">      68 </span>            :                                            MCA_BASE_VAR_TYPE_INT, NULL, 0,
+<span class="lineNum">      69 </span>            :                                            MCA_BASE_VAR_FLAG_DEFAULT_ONLY,
+<span class="lineNum">      70 </span>            :                                            OPAL_INFO_LVL_5,
+<span class="lineNum">      71 </span>            :                                            MCA_BASE_VAR_SCOPE_CONSTANT,
+<span class="lineNum">      72 </span>            :                                            &amp;cnt);
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            :     /* MPI_T: This variable should eventually be bound to a communicator */
+<span class="lineNum">      75 </span><span class="lineCov">          2 :     coll_tuned_reduce_forced_algorithm = 0;</span>
+<span class="lineNum">      76 </span><span class="lineCov">          2 :     (void) mca_base_var_enum_create(&quot;coll_tuned_reduce_algorithms&quot;, reduce_algorithms, &amp;new_enum);</span>
+<span class="lineNum">      77 </span><span class="lineCov">          2 :     mca_param_indices-&gt;algorithm_param_index =</span>
+<span class="lineNum">      78 </span><span class="lineCov">          2 :         mca_base_component_var_register(&amp;mca_coll_tuned_component.super.collm_version,</span>
+<span class="lineNum">      79 </span>            :                                         &quot;reduce_algorithm&quot;,
+<span class="lineNum">      80 </span>            :                                         &quot;Which reduce algorithm is used. Can be locked down to choice of: 0 ignore, 1 linear, 2 chain, 3 pipeline, 4 binary, 5 binomial, 6 in-order binary&quot;,
+<span class="lineNum">      81 </span>            :                                         MCA_BASE_VAR_TYPE_INT, new_enum, 0, 0,
+<span class="lineNum">      82 </span>            :                                         OPAL_INFO_LVL_5,
+<span class="lineNum">      83 </span>            :                                         MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">      84 </span>            :                                         &amp;coll_tuned_reduce_forced_algorithm);
+<span class="lineNum">      85 </span><span class="lineCov">          4 :     OBJ_RELEASE(new_enum);</span>
+<span class="lineNum">      86 </span><span class="lineCov">          2 :     if (mca_param_indices-&gt;algorithm_param_index &lt; 0) {</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :         return mca_param_indices-&gt;algorithm_param_index;</span>
+<span class="lineNum">      88 </span>            :     }
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineCov">          2 :     coll_tuned_reduce_segment_size = 0;</span>
+<span class="lineNum">      91 </span><span class="lineCov">          2 :     mca_param_indices-&gt;segsize_param_index =</span>
+<span class="lineNum">      92 </span><span class="lineCov">          2 :         mca_base_component_var_register(&amp;mca_coll_tuned_component.super.collm_version,</span>
+<span class="lineNum">      93 </span>            :                                         &quot;reduce_algorithm_segmentsize&quot;,
+<span class="lineNum">      94 </span>            :                                         &quot;Segment size in bytes used by default for reduce algorithms. Only has meaning if algorithm is forced and supports segmenting. 0 bytes means no segmentation.&quot;,
+<span class="lineNum">      95 </span>            :                                         MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+<span class="lineNum">      96 </span>            :                                         OPAL_INFO_LVL_5,
+<span class="lineNum">      97 </span>            :                                         MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">      98 </span>            :                                         &amp;coll_tuned_reduce_segment_size);
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span><span class="lineCov">          2 :     coll_tuned_reduce_tree_fanout = ompi_coll_tuned_init_tree_fanout; /* get system wide default */</span>
+<span class="lineNum">     101 </span><span class="lineCov">          2 :     mca_param_indices-&gt;tree_fanout_param_index =</span>
+<span class="lineNum">     102 </span><span class="lineCov">          2 :         mca_base_component_var_register(&amp;mca_coll_tuned_component.super.collm_version,</span>
+<span class="lineNum">     103 </span>            :                                         &quot;reduce_algorithm_tree_fanout&quot;,
+<span class="lineNum">     104 </span>            :                                         &quot;Fanout for n-tree used for reduce algorithms. Only has meaning if algorithm is forced and supports n-tree topo based operation.&quot;,
+<span class="lineNum">     105 </span>            :                                         MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+<span class="lineNum">     106 </span>            :                                         OPAL_INFO_LVL_5,
+<span class="lineNum">     107 </span>            :                                         MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     108 </span>            :                                         &amp;coll_tuned_reduce_tree_fanout);
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineCov">          2 :     coll_tuned_reduce_chain_fanout = ompi_coll_tuned_init_chain_fanout; /* get system wide default */</span>
+<span class="lineNum">     111 </span><span class="lineCov">          2 :     mca_param_indices-&gt;chain_fanout_param_index =</span>
+<span class="lineNum">     112 </span><span class="lineCov">          2 :       mca_base_component_var_register(&amp;mca_coll_tuned_component.super.collm_version,</span>
+<span class="lineNum">     113 </span>            :                                       &quot;reduce_algorithm_chain_fanout&quot;,
+<span class="lineNum">     114 </span>            :                                       &quot;Fanout for chains used for reduce algorithms. Only has meaning if algorithm is forced and supports chain topo based operation.&quot;,
+<span class="lineNum">     115 </span>            :                                       MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+<span class="lineNum">     116 </span>            :                                       OPAL_INFO_LVL_5,
+<span class="lineNum">     117 </span>            :                                       MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     118 </span>            :                                       &amp;coll_tuned_reduce_chain_fanout);
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineCov">          2 :     coll_tuned_reduce_max_requests = 0; /* no limit for reduce by default */</span>
+<span class="lineNum">     121 </span><span class="lineCov">          2 :     mca_param_indices-&gt;max_requests_param_index =</span>
+<span class="lineNum">     122 </span><span class="lineCov">          2 :       mca_base_component_var_register(&amp;mca_coll_tuned_component.super.collm_version,</span>
+<span class="lineNum">     123 </span>            :                                       &quot;reduce_algorithm_max_requests&quot;,
+<span class="lineNum">     124 </span>            :                                       &quot;Maximum number of outstanding send requests on leaf nodes. 0 means no limit.&quot;,
+<span class="lineNum">     125 </span>            :                                       MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+<span class="lineNum">     126 </span>            :                                       OPAL_INFO_LVL_5,
+<span class="lineNum">     127 </span>            :                                       MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     128 </span>            :                                       &amp;coll_tuned_reduce_max_requests);
+<span class="lineNum">     129 </span><span class="lineCov">          2 :     if (mca_param_indices-&gt;max_requests_param_index &lt; 0) {</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         return mca_param_indices-&gt;max_requests_param_index;</span>
+<span class="lineNum">     131 </span>            :     }
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span><span class="lineCov">          2 :     if (coll_tuned_reduce_max_requests &lt; 0) {</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :         if( 0 == ompi_comm_rank( MPI_COMM_WORLD ) ) {</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :             opal_output( 0, &quot;Maximum outstanding requests must be positive number or 0.  Initializing to 0 (no limit).\n&quot; );</span>
+<span class="lineNum">     136 </span>            :         }
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :         coll_tuned_reduce_max_requests = 0;</span>
+<span class="lineNum">     138 </span>            :     }
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span><span class="lineCov">          2 :     return (MPI_SUCCESS);</span>
+<span class="lineNum">     141 </span>            : }
+<a name="142"><span class="lineNum">     142 </span>            : </a>
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 : int ompi_coll_tuned_reduce_intra_do_forced(void *sbuf, void* rbuf, int count,</span>
+<span class="lineNum">     145 </span>            :                                            struct ompi_datatype_t *dtype,
+<span class="lineNum">     146 </span>            :                                            struct ompi_op_t *op, int root,
+<span class="lineNum">     147 </span>            :                                            struct ompi_communicator_t *comm,
+<span class="lineNum">     148 </span>            :                                            mca_coll_base_module_t *module)
+<span class="lineNum">     149 </span>            : {
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     mca_coll_tuned_module_t *tuned_module = (mca_coll_tuned_module_t*) module;</span>
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     const int segsize      = tuned_module-&gt;user_forced[REDUCE].segsize;</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :     const int chain_fanout = tuned_module-&gt;user_forced[REDUCE].chain_fanout;</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     const int max_requests = tuned_module-&gt;user_forced[REDUCE].max_requests;</span>
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_tuned_stream,&quot;coll:tuned:reduce_intra_do_forced selected algorithm %d&quot;,</span>
+<span class="lineNum">     157 </span>            :                  tuned_module-&gt;user_forced[REDUCE].algorithm));
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     switch (tuned_module-&gt;user_forced[REDUCE].algorithm) {</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :     case (0):  return ompi_coll_tuned_reduce_intra_dec_fixed(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     162 </span>            :                                                              op, root, comm, module);
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     case (1):  return ompi_coll_base_reduce_intra_basic_linear(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     164 </span>            :                                                                op, root, comm, module);
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     case (2):  return ompi_coll_base_reduce_intra_chain(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     166 </span>            :                                                         op, root, comm, module,
+<span class="lineNum">     167 </span>            :                                                         segsize, chain_fanout, max_requests);
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :     case (3):  return ompi_coll_base_reduce_intra_pipeline(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     169 </span>            :                                                            op, root, comm, module,
+<span class="lineNum">     170 </span>            :                                                            segsize, max_requests);
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     case (4):  return ompi_coll_base_reduce_intra_binary(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     172 </span>            :                                                          op, root, comm, module,
+<span class="lineNum">     173 </span>            :                                                          segsize, max_requests);
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     case (5):  return ompi_coll_base_reduce_intra_binomial(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     175 </span>            :                                                            op, root, comm, module,
+<span class="lineNum">     176 </span>            :                                                            segsize, max_requests);
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     case (6):  return ompi_coll_base_reduce_intra_in_order_binary(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     178 </span>            :                                                                   op, root, comm, module,
+<span class="lineNum">     179 </span>            :                                                                   segsize, max_requests);
+<span class="lineNum">     180 </span>            :     } /* switch */
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_tuned_stream,&quot;coll:tuned:reduce_intra_do_forced attempt to select algorithm %d when only 0-%d is valid?&quot;,</span>
+<span class="lineNum">     182 </span>            :                  tuned_module-&gt;user_forced[REDUCE].algorithm, ompi_coll_tuned_forced_max_algorithms[REDUCE]));
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     return (MPI_ERR_ARG);</span>
+<span class="lineNum">     184 </span>            : }
+<a name="185"><span class="lineNum">     185 </span>            : </a>
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 : int ompi_coll_tuned_reduce_intra_do_this(void *sbuf, void* rbuf, int count,</span>
+<span class="lineNum">     188 </span>            :                                          struct ompi_datatype_t *dtype,
+<span class="lineNum">     189 </span>            :                                          struct ompi_op_t *op, int root,
+<span class="lineNum">     190 </span>            :                                          struct ompi_communicator_t *comm,
+<span class="lineNum">     191 </span>            :                                          mca_coll_base_module_t *module,
+<span class="lineNum">     192 </span>            :                                          int algorithm, int faninout,
+<span class="lineNum">     193 </span>            :                                          int segsize, int max_requests )
+<span class="lineNum">     194 </span>            : {
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_tuned_stream,&quot;coll:tuned:reduce_intra_do_this selected algorithm %d topo faninout %d segsize %d&quot;,</span>
+<span class="lineNum">     196 </span>            :                  algorithm, faninout, segsize));
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     switch (algorithm) {</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :     case (0):  return ompi_coll_tuned_reduce_intra_dec_fixed(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     200 </span>            :                                                              op, root, comm, module);
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     case (1):  return ompi_coll_base_reduce_intra_basic_linear(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     202 </span>            :                                                                op, root, comm, module);
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :     case (2):  return ompi_coll_base_reduce_intra_chain(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     204 </span>            :                                                         op, root, comm, module,
+<span class="lineNum">     205 </span>            :                                                         segsize, faninout, max_requests);
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :     case (3):  return ompi_coll_base_reduce_intra_pipeline(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     207 </span>            :                                                            op, root, comm, module,
+<span class="lineNum">     208 </span>            :                                                            segsize, max_requests);
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     case (4):  return ompi_coll_base_reduce_intra_binary(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     210 </span>            :                                                          op, root, comm, module,
+<span class="lineNum">     211 </span>            :                                                          segsize, max_requests);
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     case (5):  return ompi_coll_base_reduce_intra_binomial(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     213 </span>            :                                                            op, root, comm, module,
+<span class="lineNum">     214 </span>            :                                                            segsize, max_requests);
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     case (6):  return ompi_coll_base_reduce_intra_in_order_binary(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">     216 </span>            :                                                                   op, root, comm, module,
+<span class="lineNum">     217 </span>            :                                                                   segsize, max_requests);
+<span class="lineNum">     218 </span>            :     } /* switch */
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_tuned_stream,&quot;coll:tuned:reduce_intra_do_this attempt to select algorithm %d when only 0-%d is valid?&quot;,</span>
+<span class="lineNum">     220 </span>            :                  algorithm, ompi_coll_tuned_forced_max_algorithms[REDUCE]));
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :     return (MPI_ERR_ARG);</span>
+<span class="lineNum">     222 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,679 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/pmix/base/pmix_base_fns.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/pmix/base</a> - pmix_base_fns.c<span style="font-size: 80%;"> (source / <a href="pmix_base_fns.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">318</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2012-2015 Los Alamos National Security, LLC.  All rights
+<span class="lineNum">       4 </span>            :  *                         reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2014-2015 Intel, Inc. All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2014-2015 Research Organization for Information Science
+<span class="lineNum">       7 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">       8 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  * $HEADER$
+<span class="lineNum">      13 </span>            :  *
+<span class="lineNum">      14 </span>            :  */
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      17 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #include &lt;regex.h&gt;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &lt;time.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;opal_stdint.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;opal/class/opal_pointer_array.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;opal/util/proc.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;opal/util/show_help.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &quot;opal/mca/pmix/base/base.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;opal/mca/pmix/base/pmix_base_fns.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #define OPAL_PMI_PAD  10
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : static char* setup_key(const opal_process_name_t* name, const char *key, int pmix_keylen_max);
+<span class="lineNum">      38 </span>            : static char *pmi_encode(const void *val, size_t vallen);
+<a name="39"><span class="lineNum">      39 </span>            : static uint8_t *pmi_decode (const char *data, size_t *retlen);</a>
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 : int opal_pmix_base_store_encoded(const char *key, const void *data,</span>
+<span class="lineNum">      42 </span>            :                                  opal_data_type_t type, char** buffer, int* length)
+<span class="lineNum">      43 </span>            : {
+<span class="lineNum">      44 </span>            :     opal_byte_object_t *bo;
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :     size_t data_len = 0;</span>
+<span class="lineNum">      46 </span>            :     size_t needed;
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :     int pmi_packed_data_off = *length;</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :     char* pmi_packed_data = *buffer;</span>
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :     switch (type) {</span>
+<span class="lineNum">      52 </span>            :         case OPAL_STRING:
+<span class="lineNum">      53 </span>            :         {
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :             char *ptr = *(char **)data;</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :             data_len = ptr ? strlen(ptr) + 1 : 0;</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :             data = ptr;</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">      58 </span>            :         }
+<span class="lineNum">      59 </span>            :         case OPAL_INT:
+<span class="lineNum">      60 </span>            :         case OPAL_UINT:
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :             data_len = sizeof (int);</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">      63 </span>            :         case OPAL_INT16:
+<span class="lineNum">      64 </span>            :         case OPAL_UINT16:
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :             data_len = sizeof (int16_t);</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">      67 </span>            :         case OPAL_INT32:
+<span class="lineNum">      68 </span>            :         case OPAL_UINT32:
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :             data_len = sizeof (int32_t);</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">      71 </span>            :         case OPAL_INT64:
+<span class="lineNum">      72 </span>            :         case OPAL_UINT64:
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :             data_len = sizeof (int64_t);</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">      75 </span>            :         case OPAL_BYTE_OBJECT:
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :             bo = (opal_byte_object_t *) data;</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :             data = bo-&gt;bytes;</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :             data_len = bo-&gt;size;</span>
+<span class="lineNum">      79 </span>            :     }
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     needed = 10 + data_len + strlen (key);</span>
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     if (NULL == pmi_packed_data) {</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :         pmi_packed_data = calloc (needed, 1);</span>
+<span class="lineNum">      85 </span>            :     } else {
+<span class="lineNum">      86 </span>            :         /* grow the region */
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :         pmi_packed_data = realloc (pmi_packed_data, pmi_packed_data_off + needed);</span>
+<span class="lineNum">      88 </span>            :     }
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :     /* special length meaning NULL */
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     if (NULL == data) {</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         data_len = 0xffff;</span>
+<span class="lineNum">      93 </span>            :     }
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            :     /* serialize the opal datatype */
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     pmi_packed_data_off += sprintf (pmi_packed_data + pmi_packed_data_off,</span>
+<span class="lineNum">      97 </span>            :             &quot;%s%c%02x%c%04x%c&quot;, key, '\0', type, '\0',
+<span class="lineNum">      98 </span>            :             (int) data_len, '\0');
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     if (NULL != data) {</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :         memmove (pmi_packed_data + pmi_packed_data_off, data, data_len);</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :         pmi_packed_data_off += data_len;</span>
+<span class="lineNum">     102 </span>            :     }
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     *length = pmi_packed_data_off;</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     *buffer = pmi_packed_data;</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<a name="107"><span class="lineNum">     107 </span>            : }</a>
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 : int opal_pmix_base_commit_packed( char** data, int* data_offset,</span>
+<span class="lineNum">     110 </span>            :                                   char** enc_data, int* enc_data_offset,
+<span class="lineNum">     111 </span>            :                                   int max_key, int* pack_key, kvs_put_fn fn)
+<span class="lineNum">     112 </span>            : {
+<span class="lineNum">     113 </span>            :     int rc;
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     char *pmikey = NULL, *tmp;</span>
+<span class="lineNum">     115 </span>            :     char tmp_key[32];
+<span class="lineNum">     116 </span>            :     char *encoded_data;
+<span class="lineNum">     117 </span>            :     int encoded_data_len;
+<span class="lineNum">     118 </span>            :     int data_len;
+<span class="lineNum">     119 </span>            :     int pkey;
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     pkey = *pack_key;</span>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     if (NULL == (tmp = malloc(max_key))) {</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :         OPAL_ERROR_LOG(OPAL_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     126 </span>            :     }
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     data_len = *data_offset;</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     if (NULL == (encoded_data = pmi_encode(*data, data_len))) {</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :         OPAL_ERROR_LOG(OPAL_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         free(tmp);</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     132 </span>            :     }
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     *data = NULL;</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     *data_offset = 0;</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     encoded_data_len = (int)strlen(encoded_data);</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     while (encoded_data_len+*enc_data_offset &gt; max_key - 2) {</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :         memcpy(tmp, *enc_data, *enc_data_offset);</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :         memcpy(tmp+*enc_data_offset, encoded_data, max_key-*enc_data_offset-1);</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :         tmp[max_key-1] = 0;</span>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         sprintf (tmp_key, &quot;key%d&quot;, pkey);</span>
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         if (NULL == (pmikey = setup_key(&amp;OPAL_PROC_MY_NAME, tmp_key, max_key))) {</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :             OPAL_ERROR_LOG(OPAL_ERR_BAD_PARAM);</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :             rc = OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     148 </span>            :         }
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         rc = fn(pmikey, tmp);</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :         free(pmikey);</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :             *pack_key = pkey;</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :             free(tmp);</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :             free(encoded_data);</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     157 </span>            :         }
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :         pkey++;</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :         memmove(encoded_data, encoded_data+max_key-1-*enc_data_offset, encoded_data_len - max_key + *enc_data_offset + 2);</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :         *enc_data_offset = 0;</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :         encoded_data_len = (int)strlen(encoded_data);</span>
+<span class="lineNum">     163 </span>            :     }
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     memcpy(tmp, *enc_data, *enc_data_offset);</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     memcpy(tmp+*enc_data_offset, encoded_data, encoded_data_len+1);</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     tmp[*enc_data_offset+encoded_data_len+1] = '\0';</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     tmp[*enc_data_offset+encoded_data_len] = '-';</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :     free(encoded_data);</span>
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     sprintf (tmp_key, &quot;key%d&quot;, pkey);</span>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     if (NULL == (pmikey = setup_key(&amp;OPAL_PROC_MY_NAME, tmp_key, max_key))) {</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :         OPAL_ERROR_LOG(OPAL_ERR_BAD_PARAM);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :         rc = OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :         free(tmp);</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     177 </span>            :     }
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     rc = fn(pmikey, tmp);</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :     free(pmikey);</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         *pack_key = pkey;</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :         free(tmp);</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     185 </span>            :     }
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     pkey++;</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :     free(*data);</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     *data = NULL;</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :     *data_offset = 0;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     free(tmp);</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     if (NULL != *enc_data) {</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :         free(*enc_data);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         *enc_data = NULL;</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :         *enc_data_offset = 0;</span>
+<span class="lineNum">     196 </span>            :     }
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :     *pack_key = pkey;</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<a name="199"><span class="lineNum">     199 </span>            : }</a>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 : int opal_pmix_base_partial_commit_packed( char** data, int* data_offset,</span>
+<span class="lineNum">     202 </span>            :                                           char** enc_data, int* enc_data_offset,
+<span class="lineNum">     203 </span>            :                                           int max_key, int* pack_key, kvs_put_fn fn)
+<span class="lineNum">     204 </span>            : {
+<span class="lineNum">     205 </span>            :     int rc;
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :     char *pmikey = NULL, *tmp;</span>
+<span class="lineNum">     207 </span>            :     char tmp_key[32];
+<span class="lineNum">     208 </span>            :     char *encoded_data;
+<span class="lineNum">     209 </span>            :     int encoded_data_len;
+<span class="lineNum">     210 </span>            :     int data_len;
+<span class="lineNum">     211 </span>            :     int pkey;
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     pkey = *pack_key;</span>
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     if (NULL == (tmp = malloc(max_key))) {</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :         OPAL_ERROR_LOG(OPAL_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     218 </span>            :     }
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     data_len = *data_offset - (*data_offset%3);</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :     if (NULL == (encoded_data = pmi_encode(*data, data_len))) {</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         OPAL_ERROR_LOG(OPAL_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         free(tmp);</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     224 </span>            :     }
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :     if (*data_offset == data_len) {</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         *data = NULL;</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         *data_offset = 0;</span>
+<span class="lineNum">     228 </span>            :     } else {
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :         memmove(*data, *data+data_len, *data_offset - data_len);</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         *data = realloc(*data, *data_offset - data_len);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         *data_offset -= data_len;</span>
+<span class="lineNum">     232 </span>            :     }
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     encoded_data_len = (int)strlen(encoded_data);</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     while (encoded_data_len+*enc_data_offset &gt; max_key - 2) {</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :         memcpy(tmp, *enc_data, *enc_data_offset);</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         memcpy(tmp+*enc_data_offset, encoded_data, max_key-*enc_data_offset-1);</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         tmp[max_key-1] = 0;</span>
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :         sprintf (tmp_key, &quot;key%d&quot;, pkey);</span>
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :         if (NULL == (pmikey = setup_key(&amp;OPAL_PROC_MY_NAME, tmp_key, max_key))) {</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :             OPAL_ERROR_LOG(OPAL_ERR_BAD_PARAM);</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :             rc = OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     246 </span>            :         }
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :         rc = fn(pmikey, tmp);</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :         free(pmikey);</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :             *pack_key = pkey;</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :             free(tmp);</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :             free(encoded_data);</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     255 </span>            :         }
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :         pkey++;</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         memmove(encoded_data, encoded_data+max_key-1-*enc_data_offset, encoded_data_len - max_key + *enc_data_offset + 2);</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :         *enc_data_offset = 0;</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         encoded_data_len = (int)strlen(encoded_data);</span>
+<span class="lineNum">     261 </span>            :     }
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     free(tmp);</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     if (NULL != *enc_data) {</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :         free(*enc_data);</span>
+<span class="lineNum">     265 </span>            :     }
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     *enc_data = realloc(encoded_data, strlen(encoded_data)+1);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :     *enc_data_offset = strlen(encoded_data);</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     *pack_key = pkey;</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<a name="270"><span class="lineNum">     270 </span>            : }</a>
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 : int opal_pmix_base_get_packed(const opal_process_name_t* proc, char **packed_data,</span>
+<span class="lineNum">     273 </span>            :                               size_t *len, int vallen, kvs_get_fn fn)
+<span class="lineNum">     274 </span>            : {
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     char *tmp_encoded = NULL, *pmikey, *pmi_tmp;</span>
+<span class="lineNum">     276 </span>            :     int remote_key, size;
+<span class="lineNum">     277 </span>            :     size_t bytes_read;
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     int rc = OPAL_ERR_NOT_FOUND;</span>
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span>            :     /* set default */
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     *packed_data = NULL;</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :     *len = 0;</span>
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     pmi_tmp = calloc (vallen, 1);</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     if (NULL == pmi_tmp) {</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     287 </span>            :     }
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span>            :     /* read all of the packed data from this proc */
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     for (remote_key = 0, bytes_read = 0 ; ; ++remote_key) {</span>
+<span class="lineNum">     291 </span>            :         char tmp_key[32];
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :         sprintf (tmp_key, &quot;key%d&quot;, remote_key);</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :         if (NULL == (pmikey = setup_key(proc, tmp_key, vallen))) {</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :             rc = OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :             OPAL_ERROR_LOG(rc);</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :             free(pmi_tmp);</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :             if (NULL != tmp_encoded) {</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :                 free(tmp_encoded);</span>
+<span class="lineNum">     301 </span>            :             }
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     303 </span>            :         }
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((10, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     306 </span>            :                              &quot;GETTING KEY %s&quot;, pmikey));
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         rc = fn(pmikey, pmi_tmp, vallen);</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :         free (pmikey);</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     312 </span>            :         }
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         size = strlen (pmi_tmp);</span>
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         if (NULL == tmp_encoded) {</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :             tmp_encoded = malloc (size + 1);</span>
+<span class="lineNum">     318 </span>            :         } else {
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :             tmp_encoded = realloc (tmp_encoded, bytes_read + size + 1);</span>
+<span class="lineNum">     320 </span>            :         }
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         strcpy (tmp_encoded + bytes_read, pmi_tmp);</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :         bytes_read += size;</span>
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            :         /* is the string terminator present? */
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :         if ('-' == tmp_encoded[bytes_read-1]) {</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     328 </span>            :         }
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     free (pmi_tmp);</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((10, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     334 </span>            :                          &quot;Read data %s\n&quot;,
+<span class="lineNum">     335 </span>            :                          (NULL == tmp_encoded) ? &quot;NULL&quot; : tmp_encoded));
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     if (NULL != tmp_encoded) {</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         *packed_data = (char *) pmi_decode (tmp_encoded, len);</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :         free (tmp_encoded);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         if (NULL == *packed_data) {</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :             return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     342 </span>            :         }
+<span class="lineNum">     343 </span>            :     }
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     return rc;</span>
+<a name="346"><span class="lineNum">     346 </span>            : }</a>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 : int opal_pmix_base_cache_keys_locally(const opal_process_name_t* id, const char* key,</span>
+<span class="lineNum">     349 </span>            :                                       opal_value_t **out_kv, char* kvs_name,
+<span class="lineNum">     350 </span>            :                                       int vallen, kvs_get_fn fn)
+<span class="lineNum">     351 </span>            : {
+<span class="lineNum">     352 </span>            :     char *tmp, *tmp2, *tmp3, *tmp_val;
+<span class="lineNum">     353 </span>            :     opal_data_type_t stored_type;
+<span class="lineNum">     354 </span>            :     size_t len, offset;
+<span class="lineNum">     355 </span>            :     int rc, size;
+<span class="lineNum">     356 </span>            :     opal_value_t *kv, *knew;
+<span class="lineNum">     357 </span>            :     opal_list_t values;
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span>            :     /* set the default */
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     *out_kv = NULL;</span>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            :     /* first try to fetch data from data storage */
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;values, opal_list_t);</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     rc = opal_dstore.fetch(opal_dstore_internal, id, key, &amp;values);</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS == rc) {</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :         kv = (opal_value_t*)opal_list_get_first(&amp;values);</span>
+<span class="lineNum">     367 </span>            :         /* create the copy */
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.copy((void**)&amp;knew, kv, OPAL_VALUE))) {</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :             OPAL_ERROR_LOG(rc);</span>
+<span class="lineNum">     370 </span>            :         } else {
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :             *out_kv = knew;</span>
+<span class="lineNum">     372 </span>            :         }
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :         OPAL_LIST_DESTRUCT(&amp;values);</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     375 </span>            :     }
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     OPAL_LIST_DESTRUCT(&amp;values);</span>
+<span class="lineNum">     377 </span>            : 
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     379 </span>            :                          &quot;pmix: get all keys for proc %s in KVS %s&quot;,
+<span class="lineNum">     380 </span>            :                          OPAL_NAME_PRINT(*id), kvs_name));
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     rc = opal_pmix_base_get_packed(id, &amp;tmp_val, &amp;len, vallen, fn);</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     385 </span>            :     }
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span>            :     /* search for each key in the decoded data */
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :     for (offset = 0 ; offset &lt; len &amp;&amp; '\0' != tmp_val[offset] ; ) {</span>
+<span class="lineNum">     389 </span>            :         /* type */
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :         tmp = tmp_val + offset + strlen (tmp_val + offset) + 1;</span>
+<span class="lineNum">     391 </span>            :         /* size */
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :         tmp2 = tmp + strlen (tmp) + 1;</span>
+<span class="lineNum">     393 </span>            :         /* data */
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :         tmp3 = tmp2 + strlen (tmp2) + 1;</span>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :         stored_type = (opal_data_type_t) strtol (tmp, NULL, 16);</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :         size = strtol (tmp2, NULL, 16);</span>
+<span class="lineNum">     398 </span>            :         /* cache value locally so we don't have to look it up via pmi again */
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :         kv = OBJ_NEW(opal_value_t);</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :         kv-&gt;key = strdup(tmp_val + offset);</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         kv-&gt;type = stored_type;</span>
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :         switch (stored_type) {</span>
+<span class="lineNum">     404 </span>            :             case OPAL_BYTE:
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :                 kv-&gt;data.byte = *tmp3;</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     407 </span>            :             case OPAL_STRING:
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :                 kv-&gt;data.string = strdup(tmp3);</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     410 </span>            :             case OPAL_PID:
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :                 kv-&gt;data.pid = strtoul(tmp3, NULL, 10);</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     413 </span>            :             case OPAL_INT:
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :                 kv-&gt;data.integer = strtol(tmp3, NULL, 10);</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     416 </span>            :             case OPAL_INT8:
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :                 kv-&gt;data.int8 = strtol(tmp3, NULL, 10);</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     419 </span>            :             case OPAL_INT16:
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :                 kv-&gt;data.int16 = strtol(tmp3, NULL, 10);</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     422 </span>            :             case OPAL_INT32:
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :                 kv-&gt;data.int32 = strtol(tmp3, NULL, 10);</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     425 </span>            :             case OPAL_INT64:
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :                 kv-&gt;data.int64 = strtol(tmp3, NULL, 10);</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     428 </span>            :             case OPAL_UINT:
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :                 kv-&gt;data.uint = strtoul(tmp3, NULL, 10);</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     431 </span>            :             case OPAL_UINT8:
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :                 kv-&gt;data.uint8 = strtoul(tmp3, NULL, 10);</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     434 </span>            :             case OPAL_UINT16:
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :                 kv-&gt;data.uint16 = strtoul(tmp3, NULL, 10);</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     437 </span>            :             case OPAL_UINT32:
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :                 kv-&gt;data.uint32 = strtoul(tmp3, NULL, 10);</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     440 </span>            :             case OPAL_UINT64:
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :                 kv-&gt;data.uint64 = strtoull(tmp3, NULL, 10);</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     443 </span>            :             case OPAL_BYTE_OBJECT:
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :                 if (size == 0xffff) {</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :                     kv-&gt;data.bo.bytes = NULL;</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :                     kv-&gt;data.bo.size = 0;</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :                     size = 0;</span>
+<span class="lineNum">     448 </span>            :                 } else {
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :                     kv-&gt;data.bo.bytes = malloc(size);</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :                     memcpy(kv-&gt;data.bo.bytes, tmp3, size);</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :                     kv-&gt;data.bo.size = size;</span>
+<span class="lineNum">     452 </span>            :                 }
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     454 </span>            :             default:
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :                 opal_output(0, &quot;UNSUPPORTED TYPE %d&quot;, stored_type);</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :                 return OPAL_ERROR;</span>
+<span class="lineNum">     457 </span>            :         }
+<span class="lineNum">     458 </span>            :         /* store data in local hash table */
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dstore.store(opal_dstore_internal, id, kv))) {</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :             OPAL_ERROR_LOG(rc);</span>
+<span class="lineNum">     461 </span>            :         }
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span>            :         /* keep going and cache everything locally */
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :         offset = (size_t) (tmp3 - tmp_val) + size;</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :         if (0 == strcmp(kv-&gt;key, key)) {</span>
+<span class="lineNum">     466 </span>            :             /* create the copy */
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != (rc = opal_dss.copy((void**)&amp;knew, kv, OPAL_VALUE))) {</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :                 OPAL_ERROR_LOG(rc);</span>
+<span class="lineNum">     469 </span>            :             } else {
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :                 *out_kv = knew;</span>
+<span class="lineNum">     471 </span>            :             }
+<span class="lineNum">     472 </span>            :         }
+<span class="lineNum">     473 </span>            :     }
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :     free (tmp_val);</span>
+<span class="lineNum">     475 </span>            :     /* if there was no issue with unpacking the message, but
+<span class="lineNum">     476 </span>            :      * we didn't find the requested info, then indicate that
+<span class="lineNum">     477 </span>            :      * the info wasn't found */
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS == rc &amp;&amp; NULL == *out_kv) {</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :         return OPAL_ERR_NOT_FOUND;</span>
+<span class="lineNum">     480 </span>            :     }
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :     return rc;</span>
+<a name="482"><span class="lineNum">     482 </span>            : }</a>
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 : static char* setup_key(const opal_process_name_t* name, const char *key, int pmix_keylen_max)</span>
+<span class="lineNum">     485 </span>            : {
+<span class="lineNum">     486 </span>            :     char *pmi_kvs_key;
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     if (pmix_keylen_max &lt;= asprintf(&amp;pmi_kvs_key, &quot;%&quot; PRIu32 &quot;-%&quot; PRIu32 &quot;-%s&quot;,</span>
+<span class="lineNum">     489 </span>            :                                         name-&gt;jobid, name-&gt;vpid, key)) {
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :         free(pmi_kvs_key);</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     492 </span>            :     }
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :     return pmi_kvs_key;</span>
+<span class="lineNum">     495 </span>            : }
+<a name="496"><span class="lineNum">     496 </span>            : </a>
+<span class="lineNum">     497 </span>            : /* base64 encoding with illegal (to Cray PMI) characters removed ('=' is replaced by ' ') */
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 : static inline unsigned char pmi_base64_encsym (unsigned char value) {</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     assert (value &lt; 64);</span>
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :     if (value &lt; 26) {</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :         return 'A' + value;</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :     } else if (value &lt; 52) {</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :         return 'a' + (value - 26);</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :     } else if (value &lt; 62) {</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :         return '0' + (value - 52);</span>
+<span class="lineNum">     507 </span>            :     }
+<span class="lineNum">     508 </span>            : 
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :     return (62 == value) ? '+' : '/';</span>
+<a name="510"><span class="lineNum">     510 </span>            : }</a>
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 : static inline unsigned char pmi_base64_decsym (unsigned char value) {</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     if ('+' == value) {</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :         return 62;</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :     } else if ('/' == value) {</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :         return 63;</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :     } else if (' ' == value) {</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :         return 64;</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     } else if (value &lt;= '9') {</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :         return (value - '0') + 52;</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     } else if (value &lt;= 'Z') {</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :         return (value - 'A');</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     } else if (value &lt;= 'z') {</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :         return (value - 'a') + 26;</span>
+<span class="lineNum">     525 </span>            :     }
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :     return 64;</span>
+<a name="528"><span class="lineNum">     528 </span>            : }</a>
+<span class="lineNum">     529 </span>            : 
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 : static inline void pmi_base64_encode_block (const unsigned char in[3], char out[4], int len) {</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :     out[0] = pmi_base64_encsym (in[0] &gt;&gt; 2);</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :     out[1] = pmi_base64_encsym (((in[0] &amp; 0x03) &lt;&lt; 4) | ((in[1] &amp; 0xf0) &gt;&gt; 4));</span>
+<span class="lineNum">     533 </span>            :     /* Cray PMI doesn't allow = in PMI attributes so pad with spaces */
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :     out[2] = 1 &lt; len ? pmi_base64_encsym(((in[1] &amp; 0x0f) &lt;&lt; 2) | ((in[2] &amp; 0xc0) &gt;&gt; 6)) : ' ';</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :     out[3] = 2 &lt; len ? pmi_base64_encsym(in[2] &amp; 0x3f) : ' ';</span>
+<a name="536"><span class="lineNum">     536 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 : static inline int pmi_base64_decode_block (const char in[4], unsigned char out[3]) {</span>
+<span class="lineNum">     539 </span>            :     char in_dec[4];
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :     in_dec[0] = pmi_base64_decsym (in[0]);</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :     in_dec[1] = pmi_base64_decsym (in[1]);</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :     in_dec[2] = pmi_base64_decsym (in[2]);</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :     in_dec[3] = pmi_base64_decsym (in[3]);</span>
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :     out[0] = in_dec[0] &lt;&lt; 2 | in_dec[1] &gt;&gt; 4;</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :     if (64 == in_dec[2]) {</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :         return 1;</span>
+<span class="lineNum">     549 </span>            :     }
+<span class="lineNum">     550 </span>            : 
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :     out[1] = in_dec[1] &lt;&lt; 4 | in_dec[2] &gt;&gt; 2;</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     if (64 == in_dec[3]) {</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :         return 2;</span>
+<span class="lineNum">     554 </span>            :     }
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :     out[2] = ((in_dec[2] &lt;&lt; 6) &amp; 0xc0) | in_dec[3];</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :     return 3;</span>
+<span class="lineNum">     558 </span>            : }
+<span class="lineNum">     559 </span>            : 
+<a name="560"><span class="lineNum">     560 </span>            : </a>
+<span class="lineNum">     561 </span>            : /* PMI only supports strings. For now, do a simple base64. */
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 : static char *pmi_encode(const void *val, size_t vallen)</span>
+<span class="lineNum">     563 </span>            : {
+<span class="lineNum">     564 </span>            :     char *outdata, *tmp;
+<span class="lineNum">     565 </span>            :     size_t i;
+<span class="lineNum">     566 </span>            : 
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     outdata = calloc (((2 + vallen) * 4) / 3 + 2, 1);</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     if (NULL == outdata) {</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     570 </span>            :     }
+<span class="lineNum">     571 </span>            : 
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :     for (i = 0, tmp = outdata ; i &lt; vallen ; i += 3, tmp += 4) {</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :         pmi_base64_encode_block((unsigned char *) val + i, tmp, vallen - i);</span>
+<span class="lineNum">     574 </span>            :     }
+<span class="lineNum">     575 </span>            : 
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :     tmp[0] = (unsigned char)'\0';</span>
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :     return outdata;</span>
+<a name="579"><span class="lineNum">     579 </span>            : }</a>
+<span class="lineNum">     580 </span>            : 
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 : static uint8_t *pmi_decode (const char *data, size_t *retlen)</span>
+<span class="lineNum">     582 </span>            : {
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :     size_t input_len = (strlen (data) - 1) / 4;</span>
+<span class="lineNum">     584 </span>            :     unsigned char *ret;
+<span class="lineNum">     585 </span>            :     int out_len;
+<span class="lineNum">     586 </span>            :     size_t i;
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span>            :     /* default */
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :     *retlen = 0;</span>
+<span class="lineNum">     590 </span>            : 
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :     ret = calloc (1, 3 * input_len + 1);</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :     if (NULL == ret) {</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :         return ret;</span>
+<span class="lineNum">     594 </span>            :     }
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :     for (i = 0, out_len = 0 ; i &lt; input_len ; i++, data += 4) {</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :         out_len += pmi_base64_decode_block(data, ret + 3 * i);</span>
+<span class="lineNum">     598 </span>            :     }
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :     ret[out_len] = '\0';</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :     *retlen = out_len;</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     603 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,1006 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/routed/debruijn/routed_debruijn.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/routed/debruijn</a> - routed_debruijn.c<span style="font-size: 80%;"> (source / <a href="routed_debruijn.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">292</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2007-2012 Los Alamos National Security, LLC.
+<span class="lineNum">       4 </span>            :  *                         All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2011 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2013      Intel, Inc. All rights reserved.
+<span class="lineNum">       9 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * $HEADER$
+<span class="lineNum">      14 </span>            :  */
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      17 </span>            : #include &quot;orte/constants.h&quot;
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &lt;stddef.h&gt;
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &quot;opal/dss/dss.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;opal/class/opal_hash_table.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;opal/class/opal_bitmap.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;orte/mca/ess/ess.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;orte/mca/rml/rml.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;orte/mca/rml/rml_types.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;orte/runtime/orte_wait.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;orte/runtime/runtime.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;orte/runtime/data_type_support/orte_dt_support.h&quot;
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : #include &quot;orte/mca/rml/base/rml_contact.h&quot;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : #include &quot;orte/mca/routed/base/base.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;routed_debruijn.h&quot;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : static int init(void);
+<span class="lineNum">      43 </span>            : static int finalize(void);
+<span class="lineNum">      44 </span>            : static int delete_route(orte_process_name_t *proc);
+<span class="lineNum">      45 </span>            : static int update_route(orte_process_name_t *target,
+<span class="lineNum">      46 </span>            :                         orte_process_name_t *route);
+<span class="lineNum">      47 </span>            : static orte_process_name_t get_route(orte_process_name_t *target);
+<span class="lineNum">      48 </span>            : static int init_routes(orte_jobid_t job, opal_buffer_t *ndat);
+<span class="lineNum">      49 </span>            : static int route_lost(const orte_process_name_t *route);
+<span class="lineNum">      50 </span>            : static bool route_is_defined(const orte_process_name_t *target);
+<span class="lineNum">      51 </span>            : static void update_routing_plan(void);
+<span class="lineNum">      52 </span>            : static void get_routing_list(opal_list_t *coll);
+<span class="lineNum">      53 </span>            : static int get_wireup_info(opal_buffer_t *buf);
+<span class="lineNum">      54 </span>            : static int set_lifeline(orte_process_name_t *proc);
+<span class="lineNum">      55 </span>            : static size_t num_routes(void);
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : #if OPAL_ENABLE_FT_CR == 1
+<span class="lineNum">      58 </span>            : static int debruijn_ft_event(int state);
+<span class="lineNum">      59 </span>            : #endif
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            : orte_routed_module_t orte_routed_debruijn_module = {
+<span class="lineNum">      62 </span>            :     init,
+<span class="lineNum">      63 </span>            :     finalize,
+<span class="lineNum">      64 </span>            :     delete_route,
+<span class="lineNum">      65 </span>            :     update_route,
+<span class="lineNum">      66 </span>            :     get_route,
+<span class="lineNum">      67 </span>            :     init_routes,
+<span class="lineNum">      68 </span>            :     route_lost,
+<span class="lineNum">      69 </span>            :     route_is_defined,
+<span class="lineNum">      70 </span>            :     set_lifeline,
+<span class="lineNum">      71 </span>            :     update_routing_plan,
+<span class="lineNum">      72 </span>            :     get_routing_list,
+<span class="lineNum">      73 </span>            :     get_wireup_info,
+<span class="lineNum">      74 </span>            :     num_routes,
+<span class="lineNum">      75 </span>            : #if OPAL_ENABLE_FT_CR == 1
+<span class="lineNum">      76 </span>            :     debruijn_ft_event
+<span class="lineNum">      77 </span>            : #else
+<span class="lineNum">      78 </span>            :     NULL
+<span class="lineNum">      79 </span>            : #endif
+<span class="lineNum">      80 </span>            : };
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : /* local globals */
+<span class="lineNum">      83 </span>            : static orte_process_name_t      *lifeline=NULL;
+<span class="lineNum">      84 </span>            : static orte_process_name_t      local_lifeline;
+<span class="lineNum">      85 </span>            : static opal_list_t              my_children;
+<span class="lineNum">      86 </span>            : static bool                     hnp_direct=true;
+<span class="lineNum">      87 </span>            : static int                      log_nranks;
+<span class="lineNum">      88 </span>            : static int                      log_npeers;
+<a name="89"><span class="lineNum">      89 </span>            : static unsigned int             rank_mask;</a>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 : static int init(void)</span>
+<span class="lineNum">      92 </span>            : {
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     lifeline = NULL;</span>
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            :     /* setup the list of children */
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;my_children, opal_list_t);</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     ORTE_PROC_MY_PARENT-&gt;jobid = ORTE_PROC_MY_NAME-&gt;jobid;</span>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="100"><span class="lineNum">     100 </span>            : }</a>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 : static int finalize(void)</span>
+<span class="lineNum">     103 </span>            : {
+<span class="lineNum">     104 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     lifeline = NULL;</span>
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            :     /* deconstruct the list of children */
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :     while (NULL != (item = opal_list_remove_first(&amp;my_children))) {</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item);</span>
+<span class="lineNum">     111 </span>            :     }
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;my_children);</span>
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="115"><span class="lineNum">     115 </span>            : }</a>
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 : static int delete_route(orte_process_name_t *proc)</span>
+<span class="lineNum">     118 </span>            : {
+<span class="lineNum">     119 </span>            :     int i;
+<span class="lineNum">     120 </span>            :     orte_routed_jobfam_t *jfam;
+<span class="lineNum">     121 </span>            :     uint16_t jfamily;
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     if (proc-&gt;jobid == ORTE_JOBID_INVALID ||</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :         proc-&gt;vpid == ORTE_VPID_INVALID) {</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         return ORTE_ERR_BAD_PARAM;</span>
+<span class="lineNum">     126 </span>            :     }
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            :     /* if I am an application process, I don't have any routes
+<span class="lineNum">     129 </span>            :      * so there is nothing for me to do
+<span class="lineNum">     130 </span>            :      */
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     if (!ORTE_PROC_IS_HNP &amp;&amp; !ORTE_PROC_IS_DAEMON &amp;&amp;</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :         !ORTE_PROC_IS_TOOL) {</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     134 </span>            :     }
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     137 </span>            :                          &quot;%s routed_debruijn_delete_route for %s&quot;,
+<span class="lineNum">     138 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     139 </span>            :                          ORTE_NAME_PRINT(proc)));
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            :     /* if this is from a different job family, then I need to
+<span class="lineNum">     143 </span>            :      * look it up appropriately
+<span class="lineNum">     144 </span>            :      */
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     if (ORTE_JOB_FAMILY(proc-&gt;jobid) != ORTE_JOB_FAMILY(ORTE_PROC_MY_NAME-&gt;jobid)) {</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            :         /* if I am a daemon, then I will automatically route
+<span class="lineNum">     148 </span>            :          * anything to this job family via my HNP - so I have nothing
+<span class="lineNum">     149 </span>            :          * in my routing table and thus have nothing to do
+<span class="lineNum">     150 </span>            :          * here, just return
+<span class="lineNum">     151 </span>            :          */
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         if (ORTE_PROC_IS_DAEMON) {</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :             return ORTE_SUCCESS;</span>
+<span class="lineNum">     154 </span>            :         }
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            :         /* see if this job family is present */
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :         jfamily = ORTE_JOB_FAMILY(proc-&gt;jobid);</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :         for (i=0; i &lt; orte_routed_jobfams.size; i++) {</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :             if (NULL == (jfam = (orte_routed_jobfam_t*)opal_pointer_array_get_item(&amp;orte_routed_jobfams, i))) {</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     161 </span>            :             }
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :             if (jfam-&gt;job_family == jfamily) {</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT_VERBOSE((2, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     164 </span>            :                                      &quot;%s routed_debruijn: deleting route to %s&quot;,
+<span class="lineNum">     165 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     166 </span>            :                                      ORTE_JOB_FAMILY_PRINT(proc-&gt;jobid)));
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :                 opal_pointer_array_set_item(&amp;orte_routed_jobfams, i, NULL);</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(jfam);</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :                 return ORTE_SUCCESS;</span>
+<span class="lineNum">     170 </span>            :             }
+<span class="lineNum">     171 </span>            :         }
+<span class="lineNum">     172 </span>            :         /* not present - nothing to do */
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     174 </span>            :     }
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            :     /* THIS CAME FROM OUR OWN JOB FAMILY...there is nothing
+<span class="lineNum">     177 </span>            :      * to do here. The routes will be redefined when we update
+<span class="lineNum">     178 </span>            :      * the routing tree
+<span class="lineNum">     179 </span>            :      */
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="182"><span class="lineNum">     182 </span>            : }</a>
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 : static int update_route(orte_process_name_t *target,</span>
+<span class="lineNum">     185 </span>            :                         orte_process_name_t *route)
+<span class="lineNum">     186 </span>            : {
+<span class="lineNum">     187 </span>            :     int i;
+<span class="lineNum">     188 </span>            :     orte_routed_jobfam_t *jfam;
+<span class="lineNum">     189 </span>            :     uint16_t jfamily;
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     if (target-&gt;jobid == ORTE_JOBID_INVALID ||</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         target-&gt;vpid == ORTE_VPID_INVALID) {</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :         return ORTE_ERR_BAD_PARAM;</span>
+<span class="lineNum">     194 </span>            :     }
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span>            :     /* if I am an application process, we don't update the route since
+<span class="lineNum">     197 </span>            :      * we automatically route everything through the local daemon
+<span class="lineNum">     198 </span>            :      */
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :     if (ORTE_PROC_IS_APP) {</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     201 </span>            :     }
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     204 </span>            :                          &quot;%s routed_debruijn_update: %s --&gt; %s&quot;,
+<span class="lineNum">     205 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     206 </span>            :                          ORTE_NAME_PRINT(target),
+<span class="lineNum">     207 </span>            :                          ORTE_NAME_PRINT(route)));
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            :     /* if I am a daemon and the target is my HNP, then check
+<span class="lineNum">     211 </span>            :      * the route - if it isn't direct, then we just flag that
+<span class="lineNum">     212 </span>            :      * we have a route to the HNP
+<span class="lineNum">     213 </span>            :      */
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     if (OPAL_EQUAL == orte_util_compare_name_fields(ORTE_NS_CMP_ALL, ORTE_PROC_MY_HNP, target) &amp;&amp;</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :         OPAL_EQUAL != orte_util_compare_name_fields(ORTE_NS_CMP_ALL, ORTE_PROC_MY_HNP, route)) {</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :         hnp_direct = false;</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     218 </span>            :     }
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span>            :     /* if this is from a different job family, then I need to
+<span class="lineNum">     221 </span>            :      * track how to send messages to it
+<span class="lineNum">     222 </span>            :      */
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :     if (ORTE_JOB_FAMILY(target-&gt;jobid) != ORTE_JOB_FAMILY(ORTE_PROC_MY_NAME-&gt;jobid)) {</span>
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span>            :         /* if I am a daemon, then I will automatically route
+<span class="lineNum">     226 </span>            :          * anything to this job family via my HNP - so nothing to do
+<span class="lineNum">     227 </span>            :          * here, just return
+<span class="lineNum">     228 </span>            :          */
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :         if (ORTE_PROC_IS_DAEMON) {</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :             return ORTE_SUCCESS;</span>
+<span class="lineNum">     231 </span>            :         }
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((1, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     234 </span>            :                              &quot;%s routed_debruijn_update: diff job family routing job %s --&gt; %s&quot;,
+<span class="lineNum">     235 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     236 </span>            :                              ORTE_JOBID_PRINT(target-&gt;jobid),
+<span class="lineNum">     237 </span>            :                              ORTE_NAME_PRINT(route)));
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            :         /* see if this target is already present */
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :         jfamily = ORTE_JOB_FAMILY(target-&gt;jobid);</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         for (i=0; i &lt; orte_routed_jobfams.size; i++) {</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :             if (NULL == (jfam = (orte_routed_jobfam_t*)opal_pointer_array_get_item(&amp;orte_routed_jobfams, i))) {</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     244 </span>            :             }
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :             if (jfam-&gt;job_family == jfamily) {</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT_VERBOSE((2, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     247 </span>            :                                      &quot;%s routed_debruijn: updating route to %s via %s&quot;,
+<span class="lineNum">     248 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     249 </span>            :                                      ORTE_JOB_FAMILY_PRINT(target-&gt;jobid),
+<span class="lineNum">     250 </span>            :                                      ORTE_NAME_PRINT(route)));
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :                 jfam-&gt;route.jobid = route-&gt;jobid;</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :                 jfam-&gt;route.vpid = route-&gt;vpid;</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :                 return ORTE_SUCCESS;</span>
+<span class="lineNum">     254 </span>            :             }
+<span class="lineNum">     255 </span>            :         }
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            :         /* not there, so add the route FOR THE JOB FAMILY*/
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((2, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     259 </span>            :                              &quot;%s routed_debruijn: adding route to %s&quot;,
+<span class="lineNum">     260 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     261 </span>            :                              ORTE_JOB_FAMILY_PRINT(target-&gt;jobid)));
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         jfam = OBJ_NEW(orte_routed_jobfam_t);</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         jfam-&gt;job_family = jfamily;</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :         jfam-&gt;route.jobid = route-&gt;jobid;</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         jfam-&gt;route.vpid = route-&gt;vpid;</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         opal_pointer_array_add(&amp;orte_routed_jobfams, jfam);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     268 </span>            :     }
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="271"><span class="lineNum">     271 </span>            : }</a>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 : static inline unsigned int debruijn_next_hop (int target)</span>
+<span class="lineNum">     274 </span>            : {
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     const int my_id = ORTE_PROC_MY_NAME-&gt;vpid;</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     uint64_t route, mask = rank_mask;</span>
+<span class="lineNum">     277 </span>            :     unsigned int i, next_hop;
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     if (target == my_id) {</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         return my_id;</span>
+<span class="lineNum">     281 </span>            :     }
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     i = -log_npeers;</span>
+<span class="lineNum">     284 </span>            :     do {
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :         i += log_npeers;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         mask = (mask &gt;&gt; i) &lt;&lt; i;</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :         route = (my_id &lt;&lt; i) | target;</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     } while ((route &amp; mask) != (((my_id &lt;&lt; i) &amp; target) &amp; mask));</span>
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     next_hop = (int)((route &gt;&gt; (i - log_npeers)) &amp; rank_mask);</span>
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span>            :     /* if the next hop does not exist route to the lowest proc with the same lower routing bits */
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     return (next_hop &lt; orte_process_info.num_procs) ? next_hop : (next_hop &amp; (rank_mask &gt;&gt; log_npeers));</span>
+<a name="294"><span class="lineNum">     294 </span>            : }</a>
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 : static orte_process_name_t get_route(orte_process_name_t *target)</span>
+<span class="lineNum">     297 </span>            : {
+<span class="lineNum">     298 </span>            :     orte_routed_jobfam_t *jfam;
+<span class="lineNum">     299 </span>            :     orte_process_name_t ret;
+<span class="lineNum">     300 </span>            :     uint16_t jfamily;
+<span class="lineNum">     301 </span>            :     int i;
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            :     /* initialize */
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            :     do {
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :         ret = *ORTE_NAME_INVALID;</span>
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         if (ORTE_JOBID_INVALID == target-&gt;jobid ||</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :             ORTE_VPID_INVALID == target-&gt;vpid) {</span>
+<span class="lineNum">     310 </span>            :             break;
+<span class="lineNum">     311 </span>            :         }
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            :         /* if it is me, then the route is just direct */
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         if (OPAL_EQUAL == opal_dss.compare(ORTE_PROC_MY_NAME, target, ORTE_NAME)) {</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :             ret = *target;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     317 </span>            :         }
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span>            :         /* if I am an application process, always route via my local daemon */
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :         if (ORTE_PROC_IS_APP) {</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :             ret = *ORTE_PROC_MY_DAEMON;</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     323 </span>            :         }
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            :         /* if I am a tool, the route is direct if target is in
+<span class="lineNum">     326 </span>            :          * my own job family, and to the target's HNP if not
+<span class="lineNum">     327 </span>            :          */
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :         if (ORTE_PROC_IS_TOOL) {</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :             if (ORTE_JOB_FAMILY(target-&gt;jobid) == ORTE_JOB_FAMILY(ORTE_PROC_MY_NAME-&gt;jobid)) {</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :                 ret = *target;</span>
+<span class="lineNum">     331 </span>            :             } else {
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :                 ORTE_HNP_NAME_FROM_JOB(&amp;ret, target-&gt;jobid);</span>
+<span class="lineNum">     333 </span>            :             }
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     336 </span>            :         }
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span>            :         /******     HNP AND DAEMONS ONLY     ******/
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span>            :         /* IF THIS IS FOR A DIFFERENT JOB FAMILY... */
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :         if (ORTE_JOB_FAMILY(target-&gt;jobid) != ORTE_JOB_FAMILY(ORTE_PROC_MY_NAME-&gt;jobid)) {</span>
+<span class="lineNum">     342 </span>            :             /* if I am a daemon, route this via the HNP */
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :             if (ORTE_PROC_IS_DAEMON) {</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :                 ret = *ORTE_PROC_MY_HNP;</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     346 </span>            :             }
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span>            :             /* if I am the HNP or a tool, then I stored a route to
+<span class="lineNum">     349 </span>            :              * this job family, so look it up
+<span class="lineNum">     350 </span>            :              */
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :             jfamily = ORTE_JOB_FAMILY(target-&gt;jobid);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :             for (i = 0 ; i &lt; orte_routed_jobfams.size ; ++i) {</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :                 if (NULL ==</span>
+<span class="lineNum">     354 </span>            :                     (jfam = (orte_routed_jobfam_t*)opal_pointer_array_get_item(&amp;orte_routed_jobfams, i))) {
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     356 </span>            :                 }
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :                 if (jfam-&gt;job_family == jfamily) {</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :                     ret = jfam-&gt;route;</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     360 </span>            :                 }
+<span class="lineNum">     361 </span>            :             }
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span>            :             /* not found - so we have no route */
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     365 </span>            :         }
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span>            :         /* THIS CAME FROM OUR OWN JOB FAMILY... */
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :         if (OPAL_EQUAL == orte_util_compare_name_fields(ORTE_NS_CMP_ALL, ORTE_PROC_MY_HNP, target)) {</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :             if (!hnp_direct || orte_static_ports) {</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT_VERBOSE((2, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     372 </span>            :                                      &quot;%s routing to the HNP through my parent %s&quot;,
+<span class="lineNum">     373 </span>            :                                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     374 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_PARENT)));
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :                 ret = *ORTE_PROC_MY_PARENT;</span>
+<span class="lineNum">     376 </span>            :             } else {
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT_VERBOSE((2, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     378 </span>            :                                      &quot;%s routing direct to the HNP&quot;,
+<span class="lineNum">     379 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :                 ret = *ORTE_PROC_MY_HNP;</span>
+<span class="lineNum">     381 </span>            :             }
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     384 </span>            :         }
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :         ret.jobid = ORTE_PROC_MY_NAME-&gt;jobid;</span>
+<span class="lineNum">     387 </span>            :         /* find out what daemon hosts this proc */
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         if (ORTE_VPID_INVALID == (ret.vpid = orte_get_proc_daemon_vpid(target))) {</span>
+<span class="lineNum">     389 </span>            :             /* we don't yet know about this daemon. just route this to the &quot;parent&quot; */
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :             ret = *ORTE_PROC_MY_PARENT;</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     392 </span>            :         }
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            :         /* if the daemon is me, then send direct to the target! */
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :         if (ORTE_PROC_MY_NAME-&gt;vpid == ret.vpid) {</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :             ret = *target;</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     398 </span>            :         }
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            :         /* find next hop */
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         ret.vpid = debruijn_next_hop (ret.vpid);</span>
+<span class="lineNum">     402 </span>            :     } while (0);
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     405 </span>            :                          &quot;%s routed_debruijn_get(%s) --&gt; %s&quot;,
+<span class="lineNum">     406 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     407 </span>            :                          ORTE_NAME_PRINT(target),
+<span class="lineNum">     408 </span>            :                          ORTE_NAME_PRINT(&amp;ret)));
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="411"><span class="lineNum">     411 </span>            : }</a>
+<span class="lineNum">     412 </span>            : 
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 : static void recv_ack(int status, orte_process_name_t* sender,</span>
+<span class="lineNum">     414 </span>            :                      opal_buffer_t *buffer,
+<span class="lineNum">     415 </span>            :                      orte_rml_tag_t tag, void *cbdata)
+<span class="lineNum">     416 </span>            : {
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :     bool *ack_waiting = (bool*)cbdata;</span>
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :     /* flag as complete */
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :     *ack_waiting = false;</span>
+<a name="421"><span class="lineNum">     421 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 : static int init_routes(orte_jobid_t job, opal_buffer_t *ndat)</span>
+<span class="lineNum">     424 </span>            : {
+<span class="lineNum">     425 </span>            :     /* the debruijn module routes all proc communications through
+<span class="lineNum">     426 </span>            :      * the local daemon. Daemons must identify which of their
+<span class="lineNum">     427 </span>            :      * daemon-peers is &quot;hosting&quot; the specified recipient and
+<span class="lineNum">     428 </span>            :      * route the message to that daemon. Daemon contact info
+<span class="lineNum">     429 </span>            :      * is handled elsewhere, so all we need to do here is
+<span class="lineNum">     430 </span>            :      * ensure that the procs are told to route through their
+<span class="lineNum">     431 </span>            :      * local daemon, and that daemons are told how to route
+<span class="lineNum">     432 </span>            :      * for each proc
+<span class="lineNum">     433 </span>            :      */
+<span class="lineNum">     434 </span>            :     int rc;
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span>            :     /* if I am a tool, then I stand alone - there is nothing to do */
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     if (ORTE_PROC_IS_TOOL) {</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     439 </span>            :     }
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span>            :     /* if I am a daemon or HNP, then I have to extract the routing info for this job
+<span class="lineNum">     442 </span>            :      * from the data sent to me for launch and update the routing tables to
+<span class="lineNum">     443 </span>            :      * point at the daemon for each proc
+<span class="lineNum">     444 </span>            :      */
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :     if (ORTE_PROC_IS_DAEMON) {</span>
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((1, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     448 </span>            :                              &quot;%s routed_debruijn: init routes for daemon job %s\n\thnp_uri %s&quot;,
+<span class="lineNum">     449 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     450 </span>            :                              ORTE_JOBID_PRINT(job),
+<span class="lineNum">     451 </span>            :                              (NULL == orte_process_info.my_hnp_uri) ? &quot;NULL&quot; : orte_process_info.my_hnp_uri));
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :         if (NULL == ndat) {</span>
+<span class="lineNum">     454 </span>            :             /* indicates this is being called during orte_init.
+<span class="lineNum">     455 </span>            :              * Get the HNP's name for possible later use
+<span class="lineNum">     456 </span>            :              */
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :             if (NULL == orte_process_info.my_hnp_uri) {</span>
+<span class="lineNum">     458 </span>            :                 /* fatal error */
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ORTE_ERR_FATAL);</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_FATAL;</span>
+<span class="lineNum">     461 </span>            :             }
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span>            :             /* extract the hnp name and store it */
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :             if (ORTE_SUCCESS != (rc = orte_rml_base_parse_uris(orte_process_info.my_hnp_uri,</span>
+<span class="lineNum">     465 </span>            :                                                                ORTE_PROC_MY_HNP, NULL))) {
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     468 </span>            :             }
+<span class="lineNum">     469 </span>            :             /* set the contact info into the hash table */
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :             orte_rml.set_contact_info(orte_process_info.my_hnp_uri);</span>
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span>            :             /* if we are using static ports, set my lifeline to point at my parent */
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :             if (orte_static_ports) {</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :                 lifeline = ORTE_PROC_MY_PARENT;</span>
+<span class="lineNum">     475 </span>            :             } else {
+<span class="lineNum">     476 </span>            :                 /* set our lifeline to the HNP - we will abort if that connection is lost */
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :                 lifeline = ORTE_PROC_MY_HNP;</span>
+<span class="lineNum">     478 </span>            :             }
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span>            :             /* daemons will send their contact info back to the HNP as
+<span class="lineNum">     481 </span>            :              * part of the message confirming they are read to go. HNP's
+<span class="lineNum">     482 </span>            :              * load their contact info during orte_init
+<span class="lineNum">     483 </span>            :              */
+<span class="lineNum">     484 </span>            :         } else {
+<span class="lineNum">     485 </span>            :                 /* ndat != NULL means we are getting an update of RML info
+<span class="lineNum">     486 </span>            :                  * for the daemons - so update our contact info and routes
+<span class="lineNum">     487 </span>            :                  */
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :                 if (ORTE_SUCCESS != (rc = orte_rml_base_update_contact_info(ndat))) {</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     490 </span>            :                 }
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     492 </span>            :             }
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((2, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     495 </span>            :                              &quot;%s routed_debruijn: completed init routes&quot;,
+<span class="lineNum">     496 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     499 </span>            :     }
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     if (ORTE_PROC_IS_HNP) {</span>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((1, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     505 </span>            :                              &quot;%s routed_debruijn: init routes for HNP job %s&quot;,
+<span class="lineNum">     506 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     507 </span>            :                              ORTE_JOBID_PRINT(job)));
+<span class="lineNum">     508 </span>            : 
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :         if (NULL == ndat) {</span>
+<span class="lineNum">     510 </span>            :             /* the HNP has no lifeline */
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :             lifeline = NULL;</span>
+<span class="lineNum">     512 </span>            :         } else {
+<span class="lineNum">     513 </span>            :             /* if this is for my own jobid, then I am getting an update of RML info
+<span class="lineNum">     514 </span>            :              * for the daemons - so update our contact info and routes
+<span class="lineNum">     515 </span>            :              */
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :             if (ORTE_PROC_MY_NAME-&gt;jobid == job) {</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :                 if (ORTE_SUCCESS != (rc = orte_rml_base_update_contact_info(ndat))) {</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :                     return rc;</span>
+<span class="lineNum">     520 </span>            :                 }
+<span class="lineNum">     521 </span>            :             } else {
+<span class="lineNum">     522 </span>            :                 /* if not, then I need to process the callback */
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :                 if (ORTE_SUCCESS != (rc = orte_routed_base_process_callback(job, ndat))) {</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :                     return rc;</span>
+<span class="lineNum">     526 </span>            :                 }
+<span class="lineNum">     527 </span>            :             }
+<span class="lineNum">     528 </span>            :         }
+<span class="lineNum">     529 </span>            : 
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     531 </span>            :     }
+<span class="lineNum">     532 </span>            : 
+<span class="lineNum">     533 </span>            :     {  /* MUST BE A PROC */
+<span class="lineNum">     534 </span>            :         /* if ndat != NULL, then this is being invoked by the proc to
+<span class="lineNum">     535 </span>            :          * init a route to a specified process that is outside of our
+<span class="lineNum">     536 </span>            :          * job family. We want that route to go through our HNP, routed via
+<span class="lineNum">     537 </span>            :          * out local daemon - however, we cannot know for
+<span class="lineNum">     538 </span>            :          * certain that the HNP already knows how to talk to the specified
+<span class="lineNum">     539 </span>            :          * procs. For example, in OMPI's publish/subscribe procedures, the
+<span class="lineNum">     540 </span>            :          * DPM framework looks for an mca param containing the global ompi-server's
+<span class="lineNum">     541 </span>            :          * uri. This info will come here so the proc can setup a route to
+<span class="lineNum">     542 </span>            :          * the server - we need to pass the routing info to our HNP
+<span class="lineNum">     543 </span>            :          */
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :         if (NULL != ndat) {</span>
+<span class="lineNum">     545 </span>            :             int rc;
+<span class="lineNum">     546 </span>            :             opal_buffer_t *xfer;
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :             orte_rml_cmd_flag_t cmd=ORTE_RML_UPDATE_CMD;</span>
+<span class="lineNum">     548 </span>            :             bool ack_waiting;
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((1, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     551 </span>            :                                  &quot;%s routed_debruijn: init routes w/non-NULL data&quot;,
+<span class="lineNum">     552 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     553 </span>            : 
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :             if (ORTE_JOB_FAMILY(ORTE_PROC_MY_NAME-&gt;jobid) != ORTE_JOB_FAMILY(job)) {</span>
+<span class="lineNum">     555 </span>            :                 /* if this is for a different job family, then we route via our HNP
+<span class="lineNum">     556 </span>            :                  * to minimize connection counts to entities such as ompi-server, so
+<span class="lineNum">     557 </span>            :                  * start by sending the contact info to the HNP for update
+<span class="lineNum">     558 </span>            :                  */
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT_VERBOSE((1, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     560 </span>            :                                      &quot;%s routed_debruijn_init_routes: diff job family - sending update to %s&quot;,
+<span class="lineNum">     561 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     562 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_HNP)));
+<span class="lineNum">     563 </span>            : 
+<span class="lineNum">     564 </span>            :                 /* prep the buffer for transmission to the HNP */
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :                 xfer = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :                 opal_dss.pack(xfer, &amp;cmd, 1, ORTE_RML_CMD);</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :                 opal_dss.copy_payload(xfer, ndat);</span>
+<span class="lineNum">     568 </span>            : 
+<span class="lineNum">     569 </span>            :                 /* save any new connections for use in subsequent connect_accept calls */
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :                 orte_routed_base_update_hnps(ndat);</span>
+<span class="lineNum">     571 </span>            : 
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :                 if (0 &gt; (rc = orte_rml.send_buffer_nb(ORTE_PROC_MY_HNP, xfer,</span>
+<span class="lineNum">     573 </span>            :                                                       ORTE_RML_TAG_RML_INFO_UPDATE,
+<span class="lineNum">     574 </span>            :                                                       orte_rml_send_callback, NULL))) {
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :                     OBJ_RELEASE(xfer);</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :                     return rc;</span>
+<span class="lineNum">     578 </span>            :                 }
+<span class="lineNum">     579 </span>            : 
+<span class="lineNum">     580 </span>            :                 /* wait right here until the HNP acks the update to ensure that
+<span class="lineNum">     581 </span>            :                  * any subsequent messaging can succeed
+<span class="lineNum">     582 </span>            :                  */
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :                 ack_waiting = true;</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :                 orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD,</span>
+<span class="lineNum">     585 </span>            :                                         ORTE_RML_TAG_UPDATE_ROUTE_ACK,
+<span class="lineNum">     586 </span>            :                                         ORTE_RML_NON_PERSISTENT,
+<span class="lineNum">     587 </span>            :                                         recv_ack, &amp;ack_waiting);
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :                 ORTE_WAIT_FOR_COMPLETION(ack_waiting);</span>
+<span class="lineNum">     589 </span>            : 
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT_VERBOSE((1, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     591 </span>            :                                      &quot;%s routed_debruijn_init_routes: ack recvd&quot;,
+<span class="lineNum">     592 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span>            :                 /* our get_route function automatically routes all messages for
+<span class="lineNum">     595 </span>            :                  * other job families via the HNP, so nothing more to do here
+<span class="lineNum">     596 </span>            :                  */
+<span class="lineNum">     597 </span>            :             }
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :             return ORTE_SUCCESS;</span>
+<span class="lineNum">     599 </span>            :         }
+<span class="lineNum">     600 </span>            : 
+<span class="lineNum">     601 </span>            :         /* if ndat=NULL, then we are being called during orte_init. In this
+<span class="lineNum">     602 </span>            :          * case, we need to setup a few critical pieces of info
+<span class="lineNum">     603 </span>            :          */
+<span class="lineNum">     604 </span>            : 
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((1, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     606 </span>            :                              &quot;%s routed_debruijn: init routes for proc job %s\n\thnp_uri %s\n\tdaemon uri %s&quot;,
+<span class="lineNum">     607 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), ORTE_JOBID_PRINT(job),
+<span class="lineNum">     608 </span>            :                              (NULL == orte_process_info.my_hnp_uri) ? &quot;NULL&quot; : orte_process_info.my_hnp_uri,
+<span class="lineNum">     609 </span>            :                              (NULL == orte_process_info.my_daemon_uri) ? &quot;NULL&quot; : orte_process_info.my_daemon_uri));
+<span class="lineNum">     610 </span>            : 
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :         if (NULL == orte_process_info.my_daemon_uri) {</span>
+<span class="lineNum">     612 </span>            :             /* in this module, we absolutely MUST have this information - if
+<span class="lineNum">     613 </span>            :              * we didn't get it, then error out
+<span class="lineNum">     614 </span>            :              */
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;%s ERROR: Failed to identify the local daemon's URI&quot;,</span>
+<span class="lineNum">     616 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;%s ERROR: This is a fatal condition when the debruijn router&quot;,</span>
+<span class="lineNum">     618 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;%s ERROR: has been selected - either select the unity router&quot;,</span>
+<span class="lineNum">     620 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;%s ERROR: or ensure that the local daemon info is provided&quot;,</span>
+<span class="lineNum">     622 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :             return ORTE_ERR_FATAL;</span>
+<span class="lineNum">     624 </span>            :         }
+<span class="lineNum">     625 </span>            : 
+<span class="lineNum">     626 </span>            :         /* we have to set the HNP's name, even though we won't route messages directly
+<span class="lineNum">     627 </span>            :          * to it. This is required to ensure that we -do- send messages to the correct
+<span class="lineNum">     628 </span>            :          * HNP name
+<span class="lineNum">     629 </span>            :          */
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = orte_rml_base_parse_uris(orte_process_info.my_hnp_uri,</span>
+<span class="lineNum">     631 </span>            :                                                            ORTE_PROC_MY_HNP, NULL))) {
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     634 </span>            :         }
+<span class="lineNum">     635 </span>            : 
+<span class="lineNum">     636 </span>            :         /* extract the daemon's name so we can update the routing table */
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = orte_rml_base_parse_uris(orte_process_info.my_daemon_uri,</span>
+<span class="lineNum">     638 </span>            :                                                            ORTE_PROC_MY_DAEMON, NULL))) {
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     641 </span>            :         }
+<span class="lineNum">     642 </span>            :         /* Set the contact info in the RML - this won't actually establish
+<span class="lineNum">     643 </span>            :          * the connection, but just tells the RML how to reach the daemon
+<span class="lineNum">     644 </span>            :          * if/when we attempt to send to it
+<span class="lineNum">     645 </span>            :          */
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :         orte_rml.set_contact_info(orte_process_info.my_daemon_uri);</span>
+<span class="lineNum">     647 </span>            : 
+<span class="lineNum">     648 </span>            :         /* set our lifeline to the local daemon - we will abort if this connection is lost */
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :         lifeline = ORTE_PROC_MY_DAEMON;</span>
+<span class="lineNum">     650 </span>            : 
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     652 </span>            :     }
+<a name="653"><span class="lineNum">     653 </span>            : }</a>
+<span class="lineNum">     654 </span>            : 
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 : static int route_lost(const orte_process_name_t *route)</span>
+<span class="lineNum">     656 </span>            : {
+<span class="lineNum">     657 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     658 </span>            :     orte_routed_tree_t *child;
+<span class="lineNum">     659 </span>            :     orte_routed_jobfam_t *jfam;
+<span class="lineNum">     660 </span>            :     uint16_t jfamily;
+<span class="lineNum">     661 </span>            :     int i;
+<span class="lineNum">     662 </span>            : 
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((2, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     664 </span>            :                          &quot;%s route to %s lost&quot;,
+<span class="lineNum">     665 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     666 </span>            :                          ORTE_NAME_PRINT(route)));
+<span class="lineNum">     667 </span>            : 
+<span class="lineNum">     668 </span>            :     /* if the route is to a different job family and we are the HNP, look it up */
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :     if ((ORTE_JOB_FAMILY(route-&gt;jobid) != ORTE_JOB_FAMILY(ORTE_PROC_MY_NAME-&gt;jobid)) &amp;&amp;</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :         ORTE_PROC_IS_HNP) {</span>
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :         jfamily = ORTE_JOB_FAMILY(route-&gt;jobid);</span>
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :         for (i=0; i &lt; orte_routed_jobfams.size; i++) {</span>
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :             if (NULL == (jfam = (orte_routed_jobfam_t*)opal_pointer_array_get_item(&amp;orte_routed_jobfams, i))) {</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     675 </span>            :             }
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :             if (jfam-&gt;job_family == jfamily) {</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT_VERBOSE((2, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     678 </span>            :                                      &quot;%s routed_debruijn: route to %s lost&quot;,
+<span class="lineNum">     679 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     680 </span>            :                                      ORTE_JOB_FAMILY_PRINT(route-&gt;jobid)));
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :                 opal_pointer_array_set_item(&amp;orte_routed_jobfams, i, NULL);</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(jfam);</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     684 </span>            :             }
+<span class="lineNum">     685 </span>            :         }
+<span class="lineNum">     686 </span>            :     }
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span>            :     /* if we lose the connection to the lifeline and we are NOT already,
+<span class="lineNum">     689 </span>            :      * in finalize, tell the OOB to abort.
+<span class="lineNum">     690 </span>            :      * NOTE: we cannot call abort from here as the OOB needs to first
+<span class="lineNum">     691 </span>            :      * release a thread-lock - otherwise, we will hang!!
+<span class="lineNum">     692 </span>            :      */
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :     if (!orte_finalizing &amp;&amp;</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :         NULL != lifeline &amp;&amp;</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :         OPAL_EQUAL == orte_util_compare_name_fields(ORTE_NS_CMP_ALL, route, lifeline)) {</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((2, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     697 </span>            :                              &quot;%s routed:debruijn: Connection to lifeline %s lost&quot;,
+<span class="lineNum">     698 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     699 </span>            :                              ORTE_NAME_PRINT(lifeline)));
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :         return ORTE_ERR_FATAL;</span>
+<span class="lineNum">     701 </span>            :     }
+<span class="lineNum">     702 </span>            : 
+<span class="lineNum">     703 </span>            :     /* if we are the HNP or daemon, and the route is a daemon,
+<span class="lineNum">     704 </span>            :      * see if it is one of our children - if so, remove it
+<span class="lineNum">     705 </span>            :      */
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :     if ((ORTE_PROC_IS_DAEMON || ORTE_PROC_IS_HNP) &amp;&amp;</span>
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :         route-&gt;jobid == ORTE_PROC_MY_NAME-&gt;jobid) {</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :         for (item = opal_list_get_first(&amp;my_children);</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :              item != opal_list_get_end(&amp;my_children);</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :              item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :             child = (orte_routed_tree_t*)item;</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :             if (child-&gt;vpid == route-&gt;vpid) {</span>
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;my_children, item);</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(item);</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :                 return ORTE_SUCCESS;</span>
+<span class="lineNum">     716 </span>            :             }
+<span class="lineNum">     717 </span>            :         }
+<span class="lineNum">     718 </span>            :     }
+<span class="lineNum">     719 </span>            : 
+<span class="lineNum">     720 </span>            :     /* we don't care about this one, so return success */
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="722"><span class="lineNum">     722 </span>            : }</a>
+<span class="lineNum">     723 </span>            : 
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 : static bool route_is_defined(const orte_process_name_t *target)</span>
+<span class="lineNum">     725 </span>            : {
+<span class="lineNum">     726 </span>            :     int i;
+<span class="lineNum">     727 </span>            :     orte_routed_jobfam_t *jfam;
+<span class="lineNum">     728 </span>            :     uint16_t jfamily;
+<span class="lineNum">     729 </span>            : 
+<span class="lineNum">     730 </span>            :     /* if the route is to a different job family and we are the HNP, look it up */
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :     if (ORTE_JOB_FAMILY(target-&gt;jobid) != ORTE_JOB_FAMILY(ORTE_PROC_MY_NAME-&gt;jobid)) {</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :         if (ORTE_PROC_IS_HNP) {</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :             jfamily = ORTE_JOB_FAMILY(target-&gt;jobid);</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :             for (i=0; i &lt; orte_routed_jobfams.size; i++) {</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :                 if (NULL == (jfam = (orte_routed_jobfam_t*)opal_pointer_array_get_item(&amp;orte_routed_jobfams, i))) {</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     737 </span>            :                 }
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :                 if (jfam-&gt;job_family == jfamily) {</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :                     OPAL_OUTPUT_VERBOSE((2, orte_routed_base_framework.framework_output,</span>
+<span class="lineNum">     740 </span>            :                                          &quot;%s routed_debruijn: route to %s is defined&quot;,
+<span class="lineNum">     741 </span>            :                                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     742 </span>            :                                          ORTE_JOB_FAMILY_PRINT(target-&gt;jobid)));
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :                     return true;</span>
+<span class="lineNum">     744 </span>            :                 }
+<span class="lineNum">     745 </span>            :             }
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     747 </span>            :         }
+<span class="lineNum">     748 </span>            :         /* if we are not the HNP, then the answer is always true as
+<span class="lineNum">     749 </span>            :          * we send it via the HNP
+<span class="lineNum">     750 </span>            :          */
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     752 </span>            :     }
+<span class="lineNum">     753 </span>            : 
+<span class="lineNum">     754 </span>            :     /* find out what daemon hosts this proc */
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :     if (ORTE_VPID_INVALID == orte_get_proc_daemon_vpid((orte_process_name_t*)target)) {</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     757 </span>            :     }
+<span class="lineNum">     758 </span>            : 
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :     return true;</span>
+<a name="760"><span class="lineNum">     760 </span>            : }</a>
+<span class="lineNum">     761 </span>            : 
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 : static int set_lifeline(orte_process_name_t *proc)</span>
+<span class="lineNum">     763 </span>            : {
+<span class="lineNum">     764 </span>            :     /* we have to copy the proc data because there is no
+<span class="lineNum">     765 </span>            :      * guarantee that it will be preserved
+<span class="lineNum">     766 </span>            :      */
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :     local_lifeline.jobid = proc-&gt;jobid;</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :     local_lifeline.vpid = proc-&gt;vpid;</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :     lifeline = &amp;local_lifeline;</span>
+<span class="lineNum">     770 </span>            : 
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="772"><span class="lineNum">     772 </span>            : }</a>
+<span class="lineNum">     773 </span>            : 
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 : static unsigned int ilog2 (unsigned int v)</span>
+<span class="lineNum">     775 </span>            : {
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :     const unsigned int b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :     const unsigned int S[] = {1, 2, 4, 8, 16};</span>
+<span class="lineNum">     778 </span>            :     int i;
+<span class="lineNum">     779 </span>            : 
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :     register unsigned int r = 0;</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :     for (i = 4; i &gt;= 0; i--) {</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :         if (v &amp; b[i]) {</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :             v &gt;&gt;= S[i];</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :             r |= S[i];</span>
+<span class="lineNum">     785 </span>            :         }
+<span class="lineNum">     786 </span>            :     }
+<span class="lineNum">     787 </span>            : 
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :     return r;</span>
+<a name="789"><span class="lineNum">     789 </span>            : }</a>
+<span class="lineNum">     790 </span>            : 
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 : static void update_routing_plan(void)</span>
+<span class="lineNum">     792 </span>            : {
+<span class="lineNum">     793 </span>            :     orte_routed_tree_t *child;
+<span class="lineNum">     794 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :     int my_vpid = ORTE_PROC_MY_NAME-&gt;vpid;</span>
+<span class="lineNum">     796 </span>            :     int i;
+<span class="lineNum">     797 </span>            : 
+<span class="lineNum">     798 </span>            :     /* if I am anything other than a daemon or the HNP, this
+<span class="lineNum">     799 </span>            :      * is a meaningless command as I am not allowed to route
+<span class="lineNum">     800 </span>            :      */
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :     if (!ORTE_PROC_IS_DAEMON &amp;&amp; !ORTE_PROC_IS_HNP) {</span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     803 </span>            :     }
+<span class="lineNum">     804 </span>            : 
+<span class="lineNum">     805 </span>            :     /* clear the list of children if any are already present */
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :     while (NULL != (item = opal_list_remove_first(&amp;my_children))) {</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item);</span>
+<span class="lineNum">     808 </span>            :     }
+<span class="lineNum">     809 </span>            : 
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :     log_nranks = (int) ilog2 ((unsigned int)orte_process_info.num_procs) ;</span>
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :     assert(log_nranks &lt; 31);</span>
+<span class="lineNum">     812 </span>            : 
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :     if (log_nranks &lt; 3) {</span>
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :       log_npeers = 1;</span>
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :     } else if (log_nranks &lt; 7) {</span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :       log_npeers = 2;</span>
+<span class="lineNum">     817 </span>            :     } else {
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :       log_npeers = 4;</span>
+<span class="lineNum">     819 </span>            :     }
+<span class="lineNum">     820 </span>            : 
+<span class="lineNum">     821 </span>            :     /* round log_nranks to a multiple of log_npeers */
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :     log_nranks = ((log_nranks + log_npeers) &amp; ~(log_npeers - 1)) - 1;</span>
+<span class="lineNum">     823 </span>            : 
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :     rank_mask = (1 &lt;&lt; (log_nranks + 1)) - 1;</span>
+<span class="lineNum">     825 </span>            : 
+<span class="lineNum">     826 </span>            :     /* compute my parent */
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :     ORTE_PROC_MY_PARENT-&gt;vpid = my_vpid ? my_vpid &gt;&gt; log_npeers : -1;</span>
+<span class="lineNum">     828 </span>            : 
+<span class="lineNum">     829 </span>            :     /* only add peers to the routing tree if this rank is the smallest rank that will send to
+<span class="lineNum">     830 </span>            :        the any peer */
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :     if ((my_vpid &gt;&gt; (log_nranks + 1 - log_npeers)) == 0) {</span>
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :         for (i = (1 &lt;&lt; log_npeers) - 1 ; i &gt;= 0 ; --i) {</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :             int next = ((my_vpid &lt;&lt; log_npeers) | i) &amp; rank_mask;</span>
+<span class="lineNum">     834 </span>            : 
+<span class="lineNum">     835 </span>            :             /* add a peer to the routing tree only if its vpid is smaller than this rank */
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :             if (next &gt; my_vpid &amp;&amp; next &lt; (int)orte_process_info.num_procs) {</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :                 child = OBJ_NEW(orte_routed_tree_t);</span>
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :                 child-&gt;vpid = next;</span>
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :                 opal_list_append (&amp;my_children, &amp;child-&gt;super);</span>
+<span class="lineNum">     840 </span>            :             }
+<span class="lineNum">     841 </span>            :         }
+<span class="lineNum">     842 </span>            :     }
+<a name="843"><span class="lineNum">     843 </span>            : }</a>
+<span class="lineNum">     844 </span>            : 
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 : static void get_routing_list(opal_list_t *coll)</span>
+<span class="lineNum">     846 </span>            : {
+<span class="lineNum">     847 </span>            :     /* if I am anything other than a daemon or the HNP, this
+<span class="lineNum">     848 </span>            :      * is a meaningless command as I am not allowed to route
+<span class="lineNum">     849 </span>            :      */
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :     if (!ORTE_PROC_IS_DAEMON &amp;&amp; !ORTE_PROC_IS_HNP) {</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     852 </span>            :     }
+<span class="lineNum">     853 </span>            : 
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :     orte_routed_base_xcast_routing(coll, &amp;my_children);</span>
+<a name="855"><span class="lineNum">     855 </span>            : }</a>
+<span class="lineNum">     856 </span>            : 
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 : static int get_wireup_info(opal_buffer_t *buf)</span>
+<span class="lineNum">     858 </span>            : {
+<span class="lineNum">     859 </span>            :     int rc;
+<span class="lineNum">     860 </span>            :     int i;
+<span class="lineNum">     861 </span>            :     orte_routed_jobfam_t *jfam;
+<span class="lineNum">     862 </span>            : 
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :     if (ORTE_PROC_IS_HNP) {</span>
+<span class="lineNum">     864 </span>            :         /* if we are not using static ports, then we need to share the
+<span class="lineNum">     865 </span>            :          * comm info - otherwise, just return
+<span class="lineNum">     866 </span>            :          */
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :         if (orte_static_ports) {</span>
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :             return ORTE_SUCCESS;</span>
+<span class="lineNum">     869 </span>            :         }
+<span class="lineNum">     870 </span>            : 
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = orte_rml_base_get_contact_info(ORTE_PROC_MY_NAME-&gt;jobid, buf))) {</span>
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     873 </span>            :         }
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     875 </span>            :     }
+<span class="lineNum">     876 </span>            : 
+<span class="lineNum">     877 </span>            :     /* if I am an application, this is occurring during connect_accept.
+<span class="lineNum">     878 </span>            :      * We need to return the stored information of other HNPs we
+<span class="lineNum">     879 </span>            :      * know about, if any
+<span class="lineNum">     880 </span>            :      */
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :     if (ORTE_PROC_IS_APP) {</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :         for (i=0; i &lt; orte_routed_jobfams.size; i++) {</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :             if (NULL != (jfam = (orte_routed_jobfam_t*)opal_pointer_array_get_item(&amp;orte_routed_jobfams, i))) {</span>
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :                 opal_dss.pack(buf, &amp;(jfam-&gt;hnp_uri), 1, OPAL_STRING);</span>
+<span class="lineNum">     885 </span>            :             }
+<span class="lineNum">     886 </span>            :         }
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     888 </span>            :     }
+<span class="lineNum">     889 </span>            : 
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="891"><span class="lineNum">     891 </span>            : }</a>
+<span class="lineNum">     892 </span>            : 
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 : static size_t num_routes(void)</span>
+<span class="lineNum">     894 </span>            : {
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :     return opal_list_get_size(&amp;my_children);</span>
+<span class="lineNum">     896 </span>            : }
+<span class="lineNum">     897 </span>            : 
+<span class="lineNum">     898 </span>            : #if OPAL_ENABLE_FT_CR == 1
+<span class="lineNum">     899 </span>            : static int debruijn_ft_event(int state)
+<span class="lineNum">     900 </span>            : {
+<span class="lineNum">     901 </span>            :     int ret, exit_status = ORTE_SUCCESS;
+<span class="lineNum">     902 </span>            : 
+<span class="lineNum">     903 </span>            :     /******** Checkpoint Prep ********/
+<span class="lineNum">     904 </span>            :     if(OPAL_CRS_CHECKPOINT == state) {
+<span class="lineNum">     905 </span>            :     }
+<span class="lineNum">     906 </span>            :     /******** Continue Recovery ********/
+<span class="lineNum">     907 </span>            :     else if (OPAL_CRS_CONTINUE == state ) {
+<span class="lineNum">     908 </span>            :     }
+<span class="lineNum">     909 </span>            :     /******** Restart Recovery ********/
+<span class="lineNum">     910 </span>            :     else if (OPAL_CRS_RESTART == state ) {
+<span class="lineNum">     911 </span>            :         /*
+<span class="lineNum">     912 </span>            :          * Re-exchange the routes
+<span class="lineNum">     913 </span>            :          */
+<span class="lineNum">     914 </span>            :         if (ORTE_SUCCESS != (ret = orte_routed.init_routes(ORTE_PROC_MY_NAME-&gt;jobid, NULL))) {
+<span class="lineNum">     915 </span>            :             exit_status = ret;
+<span class="lineNum">     916 </span>            :             goto cleanup;
+<span class="lineNum">     917 </span>            :         }
+<span class="lineNum">     918 </span>            :     }
+<span class="lineNum">     919 </span>            :     else if (OPAL_CRS_TERM == state ) {
+<span class="lineNum">     920 </span>            :         /* Nothing */
+<span class="lineNum">     921 </span>            :     }
+<span class="lineNum">     922 </span>            :     else {
+<span class="lineNum">     923 </span>            :         /* Error state = Nothing */
+<span class="lineNum">     924 </span>            :     }
+<span class="lineNum">     925 </span>            : 
+<span class="lineNum">     926 </span>            :  cleanup:
+<span class="lineNum">     927 </span>            :     return exit_status;
+<span class="lineNum">     928 </span>            : }
+<span class="lineNum">     929 </span>            : #endif
+<span class="lineNum">     930 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

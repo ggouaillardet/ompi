@@ -1,0 +1,673 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/rcache/vma/rcache_vma_tree.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/rcache/vma</a> - rcache_vma_tree.c<span style="font-size: 80%;"> (source / <a href="rcache_vma_tree.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">301</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2013 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  *
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2006      Voltaire. All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2007      Mellanox Technologies. All rights reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2009      IBM Corporation.  All rights reserved.
+<span class="lineNum">      17 </span>            :  * Copyright (c) 2013      NVIDIA Corporation.  All rights reserved.
+<span class="lineNum">      18 </span>            :  * Copyright (c) 2013 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      19 </span>            :  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
+<span class="lineNum">      20 </span>            :  *                         reserved.
+<span class="lineNum">      21 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      22 </span>            :  *
+<span class="lineNum">      23 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      24 </span>            :  *
+<span class="lineNum">      25 </span>            :  * $HEADER$
+<span class="lineNum">      26 </span>            :  */
+<span class="lineNum">      27 </span>            : /**
+<span class="lineNum">      28 </span>            :   * @file
+<span class="lineNum">      29 </span>            :   * Description of the Registration Cache framework
+<span class="lineNum">      30 </span>            :   */
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #include &quot;opal/mca/mca.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;rcache_vma_tree.h&quot;
+<span class="lineNum">      36 </span>            : 
+<a name="37"><span class="lineNum">      37 </span>            : OBJ_CLASS_INSTANCE(mca_rcache_vma_reg_list_item_t, opal_list_item_t, NULL, NULL);</a>
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span><span class="lineNoCov">          0 : static void mca_rcache_vma_construct(opal_object_t *object)</span>
+<span class="lineNum">      40 </span>            : {
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 :     mca_rcache_vma_t *vma = (mca_rcache_vma_t*)object;</span>
+<span class="lineNum">      42 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;vma-&gt;reg_list, opal_list_t);</span>
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;vma-&gt;reg_delete_list, opal_list_t);</span>
+<a name="44"><span class="lineNum">      44 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 : static void mca_rcache_vma_destruct(opal_object_t *object)</span>
+<span class="lineNum">      47 </span>            : {
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :     mca_rcache_vma_t *vma = (mca_rcache_vma_t*)object;</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;vma-&gt;reg_list);</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;vma-&gt;reg_delete_list);</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : OBJ_CLASS_INSTANCE(mca_rcache_vma_t, opal_list_item_t,
+<span class="lineNum">      54 </span>            :         mca_rcache_vma_construct, mca_rcache_vma_destruct);
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : /**
+<span class="lineNum">      58 </span>            :  * Function for the red black tree to compare 2 keys
+<span class="lineNum">      59 </span>            :  *
+<span class="lineNum">      60 </span>            :  * @param key1 a pointer to the 1st key
+<span class="lineNum">      61 </span>            :  * @param key2 a pointer to the second key
+<span class="lineNum">      62 </span>            :  *
+<span class="lineNum">      63 </span>            :  * @retval -1 if key1 is below key2
+<span class="lineNum">      64 </span>            :  * @retval 1 if key 1 is above key2
+<span class="lineNum">      65 </span>            :  * @retval 0 if the keys are the same
+<a name="66"><span class="lineNum">      66 </span>            :  */</a>
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 : static int mca_rcache_vma_tree_node_compare(void *key1, void *key2)</span>
+<span class="lineNum">      69 </span>            : {
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     mca_rcache_vma_t *vma1 = (mca_rcache_vma_t*)key1,</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :                      *vma2 = (mca_rcache_vma_t*)key2;</span>
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     if(vma1-&gt;start &lt; vma2-&gt;start)</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     if(vma1-&gt;start &gt; vma2-&gt;start)</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :         return 1;</span>
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     return 0;</span>
+<a name="79"><span class="lineNum">      79 </span>            : }</a>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 : static int mca_rcache_vma_tree_node_compare_search(void *key1, void *key2)</span>
+<span class="lineNum">      82 </span>            : {
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     mca_rcache_vma_t *vma = (mca_rcache_vma_t*)key2;</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     uintptr_t addr = (uintptr_t)key1;</span>
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :     if(vma-&gt;end &lt; addr)</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :         return 1;</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     if(vma-&gt;start &lt;= addr)</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     return -1;</span>
+<a name="92"><span class="lineNum">      92 </span>            : }</a>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 : static int mca_rcache_vma_tree_node_compare_closest(void *key1, void *key2)</span>
+<span class="lineNum">      95 </span>            : {
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     mca_rcache_vma_t *vma = (mca_rcache_vma_t*)key2, *prev_vma;</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     uintptr_t addr = (uintptr_t)key1;</span>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     if(vma-&gt;end &lt; addr)</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :        return 1;</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     if(vma-&gt;start &lt;= addr)</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :     prev_vma = (mca_rcache_vma_t *)opal_list_get_prev(&amp;vma-&gt;super.super);</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     if(prev_vma == (mca_rcache_vma_t *)opal_list_get_end(&amp;vma-&gt;rcache-&gt;vma_list)</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :             || prev_vma-&gt;end &lt; addr)</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :     return -1;</span>
+<a name="109"><span class="lineNum">     109 </span>            : }</a>
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 : static inline mca_rcache_vma_t *mca_rcache_vma_new(</span>
+<span class="lineNum">     112 </span>            :         mca_rcache_vma_module_t *vma_rcache, uintptr_t start, uintptr_t end)
+<span class="lineNum">     113 </span>            : {
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     mca_rcache_vma_t *vma = OBJ_NEW(mca_rcache_vma_t);</span>
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     if(NULL == vma)</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     vma-&gt;start = start;</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     vma-&gt;end = end;</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     vma-&gt;rcache = vma_rcache;</span>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     (void)opal_rb_tree_insert(&amp;vma_rcache-&gt;rb_tree, vma, vma);</span>
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :     return vma;</span>
+<a name="126"><span class="lineNum">     126 </span>            : }</a>
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 : void mca_rcache_vma_destroy(mca_rcache_vma_t *vma)</span>
+<span class="lineNum">     129 </span>            : {
+<span class="lineNum">     130 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :     while ((item = opal_list_remove_first(&amp;vma-&gt;reg_list)))</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item);</span>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :      while ((item = opal_list_remove_first(&amp;vma-&gt;reg_delete_list)))</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :          OBJ_RELEASE(item);</span>
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(vma);</span>
+<a name="139"><span class="lineNum">     139 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 : static inline int mca_rcache_vma_compare_regs(</span>
+<span class="lineNum">     142 </span>            :         mca_mpool_base_registration_t *reg1,
+<span class="lineNum">     143 </span>            :         mca_mpool_base_registration_t *reg2)
+<span class="lineNum">     144 </span>            : {
+<span class="lineNum">     145 </span>            :     /* persisten registration are on top */
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     if((reg1-&gt;flags &amp; MCA_MPOOL_FLAGS_PERSIST) &amp;&amp;</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :             !(reg2-&gt;flags &amp; MCA_MPOOL_FLAGS_PERSIST))</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         return 1;</span>
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     if(!(reg1-&gt;flags &amp; MCA_MPOOL_FLAGS_PERSIST) &amp;&amp;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :             (reg2-&gt;flags &amp; MCA_MPOOL_FLAGS_PERSIST))</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     if (reg1-&gt;bound != reg2-&gt;bound)</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :         return (int)(reg1-&gt;bound - reg2-&gt;bound);</span>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            :     /* tie breaker */
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :     return (int)((uintptr_t)reg1 - (uintptr_t)reg2);</span>
+<a name="159"><span class="lineNum">     159 </span>            : }</a>
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 : static inline int mca_rcache_vma_add_reg(mca_rcache_vma_t *vma,</span>
+<span class="lineNum">     162 </span>            :         mca_mpool_base_registration_t *reg)
+<span class="lineNum">     163 </span>            : {
+<span class="lineNum">     164 </span>            :     opal_list_item_t *i;
+<span class="lineNum">     165 </span>            :     mca_rcache_vma_reg_list_item_t *item, *entry;
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     entry = OBJ_NEW(mca_rcache_vma_reg_list_item_t);</span>
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :     if(!entry)</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     entry-&gt;reg = reg;</span>
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     for(i = opal_list_get_first(&amp;vma-&gt;reg_list);</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :             i != opal_list_get_end(&amp;vma-&gt;reg_list);</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :             i = opal_list_get_next(i)) {</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :         item = (mca_rcache_vma_reg_list_item_t*)i;</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         if(mca_rcache_vma_compare_regs(item-&gt;reg, reg) &gt; 0)</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         opal_list_insert_pos(&amp;vma-&gt;reg_list, &amp;item-&gt;super, &amp;entry-&gt;super);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     184 </span>            :     }
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;vma-&gt;reg_list, &amp;entry-&gt;super);</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     return 0;</span>
+<a name="187"><span class="lineNum">     187 </span>            : }</a>
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 : static inline void mca_rcache_vma_remove_reg(mca_rcache_vma_t *vma,</span>
+<span class="lineNum">     190 </span>            :         mca_mpool_base_registration_t *reg)
+<span class="lineNum">     191 </span>            : {
+<span class="lineNum">     192 </span>            :     opal_list_item_t *i;
+<span class="lineNum">     193 </span>            :     mca_rcache_vma_reg_list_item_t *item;
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     for(i = opal_list_get_first(&amp;vma-&gt;reg_list);</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :             i != opal_list_get_end(&amp;vma-&gt;reg_list);</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :             i = opal_list_get_next(i)) {</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :         item = (mca_rcache_vma_reg_list_item_t*)i;</span>
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :         if(item-&gt;reg == reg) {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :             opal_list_remove_item(&amp;vma-&gt;reg_list, &amp;item-&gt;super);</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :             opal_list_append(&amp;vma-&gt;reg_delete_list, &amp;item-&gt;super);</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     204 </span>            :         }
+<span class="lineNum">     205 </span>            :     }
+<a name="206"><span class="lineNum">     206 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 : static inline int mca_rcache_vma_copy_reg_list(mca_rcache_vma_t *to,</span>
+<span class="lineNum">     209 </span>            :         mca_rcache_vma_t *from)
+<span class="lineNum">     210 </span>            : {
+<span class="lineNum">     211 </span>            :     opal_list_item_t *i;
+<span class="lineNum">     212 </span>            :     mca_rcache_vma_reg_list_item_t *item_f, *item_t;
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     for(i = opal_list_get_first(&amp;from-&gt;reg_list);</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :             i != opal_list_get_end(&amp;from-&gt;reg_list);</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :             i = opal_list_get_next(i)) {</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :         item_f = (mca_rcache_vma_reg_list_item_t*)i;</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         item_t = OBJ_NEW(mca_rcache_vma_reg_list_item_t);</span>
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         if(NULL == item_t)</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :             return 0;</span>
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         item_t-&gt;reg = item_f-&gt;reg;</span>
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :         opal_list_append(&amp;to-&gt;reg_list, &amp;item_t-&gt;super);</span>
+<span class="lineNum">     225 </span>            :     }
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     228 </span>            : }
+<a name="229"><span class="lineNum">     229 </span>            : </a>
+<span class="lineNum">     230 </span>            : /* returns 1 iff two lists contain the same entries */
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 : static inline int mca_rcache_vma_compare_reg_lists(mca_rcache_vma_t *vma1,</span>
+<span class="lineNum">     232 </span>            :         mca_rcache_vma_t *vma2)
+<span class="lineNum">     233 </span>            : {
+<span class="lineNum">     234 </span>            :     mca_rcache_vma_reg_list_item_t *i1, *i2;
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     if (!vma1 || !vma2)</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     if(opal_list_get_size(&amp;vma1-&gt;reg_list) !=</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :             opal_list_get_size(&amp;vma2-&gt;reg_list))</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     i1 = (mca_rcache_vma_reg_list_item_t*)opal_list_get_first(&amp;vma1-&gt;reg_list);</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     i2 = (mca_rcache_vma_reg_list_item_t*)opal_list_get_first(&amp;vma2-&gt;reg_list);</span>
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            :     do {
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :         if(i1  == (mca_rcache_vma_reg_list_item_t*)opal_list_get_end(&amp;vma1-&gt;reg_list) ||</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :             i2 == (mca_rcache_vma_reg_list_item_t*)opal_list_get_end(&amp;vma2-&gt;reg_list))</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :             return 1;</span>
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :         if(i1-&gt;reg != i2-&gt;reg)</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         i1 = (mca_rcache_vma_reg_list_item_t*)opal_list_get_next(i1);</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :         i2 = (mca_rcache_vma_reg_list_item_t*)opal_list_get_next(i2);</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :     } while(1);</span>
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :     return 0;</span>
+<a name="259"><span class="lineNum">     259 </span>            : }</a>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 : int mca_rcache_vma_tree_init(mca_rcache_vma_module_t* rcache)</span>
+<span class="lineNum">     262 </span>            : {
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;rcache-&gt;rb_tree, opal_rb_tree_t);</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;rcache-&gt;vma_list, opal_list_t);</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;rcache-&gt;vma_delete_list, opal_list_t);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     rcache-&gt;reg_cur_cache_size = 0;</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :     return opal_rb_tree_init(&amp;rcache-&gt;rb_tree,</span>
+<span class="lineNum">     268 </span>            :                              mca_rcache_vma_tree_node_compare);
+<a name="269"><span class="lineNum">     269 </span>            : }</a>
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 : void mca_rcache_vma_tree_finalize(mca_rcache_vma_module_t* rcache)</span>
+<span class="lineNum">     272 </span>            : {
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     opal_rb_tree_init(&amp;rcache-&gt;rb_tree,</span>
+<span class="lineNum">     274 </span>            :                       mca_rcache_vma_tree_node_compare);
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;rcache-&gt;vma_delete_list);</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;rcache-&gt;vma_list);</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;rcache-&gt;rb_tree);</span>
+<a name="278"><span class="lineNum">     278 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 : mca_mpool_base_registration_t *mca_rcache_vma_tree_find(</span>
+<span class="lineNum">     281 </span>            :         mca_rcache_vma_module_t* vma_rcache, unsigned char *base,
+<span class="lineNum">     282 </span>            :         unsigned char *bound)
+<span class="lineNum">     283 </span>            : {
+<span class="lineNum">     284 </span>            :     mca_rcache_vma_t *vma;
+<span class="lineNum">     285 </span>            :     mca_rcache_vma_reg_list_item_t *item;
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     vma = (mca_rcache_vma_t*)opal_rb_tree_find_with(&amp;vma_rcache-&gt;rb_tree, base,</span>
+<span class="lineNum">     288 </span>            :             mca_rcache_vma_tree_node_compare_search);
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     if(!vma)</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     for(item = (mca_rcache_vma_reg_list_item_t*)</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :             opal_list_get_first(&amp;vma-&gt;reg_list);</span>
+<span class="lineNum">     295 </span>            :             item != (mca_rcache_vma_reg_list_item_t*)
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :             opal_list_get_end(&amp;vma-&gt;reg_list);</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :             item = (mca_rcache_vma_reg_list_item_t*)</span>
+<span class="lineNum">     298 </span>            :             opal_list_get_next(item)) {
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :         if(item-&gt;reg-&gt;flags &amp; MCA_MPOOL_FLAGS_INVALID)</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :         if(item-&gt;reg-&gt;bound &gt;= bound)</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :             return item-&gt;reg;</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         if(!(item-&gt;reg-&gt;flags &amp; MCA_MPOOL_FLAGS_PERSIST))</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     305 </span>            :     }
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<a name="308"><span class="lineNum">     308 </span>            : }</a>
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 : static inline bool is_reg_in_array(mca_mpool_base_registration_t **regs,</span>
+<span class="lineNum">     311 </span>            :         int cnt, mca_mpool_base_registration_t *p)
+<span class="lineNum">     312 </span>            : {
+<span class="lineNum">     313 </span>            :     int i;
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     for(i = 0; i &lt; cnt; i++) {</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         if(regs[i] == p)</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     318 </span>            :     }
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     return false;</span>
+<a name="321"><span class="lineNum">     321 </span>            : }</a>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 : int mca_rcache_vma_tree_find_all(</span>
+<span class="lineNum">     324 </span>            :         mca_rcache_vma_module_t *vma_rcache, unsigned char *base,
+<span class="lineNum">     325 </span>            :         unsigned char *bound, mca_mpool_base_registration_t **regs,
+<span class="lineNum">     326 </span>            :         int reg_cnt)
+<span class="lineNum">     327 </span>            : {
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     int cnt = 0;</span>
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     if(opal_list_get_size(&amp;vma_rcache-&gt;vma_list) == 0)</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :         return cnt;</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span>            :     do {
+<span class="lineNum">     334 </span>            :         mca_rcache_vma_t *vma;
+<span class="lineNum">     335 </span>            :         opal_list_item_t *item;
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :         vma = (mca_rcache_vma_t*)</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :             opal_rb_tree_find_with(&amp;vma_rcache-&gt;rb_tree, base,</span>
+<span class="lineNum">     338 </span>            :                 mca_rcache_vma_tree_node_compare_closest);
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         if(NULL == vma) {</span>
+<span class="lineNum">     341 </span>            :             /* base is bigger than any registered memory */
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     343 </span>            :         }
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :         if(base &lt; (unsigned char*)vma-&gt;start) {</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :             base = (unsigned char*)vma-&gt;start;</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     348 </span>            :         }
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :         for(item = opal_list_get_first(&amp;vma-&gt;reg_list);</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :                 item != opal_list_get_end(&amp;vma-&gt;reg_list);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :                 item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     353 </span>            :             mca_rcache_vma_reg_list_item_t *vma_item;
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :             vma_item = (mca_rcache_vma_reg_list_item_t*)item;</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :             if((vma_item-&gt;reg-&gt;flags &amp; MCA_MPOOL_FLAGS_INVALID) ||</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :                     is_reg_in_array(regs, cnt, vma_item-&gt;reg)) {</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     358 </span>            :             }
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :             regs[cnt++] = vma_item-&gt;reg;</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :             if(cnt == reg_cnt)</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :                 return cnt; /* no space left in the provided array */</span>
+<span class="lineNum">     362 </span>            :         }
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :         base = (unsigned char *)vma-&gt;end + 1;</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     } while(bound &gt;= base);</span>
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     return cnt;</span>
+<a name="368"><span class="lineNum">     368 </span>            : }</a>
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 : static inline int mca_rcache_vma_can_insert(</span>
+<span class="lineNum">     371 </span>            :         mca_rcache_vma_module_t *vma_rcache, size_t nbytes, size_t limit)
+<span class="lineNum">     372 </span>            : {
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     if(0 == limit)</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :         return 1;</span>
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     if(vma_rcache-&gt;reg_cur_cache_size + nbytes &lt;= limit)</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :         return 1;</span>
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :     return 0;</span>
+<a name="380"><span class="lineNum">     380 </span>            : }</a>
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 : static inline void mca_rcache_vma_update_byte_count(</span>
+<span class="lineNum">     383 </span>            :         mca_rcache_vma_module_t* vma_rcache,
+<span class="lineNum">     384 </span>            :         size_t nbytes)
+<span class="lineNum">     385 </span>            : {
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :     vma_rcache-&gt;reg_cur_cache_size += nbytes;</span>
+<a name="387"><span class="lineNum">     387 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 : int mca_rcache_vma_tree_insert(mca_rcache_vma_module_t* vma_rcache,</span>
+<span class="lineNum">     390 </span>            :         mca_mpool_base_registration_t* reg, size_t limit)
+<span class="lineNum">     391 </span>            : {
+<span class="lineNum">     392 </span>            :     mca_rcache_vma_t *i;
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     uintptr_t begin = (uintptr_t)reg-&gt;base, end = (uintptr_t)reg-&gt;bound;</span>
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :     i = (mca_rcache_vma_t*)opal_rb_tree_find_with(&amp;vma_rcache-&gt;rb_tree,</span>
+<span class="lineNum">     396 </span>            :             (void*)begin, mca_rcache_vma_tree_node_compare_closest);
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     if(!i)</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :         i = (mca_rcache_vma_t*)opal_list_get_end(&amp;vma_rcache-&gt;vma_list);</span>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :     while (begin &lt;= end) {</span>
+<span class="lineNum">     402 </span>            :         mca_rcache_vma_t *vma;
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         if((mca_rcache_vma_t*)opal_list_get_end(&amp;vma_rcache-&gt;vma_list) == i) {</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :             vma = NULL;</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :             if(mca_rcache_vma_can_insert(vma_rcache, end - begin + 1, limit))</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :                 vma = mca_rcache_vma_new(vma_rcache, begin, end);</span>
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :             if(!vma)</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :                 goto remove;</span>
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :             mca_rcache_vma_update_byte_count(vma_rcache, end - begin + 1);</span>
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :             opal_list_append(&amp;vma_rcache-&gt;vma_list, &amp;vma-&gt;super);</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :             begin = vma-&gt;end + 1;</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :             mca_rcache_vma_add_reg(vma, reg);</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :         } else if(i-&gt;start &gt; begin) {</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :             uintptr_t tend = (i-&gt;start &lt;= end)?(i-&gt;start - 1):end;</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :             vma = NULL;</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :             if(mca_rcache_vma_can_insert(vma_rcache, tend - begin + 1, limit))</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :                 vma = mca_rcache_vma_new(vma_rcache, begin, tend);</span>
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :             if(!vma)</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :                 goto remove;</span>
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :             mca_rcache_vma_update_byte_count(vma_rcache, tend - begin + 1);</span>
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span>            :             /* insert before */
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :             opal_list_insert_pos(&amp;vma_rcache-&gt;vma_list, &amp;i-&gt;super, &amp;vma-&gt;super);</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :             i = vma;</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :             begin = vma-&gt;end + 1;</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :             mca_rcache_vma_add_reg(vma, reg);</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :         } else if(i-&gt;start == begin) {</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :             if (i-&gt;end &gt; end) {</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :                 vma = mca_rcache_vma_new(vma_rcache, end+1, i-&gt;end);</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :                 if(!vma)</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :                     goto remove;</span>
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :                 i-&gt;end = end;</span>
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :                 mca_rcache_vma_copy_reg_list(vma, i);</span>
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span>            :                 /* add after */
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :                 opal_list_insert_pos(&amp;vma_rcache-&gt;vma_list,</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :                         opal_list_get_next(&amp;i-&gt;super),</span>
+<span class="lineNum">     446 </span>            :                         &amp;vma-&gt;super);
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :                 mca_rcache_vma_add_reg(i, reg);</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :                 begin = end + 1;</span>
+<span class="lineNum">     449 </span>            :             } else {
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :                 mca_rcache_vma_add_reg(i, reg);</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :                 begin = i-&gt;end + 1;</span>
+<span class="lineNum">     452 </span>            :             }
+<span class="lineNum">     453 </span>            :         } else {
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :                 vma = mca_rcache_vma_new(vma_rcache, begin, i-&gt;end);</span>
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :                 if(!vma)</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                     goto remove;</span>
+<span class="lineNum">     458 </span>            : 
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :                 i-&gt;end = begin - 1;</span>
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :                 mca_rcache_vma_copy_reg_list(vma, i);</span>
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span>            :                 /* add after */
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :                 opal_list_insert_pos(&amp;vma_rcache-&gt;vma_list,</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :                         opal_list_get_next(&amp;i-&gt;super),</span>
+<span class="lineNum">     466 </span>            :                         &amp;vma-&gt;super);
+<span class="lineNum">     467 </span>            :         }
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :         i = (mca_rcache_vma_t*)opal_list_get_next(&amp;i-&gt;super);</span>
+<span class="lineNum">     470 </span>            :     }
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     473 </span>            : 
+<span class="lineNum">     474 </span>            : remove:
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :     mca_rcache_vma_tree_delete(vma_rcache, reg);</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     return OPAL_ERR_TEMP_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     477 </span>            : }
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span>            : /**
+<span class="lineNum">     480 </span>            :  * Function to remove previously memory from the tree without freeing it
+<span class="lineNum">     481 </span>            :  *
+<span class="lineNum">     482 </span>            :  * @param base pointer to the memory to free
+<span class="lineNum">     483 </span>            :  *
+<span class="lineNum">     484 </span>            :  * @retval OPAL_SUCCESS
+<a name="485"><span class="lineNum">     485 </span>            :  * @retval OPAL_ERR_BAD_PARAM if the passed base pointer was invalid</a>
+<span class="lineNum">     486 </span>            :  */
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 : int mca_rcache_vma_tree_delete(mca_rcache_vma_module_t* vma_rcache,</span>
+<span class="lineNum">     488 </span>            :                           mca_mpool_base_registration_t* reg)
+<span class="lineNum">     489 </span>            : {
+<span class="lineNum">     490 </span>            :     mca_rcache_vma_t *vma;
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :     vma = (mca_rcache_vma_t*)opal_rb_tree_find_with(&amp;vma_rcache-&gt;rb_tree, reg-&gt;base,</span>
+<span class="lineNum">     493 </span>            :             mca_rcache_vma_tree_node_compare_search);
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     if(!vma)</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     while(vma != (mca_rcache_vma_t*)opal_list_get_end(&amp;vma_rcache-&gt;vma_list)</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :             &amp;&amp; vma-&gt;start &lt;= (uintptr_t)reg-&gt;bound) {</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :         mca_rcache_vma_remove_reg(vma, reg);</span>
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :         if(opal_list_is_empty(&amp;vma-&gt;reg_list)) {</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :             mca_rcache_vma_t *next = (mca_rcache_vma_t*)opal_list_get_next(&amp;vma-&gt;super);</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :             opal_rb_tree_delete(&amp;vma_rcache-&gt;rb_tree, vma);</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :             mca_rcache_vma_update_byte_count(vma_rcache,</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :                     vma-&gt;start - vma-&gt;end - 1);</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :             opal_list_remove_item(&amp;vma_rcache-&gt;vma_list, &amp;vma-&gt;super);</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :             opal_list_append(&amp;vma_rcache-&gt;vma_delete_list, &amp;vma-&gt;super);</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :             vma = next;</span>
+<span class="lineNum">     510 </span>            :         } else {
+<span class="lineNum">     511 </span>            :             int merged;
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span>            :             do {
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :                 mca_rcache_vma_t *prev = NULL, *next = NULL;</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :                 if(opal_list_get_begin(&amp;vma_rcache-&gt;vma_list) !=</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :                         opal_list_get_prev(vma))</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :                     prev = (mca_rcache_vma_t*)opal_list_get_prev(vma);</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :                 merged = 0;</span>
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :                 if(prev &amp;&amp; vma-&gt;start == prev-&gt;end + 1 &amp;&amp;</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :                         mca_rcache_vma_compare_reg_lists(vma, prev)) {</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :                     prev-&gt;end = vma-&gt;end;</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :                     opal_list_remove_item(&amp;vma_rcache-&gt;vma_list, &amp;vma-&gt;super);</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :                     opal_rb_tree_delete(&amp;vma_rcache-&gt;rb_tree, vma);</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :                     opal_list_append(&amp;vma_rcache-&gt;vma_delete_list, &amp;vma-&gt;super);</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :                     vma = prev;</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :                     merged = 1;</span>
+<span class="lineNum">     528 </span>            :                 }
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :                 if(opal_list_get_end(&amp;vma_rcache-&gt;vma_list) !=</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :                         opal_list_get_next(vma))</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :                     next = (mca_rcache_vma_t*)opal_list_get_next(vma);</span>
+<span class="lineNum">     532 </span>            : 
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :                 if(next &amp;&amp; vma-&gt;end + 1 == next-&gt;start &amp;&amp;</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :                         mca_rcache_vma_compare_reg_lists(vma, next)) {</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :                     vma-&gt;end = next-&gt;end;</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :                     opal_list_remove_item(&amp;vma_rcache-&gt;vma_list, &amp;next-&gt;super);</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :                     opal_rb_tree_delete(&amp;vma_rcache-&gt;rb_tree, next);</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :                     opal_list_append(&amp;vma_rcache-&gt;vma_delete_list, &amp;next-&gt;super);</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :                     merged = 1;</span>
+<span class="lineNum">     540 </span>            :                 }
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :             } while(merged);</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :             vma = (mca_rcache_vma_t*)opal_list_get_next(vma);</span>
+<span class="lineNum">     543 </span>            :         }
+<span class="lineNum">     544 </span>            :     }
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     546 </span>            : }
+<a name="547"><span class="lineNum">     547 </span>            : </a>
+<span class="lineNum">     548 </span>            : /* Dump out rcache entries within a range of memory.  Useful for debugging. */
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 : void mca_rcache_vma_tree_dump_range(mca_rcache_vma_module_t *vma_rcache,</span>
+<span class="lineNum">     550 </span>            :                                     unsigned char *base, size_t size, char *msg)
+<span class="lineNum">     551 </span>            : {
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     unsigned char * bound = base + size -1;</span>
+<span class="lineNum">     553 </span>            :     mca_mpool_base_registration_t *reg;
+<span class="lineNum">     554 </span>            : 
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :     if (NULL == msg) {</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :         msg = &quot;&quot;;</span>
+<span class="lineNum">     557 </span>            :     }
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :     opal_output(0, &quot;Dumping rcache entries: %s&quot;, msg);</span>
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     if(opal_list_is_empty(&amp;vma_rcache-&gt;vma_list)) {</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;  rcache is empty&quot;);</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     564 </span>            :     }
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span>            :     do {
+<span class="lineNum">     567 </span>            :         mca_rcache_vma_t *vma;
+<span class="lineNum">     568 </span>            :         opal_list_item_t *item;
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :         vma = (mca_rcache_vma_t*)</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :             opal_rb_tree_find_with(&amp;vma_rcache-&gt;rb_tree, base,</span>
+<span class="lineNum">     571 </span>            :                 mca_rcache_vma_tree_node_compare_closest);
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :         if(NULL == vma) {</span>
+<span class="lineNum">     574 </span>            :             /* base is bigger than any registered memory */
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     576 </span>            :         }
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :         if(base &lt; (unsigned char*)vma-&gt;start) {</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :             base = (unsigned char*)vma-&gt;start;</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     581 </span>            :         }
+<span class="lineNum">     582 </span>            : 
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;  vma: base=%p, bound=%p, size=%lu, number of registrations=%d&quot;,</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :                     (void *)vma-&gt;start, (void *)vma-&gt;end, vma-&gt;end - vma-&gt;start + 1,</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :                     (int)opal_list_get_size(&amp;vma-&gt;reg_list));</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :         for(item = opal_list_get_first(&amp;vma-&gt;reg_list);</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :                 item != opal_list_get_end(&amp;vma-&gt;reg_list);</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :                 item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     589 </span>            :             mca_rcache_vma_reg_list_item_t *vma_item;
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :             vma_item = (mca_rcache_vma_reg_list_item_t*)item;</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :             reg = vma_item-&gt;reg;</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;    reg: base=%p, bound=%p, alloc_base=%p, ref_count=%d, flags=0x%x&quot;,</span>
+<span class="lineNum">     593 </span>            :                         reg-&gt;base, reg-&gt;bound, reg-&gt;alloc_base, reg-&gt;ref_count, reg-&gt;flags);
+<span class="lineNum">     594 </span>            :         }
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :         base = (unsigned char *)vma-&gt;end + 1;</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :     } while(bound &gt;= base);</span>
+<span class="lineNum">     597 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,643 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - ompi/mca/coll/sm/coll_sm_reduce.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/coll/sm</a> - coll_sm_reduce.c<span style="font-size: 80%;"> (source / <a href="coll_sm_reduce.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">136</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2014 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2009-2013 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  * $HEADER$
+<span class="lineNum">      18 </span>            :  */
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &quot;opal/datatype/opal_convertor.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;opal/sys/atomic.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;ompi/constants.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;ompi/communicator/communicator.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;ompi/mca/coll/coll.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;ompi/op/op.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;coll_sm.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : /*
+<span class="lineNum">      34 </span>            :  * Local functions
+<span class="lineNum">      35 </span>            :  */
+<span class="lineNum">      36 </span>            : static int reduce_inorder(void *sbuf, void* rbuf, int count,
+<span class="lineNum">      37 </span>            :                           struct ompi_datatype_t *dtype,
+<span class="lineNum">      38 </span>            :                           struct ompi_op_t *op,
+<span class="lineNum">      39 </span>            :                           int root, struct ompi_communicator_t *comm,
+<span class="lineNum">      40 </span>            :                           mca_coll_base_module_t *module);
+<span class="lineNum">      41 </span>            : #define WANT_REDUCE_NO_ORDER 0
+<span class="lineNum">      42 </span>            : #if WANT_REDUCE_NO_ORDER
+<span class="lineNum">      43 </span>            : static int reduce_no_order(void *sbuf, void* rbuf, int count,
+<span class="lineNum">      44 </span>            :                            struct ompi_datatype_t *dtype,
+<span class="lineNum">      45 </span>            :                            struct ompi_op_t *op,
+<span class="lineNum">      46 </span>            :                            int root, struct ompi_communicator_t *comm,
+<span class="lineNum">      47 </span>            :                            mca_coll_base_module_t *module);
+<span class="lineNum">      48 </span>            : #endif
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : /*
+<span class="lineNum">      51 </span>            :  * Useful utility routine
+<a name="52"><span class="lineNum">      52 </span>            :  */</a>
+<span class="lineNum">      53 </span>            : #if !defined(min)
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 : static inline int min(int a, int b)</span>
+<span class="lineNum">      55 </span>            : {
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     return (a &lt; b) ? a : b;</span>
+<span class="lineNum">      57 </span>            : }
+<span class="lineNum">      58 </span>            : #endif
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : /**
+<span class="lineNum">      61 </span>            :  * Shared memory reduction.
+<span class="lineNum">      62 </span>            :  *
+<a name="63"><span class="lineNum">      63 </span>            :  * Simply farms out to the associative or non-associative functions.</a>
+<span class="lineNum">      64 </span>            :  */
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 : int mca_coll_sm_reduce_intra(void *sbuf, void* rbuf, int count,</span>
+<span class="lineNum">      66 </span>            :                              struct ompi_datatype_t *dtype,
+<span class="lineNum">      67 </span>            :                              struct ompi_op_t *op,
+<span class="lineNum">      68 </span>            :                              int root, struct ompi_communicator_t *comm,
+<span class="lineNum">      69 </span>            :                              mca_coll_base_module_t *module)
+<span class="lineNum">      70 </span>            : {
+<span class="lineNum">      71 </span>            :     size_t size;
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     mca_coll_sm_module_t *sm_module = (mca_coll_sm_module_t*) module;</span>
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            :     /* There are several possibilities:
+<span class="lineNum">      75 </span>            :      *
+<span class="lineNum">      76 </span>            :      * 0. If the datatype is larger than a segment, fall back to
+<span class="lineNum">      77 </span>            :      *    underlying module
+<span class="lineNum">      78 </span>            :      * 1. If the op is user-defined, use the strict order
+<span class="lineNum">      79 </span>            :      * 2. If the op is intrinsic:
+<span class="lineNum">      80 </span>            :      *    a. If the op is float-associative, use the unordered
+<span class="lineNum">      81 </span>            :      *    b. If the op is not float-associative:
+<span class="lineNum">      82 </span>            :      *       i. if the data is floating point, use the strict order
+<span class="lineNum">      83 </span>            :      *       ii. if the data is not floating point, use the unordered
+<span class="lineNum">      84 </span>            :      */
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size(dtype, &amp;size);</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     if ((int)size &gt; mca_coll_sm_component.sm_control_size) {</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :         return sm_module-&gt;previous_reduce(sbuf, rbuf, count,</span>
+<span class="lineNum">      89 </span>            :                                           dtype, op, root, comm,
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :                                           sm_module-&gt;previous_reduce_module);</span>
+<span class="lineNum">      91 </span>            :     }
+<span class="lineNum">      92 </span>            : #if WANT_REDUCE_NO_ORDER
+<span class="lineNum">      93 </span>            :     else {
+<span class="lineNum">      94 </span>            :         /* Lazily enable the module the first time we invoke a
+<span class="lineNum">      95 </span>            :            collective on it */
+<span class="lineNum">      96 </span>            :         if (!sm_module-&gt;enabled) {
+<span class="lineNum">      97 </span>            :             if (OMPI_SUCCESS !=
+<span class="lineNum">      98 </span>            :                 (ret = ompi_coll_sm_lazy_enable(module, comm))) {
+<span class="lineNum">      99 </span>            :                 return ret;
+<span class="lineNum">     100 </span>            :             }
+<span class="lineNum">     101 </span>            :         }
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            :         if (!ompi_op_is_intrinsic(op) ||
+<span class="lineNum">     104 </span>            :             (ompi_op_is_intrinsic(op) &amp;&amp; !ompi_op_is_float_assoc(op) &amp;&amp;
+<span class="lineNum">     105 </span>            :              0 != (dtype-&gt;flags &amp; OMPI_DATATYPE_FLAG_DATA_FLOAT))) {
+<span class="lineNum">     106 </span>            :             return reduce_inorder(sbuf, rbuf, count, dtype, op,
+<span class="lineNum">     107 </span>            :                                   root, comm, module);
+<span class="lineNum">     108 </span>            :         } else {
+<span class="lineNum">     109 </span>            :             return reduce_no_order(sbuf, rbuf, count, dtype, op,
+<span class="lineNum">     110 </span>            :                                    root, comm, module);
+<span class="lineNum">     111 </span>            :         }
+<span class="lineNum">     112 </span>            :     }
+<span class="lineNum">     113 </span>            : #else
+<span class="lineNum">     114 </span>            :     else {
+<span class="lineNum">     115 </span>            :         /* Lazily enable the module the first time we invoke a
+<span class="lineNum">     116 </span>            :            collective on it */
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :         if (!sm_module-&gt;enabled) {</span>
+<span class="lineNum">     118 </span>            :             int ret;
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :             if (OMPI_SUCCESS !=</span>
+<span class="lineNum">     121 </span>            :                 (ret = ompi_coll_sm_lazy_enable(module, comm))) {
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     123 </span>            :             }
+<span class="lineNum">     124 </span>            :         }
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :         return reduce_inorder(sbuf, rbuf, count, dtype, op, root, comm, module);</span>
+<span class="lineNum">     127 </span>            :     }
+<span class="lineNum">     128 </span>            : #endif
+<span class="lineNum">     129 </span>            : }
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : /**
+<span class="lineNum">     133 </span>            :  * In-order shared memory reduction.
+<span class="lineNum">     134 </span>            :  *
+<span class="lineNum">     135 </span>            :  * This function performs the reduction in order -- combining elements
+<span class="lineNum">     136 </span>            :  * starting with (0 operation 1), then (result operation 2), then
+<span class="lineNum">     137 </span>            :  * (result operation 3), etc.
+<span class="lineNum">     138 </span>            :  *
+<span class="lineNum">     139 </span>            :  * Root's algorithm:
+<span class="lineNum">     140 </span>            :  *
+<span class="lineNum">     141 </span>            :  * If our datatype is &quot;friendly&quot; (i.e., the representation of the
+<span class="lineNum">     142 </span>            :  * buffer is the same packed as it is unpacked), then the root doesn't
+<span class="lineNum">     143 </span>            :  * need a temporary buffer -- we can combine the operands directly
+<span class="lineNum">     144 </span>            :  * from the shared memory segments to the root's rbuf.  Otherwise, we
+<span class="lineNum">     145 </span>            :  * need a receive convertor and receive each fragment into a temporary
+<span class="lineNum">     146 </span>            :  * buffer where we can combine that operan with the root's rbuf.
+<span class="lineNum">     147 </span>            :  *
+<span class="lineNum">     148 </span>            :  * In general, there are two loops:
+<span class="lineNum">     149 </span>            :  *
+<span class="lineNum">     150 </span>            :  * 1. loop over all fragments (which must be done in units of an
+<span class="lineNum">     151 </span>            :  * integer number of datatypes -- remember that if this function is
+<span class="lineNum">     152 </span>            :  * called, we know that the datattype is smaller than the max size of
+<span class="lineNum">     153 </span>            :  * a fragment, so this is definitely possible)
+<span class="lineNum">     154 </span>            :  *
+<span class="lineNum">     155 </span>            :  * 2. loop over all the processes -- 0 to (comm_size-1).
+<span class="lineNum">     156 </span>            :  * For process 0:
+<span class="lineNum">     157 </span>            :  * - if the root==0, copy the *entire* buffer (i.e., don't copy
+<span class="lineNum">     158 </span>            :  *   fragment by fragment -- might as well copy the entire thing) the
+<span class="lineNum">     159 </span>            :  *   first time through the algorithm, and no-op every other time
+<span class="lineNum">     160 </span>            :  * - else, copy from the shmem fragment to the out buffer
+<span class="lineNum">     161 </span>            :  * For all other proceses:
+<span class="lineNum">     162 </span>            :  * - if root==i, combine the relevant fragment from the sbuf to the
+<span class="lineNum">     163 </span>            :  *   relevant fragment on the rbuf
+<span class="lineNum">     164 </span>            :  * - else, if the datatype is friendly, combine relevant fragment from
+<span class="lineNum">     165 </span>            :  *   the shmem segment to the relevant fragment in the rbuf.  Otherwise,
+<span class="lineNum">     166 </span>            :  *   use the convertor to copy the fragment out of shmem into a temp
+<span class="lineNum">     167 </span>            :  *   buffer and do the combination from there to the rbuf.
+<span class="lineNum">     168 </span>            :  *
+<span class="lineNum">     169 </span>            :  * If we don't have a friendly datatype, then free the temporary
+<span class="lineNum">     170 </span>            :  * buffer at the end.
+<span class="lineNum">     171 </span>            :  */
+<a name="172"><span class="lineNum">     172 </span>            : </a>
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 : static int reduce_inorder(void *sbuf, void* rbuf, int count,</span>
+<span class="lineNum">     175 </span>            :                           struct ompi_datatype_t *dtype,
+<span class="lineNum">     176 </span>            :                           struct ompi_op_t *op,
+<span class="lineNum">     177 </span>            :                           int root, struct ompi_communicator_t *comm,
+<span class="lineNum">     178 </span>            :                           mca_coll_base_module_t *module)
+<span class="lineNum">     179 </span>            : {
+<span class="lineNum">     180 </span>            :     struct iovec iov;
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     mca_coll_sm_module_t *sm_module = (mca_coll_sm_module_t*) module;</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     mca_coll_sm_comm_t *data = sm_module-&gt;sm_comm_data;</span>
+<span class="lineNum">     183 </span>            :     int ret, rank, size;
+<span class="lineNum">     184 </span>            :     int flag_num, segment_num, max_segment_num;
+<span class="lineNum">     185 </span>            :     size_t total_size, max_data, bytes;
+<span class="lineNum">     186 </span>            :     mca_coll_sm_in_use_flag_t *flag;
+<span class="lineNum">     187 </span>            :     mca_coll_sm_data_index_t *index;
+<span class="lineNum">     188 </span>            :     size_t ddt_size;
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     size_t segment_ddt_count, segment_ddt_bytes, zero = 0;</span>
+<span class="lineNum">     190 </span>            :     ptrdiff_t true_lb, true_extent, lb, extent;
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            :     /* Setup some identities */
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     size = ompi_comm_size(comm);</span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            :     /* Figure out how much we should have the convertor copy.  We need
+<span class="lineNum">     198 </span>            :        to have it be in units of a datatype -- i.e., we only want to
+<span class="lineNum">     199 </span>            :        copy a whole datatype worth of data or none at all (we've
+<span class="lineNum">     200 </span>            :        already guaranteed above that the datatype is not larger than a
+<span class="lineNum">     201 </span>            :        segment, so we'll at least get 1). */
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span>            :     /* ddt_size is the packed size (e.g., MPI_SHORT_INT is 6) */
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size(dtype, &amp;ddt_size);</span>
+<span class="lineNum">     205 </span>            :     /* extent is from lb to ub (e.g., MPI_SHORT_INT is 8) */
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :     ompi_datatype_get_extent(dtype, &amp;lb, &amp;extent);</span>
+<span class="lineNum">     207 </span>            :     /* true_extent is extent of actual type map, ignoring lb and ub
+<span class="lineNum">     208 </span>            :        (e.g., MPI_SHORT_INT is 8) */
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     ompi_datatype_get_true_extent(dtype, &amp;true_lb, &amp;true_extent);</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :     segment_ddt_count = mca_coll_sm_component.sm_fragment_size / ddt_size;</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :     iov.iov_len = segment_ddt_bytes = segment_ddt_count * ddt_size;</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     total_size = ddt_size * count;</span>
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     bytes = 0;</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            :     /* Only have one top-level decision as to whether I'm the root or
+<span class="lineNum">     217 </span>            :        not.  Do this at the slight expense of repeating a little logic
+<span class="lineNum">     218 </span>            :        -- but it's better than a conditional branch in every loop
+<span class="lineNum">     219 </span>            :        iteration. */
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span>            :     /*********************************************************************
+<span class="lineNum">     222 </span>            :      * Root
+<span class="lineNum">     223 </span>            :      *********************************************************************/
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :     if (root == rank) {</span>
+<span class="lineNum">     226 </span>            :         opal_convertor_t rtb_convertor, rbuf_convertor;
+<span class="lineNum">     227 </span>            :         char *reduce_temp_buffer, *free_buffer, *reduce_target;
+<span class="lineNum">     228 </span>            :         char *inplace_temp;
+<span class="lineNum">     229 </span>            :         int peer;
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         size_t count_left = (size_t)count;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         int frag_num = 0;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         bool first_operation = true;</span>
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            :         /* If the datatype is the same packed as it is unpacked, we
+<span class="lineNum">     235 </span>            :            can save a memory copy and just do the reduction operation
+<span class="lineNum">     236 </span>            :            directly from the shared memory segment.  However, if the
+<span class="lineNum">     237 </span>            :            representation is not the same, then we need to get a
+<span class="lineNum">     238 </span>            :            receive convertor and a temporary buffer to receive
+<span class="lineNum">     239 </span>            :            into. */
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         if (ompi_datatype_is_contiguous_memory_layout(dtype, count)) {</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :             reduce_temp_buffer = free_buffer = NULL;</span>
+<span class="lineNum">     243 </span>            :         } else {
+<span class="lineNum">     244 </span>            :             /* When we have a non-contiguous datatype, we need one or
+<span class="lineNum">     245 </span>            :              * two convertors:
+<span class="lineNum">     246 </span>            :              *
+<span class="lineNum">     247 </span>            :              * rtb_convertor: unpacking from the shmem to the
+<span class="lineNum">     248 </span>            :              * reduce_temp_buffer (where we can then apply the
+<span class="lineNum">     249 </span>            :              * reduction).
+<span class="lineNum">     250 </span>            :              *
+<span class="lineNum">     251 </span>            :              * rbuf_convertor: unpacking from the shmem directly to the
+<span class="lineNum">     252 </span>            :              * rbuf (no need to go to the reduce_temp_buffer first and
+<span class="lineNum">     253 </span>            :              * then apply the reduction -- just copy straight to the
+<span class="lineNum">     254 </span>            :              * target buffer).
+<span class="lineNum">     255 </span>            :              */
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :             OBJ_CONSTRUCT(&amp;rtb_convertor, opal_convertor_t);</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :             OBJ_CONSTRUCT(&amp;rbuf_convertor, opal_convertor_t);</span>
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            :             /* See lengthy comment in coll basic reduce about
+<span class="lineNum">     260 </span>            :                explanation for how to malloc the extra buffer.  Note
+<span class="lineNum">     261 </span>            :                that we do not need a buffer big enough to hold &quot;count&quot;
+<span class="lineNum">     262 </span>            :                instances of the datatype (i.e., big enough to hold the
+<span class="lineNum">     263 </span>            :                entire user buffer) -- we only need to be able to hold
+<span class="lineNum">     264 </span>            :                &quot;segment_ddt_count&quot; instances (i.e., the number of
+<span class="lineNum">     265 </span>            :                instances that can be held in a single fragment) */
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :             free_buffer = (char*)malloc(true_extent +</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :                                         (segment_ddt_count - 1) * extent);</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :             if (NULL == free_buffer) {</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :                 return OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     271 </span>            :             }
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :             reduce_temp_buffer = free_buffer - true_lb;</span>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span>            :             /* Trickery here: we use a potentially smaller count than
+<span class="lineNum">     275 </span>            :                the user count -- use the largest count that is &lt;=
+<span class="lineNum">     276 </span>            :                user's count that will fit within a single segment. */
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :             if (OMPI_SUCCESS !=</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :                 (ret = opal_convertor_copy_and_prepare_for_recv(</span>
+<span class="lineNum">     280 </span>            :                                        ompi_mpi_local_convertor,
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :                                        &amp;(dtype-&gt;super),</span>
+<span class="lineNum">     282 </span>            :                                        segment_ddt_count,
+<span class="lineNum">     283 </span>            :                                        reduce_temp_buffer,
+<span class="lineNum">     284 </span>            :                                        0,
+<span class="lineNum">     285 </span>            :                                        &amp;rtb_convertor))) {
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :                 free(free_buffer);</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     288 </span>            :             }
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span>            :             /* See if we need the rbuf_convertor */
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :             if (size - 1 != rank) {</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                 if (OMPI_SUCCESS !=</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :                     (ret = opal_convertor_copy_and_prepare_for_recv(</span>
+<span class="lineNum">     294 </span>            :                                        ompi_mpi_local_convertor,
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :                                        &amp;(dtype-&gt;super),</span>
+<span class="lineNum">     296 </span>            :                                        count,
+<span class="lineNum">     297 </span>            :                                        rbuf,
+<span class="lineNum">     298 </span>            :                                        0,
+<span class="lineNum">     299 </span>            :                                        &amp;rbuf_convertor))) {
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :                     free(free_buffer);</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :                     return ret;</span>
+<span class="lineNum">     302 </span>            :                 }
+<span class="lineNum">     303 </span>            :             }
+<span class="lineNum">     304 </span>            :         }
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            :         /* If we're a) doing MPI_IN_PLACE (which means we're the root
+<span class="lineNum">     307 </span>            :            -- wouldn't have gotten down here with MPI_IN_PLACE if we
+<span class="lineNum">     308 </span>            :            weren't the root), and b) we're not rank (size-1), then we
+<span class="lineNum">     309 </span>            :            need to copy the rbuf into a temporary buffer and use that
+<span class="lineNum">     310 </span>            :            as the sbuf */
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :         if (MPI_IN_PLACE == sbuf &amp;&amp; (size - 1) != rank) {</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :             inplace_temp = (char*)malloc(true_extent + (count - 1) * extent);</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :             if (NULL == inplace_temp) {</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :                 if (NULL != free_buffer) {</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :                     free(free_buffer);</span>
+<span class="lineNum">     317 </span>            :                 }
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :                 return OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     319 </span>            :             }
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :             sbuf = inplace_temp - true_lb;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :             ompi_datatype_copy_content_same_ddt(dtype, count, (char *) sbuf, (char *) rbuf);</span>
+<span class="lineNum">     322 </span>            :         } else {
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :             inplace_temp = NULL;</span>
+<span class="lineNum">     324 </span>            :         }
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span>            :         /* Main loop over receiving / reducing fragments */
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span>            :         do {
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :             flag_num = (data-&gt;mcb_operation_count %</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :                         mca_coll_sm_component.sm_comm_num_in_use_flags);</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :             FLAG_SETUP(flag_num, flag, data);</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :             FLAG_WAIT_FOR_IDLE(flag, reduce_root_flag_label);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :             FLAG_RETAIN(flag, size, data-&gt;mcb_operation_count);</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :             ++data-&gt;mcb_operation_count;</span>
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span>            :             /* Loop over all the segments in this set */
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :             segment_num =</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :                 flag_num * mca_coll_sm_component.sm_segs_per_inuse_flag;</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :             max_segment_num =</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :                 (flag_num + 1) * mca_coll_sm_component.sm_segs_per_inuse_flag;</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :             reduce_target = (((char*) rbuf) + (frag_num * extent * segment_ddt_count));</span>
+<span class="lineNum">     343 </span>            :             do {
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span>            :                 /* Note that all the other coll modules reduce from
+<span class="lineNum">     346 </span>            :                    process (size-1) to 0, so that's the order we'll do
+<span class="lineNum">     347 </span>            :                    it here. */
+<span class="lineNum">     348 </span>            :                 /* Process (size-1) is the root (special case) */
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :                 if (size - 1 == rank) {</span>
+<span class="lineNum">     350 </span>            :                     /* If we're the root *and* the first process to be
+<span class="lineNum">     351 </span>            :                        combined *and* this is the first segment in the
+<span class="lineNum">     352 </span>            :                        entire algorithm, then just copy the whole sbuf
+<span class="lineNum">     353 </span>            :                        to rbuf.  That way, we never need to copy from
+<span class="lineNum">     354 </span>            :                        my sbuf again (i.e., do the copy all at once
+<span class="lineNum">     355 </span>            :                        since all the data is local, and then don't
+<span class="lineNum">     356 </span>            :                        worry about it for the rest of the
+<span class="lineNum">     357 </span>            :                        algorithm) */
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :                     if (first_operation) {</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :                         first_operation = false;</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :                         if (MPI_IN_PLACE != sbuf) {</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :                             ompi_datatype_copy_content_same_ddt(dtype, count,</span>
+<span class="lineNum">     362 </span>            :                                                reduce_target, (char*)sbuf);
+<span class="lineNum">     363 </span>            :                         }
+<span class="lineNum">     364 </span>            :                     }
+<span class="lineNum">     365 </span>            :                 }
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span>            :                 /* Process (size-1) is not the root */
+<span class="lineNum">     368 </span>            :                 else {
+<span class="lineNum">     369 </span>            :                     /* Wait for the data to be copied into shmem, just
+<span class="lineNum">     370 </span>            :                        like any other non-root process */
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :                     index = &amp;(data-&gt;mcb_data_index[segment_num]);</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :                     PARENT_WAIT_FOR_NOTIFY_SPECIFIC(size - 1, rank, index, max_data, reduce_root_parent_label1);</span>
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span>            :                     /* If the datatype is contiguous, just copy it
+<span class="lineNum">     375 </span>            :                        straight to the reduce_target */
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :                     if (NULL == free_buffer) {</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                         memcpy(reduce_target, ((char*)index-&gt;mcbmi_data) +</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                                (size - 1) * mca_coll_sm_component.sm_fragment_size, max_data);</span>
+<span class="lineNum">     379 </span>            :                     }
+<span class="lineNum">     380 </span>            :                     /* If the datatype is noncontiguous, use the
+<span class="lineNum">     381 </span>            :                        rbuf_convertor to unpack it straight to the
+<span class="lineNum">     382 </span>            :                        rbuf */
+<span class="lineNum">     383 </span>            :                     else {
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :                         max_data = segment_ddt_bytes;</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :                         COPY_FRAGMENT_OUT(rbuf_convertor, size - 1, index,</span>
+<span class="lineNum">     386 </span>            :                                           iov, max_data);
+<span class="lineNum">     387 </span>            :                     }
+<span class="lineNum">     388 </span>            :                 }
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span>            :                 /* Loop over all the remaining processes, receiving
+<span class="lineNum">     391 </span>            :                    and reducing them in order */
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :                 for (peer = size - 2; peer &gt;= 0; --peer) {</span>
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span>            :                     /* Handle the case where the source is this
+<span class="lineNum">     396 </span>            :                        process (which, by definition, excludes the
+<span class="lineNum">     397 </span>            :                        sbuf_copied_to_rbuf case because that can
+<span class="lineNum">     398 </span>            :                        *only* happen when root==0).  In this case, we
+<span class="lineNum">     399 </span>            :                        don't need to wait for the peer (i.e., me) to
+<span class="lineNum">     400 </span>            :                        copy into shmem -- just reduce directly from my
+<span class="lineNum">     401 </span>            :                        sbuf. */
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :                     if (rank == peer) {</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :                         ompi_op_reduce(op,</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :                                        ((char *) sbuf) +</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :                                        frag_num * extent * segment_ddt_count,</span>
+<span class="lineNum">     406 </span>            :                                        reduce_target,
+<span class="lineNum">     407 </span>            :                                        min(count_left, segment_ddt_count),
+<span class="lineNum">     408 </span>            :                                        dtype);
+<span class="lineNum">     409 </span>            :                     }
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span>            :                     /* Now handle the case where the source is not
+<span class="lineNum">     412 </span>            :                        this process.  Wait for the process to copy to
+<span class="lineNum">     413 </span>            :                        the segment into shmem. */
+<span class="lineNum">     414 </span>            :                     else {
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :                         index = &amp;(data-&gt;mcb_data_index[segment_num]);</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :                         PARENT_WAIT_FOR_NOTIFY_SPECIFIC(peer, rank,</span>
+<span class="lineNum">     417 </span>            :                                                         index, max_data, reduce_root_parent_label2);
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :                         /* If we don't need an extra buffer, then do the
+<span class="lineNum">     420 </span>            :                            reduction operation on the fragment straight
+<span class="lineNum">     421 </span>            :                            from the shmem. */
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :                         if (NULL == free_buffer) {</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :                             ompi_op_reduce(op,</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :                                            (index-&gt;mcbmi_data +</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :                                             (peer * mca_coll_sm_component.sm_fragment_size)),</span>
+<span class="lineNum">     427 </span>            :                                            reduce_target,
+<span class="lineNum">     428 </span>            :                                            min(count_left, segment_ddt_count),
+<span class="lineNum">     429 </span>            :                                            dtype);
+<span class="lineNum">     430 </span>            :                         }
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span>            :                         /* Otherwise, unpack the fragment to the temporary
+<span class="lineNum">     433 </span>            :                            buffer and then do the reduction from there */
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span>            :                         else {
+<span class="lineNum">     436 </span>            :                             /* Unpack the fragment into my temporary
+<span class="lineNum">     437 </span>            :                                buffer */
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :                             max_data = segment_ddt_bytes;</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :                             COPY_FRAGMENT_OUT(rtb_convertor, peer, index,</span>
+<span class="lineNum">     440 </span>            :                                               iov, max_data);
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :                             opal_convertor_set_position(&amp;rtb_convertor, &amp;zero);</span>
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span>            :                             /* Do the reduction on this fragment */
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :                             ompi_op_reduce(op, reduce_temp_buffer,</span>
+<span class="lineNum">     445 </span>            :                                            reduce_target,
+<span class="lineNum">     446 </span>            :                                            min(count_left, segment_ddt_count),
+<span class="lineNum">     447 </span>            :                                            dtype);
+<span class="lineNum">     448 </span>            :                         }
+<span class="lineNum">     449 </span>            :                     } /* whether this process was me or not */
+<span class="lineNum">     450 </span>            :                 } /* loop over all proceses */
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span>            :                 /* We've iterated through all the processes -- now we
+<span class="lineNum">     453 </span>            :                    move on to the next segment */
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :                 count_left -= segment_ddt_count;</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :                 bytes += segment_ddt_bytes;</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                 ++segment_num;</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :                 ++frag_num;</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :                 reduce_target += extent * segment_ddt_count;</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :             } while (bytes &lt; total_size &amp;&amp; segment_num &lt; max_segment_num);</span>
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span>            :             /* Root is now done with this set of segments */
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :             FLAG_RELEASE(flag);</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :         } while (bytes &lt; total_size);</span>
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span>            :         /* Kill the convertor, if we had one */
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :         if (NULL != free_buffer) {</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :             OBJ_DESTRUCT(&amp;rtb_convertor);</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :             OBJ_DESTRUCT(&amp;rbuf_convertor);</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :             free(free_buffer);</span>
+<span class="lineNum">     472 </span>            :         }
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :         if (NULL != inplace_temp) {</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :             free(inplace_temp);</span>
+<span class="lineNum">     475 </span>            :         }
+<span class="lineNum">     476 </span>            :     }
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span>            :     /*********************************************************************
+<span class="lineNum">     479 </span>            :      * Non-root
+<span class="lineNum">     480 </span>            :      *********************************************************************/
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span>            :     else {
+<span class="lineNum">     483 </span>            :         /* Here we get a convertor for the full count that the user
+<span class="lineNum">     484 </span>            :            provided (as opposed to the convertor that the root got) */
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span>            :         opal_convertor_t sbuf_convertor;
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :         OBJ_CONSTRUCT(&amp;sbuf_convertor, opal_convertor_t);</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :         if (OMPI_SUCCESS !=</span>
+<span class="lineNum">     489 </span>            :             (ret =
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :              opal_convertor_copy_and_prepare_for_send(ompi_mpi_local_convertor,</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :                                                       &amp;(dtype-&gt;super),</span>
+<span class="lineNum">     492 </span>            :                                                       count,
+<span class="lineNum">     493 </span>            :                                                       sbuf,
+<span class="lineNum">     494 </span>            :                                                       0,
+<span class="lineNum">     495 </span>            :                                                       &amp;sbuf_convertor))) {
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :             return ret;</span>
+<span class="lineNum">     497 </span>            :         }
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span>            :         /* Loop over sending fragments to the root */
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span>            :         do {
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :             flag_num = (data-&gt;mcb_operation_count %</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :                         mca_coll_sm_component.sm_comm_num_in_use_flags);</span>
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span>            :             /* Wait for the root to mark this set of segments as
+<span class="lineNum">     506 </span>            :                ours */
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :             FLAG_SETUP(flag_num, flag, data);</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :             FLAG_WAIT_FOR_OP(flag, data-&gt;mcb_operation_count, reduce_nonroot_flag_label);</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :             ++data-&gt;mcb_operation_count;</span>
+<span class="lineNum">     510 </span>            : 
+<span class="lineNum">     511 </span>            :             /* Loop over all the segments in this set */
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :             segment_num =</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :                 flag_num * mca_coll_sm_component.sm_segs_per_inuse_flag;</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :             max_segment_num =</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :                 (flag_num + 1) * mca_coll_sm_component.sm_segs_per_inuse_flag;</span>
+<span class="lineNum">     517 </span>            :             do {
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :                 index = &amp;(data-&gt;mcb_data_index[segment_num]);</span>
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span>            :                 /* Copy from the user's buffer to my shared mem
+<span class="lineNum">     521 </span>            :                    segment */
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :                 max_data = segment_ddt_bytes;</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :                 COPY_FRAGMENT_IN(sbuf_convertor, index, rank, iov, max_data);</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :                 bytes += max_data;</span>
+<span class="lineNum">     525 </span>            : 
+<span class="lineNum">     526 </span>            :                 /* Wait for the write to absolutely complete */
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :                 opal_atomic_wmb();</span>
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span>            :                 /* Tell my parent (always the reduction root -- we're
+<span class="lineNum">     530 </span>            :                    ignoring the mcb_tree parent/child relationships
+<span class="lineNum">     531 </span>            :                    here) that this fragment is ready */
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :                 CHILD_NOTIFY_PARENT(rank, root, index, max_data);</span>
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :                 ++segment_num;</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :             } while (bytes &lt; total_size &amp;&amp; segment_num &lt; max_segment_num);</span>
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span>            :             /* We're finished with this set of segments */
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :             FLAG_RELEASE(flag);</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :         } while (bytes &lt; total_size);</span>
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span>            :         /* Kill the convertor */
+<span class="lineNum">     542 </span>            : 
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;sbuf_convertor);</span>
+<span class="lineNum">     544 </span>            :     }
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            :     /* All done */
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     549 </span>            : }
+<span class="lineNum">     550 </span>            : 
+<span class="lineNum">     551 </span>            : 
+<span class="lineNum">     552 </span>            : #if WANT_REDUCE_NO_ORDER
+<span class="lineNum">     553 </span>            : /**
+<span class="lineNum">     554 </span>            :  * Unordered shared memory reduction.
+<span class="lineNum">     555 </span>            :  *
+<span class="lineNum">     556 </span>            :  * This function performs the reduction in whatever order the operands
+<span class="lineNum">     557 </span>            :  * arrive.
+<span class="lineNum">     558 </span>            :  */
+<span class="lineNum">     559 </span>            : static int reduce_no_order(void *sbuf, void* rbuf, int count,
+<span class="lineNum">     560 </span>            :                            struct ompi_datatype_t *dtype,
+<span class="lineNum">     561 </span>            :                            struct ompi_op_t *op,
+<span class="lineNum">     562 </span>            :                            int root, struct ompi_communicator_t *comm,
+<span class="lineNum">     563 </span>            :                            mca_coll_base_module_t *module)
+<span class="lineNum">     564 </span>            : {
+<span class="lineNum">     565 </span>            :     return OMPI_ERR_NOT_IMPLEMENTED;
+<span class="lineNum">     566 </span>            : }
+<span class="lineNum">     567 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

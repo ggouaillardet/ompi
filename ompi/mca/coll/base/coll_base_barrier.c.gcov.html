@@ -1,0 +1,518 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - ompi/mca/coll/base/coll_base_barrier.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/coll/base</a> - coll_base_barrier.c<span style="font-size: 80%;"> (source / <a href="coll_base_barrier.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">144</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2015 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2008      Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2013      Los Alamos National Security, LLC. All Rights
+<span class="lineNum">      15 </span>            :  *                         reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      17 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      18 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      21 </span>            :  *
+<span class="lineNum">      22 </span>            :  * $HEADER$
+<span class="lineNum">      23 </span>            :  */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &quot;mpi.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;opal/util/bit_ops.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;ompi/constants.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;ompi/communicator/communicator.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;ompi/mca/coll/coll.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;ompi/mca/coll/base/coll_tags.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;ompi/mca/pml/pml.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;ompi/mca/coll/base/coll_base_functions.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;coll_base_topo.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;coll_base_util.h&quot;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : /**
+<span class="lineNum">      39 </span>            :  * A quick version of the MPI_Sendreceive implemented for the barrier.
+<span class="lineNum">      40 </span>            :  * No actual data is moved across the wire, we use 0-byte messages to
+<span class="lineNum">      41 </span>            :  * signal a two peer synchronization.
+<a name="42"><span class="lineNum">      42 </span>            :  */</a>
+<span class="lineNum">      43 </span>            : static inline int
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 : ompi_coll_base_sendrecv_zero(int dest, int stag,</span>
+<span class="lineNum">      45 </span>            :                               int source, int rtag,
+<span class="lineNum">      46 </span>            :                               MPI_Comm comm)
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : {
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :     int err, line = 0;</span>
+<span class="lineNum">      50 </span>            :     ompi_request_t* reqs[2];
+<span class="lineNum">      51 </span>            :     ompi_status_public_t statuses[2];
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            :     /* post new irecv */
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :     err = MCA_PML_CALL(irecv( NULL, 0, MPI_BYTE, source, rtag,</span>
+<span class="lineNum">      55 </span>            :                               comm, &amp;reqs[0]));
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     if (err != MPI_SUCCESS) { line = __LINE__; goto error_handler; }</span>
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            :     /* send data to children */
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :     err = MCA_PML_CALL(isend( NULL, 0, MPI_BYTE, dest, stag,</span>
+<span class="lineNum">      60 </span>            :                               MCA_PML_BASE_SEND_STANDARD, comm, &amp;reqs[1]));
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     if (err != MPI_SUCCESS) { line = __LINE__; goto error_handler; }</span>
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :     err = ompi_request_wait_all( 2, reqs, statuses );</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     if( MPI_ERR_IN_STATUS == err ) {</span>
+<span class="lineNum">      65 </span>            :         /* As we use wait_all we will get MPI_ERR_IN_STATUS which is not an error
+<span class="lineNum">      66 </span>            :          * code that we can propagate up the stack. Instead, look for the real
+<span class="lineNum">      67 </span>            :          * error code from the MPI_ERROR in the status.
+<span class="lineNum">      68 </span>            :          */
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :         int err_index = 0;</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :         if( MPI_SUCCESS == statuses[0].MPI_ERROR ) {</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :             err_index = 1;</span>
+<span class="lineNum">      72 </span>            :         }
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :         err = statuses[err_index].MPI_ERROR;</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT ((ompi_coll_base_framework.framework_output, &quot;%s:%d: Error %d occurred in the %s&quot;</span>
+<span class="lineNum">      75 </span>            :                                               &quot; stage of ompi_coll_base_sendrecv_zero\n&quot;,
+<span class="lineNum">      76 </span>            :                       __FILE__, line, err, (0 == err_index ? &quot;receive&quot; : &quot;send&quot;)));
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :         return err;</span>
+<span class="lineNum">      78 </span>            :     }
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     if (err != MPI_SUCCESS) { line = __LINE__; goto error_handler; }</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     return (MPI_SUCCESS);</span>
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            :  error_handler:
+<span class="lineNum">      84 </span>            :     /* Error discovered during the posting of the irecv or isend,
+<span class="lineNum">      85 </span>            :      * and no status is available.
+<span class="lineNum">      86 </span>            :      */
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT ((ompi_coll_base_framework.framework_output, &quot;%s:%d: Error %d occurred\n&quot;,</span>
+<span class="lineNum">      88 </span>            :                   __FILE__, line, err));
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     return err;</span>
+<span class="lineNum">      90 </span>            : }
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : /*
+<span class="lineNum">      93 </span>            :  * Barrier is ment to be a synchronous operation, as some BTLs can mark
+<span class="lineNum">      94 </span>            :  * a request done before its passed to the NIC and progress might not be made
+<span class="lineNum">      95 </span>            :  * elsewhere we cannot allow a process to exit the barrier until its last
+<span class="lineNum">      96 </span>            :  * [round of] sends are completed.
+<span class="lineNum">      97 </span>            :  *
+<span class="lineNum">      98 </span>            :  * It is last round of sends rather than 'last' individual send as each pair of
+<span class="lineNum">      99 </span>            :  * peers can use different channels/devices/btls and the receiver of one of
+<span class="lineNum">     100 </span>            :  * these sends might be forced to wait as the sender
+<span class="lineNum">     101 </span>            :  * leaves the collective and does not make progress until the next mpi call
+<span class="lineNum">     102 </span>            :  *
+<span class="lineNum">     103 </span>            :  */
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            : /*
+<span class="lineNum">     106 </span>            :  * Simple double ring version of barrier
+<span class="lineNum">     107 </span>            :  *
+<span class="lineNum">     108 </span>            :  * synchronous gurantee made by last ring of sends are synchronous
+<a name="109"><span class="lineNum">     109 </span>            :  *</a>
+<span class="lineNum">     110 </span>            :  */
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 : int ompi_coll_base_barrier_intra_doublering(struct ompi_communicator_t *comm,</span>
+<span class="lineNum">     112 </span>            :                                              mca_coll_base_module_t *module)
+<span class="lineNum">     113 </span>            : {
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     int rank, size, err = 0, line = 0, left, right;</span>
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     size = ompi_comm_size(comm);</span>
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,&quot;ompi_coll_base_barrier_intra_doublering rank %d&quot;, rank));</span>
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     left = ((rank-1)%size);</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     right = ((rank+1)%size);</span>
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     if (rank &gt; 0) { /* receive message from the left */</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         err = MCA_PML_CALL(recv((void*)NULL, 0, MPI_BYTE, left,</span>
+<span class="lineNum">     126 </span>            :                                 MCA_COLL_BASE_TAG_BARRIER, comm,
+<span class="lineNum">     127 </span>            :                                 MPI_STATUS_IGNORE));
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         if (err != MPI_SUCCESS) { line = __LINE__; goto err_hndl; }</span>
+<span class="lineNum">     129 </span>            :     }
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            :     /* Send message to the right */
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :     err = MCA_PML_CALL(send((void*)NULL, 0, MPI_BYTE, right,</span>
+<span class="lineNum">     133 </span>            :                             MCA_COLL_BASE_TAG_BARRIER,
+<span class="lineNum">     134 </span>            :                             MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     if (err != MPI_SUCCESS) { line = __LINE__; goto err_hndl;  }</span>
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span>            :     /* root needs to receive from the last node */
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :     if (rank == 0) {</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :         err = MCA_PML_CALL(recv((void*)NULL, 0, MPI_BYTE, left,</span>
+<span class="lineNum">     140 </span>            :                                 MCA_COLL_BASE_TAG_BARRIER, comm,
+<span class="lineNum">     141 </span>            :                                 MPI_STATUS_IGNORE));
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         if (err != MPI_SUCCESS) { line = __LINE__; goto err_hndl; }</span>
+<span class="lineNum">     143 </span>            :     }
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            :     /* Allow nodes to exit */
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     if (rank &gt; 0) { /* post Receive from left */</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         err = MCA_PML_CALL(recv((void*)NULL, 0, MPI_BYTE, left,</span>
+<span class="lineNum">     148 </span>            :                                 MCA_COLL_BASE_TAG_BARRIER, comm,
+<span class="lineNum">     149 </span>            :                                 MPI_STATUS_IGNORE));
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         if (err != MPI_SUCCESS) { line = __LINE__; goto err_hndl; }</span>
+<span class="lineNum">     151 </span>            :     }
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            :     /* send message to the right one */
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     err = MCA_PML_CALL(send((void*)NULL, 0, MPI_BYTE, right,</span>
+<span class="lineNum">     155 </span>            :                             MCA_COLL_BASE_TAG_BARRIER,
+<span class="lineNum">     156 </span>            :                             MCA_PML_BASE_SEND_SYNCHRONOUS, comm));
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     if (err != MPI_SUCCESS) { line = __LINE__; goto err_hndl;  }</span>
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            :     /* rank 0 post receive from the last node */
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     if (rank == 0) {</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :         err = MCA_PML_CALL(recv((void*)NULL, 0, MPI_BYTE, left,</span>
+<span class="lineNum">     162 </span>            :                                 MCA_COLL_BASE_TAG_BARRIER, comm,
+<span class="lineNum">     163 </span>            :                                 MPI_STATUS_IGNORE));
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :         if (err != MPI_SUCCESS) { line = __LINE__; goto err_hndl;  }</span>
+<span class="lineNum">     165 </span>            :     }
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     return MPI_SUCCESS;</span>
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            :  err_hndl:
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,&quot;%s:%4d\tError occurred %d, rank %2d&quot;,</span>
+<span class="lineNum">     171 </span>            :                  __FILE__, line, err, rank));
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     return err;</span>
+<span class="lineNum">     173 </span>            : }
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            : /*
+<span class="lineNum">     177 </span>            :  * To make synchronous, uses sync sends and sync sendrecvs
+<a name="178"><span class="lineNum">     178 </span>            :  */</a>
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 : int ompi_coll_base_barrier_intra_recursivedoubling(struct ompi_communicator_t *comm,</span>
+<span class="lineNum">     181 </span>            :                                                     mca_coll_base_module_t *module)
+<span class="lineNum">     182 </span>            : {
+<span class="lineNum">     183 </span>            :     int rank, size, adjsize, err, line, mask, remote;
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     size = ompi_comm_size(comm);</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,</span>
+<span class="lineNum">     188 </span>            :                  &quot;ompi_coll_base_barrier_intra_recursivedoubling rank %d&quot;,
+<span class="lineNum">     189 </span>            :                  rank));
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            :     /* do nearest power of 2 less than size calc */
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     adjsize = opal_next_poweroftwo(size);</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :     adjsize &gt;&gt;= 1;</span>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            :     /* if size is not exact power of two, perform an extra step */
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :     if (adjsize != size) {</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         if (rank &gt;= adjsize) {</span>
+<span class="lineNum">     198 </span>            :             /* send message to lower ranked node */
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             remote = rank - adjsize;</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :             err = ompi_coll_base_sendrecv_zero(remote, MCA_COLL_BASE_TAG_BARRIER,</span>
+<span class="lineNum">     201 </span>            :                                                 remote, MCA_COLL_BASE_TAG_BARRIER,
+<span class="lineNum">     202 </span>            :                                                 comm);
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :             if (err != MPI_SUCCESS) { line = __LINE__; goto err_hndl;}</span>
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :         } else if (rank &lt; (size - adjsize)) {</span>
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            :             /* receive message from high level rank */
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :             err = MCA_PML_CALL(recv((void*)NULL, 0, MPI_BYTE, rank+adjsize,</span>
+<span class="lineNum">     209 </span>            :                                     MCA_COLL_BASE_TAG_BARRIER, comm,
+<span class="lineNum">     210 </span>            :                                     MPI_STATUS_IGNORE));
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :             if (err != MPI_SUCCESS) { line = __LINE__; goto err_hndl;}</span>
+<span class="lineNum">     213 </span>            :         }
+<span class="lineNum">     214 </span>            :     }
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            :     /* exchange messages */
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     if ( rank &lt; adjsize ) {</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         mask = 0x1;</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         while ( mask &lt; adjsize ) {</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :             remote = rank ^ mask;</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :             mask &lt;&lt;= 1;</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :             if (remote &gt;= adjsize) continue;</span>
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            :             /* post receive from the remote node */
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :             err = ompi_coll_base_sendrecv_zero(remote, MCA_COLL_BASE_TAG_BARRIER,</span>
+<span class="lineNum">     226 </span>            :                                                 remote, MCA_COLL_BASE_TAG_BARRIER,
+<span class="lineNum">     227 </span>            :                                                 comm);
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :             if (err != MPI_SUCCESS) { line = __LINE__; goto err_hndl;}</span>
+<span class="lineNum">     229 </span>            :         }
+<span class="lineNum">     230 </span>            :     }
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            :     /* non-power of 2 case */
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     if (adjsize != size) {</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         if (rank &lt; (size - adjsize)) {</span>
+<span class="lineNum">     235 </span>            :             /* send enter message to higher ranked node */
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :             remote = rank + adjsize;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :             err = MCA_PML_CALL(send((void*)NULL, 0, MPI_BYTE, remote,</span>
+<span class="lineNum">     238 </span>            :                                     MCA_COLL_BASE_TAG_BARRIER,
+<span class="lineNum">     239 </span>            :                                     MCA_PML_BASE_SEND_SYNCHRONOUS, comm));
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :             if (err != MPI_SUCCESS) { line = __LINE__; goto err_hndl;}</span>
+<span class="lineNum">     242 </span>            :         }
+<span class="lineNum">     243 </span>            :     }
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     return MPI_SUCCESS;</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            :  err_hndl:
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,&quot;%s:%4d\tError occurred %d, rank %2d&quot;,</span>
+<span class="lineNum">     249 </span>            :                  __FILE__, line, err, rank));
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     return err;</span>
+<span class="lineNum">     251 </span>            : }
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            : /*
+<span class="lineNum">     255 </span>            :  * To make synchronous, uses sync sends and sync sendrecvs
+<a name="256"><span class="lineNum">     256 </span>            :  */</a>
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 : int ompi_coll_base_barrier_intra_bruck(struct ompi_communicator_t *comm,</span>
+<span class="lineNum">     259 </span>            :                                         mca_coll_base_module_t *module)
+<span class="lineNum">     260 </span>            : {
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     int rank, size, distance, to, from, err, line = 0;</span>
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :     size = ompi_comm_size(comm);</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,</span>
+<span class="lineNum">     266 </span>            :                  &quot;ompi_coll_base_barrier_intra_bruck rank %d&quot;, rank));
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span>            :     /* exchange data with rank-2^k and rank+2^k */
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     for (distance = 1; distance &lt; size; distance &lt;&lt;= 1) {</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         from = (rank + size - distance) % size;</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :         to   = (rank + distance) % size;</span>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span>            :         /* send message to lower ranked node */
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         err = ompi_coll_base_sendrecv_zero(to, MCA_COLL_BASE_TAG_BARRIER,</span>
+<span class="lineNum">     275 </span>            :                                             from, MCA_COLL_BASE_TAG_BARRIER,
+<span class="lineNum">     276 </span>            :                                             comm);
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :         if (err != MPI_SUCCESS) { line = __LINE__; goto err_hndl;}</span>
+<span class="lineNum">     278 </span>            :     }
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     return MPI_SUCCESS;</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span>            :  err_hndl:
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,&quot;%s:%4d\tError occurred %d, rank %2d&quot;,</span>
+<span class="lineNum">     284 </span>            :                  __FILE__, line, err, rank));
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     return err;</span>
+<span class="lineNum">     286 </span>            : }
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span>            : /*
+<span class="lineNum">     290 </span>            :  * To make synchronous, uses sync sends and sync sendrecvs
+<a name="291"><span class="lineNum">     291 </span>            :  */</a>
+<span class="lineNum">     292 </span>            : /* special case for two processes */
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 : int ompi_coll_base_barrier_intra_two_procs(struct ompi_communicator_t *comm,</span>
+<span class="lineNum">     294 </span>            :                                             mca_coll_base_module_t *module)
+<span class="lineNum">     295 </span>            : {
+<span class="lineNum">     296 </span>            :     int remote, err;
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     remote = ompi_comm_rank(comm);</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,</span>
+<span class="lineNum">     300 </span>            :                  &quot;ompi_coll_base_barrier_intra_two_procs rank %d&quot;, remote));
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :     remote = (remote + 1) &amp; 0x1;</span>
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     err = ompi_coll_base_sendrecv_zero(remote, MCA_COLL_BASE_TAG_BARRIER,</span>
+<span class="lineNum">     304 </span>            :                                         remote, MCA_COLL_BASE_TAG_BARRIER,
+<span class="lineNum">     305 </span>            :                                         comm);
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     return (err);</span>
+<span class="lineNum">     307 </span>            : }
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            : /*
+<span class="lineNum">     311 </span>            :  * Linear functions are copied from the BASIC coll module
+<span class="lineNum">     312 </span>            :  * they do not segment the message and are simple implementations
+<span class="lineNum">     313 </span>            :  * but for some small number of nodes and/or small data sizes they
+<span class="lineNum">     314 </span>            :  * are just as fast as base/tree based segmenting operations
+<span class="lineNum">     315 </span>            :  * and as such may be selected by the decision functions
+<span class="lineNum">     316 </span>            :  * These are copied into this module due to the way we select modules
+<span class="lineNum">     317 </span>            :  * in V1. i.e. in V2 we will handle this differently and so will not
+<span class="lineNum">     318 </span>            :  * have to duplicate code.
+<span class="lineNum">     319 </span>            :  * GEF Oct05 after asking Jeff.
+<span class="lineNum">     320 </span>            :  */
+<span class="lineNum">     321 </span>            : 
+<a name="322"><span class="lineNum">     322 </span>            : /* copied function (with appropriate renaming) starts here */</a>
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 : int ompi_coll_base_barrier_intra_basic_linear(struct ompi_communicator_t *comm,</span>
+<span class="lineNum">     325 </span>            :                                               mca_coll_base_module_t *module)
+<span class="lineNum">     326 </span>            : {
+<span class="lineNum">     327 </span>            :     int i, err, rank, size;
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     size = ompi_comm_size(comm);</span>
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span>            :     /* All non-root send &amp; receive zero-length message. */
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     if (rank &gt; 0) {</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :         err = MCA_PML_CALL(send (NULL, 0, MPI_BYTE, 0,</span>
+<span class="lineNum">     335 </span>            :                                  MCA_COLL_BASE_TAG_BARRIER,
+<span class="lineNum">     336 </span>            :                                  MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :         if (MPI_SUCCESS != err) {</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :             return err;</span>
+<span class="lineNum">     339 </span>            :         }
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :         err = MCA_PML_CALL(recv (NULL, 0, MPI_BYTE, 0,</span>
+<span class="lineNum">     342 </span>            :                                  MCA_COLL_BASE_TAG_BARRIER,
+<span class="lineNum">     343 </span>            :                                  comm, MPI_STATUS_IGNORE));
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :         if (MPI_SUCCESS != err) {</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :             return err;</span>
+<span class="lineNum">     346 </span>            :         }
+<span class="lineNum">     347 </span>            :     }
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            :     /* The root collects and broadcasts the messages. */
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span>            :     else {
+<span class="lineNum">     352 </span>            :         ompi_request_t** requests;
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         requests = (ompi_request_t**)malloc( size * sizeof(ompi_request_t*) );</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :         for (i = 1; i &lt; size; ++i) {</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :             err = MCA_PML_CALL(irecv(NULL, 0, MPI_BYTE, MPI_ANY_SOURCE,</span>
+<span class="lineNum">     357 </span>            :                                      MCA_COLL_BASE_TAG_BARRIER, comm,
+<span class="lineNum">     358 </span>            :                                      &amp;(requests[i])));
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :             if (MPI_SUCCESS != err) {</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :                 return err;</span>
+<span class="lineNum">     361 </span>            :             }
+<span class="lineNum">     362 </span>            :         }
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :         ompi_request_wait_all( size-1, requests+1, MPI_STATUSES_IGNORE );</span>
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :         for (i = 1; i &lt; size; ++i) {</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :             err = MCA_PML_CALL(send(NULL, 0, MPI_BYTE, i,</span>
+<span class="lineNum">     367 </span>            :                                     MCA_COLL_BASE_TAG_BARRIER,
+<span class="lineNum">     368 </span>            :                                     MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :             if (MPI_SUCCESS != err) {</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :                 return err;</span>
+<span class="lineNum">     371 </span>            :             }
+<span class="lineNum">     372 </span>            :         }
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :         free( requests );</span>
+<span class="lineNum">     375 </span>            :     }
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span>            :     /* All done */
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :     return MPI_SUCCESS;</span>
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            : }
+<span class="lineNum">     382 </span>            : /* copied function (with appropriate renaming) ends here */
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span>            : /*
+<span class="lineNum">     385 </span>            :  * Another recursive doubling type algorithm, but in this case
+<a name="386"><span class="lineNum">     386 </span>            :  * we go up the tree and back down the tree.</a>
+<span class="lineNum">     387 </span>            :  */
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 : int ompi_coll_base_barrier_intra_tree(struct ompi_communicator_t *comm,</span>
+<span class="lineNum">     389 </span>            :                                        mca_coll_base_module_t *module)
+<span class="lineNum">     390 </span>            : {
+<span class="lineNum">     391 </span>            :     int rank, size, depth, err, jump, partner;
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :     size = ompi_comm_size(comm);</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_base_framework.framework_output,</span>
+<span class="lineNum">     396 </span>            :                  &quot;ompi_coll_base_barrier_intra_tree %d&quot;,
+<span class="lineNum">     397 </span>            :                  rank));
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span>            :     /* Find the nearest power of 2 of the communicator size. */
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :     depth = opal_next_poweroftwo_inclusive(size);</span>
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :     for (jump=1; jump&lt;depth; jump&lt;&lt;=1) {</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :         partner = rank ^ jump;</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         if (!(partner &amp; (jump-1)) &amp;&amp; partner &lt; size) {</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :             if (partner &gt; rank) {</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :                 err = MCA_PML_CALL(recv (NULL, 0, MPI_BYTE, partner,</span>
+<span class="lineNum">     407 </span>            :                                          MCA_COLL_BASE_TAG_BARRIER, comm,
+<span class="lineNum">     408 </span>            :                                          MPI_STATUS_IGNORE));
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :                 if (MPI_SUCCESS != err)</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :                     return err;</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :             } else if (partner &lt; rank) {</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :                 err = MCA_PML_CALL(send (NULL, 0, MPI_BYTE, partner,</span>
+<span class="lineNum">     413 </span>            :                                          MCA_COLL_BASE_TAG_BARRIER,
+<span class="lineNum">     414 </span>            :                                          MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :                 if (MPI_SUCCESS != err)</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :                     return err;</span>
+<span class="lineNum">     417 </span>            :             }
+<span class="lineNum">     418 </span>            :         }
+<span class="lineNum">     419 </span>            :     }
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     depth &gt;&gt;= 1;</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     for (jump = depth; jump&gt;0; jump&gt;&gt;=1) {</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :         partner = rank ^ jump;</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :         if (!(partner &amp; (jump-1)) &amp;&amp; partner &lt; size) {</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :             if (partner &gt; rank) {</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :                 err = MCA_PML_CALL(send (NULL, 0, MPI_BYTE, partner,</span>
+<span class="lineNum">     427 </span>            :                                          MCA_COLL_BASE_TAG_BARRIER,
+<span class="lineNum">     428 </span>            :                                          MCA_PML_BASE_SEND_STANDARD, comm));
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :                 if (MPI_SUCCESS != err)</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :                     return err;</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :             } else if (partner &lt; rank) {</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :                 err = MCA_PML_CALL(recv (NULL, 0, MPI_BYTE, partner,</span>
+<span class="lineNum">     433 </span>            :                                          MCA_COLL_BASE_TAG_BARRIER, comm,
+<span class="lineNum">     434 </span>            :                                          MPI_STATUS_IGNORE));
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :                 if (MPI_SUCCESS != err)</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :                     return err;</span>
+<span class="lineNum">     437 </span>            :             }
+<span class="lineNum">     438 </span>            :         }
+<span class="lineNum">     439 </span>            :     }
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     return MPI_SUCCESS;</span>
+<span class="lineNum">     442 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

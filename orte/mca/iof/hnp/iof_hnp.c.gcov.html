@@ -1,0 +1,691 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/iof/hnp/iof_hnp.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/iof/hnp</a> - iof_hnp.c<span style="font-size: 80%;"> (source / <a href="iof_hnp.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">84</td>
+            <td class="headerCovTableEntry">191</td>
+            <td class="headerCovTableEntryLo">44.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntryLo">62.5 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2007 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2011 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2007      Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2007      Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.  All rights
+<span class="lineNum">      15 </span>            :  *                         reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2014      Research Organization for Information Science
+<span class="lineNum">      17 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      18 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      21 </span>            :  *
+<span class="lineNum">      22 </span>            :  * $HEADER$
+<span class="lineNum">      23 </span>            :  */
+<span class="lineNum">      24 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;orte/constants.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      29 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      30 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      31 </span>            : #endif  /* HAVE_UNISTD_H */
+<span class="lineNum">      32 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #ifdef HAVE_FCNTL_H
+<span class="lineNum">      35 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      36 </span>            : #else
+<span class="lineNum">      37 </span>            : #ifdef HAVE_SYS_FCNTL_H
+<span class="lineNum">      38 </span>            : #include &lt;sys/fcntl.h&gt;
+<span class="lineNum">      39 </span>            : #endif
+<span class="lineNum">      40 </span>            : #endif
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : #include &quot;opal/mca/event/event.h&quot;
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      45 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;orte/mca/ess/ess.h&quot;
+<span class="lineNum">      47 </span>            : #include &quot;orte/mca/rml/rml.h&quot;
+<span class="lineNum">      48 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;orte/mca/odls/odls_types.h&quot;
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            : #include &quot;orte/mca/iof/base/base.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;iof_hnp.h&quot;
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : /* LOCAL FUNCTIONS */
+<span class="lineNum">      55 </span>            : static void stdin_write_handler(int fd, short event, void *cbdata);
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : static void
+<span class="lineNum">      58 </span>            : orte_iof_hnp_exception_handler(orte_process_name_t* peer, orte_rml_exception_t reason);
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : /* API FUNCTIONS */
+<span class="lineNum">      61 </span>            : static int init(void);
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : static int hnp_push(const orte_process_name_t* dst_name, orte_iof_tag_t src_tag, int fd);
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : static int hnp_pull(const orte_process_name_t* src_name,
+<span class="lineNum">      66 </span>            :                 orte_iof_tag_t src_tag,
+<span class="lineNum">      67 </span>            :                 int fd);
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : static int hnp_close(const orte_process_name_t* peer,
+<span class="lineNum">      70 </span>            :                  orte_iof_tag_t source_tag);
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : static int finalize(void);
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            : static int hnp_ft_event(int state);
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            : /* The API's in this module are solely used to support LOCAL
+<span class="lineNum">      77 </span>            :  * procs - i.e., procs that are co-located to the HNP. Remote
+<span class="lineNum">      78 </span>            :  * procs interact with the HNP's IOF via the HNP's receive function,
+<span class="lineNum">      79 </span>            :  * which operates independently and is in the iof_hnp_receive.c file
+<span class="lineNum">      80 </span>            :  */
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : orte_iof_base_module_t orte_iof_hnp_module = {
+<span class="lineNum">      83 </span>            :     init,
+<span class="lineNum">      84 </span>            :     hnp_push,
+<span class="lineNum">      85 </span>            :     hnp_pull,
+<span class="lineNum">      86 </span>            :     hnp_close,
+<span class="lineNum">      87 </span>            :     NULL,
+<span class="lineNum">      88 </span>            :     finalize,
+<span class="lineNum">      89 </span>            :     hnp_ft_event
+<span class="lineNum">      90 </span>            : };
+<a name="91"><span class="lineNum">      91 </span>            : </a>
+<span class="lineNum">      92 </span>            : /* Initialize the module */
+<span class="lineNum">      93 </span><span class="lineCov">          3 : static int init(void)</span>
+<span class="lineNum">      94 </span>            : {
+<span class="lineNum">      95 </span>            :     int rc;
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            :     /* post non-blocking recv to catch forwarded IO from
+<span class="lineNum">      98 </span>            :      * the orteds
+<span class="lineNum">      99 </span>            :      */
+<span class="lineNum">     100 </span><span class="lineCov">          3 :     orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD,</span>
+<span class="lineNum">     101 </span>            :                             ORTE_RML_TAG_IOF_HNP,
+<span class="lineNum">     102 </span>            :                             ORTE_RML_PERSISTENT,
+<span class="lineNum">     103 </span>            :                             orte_iof_hnp_recv,
+<span class="lineNum">     104 </span>            :                             NULL);
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span><span class="lineCov">          3 :     if (ORTE_SUCCESS != (rc = orte_rml.add_exception_handler(orte_iof_hnp_exception_handler))) {</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :         orte_rml.recv_cancel(ORTE_NAME_WILDCARD, ORTE_RML_TAG_IOF_HNP);</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     110 </span>            :     }
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineCov">          3 :     OBJ_CONSTRUCT(&amp;mca_iof_hnp_component.sinks, opal_list_t);</span>
+<span class="lineNum">     113 </span><span class="lineCov">          3 :     OBJ_CONSTRUCT(&amp;mca_iof_hnp_component.procs, opal_list_t);</span>
+<span class="lineNum">     114 </span><span class="lineCov">          3 :     mca_iof_hnp_component.stdinev = NULL;</span>
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span><span class="lineCov">          3 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     117 </span>            : }
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            : /* Setup to read local data. If the tag is other than STDIN,
+<span class="lineNum">     120 </span>            :  * then this is output being pushed from one of my child processes
+<span class="lineNum">     121 </span>            :  * and I'll write the data out myself. If the tag is STDIN,
+<span class="lineNum">     122 </span>            :  * then I need to setup to read from my stdin, and send anything
+<span class="lineNum">     123 </span>            :  * I get to the specified dst_name. The dst_name in this case tells
+<span class="lineNum">     124 </span>            :  * us which procs are to get stdin - only two options are supported:
+<span class="lineNum">     125 </span>            :  *
+<span class="lineNum">     126 </span>            :  * (a) a specific name, usually vpid=0; or
+<span class="lineNum">     127 </span>            :  *
+<span class="lineNum">     128 </span>            :  * (b) all procs, specified by vpid=ORTE_VPID_WILDCARD
+<span class="lineNum">     129 </span>            :  *
+<span class="lineNum">     130 </span>            :  * The orte_plm_base_launch_apps function calls iof.push after
+<span class="lineNum">     131 </span>            :  * the procs are launched and tells us how to distribute stdin. This
+<span class="lineNum">     132 </span>            :  * ensures that the procs are started -before- we begin reading stdin
+<a name="133"><span class="lineNum">     133 </span>            :  * and attempting to send it to remote procs</a>
+<span class="lineNum">     134 </span>            :  */
+<span class="lineNum">     135 </span><span class="lineCov">         21 : static int hnp_push(const orte_process_name_t* dst_name, orte_iof_tag_t src_tag, int fd)</span>
+<span class="lineNum">     136 </span>            : {
+<span class="lineNum">     137 </span>            :     orte_job_t *jdata;
+<span class="lineNum">     138 </span>            :     orte_proc_t *proc;
+<span class="lineNum">     139 </span>            :     orte_iof_sink_t *sink;
+<span class="lineNum">     140 </span>            :     orte_iof_proc_t *proct;
+<span class="lineNum">     141 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     142 </span>            :     int flags;
+<span class="lineNum">     143 </span>            :     char *outfile;
+<span class="lineNum">     144 </span>            :     int fdout;
+<span class="lineNum">     145 </span>            :     int np, numdigs;
+<span class="lineNum">     146 </span>            :     orte_ns_cmp_bitmask_t mask;
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            :     /* don't do this if the dst vpid is invalid or the fd is negative! */
+<span class="lineNum">     149 </span><span class="lineCov">         21 :     if (ORTE_VPID_INVALID == dst_name-&gt;vpid || fd &lt; 0) {</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     151 </span>            :     }
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineCov">         21 :     OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,</span>
+<span class="lineNum">     154 </span>            :                          &quot;%s iof:hnp pushing fd %d for process %s&quot;,
+<span class="lineNum">     155 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     156 </span>            :                          fd, ORTE_NAME_PRINT(dst_name)));
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span><span class="lineCov">         21 :     if (!(src_tag &amp; ORTE_IOF_STDIN)) {</span>
+<span class="lineNum">     159 </span>            :         /* set the file descriptor to non-blocking - do this before we setup
+<span class="lineNum">     160 </span>            :          * and activate the read event in case it fires right away
+<span class="lineNum">     161 </span>            :          */
+<span class="lineNum">     162 </span><span class="lineCov">         18 :         if((flags = fcntl(fd, F_GETFL, 0)) &lt; 0) {</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :             opal_output(orte_iof_base_framework.framework_output, &quot;[%s:%d]: fcntl(F_GETFL) failed with errno=%d\n&quot;,</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :                         __FILE__, __LINE__, errno);</span>
+<span class="lineNum">     165 </span>            :         } else {
+<span class="lineNum">     166 </span><span class="lineCov">         18 :             flags |= O_NONBLOCK;</span>
+<span class="lineNum">     167 </span><span class="lineCov">         18 :             fcntl(fd, F_SETFL, flags);</span>
+<span class="lineNum">     168 </span>            :         }
+<span class="lineNum">     169 </span>            :         /* do we already have this process in our list? */
+<span class="lineNum">     170 </span><span class="lineCov">         45 :         for (item = opal_list_get_first(&amp;mca_iof_hnp_component.procs);</span>
+<span class="lineNum">     171 </span><span class="lineCov">         27 :              item != opal_list_get_end(&amp;mca_iof_hnp_component.procs);</span>
+<span class="lineNum">     172 </span><span class="lineCov">          9 :              item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     173 </span><span class="lineCov">         21 :             proct = (orte_iof_proc_t*)item;</span>
+<span class="lineNum">     174 </span><span class="lineCov">         21 :             mask = ORTE_NS_CMP_ALL;</span>
+<span class="lineNum">     175 </span><span class="lineCov">         21 :             if (OPAL_EQUAL == orte_util_compare_name_fields(mask, &amp;proct-&gt;name, dst_name)) {</span>
+<span class="lineNum">     176 </span>            :                 /* found it */
+<span class="lineNum">     177 </span><span class="lineCov">         12 :                 goto SETUP;</span>
+<span class="lineNum">     178 </span>            :             }
+<span class="lineNum">     179 </span>            :         }
+<span class="lineNum">     180 </span>            :         /* if we get here, then we don't yet have this proc in our list */
+<span class="lineNum">     181 </span><span class="lineCov">          6 :         proct = OBJ_NEW(orte_iof_proc_t);</span>
+<span class="lineNum">     182 </span><span class="lineCov">          6 :         proct-&gt;name.jobid = dst_name-&gt;jobid;</span>
+<span class="lineNum">     183 </span><span class="lineCov">          6 :         proct-&gt;name.vpid = dst_name-&gt;vpid;</span>
+<span class="lineNum">     184 </span><span class="lineCov">          6 :         opal_list_append(&amp;mca_iof_hnp_component.procs, &amp;proct-&gt;super);</span>
+<span class="lineNum">     185 </span>            :         /* see if we are to output to a file */
+<span class="lineNum">     186 </span><span class="lineCov">          6 :         if (NULL != orte_output_filename) {</span>
+<span class="lineNum">     187 </span>            :             /* get the jobdata for this proc */
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :             if (NULL == (jdata = orte_get_job_data_object(dst_name-&gt;jobid))) {</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     191 </span>            :             }
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :             np = jdata-&gt;num_procs / 10;</span>
+<span class="lineNum">     193 </span>            :             /* determine the number of digits required for max vpid */
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :             numdigs = 1;</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :             while (np &gt; 0) {</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :                 numdigs++;</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :                 np = np / 10;</span>
+<span class="lineNum">     198 </span>            :             }
+<span class="lineNum">     199 </span>            :             /* construct the filename */
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :             asprintf(&amp;outfile, &quot;%s.%d.%0*lu&quot;, orte_output_filename,</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :                      (int)ORTE_LOCAL_JOBID(proct-&gt;name.jobid),</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :                      numdigs, (unsigned long)proct-&gt;name.vpid);</span>
+<span class="lineNum">     203 </span>            :             /* create the file */
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :             fdout = open(outfile, O_CREAT|O_RDWR|O_TRUNC, 0644);</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :             free(outfile);</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :             if (fdout &lt; 0) {</span>
+<span class="lineNum">     207 </span>            :                 /* couldn't be opened */
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ORTE_ERR_FILE_OPEN_FAILURE);</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_FILE_OPEN_FAILURE;</span>
+<span class="lineNum">     210 </span>            :             }
+<span class="lineNum">     211 </span>            :             /* define a sink to that file descriptor */
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :             ORTE_IOF_SINK_DEFINE(&amp;sink, dst_name, fdout, ORTE_IOF_STDOUTALL,</span>
+<span class="lineNum">     213 </span>            :                                  orte_iof_base_write_handler,
+<span class="lineNum">     214 </span>            :                                  &amp;mca_iof_hnp_component.sinks);
+<span class="lineNum">     215 </span>            :         }
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            :     SETUP:
+<span class="lineNum">     218 </span>            :         /* define a read event and activate it */
+<span class="lineNum">     219 </span><span class="lineCov">         18 :         if (src_tag &amp; ORTE_IOF_STDOUT) {</span>
+<span class="lineNum">     220 </span><span class="lineCov">          6 :             ORTE_IOF_READ_EVENT(&amp;proct-&gt;revstdout, dst_name, fd, ORTE_IOF_STDOUT,</span>
+<span class="lineNum">     221 </span>            :                                 orte_iof_hnp_read_local_handler, false);
+<span class="lineNum">     222 </span><span class="lineCov">         12 :         } else if (src_tag &amp; ORTE_IOF_STDERR) {</span>
+<span class="lineNum">     223 </span><span class="lineCov">          6 :             ORTE_IOF_READ_EVENT(&amp;proct-&gt;revstderr, dst_name, fd, ORTE_IOF_STDERR,</span>
+<span class="lineNum">     224 </span>            :                                 orte_iof_hnp_read_local_handler, false);
+<span class="lineNum">     225 </span><span class="lineCov">          6 :         } else if (src_tag &amp; ORTE_IOF_STDDIAG) {</span>
+<span class="lineNum">     226 </span><span class="lineCov">          6 :             ORTE_IOF_READ_EVENT(&amp;proct-&gt;revstddiag, dst_name, fd, ORTE_IOF_STDDIAG,</span>
+<span class="lineNum">     227 </span>            :                                 orte_iof_hnp_read_local_handler, false);
+<span class="lineNum">     228 </span>            :         }
+<span class="lineNum">     229 </span>            :         /* if -all- of the readevents for this proc have been defined, then
+<span class="lineNum">     230 </span>            :          * activate them. Otherwise, we can think that the proc is complete
+<span class="lineNum">     231 </span>            :          * because one of the readevents fires -prior- to all of them having
+<span class="lineNum">     232 </span>            :          * been defined!
+<span class="lineNum">     233 </span>            :          */
+<span class="lineNum">     234 </span><span class="lineCov">         18 :         if (NULL != proct-&gt;revstdout &amp;&amp; NULL != proct-&gt;revstderr &amp;&amp; NULL != proct-&gt;revstddiag) {</span>
+<span class="lineNum">     235 </span><span class="lineCov">          6 :             proct-&gt;revstdout-&gt;active = true;</span>
+<span class="lineNum">     236 </span><span class="lineCov">          6 :             opal_event_add(proct-&gt;revstdout-&gt;ev, 0);</span>
+<span class="lineNum">     237 </span><span class="lineCov">          6 :             proct-&gt;revstderr-&gt;active = true;</span>
+<span class="lineNum">     238 </span><span class="lineCov">          6 :             opal_event_add(proct-&gt;revstderr-&gt;ev, 0);</span>
+<span class="lineNum">     239 </span><span class="lineCov">          6 :             proct-&gt;revstddiag-&gt;active = true;</span>
+<span class="lineNum">     240 </span><span class="lineCov">          6 :             opal_event_add(proct-&gt;revstddiag-&gt;ev, 0);</span>
+<span class="lineNum">     241 </span>            :         }
+<span class="lineNum">     242 </span><span class="lineCov">         18 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     243 </span>            :     }
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            :     /* if we are pushing stdin, this is happening only during launch - setup
+<span class="lineNum">     246 </span>            :      * a target for this destination if it is going somewhere other than me
+<span class="lineNum">     247 </span>            :      */
+<span class="lineNum">     248 </span><span class="lineCov">          3 :     if (ORTE_VPID_WILDCARD == dst_name-&gt;vpid) {</span>
+<span class="lineNum">     249 </span>            :         /* if wildcard, define a sink with that info so it gets sent out */
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         ORTE_IOF_SINK_DEFINE(&amp;sink, dst_name, -1, ORTE_IOF_STDIN,</span>
+<span class="lineNum">     251 </span>            :                              stdin_write_handler,
+<span class="lineNum">     252 </span>            :                              &amp;mca_iof_hnp_component.sinks);
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         sink-&gt;daemon.jobid = ORTE_PROC_MY_NAME-&gt;jobid;</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         sink-&gt;daemon.vpid = ORTE_VPID_WILDCARD;</span>
+<span class="lineNum">     255 </span>            :      } else {
+<span class="lineNum">     256 </span>            :         /* no - lookup the proc's daemon and set that into sink */
+<span class="lineNum">     257 </span><span class="lineCov">          3 :         if (NULL == (jdata = orte_get_job_data_object(dst_name-&gt;jobid))) {</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :             return ORTE_ERR_BAD_PARAM;</span>
+<span class="lineNum">     260 </span>            :         }
+<span class="lineNum">     261 </span><span class="lineCov">          3 :         if (NULL == (proc = (orte_proc_t*)opal_pointer_array_get_item(jdata-&gt;procs, dst_name-&gt;vpid))) {</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :             return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     264 </span>            :         }
+<span class="lineNum">     265 </span>            :         /* if it is me, then don't set this up - we'll get it on the pull */
+<span class="lineNum">     266 </span><span class="lineCov">          3 :         if (ORTE_PROC_MY_NAME-&gt;vpid != proc-&gt;node-&gt;daemon-&gt;name.vpid) {</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :             ORTE_IOF_SINK_DEFINE(&amp;sink, dst_name, -1, ORTE_IOF_STDIN,</span>
+<span class="lineNum">     268 </span>            :                                  stdin_write_handler,
+<span class="lineNum">     269 </span>            :                                  &amp;mca_iof_hnp_component.sinks);
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :             sink-&gt;daemon.jobid = ORTE_PROC_MY_NAME-&gt;jobid;</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :             sink-&gt;daemon.vpid = proc-&gt;node-&gt;daemon-&gt;name.vpid;</span>
+<span class="lineNum">     272 </span>            :         }
+<span class="lineNum">     273 </span>            :     }
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span>            :     /* now setup the read - but check to only do this once */
+<span class="lineNum">     276 </span><span class="lineCov">          3 :     if (NULL == mca_iof_hnp_component.stdinev) {</span>
+<span class="lineNum">     277 </span>            :         /* Since we are the HNP, we don't want to set nonblocking on our
+<span class="lineNum">     278 </span>            :          * stdio stream.  If we do so, we set the file descriptor to
+<span class="lineNum">     279 </span>            :          * non-blocking for everyone that has that file descriptor, which
+<span class="lineNum">     280 </span>            :          * includes everyone else in our shell pipeline chain.  (See
+<span class="lineNum">     281 </span>            :          * http://lists.freebsd.org/pipermail/freebsd-hackers/2005-January/009742.html).
+<span class="lineNum">     282 </span>            :          * This causes things like &quot;mpirun -np 1 big_app | cat&quot; to lose
+<span class="lineNum">     283 </span>            :          * output, because cat's stdout is then ALSO non-blocking and cat
+<span class="lineNum">     284 </span>            :          * isn't built to deal with that case (same with almost all other
+<span class="lineNum">     285 </span>            :          * unix text utils).
+<span class="lineNum">     286 </span>            :          */
+<span class="lineNum">     287 </span><span class="lineCov">          3 :         if (0 != fd) {</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :             if((flags = fcntl(fd, F_GETFL, 0)) &lt; 0) {</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :                 opal_output(orte_iof_base_framework.framework_output, &quot;[%s:%d]: fcntl(F_GETFL) failed with errno=%d\n&quot;,</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :                             __FILE__, __LINE__, errno);</span>
+<span class="lineNum">     291 </span>            :             } else {
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                 flags |= O_NONBLOCK;</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :                 fcntl(fd, F_SETFL, flags);</span>
+<span class="lineNum">     294 </span>            :             }
+<span class="lineNum">     295 </span>            :         }
+<span class="lineNum">     296 </span><span class="lineCov">          3 :         if (isatty(fd)) {</span>
+<span class="lineNum">     297 </span>            :             /* We should avoid trying to read from stdin if we
+<span class="lineNum">     298 </span>            :              * have a terminal, but are backgrounded.  Catch the
+<span class="lineNum">     299 </span>            :              * signals that are commonly used when we switch
+<span class="lineNum">     300 </span>            :              * between being backgrounded and not.  If the
+<span class="lineNum">     301 </span>            :              * filedescriptor is not a tty, don't worry about it
+<span class="lineNum">     302 </span>            :              * and always stay connected.
+<span class="lineNum">     303 </span>            :              */
+<span class="lineNum">     304 </span><span class="lineCov">          3 :             opal_event_signal_set(orte_event_base, &amp;mca_iof_hnp_component.stdinsig,</span>
+<span class="lineNum">     305 </span>            :                                   SIGCONT, orte_iof_hnp_stdin_cb,
+<span class="lineNum">     306 </span>            :                                   NULL);
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span>            :             /* setup a read event to read stdin, but don't activate it yet. The
+<span class="lineNum">     309 </span>            :              * dst_name indicates who should receive the stdin. If that recipient
+<span class="lineNum">     310 </span>            :              * doesn't do a corresponding pull, however, then the stdin will
+<span class="lineNum">     311 </span>            :              * be dropped upon receipt at the local daemon
+<span class="lineNum">     312 </span>            :              */
+<span class="lineNum">     313 </span><span class="lineCov">          3 :             ORTE_IOF_READ_EVENT(&amp;mca_iof_hnp_component.stdinev,</span>
+<span class="lineNum">     314 </span>            :                                 dst_name, fd, ORTE_IOF_STDIN,
+<span class="lineNum">     315 </span>            :                                 orte_iof_hnp_read_local_handler, false);
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span>            :             /* check to see if we want the stdin read event to be
+<span class="lineNum">     318 </span>            :              * active - we will always at least define the event,
+<span class="lineNum">     319 </span>            :              * but may delay its activation
+<span class="lineNum">     320 </span>            :              */
+<span class="lineNum">     321 </span><span class="lineCov">          3 :             if (!(src_tag &amp; ORTE_IOF_STDIN) || orte_iof_hnp_stdin_check(fd)) {</span>
+<span class="lineNum">     322 </span><span class="lineCov">          3 :                 mca_iof_hnp_component.stdinev-&gt;active = true;</span>
+<span class="lineNum">     323 </span><span class="lineCov">          3 :                 opal_event_add(mca_iof_hnp_component.stdinev-&gt;ev, 0);</span>
+<span class="lineNum">     324 </span>            :             }
+<span class="lineNum">     325 </span>            :         } else {
+<span class="lineNum">     326 </span>            :             /* if we are not looking at a tty, just setup a read event
+<span class="lineNum">     327 </span>            :              * and activate it
+<span class="lineNum">     328 </span>            :              */
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :             ORTE_IOF_READ_EVENT(&amp;mca_iof_hnp_component.stdinev,</span>
+<span class="lineNum">     330 </span>            :                                 dst_name, fd, ORTE_IOF_STDIN,
+<span class="lineNum">     331 </span>            :                                 orte_iof_hnp_read_local_handler, true);
+<span class="lineNum">     332 </span>            :         }
+<span class="lineNum">     333 </span>            :     }
+<span class="lineNum">     334 </span><span class="lineCov">          3 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     335 </span>            : }
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span>            : /*
+<span class="lineNum">     339 </span>            :  * Since we are the HNP, the only &quot;pull&quot; call comes from a local
+<span class="lineNum">     340 </span>            :  * process so we can record the file descriptor for its stdin.
+<a name="341"><span class="lineNum">     341 </span>            :  */</a>
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineCov">          3 : static int hnp_pull(const orte_process_name_t* dst_name,</span>
+<span class="lineNum">     344 </span>            :                     orte_iof_tag_t src_tag,
+<span class="lineNum">     345 </span>            :                     int fd)
+<span class="lineNum">     346 </span>            : {
+<span class="lineNum">     347 </span>            :     orte_iof_sink_t *sink;
+<span class="lineNum">     348 </span>            :     int flags;
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span>            :     /* this is a local call - only stdin is supported */
+<span class="lineNum">     351 </span><span class="lineCov">          3 :     if (ORTE_IOF_STDIN != src_tag) {</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :         return ORTE_ERR_NOT_SUPPORTED;</span>
+<span class="lineNum">     353 </span>            :     }
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span><span class="lineCov">          3 :     OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,</span>
+<span class="lineNum">     356 </span>            :                          &quot;%s iof:hnp pulling fd %d for process %s&quot;,
+<span class="lineNum">     357 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     358 </span>            :                          fd, ORTE_NAME_PRINT(dst_name)));
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span>            :     /* set the file descriptor to non-blocking - do this before we setup
+<span class="lineNum">     361 </span>            :      * the sink in case it fires right away
+<span class="lineNum">     362 </span>            :      */
+<span class="lineNum">     363 </span><span class="lineCov">          3 :     if((flags = fcntl(fd, F_GETFL, 0)) &lt; 0) {</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :         opal_output(orte_iof_base_framework.framework_output, &quot;[%s:%d]: fcntl(F_GETFL) failed with errno=%d\n&quot;,</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :                     __FILE__, __LINE__, errno);</span>
+<span class="lineNum">     366 </span>            :     } else {
+<span class="lineNum">     367 </span><span class="lineCov">          3 :         flags |= O_NONBLOCK;</span>
+<span class="lineNum">     368 </span><span class="lineCov">          3 :         fcntl(fd, F_SETFL, flags);</span>
+<span class="lineNum">     369 </span>            :     }
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span><span class="lineCov">          3 :     ORTE_IOF_SINK_DEFINE(&amp;sink, dst_name, fd, ORTE_IOF_STDIN,</span>
+<span class="lineNum">     372 </span>            :                          stdin_write_handler,
+<span class="lineNum">     373 </span>            :                          &amp;mca_iof_hnp_component.sinks);
+<span class="lineNum">     374 </span><span class="lineCov">          3 :     sink-&gt;daemon.jobid = ORTE_PROC_MY_NAME-&gt;jobid;</span>
+<span class="lineNum">     375 </span><span class="lineCov">          3 :     sink-&gt;daemon.vpid = ORTE_PROC_MY_NAME-&gt;vpid;</span>
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span><span class="lineCov">          3 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     378 </span>            : }
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span>            : /*
+<span class="lineNum">     381 </span>            :  * One of our local procs wants us to close the specifed
+<a name="382"><span class="lineNum">     382 </span>            :  * stream(s), thus terminating any potential io to/from it.</a>
+<span class="lineNum">     383 </span>            :  */
+<span class="lineNum">     384 </span><span class="lineCov">          6 : static int hnp_close(const orte_process_name_t* peer,</span>
+<span class="lineNum">     385 </span>            :                      orte_iof_tag_t source_tag)
+<span class="lineNum">     386 </span>            : {
+<span class="lineNum">     387 </span>            :     opal_list_item_t *item, *next_item;
+<span class="lineNum">     388 </span>            :     orte_iof_sink_t* sink;
+<span class="lineNum">     389 </span>            :     orte_ns_cmp_bitmask_t mask;
+<span class="lineNum">     390 </span>            : 
+<span class="lineNum">     391 </span><span class="lineCov">         13 :     for(item = opal_list_get_first(&amp;mca_iof_hnp_component.sinks);</span>
+<span class="lineNum">     392 </span><span class="lineCov">          7 :         item != opal_list_get_end(&amp;mca_iof_hnp_component.sinks);</span>
+<span class="lineNum">     393 </span><span class="lineCov">          1 :         item = next_item ) {</span>
+<span class="lineNum">     394 </span><span class="lineCov">          4 :         sink = (orte_iof_sink_t*)item;</span>
+<span class="lineNum">     395 </span><span class="lineCov">          4 :         next_item = opal_list_get_next(item);</span>
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span><span class="lineCov">          4 :         mask = ORTE_NS_CMP_ALL;</span>
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span><span class="lineCov">          7 :         if (OPAL_EQUAL == orte_util_compare_name_fields(mask, &amp;sink-&gt;name, peer) &amp;&amp;</span>
+<span class="lineNum">     400 </span><span class="lineCov">          3 :            (source_tag &amp; sink-&gt;tag)) {</span>
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span>            :             /* No need to delete the event or close the file
+<span class="lineNum">     403 </span>            :              * descriptor - the destructor will automatically
+<span class="lineNum">     404 </span>            :              * do it for us.
+<span class="lineNum">     405 </span>            :              */
+<span class="lineNum">     406 </span><span class="lineCov">          3 :             opal_list_remove_item(&amp;mca_iof_hnp_component.sinks, item);</span>
+<span class="lineNum">     407 </span><span class="lineCov">          6 :             OBJ_RELEASE(item);</span>
+<span class="lineNum">     408 </span><span class="lineCov">          3 :             break;</span>
+<span class="lineNum">     409 </span>            :         }
+<span class="lineNum">     410 </span>            :     }
+<span class="lineNum">     411 </span><span class="lineCov">          6 :     return ORTE_SUCCESS;</span>
+<a name="412"><span class="lineNum">     412 </span>            : }</a>
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineCov">          3 : static int finalize(void)</span>
+<span class="lineNum">     415 </span>            : {
+<span class="lineNum">     416 </span>            :     opal_list_item_t* item;
+<span class="lineNum">     417 </span>            :     orte_iof_write_output_t *output;
+<span class="lineNum">     418 </span>            :     orte_iof_write_event_t *wev;
+<span class="lineNum">     419 </span>            :     int num_written;
+<span class="lineNum">     420 </span>            :     bool dump;
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span>            :     /* check if anything is still trying to be written out */
+<span class="lineNum">     423 </span><span class="lineCov">          3 :     wev = orte_iof_base.iof_write_stdout-&gt;wev;</span>
+<span class="lineNum">     424 </span><span class="lineCov">          3 :     if (!opal_list_is_empty(&amp;wev-&gt;outputs)) {</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :         dump = false;</span>
+<span class="lineNum">     426 </span>            :         /* make one last attempt to write this out */
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :         while (NULL != (item = opal_list_remove_first(&amp;wev-&gt;outputs))) {</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :             output = (orte_iof_write_output_t*)item;</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :             if (!dump) {</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :                 num_written = write(wev-&gt;fd, output-&gt;data, output-&gt;numbytes);</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :                 if (num_written &lt; output-&gt;numbytes) {</span>
+<span class="lineNum">     432 </span>            :                     /* don't retry - just cleanout the list and dump it */
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :                     dump = true;</span>
+<span class="lineNum">     434 </span>            :                 }
+<span class="lineNum">     435 </span>            :             }
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(output);</span>
+<span class="lineNum">     437 </span>            :         }
+<span class="lineNum">     438 </span>            :     }
+<span class="lineNum">     439 </span><span class="lineCov">          3 :     if (!orte_xml_output) {</span>
+<span class="lineNum">     440 </span>            :         /* we only opened stderr channel if we are NOT doing xml output */
+<span class="lineNum">     441 </span><span class="lineCov">          3 :         wev = orte_iof_base.iof_write_stderr-&gt;wev;</span>
+<span class="lineNum">     442 </span><span class="lineCov">          3 :         if (!opal_list_is_empty(&amp;wev-&gt;outputs)) {</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :             dump = false;</span>
+<span class="lineNum">     444 </span>            :             /* make one last attempt to write this out */
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :             while (NULL != (item = opal_list_remove_first(&amp;wev-&gt;outputs))) {</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :                 output = (orte_iof_write_output_t*)item;</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :                 if (!dump) {</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :                     num_written = write(wev-&gt;fd, output-&gt;data, output-&gt;numbytes);</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :                     if (num_written &lt; output-&gt;numbytes) {</span>
+<span class="lineNum">     450 </span>            :                         /* don't retry - just cleanout the list and dump it */
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :                         dump = true;</span>
+<span class="lineNum">     452 </span>            :                     }
+<span class="lineNum">     453 </span>            :                 }
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(output);</span>
+<span class="lineNum">     455 </span>            :             }
+<span class="lineNum">     456 </span>            :         }
+<span class="lineNum">     457 </span>            :     }
+<span class="lineNum">     458 </span>            : 
+<span class="lineNum">     459 </span><span class="lineCov">          3 :     orte_rml.recv_cancel(ORTE_NAME_WILDCARD, ORTE_RML_TAG_IOF_HNP);</span>
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span><span class="lineCov">          3 :     return ORTE_SUCCESS;</span>
+<a name="462"><span class="lineNum">     462 </span>            : }</a>
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 : int hnp_ft_event(int state) {</span>
+<span class="lineNum">     465 </span>            :     /*
+<span class="lineNum">     466 </span>            :      * Replica doesn't need to do anything for a checkpoint
+<span class="lineNum">     467 </span>            :      */
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     469 </span>            : }
+<span class="lineNum">     470 </span>            : 
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span>            : /* this function is called by the event library and thus
+<a name="473"><span class="lineNum">     473 </span>            :  * can access information global to the state machine</a>
+<span class="lineNum">     474 </span>            :  */
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 : static void stdin_write_handler(int fd, short event, void *cbdata)</span>
+<span class="lineNum">     476 </span>            : {
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     orte_iof_sink_t *sink = (orte_iof_sink_t*)cbdata;</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     orte_iof_write_event_t *wev = sink-&gt;wev;</span>
+<span class="lineNum">     479 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     480 </span>            :     orte_iof_write_output_t *output;
+<span class="lineNum">     481 </span>            :     int num_written;
+<span class="lineNum">     482 </span>            : 
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,</span>
+<span class="lineNum">     484 </span>            :                          &quot;%s hnp:stdin:write:handler writing data to %d&quot;,
+<span class="lineNum">     485 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     486 </span>            :                          wev-&gt;fd));
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     wev-&gt;pending = false;</span>
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :     while (NULL != (item = opal_list_remove_first(&amp;wev-&gt;outputs))) {</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :         output = (orte_iof_write_output_t*)item;</span>
+<span class="lineNum">     492 </span>            :         /* if an abnormal termination has occurred, just dump
+<span class="lineNum">     493 </span>            :          * this data as we are aborting
+<span class="lineNum">     494 </span>            :          */
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :         if (orte_abnormal_term_ordered) {</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(output);</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     498 </span>            :         }
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :         if (0 == output-&gt;numbytes) {</span>
+<span class="lineNum">     500 </span>            :             /* this indicates we are to close the fd - there is
+<span class="lineNum">     501 </span>            :              * nothing to write
+<span class="lineNum">     502 </span>            :              */
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((20, orte_iof_base_framework.framework_output,</span>
+<span class="lineNum">     504 </span>            :                                  &quot;%s iof:hnp closing fd %d on write event due to zero bytes output&quot;,
+<span class="lineNum">     505 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), wev-&gt;fd));
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(wev);</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :             sink-&gt;wev = NULL;</span>
+<span class="lineNum">     508 </span>            :             /* just leave - we don't want to restart the
+<span class="lineNum">     509 </span>            :              * read event!
+<span class="lineNum">     510 </span>            :              */
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     512 </span>            :         }
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :         num_written = write(wev-&gt;fd, output-&gt;data, output-&gt;numbytes);</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,</span>
+<span class="lineNum">     515 </span>            :                              &quot;%s hnp:stdin:write:handler wrote %d bytes&quot;,
+<span class="lineNum">     516 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     517 </span>            :                              num_written));
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :         if (num_written &lt; 0) {</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :             if (EAGAIN == errno || EINTR == errno) {</span>
+<span class="lineNum">     520 </span>            :                 /* push this item back on the front of the list */
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :                 opal_list_prepend(&amp;wev-&gt;outputs, item);</span>
+<span class="lineNum">     522 </span>            :                 /* leave the write event running so it will call us again
+<span class="lineNum">     523 </span>            :                  * when the fd is ready.
+<span class="lineNum">     524 </span>            :                  */
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :                 wev-&gt;pending = true;</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :                 opal_event_add(wev-&gt;ev, 0);</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :                 goto CHECK;</span>
+<span class="lineNum">     528 </span>            :             }
+<span class="lineNum">     529 </span>            :             /* otherwise, something bad happened so all we can do is declare an
+<span class="lineNum">     530 </span>            :              * error and abort
+<span class="lineNum">     531 </span>            :              */
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(output);</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((20, orte_iof_base_framework.framework_output,</span>
+<span class="lineNum">     534 </span>            :                                  &quot;%s iof:hnp closing fd %d on write event due to negative bytes written&quot;,
+<span class="lineNum">     535 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), wev-&gt;fd));
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(wev);</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :             sink-&gt;wev = NULL;</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :         } else if (num_written &lt; output-&gt;numbytes) {</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,</span>
+<span class="lineNum">     541 </span>            :                                  &quot;%s hnp:stdin:write:handler incomplete write %d - adjusting data&quot;,
+<span class="lineNum">     542 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), num_written));
+<span class="lineNum">     543 </span>            :             /* incomplete write - adjust data to avoid duplicate output */
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :             memmove(output-&gt;data, &amp;output-&gt;data[num_written], output-&gt;numbytes - num_written);</span>
+<span class="lineNum">     545 </span>            :             /* push this item back on the front of the list */
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :             opal_list_prepend(&amp;wev-&gt;outputs, item);</span>
+<span class="lineNum">     547 </span>            :             /* leave the write event running so it will call us again
+<span class="lineNum">     548 </span>            :              * when the fd is ready.
+<span class="lineNum">     549 </span>            :              */
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :             wev-&gt;pending = true;</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :             opal_event_add(wev-&gt;ev, 0);</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :             goto CHECK;</span>
+<span class="lineNum">     553 </span>            :         }
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(output);</span>
+<span class="lineNum">     555 </span>            :     }
+<span class="lineNum">     556 </span>            : 
+<span class="lineNum">     557 </span>            : CHECK:
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :     if (NULL != mca_iof_hnp_component.stdinev &amp;&amp;</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :         !orte_abnormal_term_ordered &amp;&amp;</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :         !mca_iof_hnp_component.stdinev-&gt;active) {</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,</span>
+<span class="lineNum">     562 </span>            :                             &quot;read event is off - checking if okay to restart&quot;));
+<span class="lineNum">     563 </span>            :         /* if we have turned off the read event, check to
+<span class="lineNum">     564 </span>            :          * see if the output list has shrunk enough to
+<span class="lineNum">     565 </span>            :          * turn it back on
+<span class="lineNum">     566 </span>            :          *
+<span class="lineNum">     567 </span>            :          * RHC: Note that when multiple procs want stdin, we
+<span class="lineNum">     568 </span>            :          * can get into a fight between a proc turnin stdin
+<span class="lineNum">     569 </span>            :          * back &quot;on&quot; and other procs turning it &quot;off&quot;. There
+<span class="lineNum">     570 </span>            :          * is no clear way to resolve this as different procs
+<span class="lineNum">     571 </span>            :          * may take input at different rates.
+<span class="lineNum">     572 </span>            :          */
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :         if (opal_list_get_size(&amp;wev-&gt;outputs) &lt; ORTE_IOF_MAX_INPUT_BUFFERS) {</span>
+<span class="lineNum">     574 </span>            :             /* restart the read */
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,</span>
+<span class="lineNum">     576 </span>            :                                  &quot;restarting read event&quot;));
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :             mca_iof_hnp_component.stdinev-&gt;active = true;</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :             opal_event_add(mca_iof_hnp_component.stdinev-&gt;ev, 0);</span>
+<span class="lineNum">     579 </span>            :         }
+<span class="lineNum">     580 </span>            :     }
+<span class="lineNum">     581 </span>            : }
+<span class="lineNum">     582 </span>            : 
+<span class="lineNum">     583 </span>            : /**
+<span class="lineNum">     584 </span>            :  * Callback when peer is disconnected
+<span class="lineNum">     585 </span>            :  */
+<a name="586"><span class="lineNum">     586 </span>            : </a>
+<span class="lineNum">     587 </span>            : static void
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 : orte_iof_hnp_exception_handler(orte_process_name_t* peer, orte_rml_exception_t reason)</span>
+<span class="lineNum">     589 </span>            : {
+<span class="lineNum">     590 </span>            : #if 0
+<span class="lineNum">     591 </span>            :     orte_iof_base_endpoint_t *endpoint;
+<span class="lineNum">     592 </span>            :     opal_output_verbose(1, orte_iof_base_framework.framework_output,
+<span class="lineNum">     593 </span>            :                         &quot;iof svc exception handler! %s\n&quot;,
+<span class="lineNum">     594 </span>            :                         ORTE_NAME_PRINT((orte_process_name_t*)peer));
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span>            :     /* If we detect an exception on the RML connection to a peer,
+<span class="lineNum">     597 </span>            :      delete all of its subscriptions and publications.  Note that
+<span class="lineNum">     598 </span>            :      exceptions can be detected during a normal RML shutdown; they
+<span class="lineNum">     599 </span>            :      are recoverable events (no need to abort). */
+<span class="lineNum">     600 </span>            :     orte_iof_hnp_sub_delete_all(peer);
+<span class="lineNum">     601 </span>            :     orte_iof_hnp_pub_delete_all(peer);
+<span class="lineNum">     602 </span>            :     opal_output_verbose(1, orte_iof_base_framework.framework_output, &quot;deleted all pubs and subs\n&quot;);
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span>            :     /* Find any streams on any endpoints for this peer and close them */
+<span class="lineNum">     605 </span>            :     while (NULL !=
+<span class="lineNum">     606 </span>            :            (endpoint = orte_iof_base_endpoint_match(peer, ORTE_NS_CMP_ALL,
+<span class="lineNum">     607 </span>            :                                                     ORTE_IOF_ANY))) {
+<span class="lineNum">     608 </span>            :         orte_iof_base_endpoint_closed(endpoint);
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span>            :         /* Delete the endpoint that we just matched */
+<span class="lineNum">     611 </span>            :         orte_iof_base_endpoint_delete(peer, ORTE_NS_CMP_ALL, ORTE_IOF_ANY);
+<span class="lineNum">     612 </span>            :     }
+<span class="lineNum">     613 </span>            : #endif
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :     opal_output_verbose(1, orte_iof_base_framework.framework_output, &quot;done with exception handler\n&quot;);</span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

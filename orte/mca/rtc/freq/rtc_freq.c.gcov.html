@@ -1,0 +1,685 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/rtc/freq/rtc_freq.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/rtc/freq</a> - rtc_freq.c<span style="font-size: 80%;"> (source / <a href="rtc_freq.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">44</td>
+            <td class="headerCovTableEntry">293</td>
+            <td class="headerCovTableEntryLo">15.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntryLo">37.5 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2014      Intel, Inc. All rights reserved
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2014      Research Organization for Information Science
+<span class="lineNum">       4 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">       5 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       6 </span>            :  *
+<span class="lineNum">       7 </span>            :  * Additional copyrights may follow
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * $HEADER$
+<span class="lineNum">      10 </span>            :  */
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      13 </span>            : #include &quot;orte/constants.h&quot;
+<span class="lineNum">      14 </span>            : #include &quot;orte/types.h&quot;
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      17 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      18 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      19 </span>            : #endif  /* HAVE_UNISTD_H */
+<span class="lineNum">      20 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      21 </span>            : #ifdef HAVE_DIRENT_H
+<span class="lineNum">      22 </span>            : #include &lt;dirent.h&gt;
+<span class="lineNum">      23 </span>            : #endif  /* HAVE_DIRENT_H */
+<span class="lineNum">      24 </span>            : #include &lt;ctype.h&gt;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;opal/class/opal_list.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;opal/util/opal_environ.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;opal/util/os_path.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;opal/util/os_dirpath.h&quot;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #include &quot;orte/util/show_help.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;orte/util/error_strings.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;orte/mca/rmaps/rmaps_types.h&quot;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : #include &quot;orte/mca/rtc/base/base.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;rtc_freq.h&quot;
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : static int init(void);
+<span class="lineNum">      43 </span>            : static void finalize(void);
+<span class="lineNum">      44 </span>            : static void assign(orte_job_t *jdata);
+<span class="lineNum">      45 </span>            : static void set(orte_job_t *jdata,
+<span class="lineNum">      46 </span>            :                 orte_proc_t *proc,
+<span class="lineNum">      47 </span>            :                 char ***environ_copy,
+<span class="lineNum">      48 </span>            :                 int write_fd);
+<span class="lineNum">      49 </span>            : static void getvals(opal_list_t *vals);
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            : orte_rtc_base_module_t orte_rtc_freq_module = {
+<span class="lineNum">      52 </span>            :     init,
+<span class="lineNum">      53 </span>            :     finalize,
+<span class="lineNum">      54 </span>            :     assign,
+<span class="lineNum">      55 </span>            :     set,
+<span class="lineNum">      56 </span>            :     getvals
+<span class="lineNum">      57 </span>            : };
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : typedef struct {
+<span class="lineNum">      60 </span>            :     opal_list_item_t super;
+<span class="lineNum">      61 </span>            :     int core;
+<span class="lineNum">      62 </span>            :     char *directory;
+<span class="lineNum">      63 </span>            :     /* save the system settings so we can restore them when we die */
+<span class="lineNum">      64 </span>            :     char *system_governor;
+<span class="lineNum">      65 </span>            :     float system_max_freq;
+<span class="lineNum">      66 </span>            :     float system_min_freq;
+<span class="lineNum">      67 </span>            :     /* save the current settings so we only change them when required */
+<span class="lineNum">      68 </span>            :     char *current_governor;
+<span class="lineNum">      69 </span>            :     float current_max_freq;
+<span class="lineNum">      70 </span>            :     float current_min_freq;
+<span class="lineNum">      71 </span>            :     /* keep a list of allowed values */
+<span class="lineNum">      72 </span>            :     opal_list_t governors;
+<span class="lineNum">      73 </span>            :     opal_list_t frequencies;
+<span class="lineNum">      74 </span>            :     /* mark if setspeed is supported */
+<a name="75"><span class="lineNum">      75 </span>            :     bool setspeed;</a>
+<span class="lineNum">      76 </span>            : } rtefreq_tracker_t;
+<span class="lineNum">      77 </span><span class="lineCov">         12 : static void ctr_con(rtefreq_tracker_t *trk)</span>
+<span class="lineNum">      78 </span>            : {
+<span class="lineNum">      79 </span><span class="lineCov">         12 :     trk-&gt;directory = NULL;</span>
+<span class="lineNum">      80 </span><span class="lineCov">         12 :     trk-&gt;system_governor = NULL;</span>
+<span class="lineNum">      81 </span><span class="lineCov">         12 :     trk-&gt;current_governor = NULL;</span>
+<span class="lineNum">      82 </span><span class="lineCov">         12 :     OBJ_CONSTRUCT(&amp;trk-&gt;governors, opal_list_t);</span>
+<span class="lineNum">      83 </span><span class="lineCov">         12 :     OBJ_CONSTRUCT(&amp;trk-&gt;frequencies, opal_list_t);</span>
+<a name="84"><span class="lineNum">      84 </span><span class="lineCov">         12 :     trk-&gt;setspeed = false;</span></a>
+<span class="lineNum">      85 </span><span class="lineCov">         12 : }</span>
+<span class="lineNum">      86 </span><span class="lineCov">         12 : static void ctr_des(rtefreq_tracker_t *trk)</span>
+<span class="lineNum">      87 </span>            : {
+<span class="lineNum">      88 </span><span class="lineCov">         12 :     if (NULL != trk-&gt;directory) {</span>
+<span class="lineNum">      89 </span><span class="lineCov">         12 :         free(trk-&gt;directory);</span>
+<span class="lineNum">      90 </span>            :     }
+<span class="lineNum">      91 </span><span class="lineCov">         12 :     if (NULL != trk-&gt;system_governor) {</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         free(trk-&gt;system_governor);</span>
+<span class="lineNum">      93 </span>            :     }
+<span class="lineNum">      94 </span><span class="lineCov">         12 :     if (NULL != trk-&gt;current_governor) {</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         free(trk-&gt;current_governor);</span>
+<span class="lineNum">      96 </span>            :     }
+<span class="lineNum">      97 </span><span class="lineCov">         12 :     OPAL_LIST_DESTRUCT(&amp;trk-&gt;governors);</span>
+<span class="lineNum">      98 </span><span class="lineCov">         12 :     OPAL_LIST_DESTRUCT(&amp;trk-&gt;frequencies);</span>
+<span class="lineNum">      99 </span><span class="lineCov">         12 : }</span>
+<span class="lineNum">     100 </span>            : OBJ_CLASS_INSTANCE(rtefreq_tracker_t,
+<span class="lineNum">     101 </span>            :                    opal_list_item_t,
+<a name="102"><span class="lineNum">     102 </span>            :                    ctr_con, ctr_des);</a>
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 : static char *orte_getline(FILE *fp)</span>
+<span class="lineNum">     105 </span>            : {
+<span class="lineNum">     106 </span>            :     char *ret, *buff;
+<span class="lineNum">     107 </span>            :     char input[1024];
+<span class="lineNum">     108 </span>            :     int k;
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     ret = fgets(input, 1024, fp);</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     if (NULL != ret) {</span>
+<span class="lineNum">     112 </span>            :         /* trim the end of the line */
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :         for (k=strlen(input)-1; 0 &lt; k &amp;&amp; isspace(input[k]); k--) {</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :             input[k] = '\0';</span>
+<span class="lineNum">     115 </span>            :         }
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :         buff = strdup(input);</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :         return buff;</span>
+<span class="lineNum">     118 </span>            :     }
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     121 </span>            : }
+<span class="lineNum">     122 </span>            : 
+<a name="123"><span class="lineNum">     123 </span>            : static opal_list_t tracking;</a>
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineCov">          3 : static int init(void)</span>
+<span class="lineNum">     126 </span>            : {
+<span class="lineNum">     127 </span>            :     int k;
+<span class="lineNum">     128 </span><span class="lineCov">          3 :     DIR *cur_dirp = NULL;</span>
+<span class="lineNum">     129 </span>            :     struct dirent *entry;
+<span class="lineNum">     130 </span>            :     char *filename, *tmp, **vals;
+<span class="lineNum">     131 </span>            :     FILE *fp;
+<span class="lineNum">     132 </span>            :     rtefreq_tracker_t *trk;
+<span class="lineNum">     133 </span>            :     opal_value_t *kv;
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            :     /* always construct this so we don't segfault in finalize */
+<span class="lineNum">     136 </span><span class="lineCov">          3 :     OBJ_CONSTRUCT(&amp;tracking, opal_list_t);</span>
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            :     /*
+<span class="lineNum">     139 </span>            :      * Open up the base directory so we can get a listing
+<span class="lineNum">     140 </span>            :      */
+<span class="lineNum">     141 </span><span class="lineCov">          3 :     if (NULL == (cur_dirp = opendir(&quot;/sys/devices/system/cpu&quot;))) {</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;tracking);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         if (4 &lt; opal_output_get_verbosity(orte_rtc_base_framework.framework_output)) {</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-rtc-freq.txt&quot;, &quot;req-dir-not-found&quot;,</span>
+<span class="lineNum">     145 </span>            :                            true, orte_process_info.nodename,
+<span class="lineNum">     146 </span>            :                            &quot;/sys/devices/system/cpu&quot;);
+<span class="lineNum">     147 </span>            :         }
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         return ORTE_ERROR;</span>
+<span class="lineNum">     149 </span>            :     }
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            :     /*
+<span class="lineNum">     152 </span>            :      * For each directory
+<span class="lineNum">     153 </span>            :      */
+<span class="lineNum">     154 </span><span class="lineCov">         54 :     while (NULL != (entry = readdir(cur_dirp))) {</span>
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            :         /*
+<span class="lineNum">     157 </span>            :          * Skip the obvious
+<span class="lineNum">     158 </span>            :          */
+<span class="lineNum">     159 </span><span class="lineCov">         90 :         if (0 == strncmp(entry-&gt;d_name, &quot;.&quot;, strlen(&quot;.&quot;)) ||</span>
+<span class="lineNum">     160 </span><span class="lineCov">         42 :             0 == strncmp(entry-&gt;d_name, &quot;..&quot;, strlen(&quot;..&quot;))) {</span>
+<span class="lineNum">     161 </span><span class="lineCov">          6 :             continue;</span>
+<span class="lineNum">     162 </span>            :         }
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span>            :         /* look for cpu directories */
+<span class="lineNum">     165 </span><span class="lineCov">         42 :         if (0 != strncmp(entry-&gt;d_name, &quot;cpu&quot;, strlen(&quot;cpu&quot;))) {</span>
+<span class="lineNum">     166 </span>            :             /* cannot be a cpu directory */
+<span class="lineNum">     167 </span><span class="lineCov">         27 :             continue;</span>
+<span class="lineNum">     168 </span>            :         }
+<span class="lineNum">     169 </span>            :         /* if it ends in other than a digit, then it isn't a cpu directory */
+<span class="lineNum">     170 </span><span class="lineCov">         15 :         if (!isdigit(entry-&gt;d_name[strlen(entry-&gt;d_name)-1])) {</span>
+<span class="lineNum">     171 </span><span class="lineCov">          3 :             continue;</span>
+<span class="lineNum">     172 </span>            :         }
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            :         /* track the info for this core */
+<span class="lineNum">     175 </span><span class="lineCov">         12 :         trk = OBJ_NEW(rtefreq_tracker_t);</span>
+<span class="lineNum">     176 </span>            :         /* trailing digits are the core id */
+<span class="lineNum">     177 </span><span class="lineCov">         24 :         for (k=strlen(entry-&gt;d_name)-1; 0 &lt;= k; k--) {</span>
+<span class="lineNum">     178 </span><span class="lineCov">         24 :             if (!isdigit(entry-&gt;d_name[k])) {</span>
+<span class="lineNum">     179 </span><span class="lineCov">         12 :                 break;</span>
+<span class="lineNum">     180 </span>            :             }
+<span class="lineNum">     181 </span>            :         }
+<span class="lineNum">     182 </span><span class="lineCov">         12 :         trk-&gt;core = strtoul(&amp;entry-&gt;d_name[k], NULL, 10);</span>
+<span class="lineNum">     183 </span><span class="lineCov">         12 :         trk-&gt;directory = opal_os_path(false, &quot;/sys/devices/system/cpu&quot;, entry-&gt;d_name, &quot;cpufreq&quot;, NULL);</span>
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            :         /* read/save the current settings */
+<span class="lineNum">     186 </span><span class="lineCov">         12 :         filename = opal_os_path(false, trk-&gt;directory, &quot;scaling_governor&quot;, NULL);</span>
+<span class="lineNum">     187 </span><span class="lineCov">         12 :         if (NULL == (fp = fopen(filename, &quot;rw&quot;))) {</span>
+<span class="lineNum">     188 </span><span class="lineCov">         12 :             free(filename);</span>
+<span class="lineNum">     189 </span><span class="lineCov">         24 :             OBJ_RELEASE(trk);</span>
+<span class="lineNum">     190 </span><span class="lineCov">         12 :             continue;</span>
+<span class="lineNum">     191 </span>            :         }
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         trk-&gt;system_governor = orte_getline(fp);</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :         trk-&gt;current_governor = strdup(trk-&gt;system_governor);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         fclose(fp);</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :         free(filename);</span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         filename = opal_os_path(false, trk-&gt;directory, &quot;scaling_max_freq&quot;, NULL);</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :         if (NULL == (fp = fopen(filename, &quot;rw&quot;))) {</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             free(filename);</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(trk);</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     202 </span>            :         }
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :         tmp = orte_getline(fp);</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :         fclose(fp);</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :         trk-&gt;system_max_freq = strtoul(tmp, NULL, 10) / 1000000.0;</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         trk-&gt;current_max_freq = trk-&gt;system_max_freq;</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :         free(filename);</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         free(tmp);</span>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :         filename = opal_os_path(false, trk-&gt;directory, &quot;scaling_min_freq&quot;, NULL);</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :         if (NULL == (fp = fopen(filename, &quot;rw&quot;))) {</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :             free(filename);</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(trk);</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     215 </span>            :         }
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :         tmp = orte_getline(fp);</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         fclose(fp);</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         trk-&gt;system_min_freq = strtoul(tmp, NULL, 10) / 1000000.0;</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         trk-&gt;current_min_freq = trk-&gt;system_min_freq;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         free(filename);</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         free(tmp);</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            :         /* get the list of available governors */
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :         filename = opal_os_path(false, trk-&gt;directory, &quot;scaling_available_governors&quot;, NULL);</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :         if (NULL == (fp = fopen(filename, &quot;r&quot;))) {</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :             free(filename);</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(trk);</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     229 </span>            :         }
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         tmp = orte_getline(fp);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         fclose(fp);</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         free(filename);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         if (NULL != tmp) {</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :             vals = opal_argv_split(tmp, ' ');</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :             free(tmp);</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :             for (k=0; NULL != vals[k]; k++) {</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :                 kv = OBJ_NEW(opal_value_t);</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :                 kv-&gt;type = OPAL_STRING;</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :                 kv-&gt;data.string = strdup(vals[k]);</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :                 opal_list_append(&amp;trk-&gt;governors, &amp;kv-&gt;super);</span>
+<span class="lineNum">     241 </span>            :             }
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :             opal_argv_free(vals);</span>
+<span class="lineNum">     243 </span>            :         }
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            :         /* get the list of available frequencies */
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :         filename = opal_os_path(false, trk-&gt;directory, &quot;scaling_available_frequencies&quot;, NULL);</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :         if (NULL == (fp = fopen(filename, &quot;r&quot;))) {</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :             free(filename);</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(trk);</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     251 </span>            :         }
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         tmp = orte_getline(fp);</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         fclose(fp);</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         free(filename);</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :         if (NULL != tmp) {</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :             vals = opal_argv_split(tmp, ' ');</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :             free(tmp);</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :             for (k=0; NULL != vals[k]; k++) {</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :                 kv = OBJ_NEW(opal_value_t);</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :                 kv-&gt;type = OPAL_FLOAT;</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :                 kv-&gt;data.fval = strtoul(vals[k], NULL, 10) / 1000000.0;</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :                 opal_list_append(&amp;trk-&gt;frequencies, &amp;kv-&gt;super);</span>
+<span class="lineNum">     263 </span>            :             }
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             opal_argv_free(vals);</span>
+<span class="lineNum">     265 </span>            :         }
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            :         /* see if setspeed is supported */
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         filename = opal_os_path(false, trk-&gt;directory, &quot;scaling_setspeed&quot;, NULL);</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :         if (NULL != (fp = fopen(filename, &quot;rw&quot;))) {</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :             trk-&gt;setspeed = true;</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :             fclose(fp);</span>
+<span class="lineNum">     272 </span>            :         }
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         free(filename);</span>
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span>            :         /* add to our list */
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :         opal_list_append(&amp;tracking, &amp;trk-&gt;super);</span>
+<span class="lineNum">     277 </span>            :     }
+<span class="lineNum">     278 </span><span class="lineCov">          3 :     closedir(cur_dirp);</span>
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span><span class="lineCov">          3 :     if (0 == opal_list_get_size(&amp;tracking)) {</span>
+<span class="lineNum">     281 </span>            :         /* nothing to read */
+<span class="lineNum">     282 </span><span class="lineCov">          3 :         if (0 &lt; opal_output_get_verbosity(orte_rtc_base_framework.framework_output)) {</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-rtc-freq.txt&quot;, &quot;no-cores-found&quot;,</span>
+<span class="lineNum">     284 </span>            :                            true, orte_process_info.nodename);
+<span class="lineNum">     285 </span>            :         }
+<span class="lineNum">     286 </span><span class="lineCov">          3 :         OPAL_LIST_DESTRUCT(&amp;tracking);</span>
+<span class="lineNum">     287 </span><span class="lineCov">          3 :         return ORTE_ERROR;</span>
+<span class="lineNum">     288 </span>            :     }
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span>            :     /* report out the results, if requested */
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :     if (9 &lt; opal_output_get_verbosity(orte_rtc_base_framework.framework_output)) {</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :         OPAL_LIST_FOREACH(trk, &amp;tracking, rtefreq_tracker_t) {</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;%s\tCore: %d  Governor: %s MaxFreq: %f MinFreq: %f\n&quot;,</span>
+<span class="lineNum">     294 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), trk-&gt;core,
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :                         trk-&gt;system_governor, trk-&gt;system_max_freq, trk-&gt;system_min_freq);</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :             OPAL_LIST_FOREACH(kv, &amp;trk-&gt;governors, opal_value_t) {</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :                 opal_output(0, &quot;%s\t\tGovernor: %s&quot;,</span>
+<span class="lineNum">     298 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), kv-&gt;data.string);
+<span class="lineNum">     299 </span>            :             }
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :             OPAL_LIST_FOREACH(kv, &amp;trk-&gt;frequencies, opal_value_t) {</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :                 opal_output(0, &quot;%s\t\tFrequency: %f&quot;,</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), kv-&gt;data.fval);</span>
+<span class="lineNum">     303 </span>            :             }
+<span class="lineNum">     304 </span>            :         }
+<span class="lineNum">     305 </span>            :     }
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="308"><span class="lineNum">     308 </span>            : }</a>
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 : static void finalize(void)</span>
+<span class="lineNum">     311 </span>            : {
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :     OPAL_LIST_DESTRUCT(&amp;tracking);</span>
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     return;</span>
+<a name="315"><span class="lineNum">     315 </span>            : }</a>
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 : static void assign(orte_job_t *jdata)</span>
+<span class="lineNum">     318 </span>            : {
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :     bool freq_given = false;</span>
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_rtc_base_framework.framework_output,</span>
+<span class="lineNum">     322 </span>            :                         &quot;%s Assigning freq controls to job %s&quot;,
+<span class="lineNum">     323 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     324 </span>            :                         ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span>            :     /* see if the job already has the max freq attribute set */
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     if (orte_get_attribute(&amp;jdata-&gt;attributes, ORTE_JOB_MAX_FREQ, NULL, OPAL_STRING)) {</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :         opal_output_verbose(2, orte_rtc_base_framework.framework_output,</span>
+<span class="lineNum">     329 </span>            :                             &quot;%s Assigning max freq given for job %s&quot;,
+<span class="lineNum">     330 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     331 </span>            :                             ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :         freq_given = true;</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     } else if (NULL != mca_rtc_freq_component.max_freq) {</span>
+<span class="lineNum">     334 </span>            :         /* if not, set the default value if provided */
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :         opal_output_verbose(2, orte_rtc_base_framework.framework_output,</span>
+<span class="lineNum">     336 </span>            :                             &quot;%s Assigning default max freq control to job %s&quot;,
+<span class="lineNum">     337 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     338 </span>            :                             ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :         orte_set_attribute(&amp;jdata-&gt;attributes, ORTE_JOB_MAX_FREQ, ORTE_ATTR_GLOBAL,</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :                            mca_rtc_freq_component.max_freq, OPAL_STRING);</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :         freq_given = true;</span>
+<span class="lineNum">     342 </span>            :     }
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span>            :     /* see if the job already has the min freq attribute set */
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     if (orte_get_attribute(&amp;jdata-&gt;attributes, ORTE_JOB_MIN_FREQ, NULL, OPAL_STRING)) {</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :         opal_output_verbose(2, orte_rtc_base_framework.framework_output,</span>
+<span class="lineNum">     347 </span>            :                             &quot;%s Assigning min freq controls to job %s&quot;,
+<span class="lineNum">     348 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     349 </span>            :                             ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :         freq_given = true;</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     } else if (NULL != mca_rtc_freq_component.min_freq) {</span>
+<span class="lineNum">     352 </span>            :         /* if not, set the default value if provided */
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :         opal_output_verbose(2, orte_rtc_base_framework.framework_output,</span>
+<span class="lineNum">     354 </span>            :                             &quot;%s Assigning default minfreq controls to job %s&quot;,
+<span class="lineNum">     355 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     356 </span>            :                             ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         orte_set_attribute(&amp;jdata-&gt;attributes, ORTE_JOB_MIN_FREQ, ORTE_ATTR_GLOBAL,</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :                            mca_rtc_freq_component.min_freq, OPAL_STRING);</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :         freq_given = true;</span>
+<span class="lineNum">     360 </span>            :     }
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            :     /* see if the job has a governor attribute set */
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     if (!orte_get_attribute(&amp;jdata-&gt;attributes, ORTE_JOB_GOVERNOR, NULL, OPAL_STRING)) {</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :         opal_output_verbose(2, orte_rtc_base_framework.framework_output,</span>
+<span class="lineNum">     365 </span>            :                             &quot;%s Assigning freq governor to job %s&quot;,
+<span class="lineNum">     366 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     367 </span>            :                             ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     368 </span>            :         /* if not, was a default value provided? */
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :         if (NULL != mca_rtc_freq_component.governor) {</span>
+<span class="lineNum">     370 </span>            :             /* set it */
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :             opal_output_verbose(2, orte_rtc_base_framework.framework_output,</span>
+<span class="lineNum">     372 </span>            :                                 &quot;%s Assigning default freq governor to job %s&quot;,
+<span class="lineNum">     373 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     374 </span>            :                                 ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :             orte_set_attribute(&amp;jdata-&gt;attributes, ORTE_JOB_GOVERNOR, ORTE_ATTR_GLOBAL,</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :                                mca_rtc_freq_component.governor, OPAL_STRING);</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :         } else if (freq_given) {</span>
+<span class="lineNum">     378 </span>            :             /* if the user specified a frequency, then we should default
+<span class="lineNum">     379 </span>            :              * to the userspace governor to ensure we can set it */
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :             opal_output_verbose(2, orte_rtc_base_framework.framework_output,</span>
+<span class="lineNum">     381 </span>            :                                 &quot;%s Assigning default userspace governor to job %s&quot;,
+<span class="lineNum">     382 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     383 </span>            :                                 ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :             orte_set_attribute(&amp;jdata-&gt;attributes, ORTE_JOB_GOVERNOR, ORTE_ATTR_GLOBAL,</span>
+<span class="lineNum">     385 </span>            :                                &quot;userspace&quot;, OPAL_STRING);
+<span class="lineNum">     386 </span>            :         }
+<span class="lineNum">     387 </span>            :     }
+<a name="388"><span class="lineNum">     388 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 : static void set(orte_job_t *jdata,</span>
+<span class="lineNum">     391 </span>            :                 orte_proc_t *child,
+<span class="lineNum">     392 </span>            :                 char ***environ_copy,
+<span class="lineNum">     393 </span>            :                 int write_fd)
+<span class="lineNum">     394 </span>            : {
+<span class="lineNum">     395 </span>            :     char *governor, *tmp, **vals;
+<span class="lineNum">     396 </span>            :     rtefreq_tracker_t *trk;
+<span class="lineNum">     397 </span>            :     opal_value_t *kv;
+<span class="lineNum">     398 </span>            :     float freq, *fptr, minfreq;
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :     bool setspeed_used = false;</span>
+<span class="lineNum">     400 </span>            :     bool allowed;
+<span class="lineNum">     401 </span>            :     char *filename;
+<span class="lineNum">     402 </span>            :     FILE *fp;
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_rtc_base_framework.framework_output,</span>
+<span class="lineNum">     405 </span>            :                         &quot;%s Setting freq controls for job %s&quot;,
+<span class="lineNum">     406 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     407 </span>            :                         ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span>            :     /* see if the job has the governor attribute set */
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     governor = NULL;</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :     if (orte_get_attribute(&amp;jdata-&gt;attributes, ORTE_JOB_GOVERNOR, (void**)&amp;governor, OPAL_STRING)) {</span>
+<span class="lineNum">     412 </span>            :         /* loop thru all the cpus on this node */
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :         OPAL_LIST_FOREACH(trk, &amp;tracking, rtefreq_tracker_t) {</span>
+<span class="lineNum">     414 </span>            :             /* does the requested value match the current setting? */
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :             if (0 == strcmp(trk-&gt;current_governor, governor)) {</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     417 </span>            :             }
+<span class="lineNum">     418 </span>            :             /* is the specified governor among those allowed? */
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :             allowed = false;</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :             OPAL_LIST_FOREACH(kv, &amp;trk-&gt;governors, opal_value_t) {</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :                 if (0 == strcmp(kv-&gt;data.string, governor)) {</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :                     allowed = true;</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     424 </span>            :                 }
+<span class="lineNum">     425 </span>            :             }
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :             if (!allowed) {</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :                 vals = NULL;</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :                 OPAL_LIST_FOREACH(kv, &amp;trk-&gt;governors, opal_value_t) {</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :                     opal_argv_append_nosize(&amp;vals, kv-&gt;data.string);</span>
+<span class="lineNum">     430 </span>            :                 }
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :                 tmp = opal_argv_join(vals, ',');</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :                 opal_argv_free(vals);</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-rtc-freq.txt&quot;, &quot;unsupported-governor&quot;, true,</span>
+<span class="lineNum">     434 </span>            :                                orte_process_info.nodename, governor, tmp);
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :                 free(tmp);</span>
+<span class="lineNum">     436 </span>            :                 /* generate an error so the errmgr can resolve it */
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     438 </span>            :             }
+<span class="lineNum">     439 </span>            :             /* attempt to set the value */
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :             filename = opal_os_path(false, trk-&gt;directory, &quot;scaling_governor&quot;, NULL);</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :             if (NULL == (fp = fopen(filename, &quot;w&quot;))) {</span>
+<span class="lineNum">     442 </span>            :                 /* not allowed - report the error */
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-rtc-freq.txt&quot;, &quot;permission-denied&quot;, true,</span>
+<span class="lineNum">     444 </span>            :                                &quot;governor&quot;, orte_process_info.nodename, filename);
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :                 free(filename);</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     447 </span>            :             }
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :             opal_output_verbose(2, orte_rtc_base_framework.framework_output,</span>
+<span class="lineNum">     449 </span>            :                                 &quot;%s Setting governor %s for job %s&quot;,
+<span class="lineNum">     450 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), governor,
+<span class="lineNum">     451 </span>            :                                 ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :             fprintf(fp, &quot;%s\n&quot;, governor);</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :             fclose(fp);</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :             free(filename);</span>
+<span class="lineNum">     455 </span>            :         }
+<span class="lineNum">     456 </span>            :     }
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span>            :     /* see if the job has the min freq attribute set */
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :     fptr = &amp;minfreq;</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     minfreq = -1.0;</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     orte_get_attribute(&amp;jdata-&gt;attributes, ORTE_JOB_MIN_FREQ, (void**)&amp;fptr, OPAL_FLOAT);</span>
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span>            :     /* see if the job has the max freq attribute set */
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :     fptr = &amp;freq;</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :     if (orte_get_attribute(&amp;jdata-&gt;attributes, ORTE_JOB_MAX_FREQ, (void**)&amp;fptr, OPAL_FLOAT)) {</span>
+<span class="lineNum">     466 </span>            :         /* loop thru all the cpus on this node */
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :         OPAL_LIST_FOREACH(trk, &amp;tracking, rtefreq_tracker_t) {</span>
+<span class="lineNum">     468 </span>            :             /* does the requested value match the current setting? */
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :             if (trk-&gt;current_max_freq == freq) {</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     471 </span>            :             }
+<span class="lineNum">     472 </span>            :             /* is the specified frequency among those allowed? */
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :             allowed = false;</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :             OPAL_LIST_FOREACH(kv, &amp;trk-&gt;frequencies, opal_value_t) {</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :                 if (kv-&gt;data.fval == freq) {</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :                     allowed = true;</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     478 </span>            :                 }
+<span class="lineNum">     479 </span>            :             }
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :             if (!allowed) {</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :                 vals = NULL;</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :                 OPAL_LIST_FOREACH(kv, &amp;trk-&gt;frequencies, opal_value_t) {</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :                     asprintf(&amp;tmp, &quot;%f&quot;, kv-&gt;data.fval);</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :                     opal_argv_append_nosize(&amp;vals, tmp);</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :                     free(tmp);</span>
+<span class="lineNum">     486 </span>            :                 }
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :                 tmp = opal_argv_join(vals, ',');</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :                 opal_argv_free(vals);</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-rtc-freq.txt&quot;, &quot;unsupported-freq&quot;, true, freq, tmp);</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :                 free(tmp);</span>
+<span class="lineNum">     491 </span>            :                 /* generate an error so the errmgr can resolve it */
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     493 </span>            :             }
+<span class="lineNum">     494 </span>            :             /* if we got a min freq and the two are the same, then use setspeed if supported */
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :             if (minfreq == freq &amp;&amp; trk-&gt;setspeed) {</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :                 filename = opal_os_path(false, trk-&gt;directory, &quot;scaling_setspeed&quot;, NULL);</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :                 setspeed_used = true;</span>
+<span class="lineNum">     498 </span>            :             } else {
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :                 filename = opal_os_path(false, trk-&gt;directory, &quot;scaling_max_freq&quot;, NULL);</span>
+<span class="lineNum">     500 </span>            :             }
+<span class="lineNum">     501 </span>            :             /* attempt to set the value */
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :             if (NULL == (fp = fopen(filename, &quot;w&quot;))) {</span>
+<span class="lineNum">     503 </span>            :                 /* not allowed - report the error */
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-rtc-freq.txt&quot;, &quot;permission-denied&quot;, true,</span>
+<span class="lineNum">     505 </span>            :                                &quot;max freq&quot;, orte_process_info.nodename, filename);
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :                 free(filename);</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     508 </span>            :             }
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :             opal_output_verbose(2, orte_rtc_base_framework.framework_output,</span>
+<span class="lineNum">     510 </span>            :                                 &quot;%s Setting %s freq controls to %ld for job %s&quot;,
+<span class="lineNum">     511 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     512 </span>            :                                 setspeed_used ? &quot;cpu&quot; : &quot;max&quot;,
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :                                 (unsigned long)(freq * 1000000.0),</span>
+<span class="lineNum">     514 </span>            :                                 ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :             fprintf(fp, &quot;%ld\n&quot;, (unsigned long)(freq * 1000000.0));</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :             fclose(fp);</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :             free(filename);</span>
+<span class="lineNum">     518 </span>            :         }
+<span class="lineNum">     519 </span>            :     }
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     if (!setspeed_used &amp;&amp; 0.0 &lt; minfreq) {</span>
+<span class="lineNum">     522 </span>            :         /* need to process the min freq value - loop thru all the cpus on this node */
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :         OPAL_LIST_FOREACH(trk, &amp;tracking, rtefreq_tracker_t) {</span>
+<span class="lineNum">     524 </span>            :             /* does the requested value match the current setting? */
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :             if (trk-&gt;current_min_freq == minfreq) {</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     527 </span>            :             }
+<span class="lineNum">     528 </span>            :             /* is the specified frequency among those allowed? */
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :             allowed = false;</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :             OPAL_LIST_FOREACH(kv, &amp;trk-&gt;frequencies, opal_value_t) {</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :                 if (kv-&gt;data.fval == minfreq) {</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :                     allowed = true;</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     534 </span>            :                 }
+<span class="lineNum">     535 </span>            :             }
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :             if (!allowed) {</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :                 vals = NULL;</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :                 OPAL_LIST_FOREACH(kv, &amp;trk-&gt;frequencies, opal_value_t) {</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :                     asprintf(&amp;tmp, &quot;%f&quot;, kv-&gt;data.fval);</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :                     opal_argv_append_nosize(&amp;vals, tmp);</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :                     free(tmp);</span>
+<span class="lineNum">     542 </span>            :                 }
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :                 tmp = opal_argv_join(vals, ',');</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :                 opal_argv_free(vals);</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-rtc-freq.txt&quot;, &quot;unsupported-freq&quot;, true, minfreq, tmp);</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :                 free(tmp);</span>
+<span class="lineNum">     547 </span>            :                 /* generate an error so the errmgr can resolve it */
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     549 </span>            :             }
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :             filename = opal_os_path(false, trk-&gt;directory, &quot;scaling_min_freq&quot;, NULL);</span>
+<span class="lineNum">     551 </span>            :             /* attempt to set the value */
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :             if (NULL == (fp = fopen(filename, &quot;w&quot;))) {</span>
+<span class="lineNum">     553 </span>            :                 /* not allowed - report the error */
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-rtc-freq.txt&quot;, &quot;permission-denied&quot;, true,</span>
+<span class="lineNum">     555 </span>            :                                &quot;min freq&quot;, orte_process_info.nodename, filename);
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :                 free(filename);</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     558 </span>            :             }
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :             opal_output_verbose(2, orte_rtc_base_framework.framework_output,</span>
+<span class="lineNum">     560 </span>            :                                 &quot;%s Setting min freq controls to %ld for job %s&quot;,
+<span class="lineNum">     561 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :                                 (unsigned long)(minfreq * 1000000.0),</span>
+<span class="lineNum">     563 </span>            :                                 ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :             fprintf(fp, &quot;%ld\n&quot;, (unsigned long)(minfreq * 1000000.0));</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :             fclose(fp);</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :             free(filename);</span>
+<span class="lineNum">     567 </span>            :         }
+<span class="lineNum">     568 </span>            :     }
+<a name="569"><span class="lineNum">     569 </span>            : }</a>
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 : static void getvals(opal_list_t *vals)</span>
+<span class="lineNum">     572 </span>            : {
+<span class="lineNum">     573 </span>            :     rtefreq_tracker_t *trk;
+<span class="lineNum">     574 </span>            :     orte_rtc_resource_t *res;
+<span class="lineNum">     575 </span>            :     opal_value_t *kv;
+<span class="lineNum">     576 </span>            :     char *tmp, **args;
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :     res = OBJ_NEW(orte_rtc_resource_t);</span>
+<span class="lineNum">     579 </span>            : 
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :     OPAL_LIST_FOREACH(trk, &amp;tracking, rtefreq_tracker_t) {</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :         res = OBJ_NEW(orte_rtc_resource_t);</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :         res-&gt;component = strdup(mca_rtc_freq_component.super.base_version.mca_component_name);</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :         asprintf(&amp;res-&gt;category, &quot;core-%d&quot;, trk-&gt;core);</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :         opal_list_append(vals, &amp;res-&gt;super);</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :         args = NULL;</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :         OPAL_LIST_FOREACH(kv, &amp;trk-&gt;governors, opal_value_t) {</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :             opal_argv_append_nosize(&amp;args, kv-&gt;data.string);</span>
+<span class="lineNum">     588 </span>            :         }
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :         res-&gt;control.key = strdup(&quot;governors&quot;);</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :         res-&gt;control.type = OPAL_STRING;</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :         res-&gt;control.data.string = opal_argv_join(args, ',');</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :         opal_argv_free(args);</span>
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :         res = OBJ_NEW(orte_rtc_resource_t);</span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :         res-&gt;component = strdup(mca_rtc_freq_component.super.base_version.mca_component_name);</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :         asprintf(&amp;res-&gt;category, &quot;core-%d&quot;, trk-&gt;core);</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :         opal_list_append(vals, &amp;res-&gt;super);</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :         args = NULL;</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :         OPAL_LIST_FOREACH(kv, &amp;trk-&gt;frequencies, opal_value_t) {</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :             asprintf(&amp;tmp, &quot;%f&quot;, kv-&gt;data.fval);</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :             opal_argv_append_nosize(&amp;args, tmp);</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :             free(tmp);</span>
+<span class="lineNum">     603 </span>            :         }
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :         res-&gt;control.key = strdup(&quot;frequencies&quot;);</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :         res-&gt;control.type = OPAL_STRING;</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :         res-&gt;control.data.string = opal_argv_join(args, ',');</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :         opal_argv_free(args);</span>
+<span class="lineNum">     608 </span>            :     }
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

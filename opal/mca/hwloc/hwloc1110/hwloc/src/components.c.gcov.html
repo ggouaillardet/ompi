@@ -1,0 +1,887 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/hwloc/hwloc1110/hwloc/src/components.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">opal/mca/hwloc/hwloc1110/hwloc/src</a> - components.c<span style="font-size: 80%;"> (source / <a href="components.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">149</td>
+            <td class="headerCovTableEntry">297</td>
+            <td class="headerCovTableEntryLo">50.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntryMed">80.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright © 2009-2015 Inria.  All rights reserved.
+<span class="lineNum">       3 </span>            :  * Copyright © 2012 Université Bordeau 1
+<span class="lineNum">       4 </span>            :  * See COPYING in top-level directory.
+<span class="lineNum">       5 </span>            :  */
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            : #include &lt;private/autogen/config.h&gt;
+<span class="lineNum">       8 </span>            : #include &lt;hwloc.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;private/private.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;private/xml.h&gt;
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : #define HWLOC_COMPONENT_STOP_NAME &quot;stop&quot;
+<span class="lineNum">      13 </span>            : #define HWLOC_COMPONENT_EXCLUDE_CHAR '-'
+<span class="lineNum">      14 </span>            : #define HWLOC_COMPONENT_SEPS &quot;,&quot;
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /* list of all registered discovery components, sorted by priority, higher priority first.
+<span class="lineNum">      17 </span>            :  * noos is last because its priority is 0.
+<span class="lineNum">      18 </span>            :  * others' priority is 10.
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : static struct hwloc_disc_component * hwloc_disc_components = NULL;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : static unsigned hwloc_components_users = 0; /* first one initializes, last ones destroys */
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : static int hwloc_components_verbose = 0;
+<span class="lineNum">      25 </span>            : #ifdef HWLOC_HAVE_PLUGINS
+<span class="lineNum">      26 </span>            : static int hwloc_plugins_verbose = 0;
+<span class="lineNum">      27 </span>            : #endif
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : /* hwloc_components_mutex serializes:
+<span class="lineNum">      30 </span>            :  * - loading/unloading plugins, and modifications of the hwloc_plugins list
+<span class="lineNum">      31 </span>            :  * - calls to ltdl, including in hwloc_check_plugin_namespace()
+<span class="lineNum">      32 </span>            :  * - registration of components with hwloc_disc_component_register()
+<span class="lineNum">      33 </span>            :  *   and hwloc_xml_callbacks_register()
+<span class="lineNum">      34 </span>            :  */
+<span class="lineNum">      35 </span>            : #ifdef HWLOC_WIN_SYS
+<span class="lineNum">      36 </span>            : /* Basic mutex on top of InterlockedCompareExchange() on windows,
+<span class="lineNum">      37 </span>            :  * Far from perfect, but easy to maintain, and way enough given that this code will never be needed for real. */
+<span class="lineNum">      38 </span>            : #include &lt;windows.h&gt;
+<span class="lineNum">      39 </span>            : static LONG hwloc_components_mutex = 0;
+<span class="lineNum">      40 </span>            : #define HWLOC_COMPONENTS_LOCK() do {                                            \
+<span class="lineNum">      41 </span>            :   while (InterlockedCompareExchange(&amp;hwloc_components_mutex, 1, 0) != 0)    \
+<span class="lineNum">      42 </span>            :     SwitchToThread();                                                           \
+<span class="lineNum">      43 </span>            : } while (0)
+<span class="lineNum">      44 </span>            : #define HWLOC_COMPONENTS_UNLOCK() do {                                          \
+<span class="lineNum">      45 </span>            :   assert(hwloc_components_mutex == 1);                                          \
+<span class="lineNum">      46 </span>            :   hwloc_components_mutex = 0;                                                   \
+<span class="lineNum">      47 </span>            : } while (0)
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : #elif defined HWLOC_HAVE_PTHREAD_MUTEX
+<span class="lineNum">      50 </span>            : /* pthread mutex if available (except on windows) */
+<span class="lineNum">      51 </span>            : #include &lt;pthread.h&gt;
+<span class="lineNum">      52 </span>            : static pthread_mutex_t hwloc_components_mutex = PTHREAD_MUTEX_INITIALIZER;
+<span class="lineNum">      53 </span>            : #define HWLOC_COMPONENTS_LOCK() pthread_mutex_lock(&amp;hwloc_components_mutex)
+<span class="lineNum">      54 </span>            : #define HWLOC_COMPONENTS_UNLOCK() pthread_mutex_unlock(&amp;hwloc_components_mutex)
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : #else /* HWLOC_WIN_SYS || HWLOC_HAVE_PTHREAD_MUTEX */
+<span class="lineNum">      57 </span>            : #error No mutex implementation available
+<span class="lineNum">      58 </span>            : #endif
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            : #ifdef HWLOC_HAVE_PLUGINS
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : #include &lt;ltdl.h&gt;
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : /* array of pointers to dynamically loaded plugins */
+<span class="lineNum">      66 </span>            : static struct hwloc__plugin_desc {
+<span class="lineNum">      67 </span>            :   char *name;
+<span class="lineNum">      68 </span>            :   struct hwloc_component *component;
+<span class="lineNum">      69 </span>            :   char *filename;
+<span class="lineNum">      70 </span>            :   lt_dlhandle handle;
+<span class="lineNum">      71 </span>            :   struct hwloc__plugin_desc *next;
+<span class="lineNum">      72 </span>            : } *hwloc_plugins = NULL;
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            : static int
+<span class="lineNum">      75 </span>            : hwloc__dlforeach_cb(const char *filename, void *_data __hwloc_attribute_unused)
+<span class="lineNum">      76 </span>            : {
+<span class="lineNum">      77 </span>            :   const char *basename;
+<span class="lineNum">      78 </span>            :   lt_dlhandle handle;
+<span class="lineNum">      79 </span>            :   char *componentsymbolname = NULL;
+<span class="lineNum">      80 </span>            :   struct hwloc_component *component;
+<span class="lineNum">      81 </span>            :   struct hwloc__plugin_desc *desc, **prevdesc;
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            :   if (hwloc_plugins_verbose)
+<span class="lineNum">      84 </span>            :     fprintf(stderr, &quot;Plugin dlforeach found `%s'\n&quot;, filename);
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            :   basename = strrchr(filename, '/');
+<span class="lineNum">      87 </span>            :   if (!basename)
+<span class="lineNum">      88 </span>            :     basename = filename;
+<span class="lineNum">      89 </span>            :   else
+<span class="lineNum">      90 </span>            :     basename++;
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            :   /* dlopen and get the component structure */
+<span class="lineNum">      93 </span>            :   handle = lt_dlopenext(filename);
+<span class="lineNum">      94 </span>            :   if (!handle) {
+<span class="lineNum">      95 </span>            :     if (hwloc_plugins_verbose)
+<span class="lineNum">      96 </span>            :       fprintf(stderr, &quot;Failed to load plugin: %s\n&quot;, lt_dlerror());
+<span class="lineNum">      97 </span>            :     goto out;
+<span class="lineNum">      98 </span>            :   }
+<span class="lineNum">      99 </span>            :   componentsymbolname = malloc(strlen(basename)+10+1);
+<span class="lineNum">     100 </span>            :   sprintf(componentsymbolname, &quot;%s_component&quot;, basename);
+<span class="lineNum">     101 </span>            :   component = lt_dlsym(handle, componentsymbolname);
+<span class="lineNum">     102 </span>            :   if (!component) {
+<span class="lineNum">     103 </span>            :     if (hwloc_plugins_verbose)
+<span class="lineNum">     104 </span>            :       fprintf(stderr, &quot;Failed to find component symbol `%s'\n&quot;,
+<span class="lineNum">     105 </span>            :               componentsymbolname);
+<span class="lineNum">     106 </span>            :     goto out_with_handle;
+<span class="lineNum">     107 </span>            :   }
+<span class="lineNum">     108 </span>            :   if (component-&gt;abi != HWLOC_COMPONENT_ABI) {
+<span class="lineNum">     109 </span>            :     if (hwloc_plugins_verbose)
+<span class="lineNum">     110 </span>            :       fprintf(stderr, &quot;Plugin symbol ABI %u instead of %u\n&quot;,
+<span class="lineNum">     111 </span>            :               component-&gt;abi, HWLOC_COMPONENT_ABI);
+<span class="lineNum">     112 </span>            :     goto out_with_handle;
+<span class="lineNum">     113 </span>            :   }
+<span class="lineNum">     114 </span>            :   if (hwloc_plugins_verbose)
+<span class="lineNum">     115 </span>            :     fprintf(stderr, &quot;Plugin contains expected symbol `%s'\n&quot;,
+<span class="lineNum">     116 </span>            :             componentsymbolname);
+<span class="lineNum">     117 </span>            :   free(componentsymbolname);
+<span class="lineNum">     118 </span>            :   componentsymbolname = NULL;
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            :   if (HWLOC_COMPONENT_TYPE_DISC == component-&gt;type) {
+<span class="lineNum">     121 </span>            :     if (strncmp(basename, &quot;hwloc_&quot;, 6)) {
+<span class="lineNum">     122 </span>            :       if (hwloc_plugins_verbose)
+<span class="lineNum">     123 </span>            :         fprintf(stderr, &quot;Plugin name `%s' doesn't match its type DISCOVERY\n&quot;, basename);
+<span class="lineNum">     124 </span>            :       goto out_with_handle;
+<span class="lineNum">     125 </span>            :     }
+<span class="lineNum">     126 </span>            :   } else if (HWLOC_COMPONENT_TYPE_XML == component-&gt;type) {
+<span class="lineNum">     127 </span>            :     if (strncmp(basename, &quot;hwloc_xml_&quot;, 10)) {
+<span class="lineNum">     128 </span>            :       if (hwloc_plugins_verbose)
+<span class="lineNum">     129 </span>            :         fprintf(stderr, &quot;Plugin name `%s' doesn't match its type XML\n&quot;, basename);
+<span class="lineNum">     130 </span>            :       goto out_with_handle;
+<span class="lineNum">     131 </span>            :     }
+<span class="lineNum">     132 </span>            :   } else {
+<span class="lineNum">     133 </span>            :     if (hwloc_plugins_verbose)
+<span class="lineNum">     134 </span>            :       fprintf(stderr, &quot;Plugin name `%s' has invalid type %u\n&quot;,
+<span class="lineNum">     135 </span>            :               basename, (unsigned) component-&gt;type);
+<span class="lineNum">     136 </span>            :     goto out_with_handle;
+<span class="lineNum">     137 </span>            :   }
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            :   /* allocate a plugin_desc and queue it */
+<span class="lineNum">     140 </span>            :   desc = malloc(sizeof(*desc));
+<span class="lineNum">     141 </span>            :   if (!desc)
+<span class="lineNum">     142 </span>            :     goto out_with_handle;
+<span class="lineNum">     143 </span>            :   desc-&gt;name = strdup(basename);
+<span class="lineNum">     144 </span>            :   desc-&gt;filename = strdup(filename);
+<span class="lineNum">     145 </span>            :   desc-&gt;component = component;
+<span class="lineNum">     146 </span>            :   desc-&gt;handle = handle;
+<span class="lineNum">     147 </span>            :   desc-&gt;next = NULL;
+<span class="lineNum">     148 </span>            :   if (hwloc_plugins_verbose)
+<span class="lineNum">     149 </span>            :     fprintf(stderr, &quot;Plugin descriptor `%s' ready\n&quot;, basename);
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            :   /* append to the list */
+<span class="lineNum">     152 </span>            :   prevdesc = &amp;hwloc_plugins;
+<span class="lineNum">     153 </span>            :   while (*prevdesc)
+<span class="lineNum">     154 </span>            :     prevdesc = &amp;((*prevdesc)-&gt;next);
+<span class="lineNum">     155 </span>            :   *prevdesc = desc;
+<span class="lineNum">     156 </span>            :   if (hwloc_plugins_verbose)
+<span class="lineNum">     157 </span>            :     fprintf(stderr, &quot;Plugin descriptor `%s' queued\n&quot;, basename);
+<span class="lineNum">     158 </span>            :   return 0;
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            :  out_with_handle:
+<span class="lineNum">     161 </span>            :   lt_dlclose(handle);
+<span class="lineNum">     162 </span>            :   free(componentsymbolname); /* NULL if already freed */
+<span class="lineNum">     163 </span>            :  out:
+<span class="lineNum">     164 </span>            :   return 0;
+<span class="lineNum">     165 </span>            : }
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            : static void
+<span class="lineNum">     168 </span>            : hwloc_plugins_exit(void)
+<span class="lineNum">     169 </span>            : {
+<span class="lineNum">     170 </span>            :   struct hwloc__plugin_desc *desc, *next;
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            :   if (hwloc_plugins_verbose)
+<span class="lineNum">     173 </span>            :     fprintf(stderr, &quot;Closing all plugins\n&quot;);
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            :   desc = hwloc_plugins;
+<span class="lineNum">     176 </span>            :   while (desc) {
+<span class="lineNum">     177 </span>            :     next = desc-&gt;next;
+<span class="lineNum">     178 </span>            :     lt_dlclose(desc-&gt;handle);
+<span class="lineNum">     179 </span>            :     free(desc-&gt;name);
+<span class="lineNum">     180 </span>            :     free(desc-&gt;filename);
+<span class="lineNum">     181 </span>            :     free(desc);
+<span class="lineNum">     182 </span>            :     desc = next;
+<span class="lineNum">     183 </span>            :   }
+<span class="lineNum">     184 </span>            :   hwloc_plugins = NULL;
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            :   lt_dlexit();
+<span class="lineNum">     187 </span>            : }
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span>            : static int
+<span class="lineNum">     190 </span>            : hwloc_plugins_init(void)
+<span class="lineNum">     191 </span>            : {
+<span class="lineNum">     192 </span>            :   const char *verboseenv;
+<span class="lineNum">     193 </span>            :   char *path = HWLOC_PLUGINS_PATH;
+<span class="lineNum">     194 </span>            :   const char *env;
+<span class="lineNum">     195 </span>            :   int err;
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            :   verboseenv = getenv(&quot;HWLOC_PLUGINS_VERBOSE&quot;);
+<span class="lineNum">     198 </span>            :   hwloc_plugins_verbose = verboseenv ? atoi(verboseenv) : 0;
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span>            :   err = lt_dlinit();
+<span class="lineNum">     201 </span>            :   if (err)
+<span class="lineNum">     202 </span>            :     goto out;
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            :   env = getenv(&quot;HWLOC_PLUGINS_PATH&quot;);
+<span class="lineNum">     205 </span>            :   if (env)
+<span class="lineNum">     206 </span>            :     path = env;
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span>            :   hwloc_plugins = NULL;
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            :   if (hwloc_plugins_verbose)
+<span class="lineNum">     211 </span>            :     fprintf(stderr, &quot;Starting plugin dlforeach in %s\n&quot;, path);
+<span class="lineNum">     212 </span>            :   err = lt_dlforeachfile(path, hwloc__dlforeach_cb, NULL);
+<span class="lineNum">     213 </span>            :   if (err)
+<span class="lineNum">     214 </span>            :     goto out_with_init;
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            :   return 0;
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            :  out_with_init:
+<span class="lineNum">     219 </span>            :   hwloc_plugins_exit();
+<span class="lineNum">     220 </span>            :  out:
+<span class="lineNum">     221 </span>            :   return -1;
+<span class="lineNum">     222 </span>            : }
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            : #endif /* HWLOC_HAVE_PLUGINS */
+<a name="225"><span class="lineNum">     225 </span>            : </a>
+<span class="lineNum">     226 </span>            : static const char *
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 : hwloc_disc_component_type_string(hwloc_disc_component_type_t type)</span>
+<span class="lineNum">     228 </span>            : {
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :   switch (type) {</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :   case HWLOC_DISC_COMPONENT_TYPE_CPU: return &quot;cpu&quot;;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   case HWLOC_DISC_COMPONENT_TYPE_GLOBAL: return &quot;global&quot;;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :   case HWLOC_DISC_COMPONENT_TYPE_MISC: return &quot;misc&quot;;</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :   default: return &quot;**unknown**&quot;;</span>
+<span class="lineNum">     234 </span>            :   }
+<span class="lineNum">     235 </span>            : }
+<a name="236"><span class="lineNum">     236 </span>            : </a>
+<span class="lineNum">     237 </span>            : static int
+<span class="lineNum">     238 </span><span class="lineCov">         14 : hwloc_disc_component_register(struct hwloc_disc_component *component,</span>
+<span class="lineNum">     239 </span>            :                               const char *filename)
+<span class="lineNum">     240 </span>            : {
+<span class="lineNum">     241 </span>            :   struct hwloc_disc_component **prev;
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            :   /* check that the component name is valid */
+<span class="lineNum">     244 </span><span class="lineCov">         14 :   if (!strcmp(component-&gt;name, HWLOC_COMPONENT_STOP_NAME)) {</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     if (hwloc_components_verbose)</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Cannot register discovery component with reserved name `&quot; HWLOC_COMPONENT_STOP_NAME &quot;'\n&quot;);</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     248 </span>            :   }
+<span class="lineNum">     249 </span><span class="lineCov">         14 :   if (strchr(component-&gt;name, HWLOC_COMPONENT_EXCLUDE_CHAR)</span>
+<span class="lineNum">     250 </span><span class="lineCov">         14 :       || strcspn(component-&gt;name, HWLOC_COMPONENT_SEPS) != strlen(component-&gt;name)) {</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :     if (hwloc_components_verbose)</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Cannot register discovery component with name `%s' containing reserved characters `%c&quot; HWLOC_COMPONENT_SEPS &quot;'\n&quot;,</span>
+<span class="lineNum">     253 </span>            :               component-&gt;name, HWLOC_COMPONENT_EXCLUDE_CHAR);
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     255 </span>            :   }
+<span class="lineNum">     256 </span>            :   /* check that the component type is valid */
+<span class="lineNum">     257 </span><span class="lineCov">         14 :   switch ((unsigned) component-&gt;type) {</span>
+<span class="lineNum">     258 </span>            :   case HWLOC_DISC_COMPONENT_TYPE_CPU:
+<span class="lineNum">     259 </span>            :   case HWLOC_DISC_COMPONENT_TYPE_GLOBAL:
+<span class="lineNum">     260 </span>            :   case HWLOC_DISC_COMPONENT_TYPE_MISC:
+<span class="lineNum">     261 </span><span class="lineCov">         14 :     break;</span>
+<span class="lineNum">     262 </span>            :   default:
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     fprintf(stderr, &quot;Cannot register discovery component `%s' with unknown type %u\n&quot;,</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             component-&gt;name, (unsigned) component-&gt;type);</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     266 </span>            :   }
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineCov">         14 :   prev = &amp;hwloc_disc_components;</span>
+<span class="lineNum">     269 </span><span class="lineCov">         70 :   while (NULL != *prev) {</span>
+<span class="lineNum">     270 </span><span class="lineCov">         42 :     if (!strcmp((*prev)-&gt;name, component-&gt;name)) {</span>
+<span class="lineNum">     271 </span>            :       /* if two components have the same name, only keep the highest priority one */
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :       if ((*prev)-&gt;priority &lt; component-&gt;priority) {</span>
+<span class="lineNum">     273 </span>            :         /* drop the existing component */
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         if (hwloc_components_verbose)</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :           fprintf(stderr, &quot;Dropping previously registered discovery component `%s', priority %u lower than new one %u\n&quot;,</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :                   (*prev)-&gt;name, (*prev)-&gt;priority, component-&gt;priority);</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :         *prev = (*prev)-&gt;next;</span>
+<span class="lineNum">     278 </span>            :       } else {
+<span class="lineNum">     279 </span>            :         /* drop the new one */
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         if (hwloc_components_verbose)</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :           fprintf(stderr, &quot;Ignoring new discovery component `%s', priority %u lower than previously registered one %u\n&quot;,</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :                   component-&gt;name, component-&gt;priority, (*prev)-&gt;priority);</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     284 </span>            :       }
+<span class="lineNum">     285 </span>            :     }
+<span class="lineNum">     286 </span><span class="lineCov">         42 :     prev = &amp;((*prev)-&gt;next);</span>
+<span class="lineNum">     287 </span>            :   }
+<span class="lineNum">     288 </span><span class="lineCov">         14 :   if (hwloc_components_verbose)</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     fprintf(stderr, &quot;Registered %s discovery component `%s' with priority %u (%s%s)\n&quot;,</span>
+<span class="lineNum">     290 </span>            :             hwloc_disc_component_type_string(component-&gt;type), component-&gt;name, component-&gt;priority,
+<span class="lineNum">     291 </span>            :             filename ? &quot;from plugin &quot; : &quot;statically build&quot;, filename ? filename : &quot;&quot;);
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineCov">         14 :   prev = &amp;hwloc_disc_components;</span>
+<span class="lineNum">     294 </span><span class="lineCov">         52 :   while (NULL != *prev) {</span>
+<span class="lineNum">     295 </span><span class="lineCov">         28 :     if ((*prev)-&gt;priority &lt; component-&gt;priority)</span>
+<span class="lineNum">     296 </span><span class="lineCov">          4 :       break;</span>
+<span class="lineNum">     297 </span><span class="lineCov">         24 :     prev = &amp;((*prev)-&gt;next);</span>
+<span class="lineNum">     298 </span>            :   }
+<span class="lineNum">     299 </span><span class="lineCov">         14 :   component-&gt;next = *prev;</span>
+<span class="lineNum">     300 </span><span class="lineCov">         14 :   *prev = component;</span>
+<span class="lineNum">     301 </span><span class="lineCov">         14 :   return 0;</span>
+<span class="lineNum">     302 </span>            : }
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            : #include &lt;static-components.h&gt;
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            : static void (**hwloc_component_finalize_cbs)(unsigned long);
+<span class="lineNum">     307 </span>            : static unsigned hwloc_component_finalize_cb_count;
+<a name="308"><span class="lineNum">     308 </span>            : </a>
+<span class="lineNum">     309 </span>            : void
+<span class="lineNum">     310 </span><span class="lineCov">          2 : hwloc_components_init(struct hwloc_topology *topology __hwloc_attribute_unused)</span>
+<span class="lineNum">     311 </span>            : {
+<span class="lineNum">     312 </span>            : #ifdef HWLOC_HAVE_PLUGINS
+<span class="lineNum">     313 </span>            :   struct hwloc__plugin_desc *desc;
+<span class="lineNum">     314 </span>            : #endif
+<span class="lineNum">     315 </span>            :   const char *verboseenv;
+<span class="lineNum">     316 </span>            :   unsigned i;
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span><span class="lineCov">          2 :   HWLOC_COMPONENTS_LOCK();</span>
+<span class="lineNum">     319 </span><span class="lineCov">          2 :   assert((unsigned) -1 != hwloc_components_users);</span>
+<span class="lineNum">     320 </span><span class="lineCov">          2 :   if (0 != hwloc_components_users++) {</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     HWLOC_COMPONENTS_UNLOCK();</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :     goto ok;</span>
+<span class="lineNum">     323 </span>            :   }
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span><span class="lineCov">          2 :   verboseenv = getenv(&quot;HWLOC_COMPONENTS_VERBOSE&quot;);</span>
+<span class="lineNum">     326 </span><span class="lineCov">          2 :   hwloc_components_verbose = verboseenv ? atoi(verboseenv) : 0;</span>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span>            : #ifdef HWLOC_HAVE_PLUGINS
+<span class="lineNum">     329 </span>            :   hwloc_plugins_init();
+<span class="lineNum">     330 </span>            : #endif
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span><span class="lineCov">          2 :   hwloc_component_finalize_cbs = NULL;</span>
+<span class="lineNum">     333 </span><span class="lineCov">          2 :   hwloc_component_finalize_cb_count = 0;</span>
+<span class="lineNum">     334 </span>            :   /* count the max number of finalize callbacks */
+<span class="lineNum">     335 </span><span class="lineCov">         18 :   for(i=0; NULL != hwloc_static_components[i]; i++)</span>
+<span class="lineNum">     336 </span><span class="lineCov">         16 :     hwloc_component_finalize_cb_count++;</span>
+<span class="lineNum">     337 </span>            : #ifdef HWLOC_HAVE_PLUGINS
+<span class="lineNum">     338 </span>            :   for(desc = hwloc_plugins; NULL != desc; desc = desc-&gt;next)
+<span class="lineNum">     339 </span>            :     hwloc_component_finalize_cb_count++;
+<span class="lineNum">     340 </span>            : #endif
+<span class="lineNum">     341 </span><span class="lineCov">          2 :   if (hwloc_component_finalize_cb_count) {</span>
+<span class="lineNum">     342 </span><span class="lineCov">          2 :     hwloc_component_finalize_cbs = calloc(hwloc_component_finalize_cb_count,</span>
+<span class="lineNum">     343 </span>            :                                           sizeof(*hwloc_component_finalize_cbs));
+<span class="lineNum">     344 </span><span class="lineCov">          2 :     assert(hwloc_component_finalize_cbs);</span>
+<span class="lineNum">     345 </span>            :     /* forget that max number and recompute the real one below */
+<span class="lineNum">     346 </span><span class="lineCov">          2 :     hwloc_component_finalize_cb_count = 0;</span>
+<span class="lineNum">     347 </span>            :   }
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            :   /* hwloc_static_components is created by configure in static-components.h */
+<span class="lineNum">     350 </span><span class="lineCov">         18 :   for(i=0; NULL != hwloc_static_components[i]; i++) {</span>
+<span class="lineNum">     351 </span><span class="lineCov">         16 :     if (hwloc_static_components[i]-&gt;flags) {</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Ignoring static component with invalid flags %lx\n&quot;,</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :               hwloc_static_components[i]-&gt;flags);</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     355 </span>            :     }
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            :     /* initialize the component */
+<span class="lineNum">     358 </span><span class="lineCov">         16 :     if (hwloc_static_components[i]-&gt;init &amp;&amp; hwloc_static_components[i]-&gt;init(0) &lt; 0) {</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :       if (hwloc_components_verbose)</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;Ignoring static component, failed to initialize\n&quot;);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     362 </span>            :     }
+<span class="lineNum">     363 </span>            :     /* queue -&gt;finalize() callback if any */
+<span class="lineNum">     364 </span><span class="lineCov">         16 :     if (hwloc_static_components[i]-&gt;finalize)</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :       hwloc_component_finalize_cbs[hwloc_component_finalize_cb_count++] = hwloc_static_components[i]-&gt;finalize;</span>
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span>            :     /* register for real now */
+<span class="lineNum">     368 </span><span class="lineCov">         16 :     if (HWLOC_COMPONENT_TYPE_DISC == hwloc_static_components[i]-&gt;type)</span>
+<span class="lineNum">     369 </span><span class="lineCov">         14 :       hwloc_disc_component_register(hwloc_static_components[i]-&gt;data, NULL);</span>
+<span class="lineNum">     370 </span><span class="lineCov">          2 :     else if (HWLOC_COMPONENT_TYPE_XML == hwloc_static_components[i]-&gt;type)</span>
+<span class="lineNum">     371 </span><span class="lineCov">          2 :       hwloc_xml_callbacks_register(hwloc_static_components[i]-&gt;data);</span>
+<span class="lineNum">     372 </span>            :     else
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :       assert(0);</span>
+<span class="lineNum">     374 </span>            :   }
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            :   /* dynamic plugins */
+<span class="lineNum">     377 </span>            : #ifdef HWLOC_HAVE_PLUGINS
+<span class="lineNum">     378 </span>            :   for(desc = hwloc_plugins; NULL != desc; desc = desc-&gt;next) {
+<span class="lineNum">     379 </span>            :     if (desc-&gt;component-&gt;flags) {
+<span class="lineNum">     380 </span>            :       fprintf(stderr, &quot;Ignoring plugin `%s' component with invalid flags %lx\n&quot;,
+<span class="lineNum">     381 </span>            :               desc-&gt;name, desc-&gt;component-&gt;flags);
+<span class="lineNum">     382 </span>            :       continue;
+<span class="lineNum">     383 </span>            :     }
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span>            :     /* initialize the component */
+<span class="lineNum">     386 </span>            :     if (desc-&gt;component-&gt;init &amp;&amp; desc-&gt;component-&gt;init(0) &lt; 0) {
+<span class="lineNum">     387 </span>            :       if (hwloc_components_verbose)
+<span class="lineNum">     388 </span>            :         fprintf(stderr, &quot;Ignoring plugin `%s', failed to initialize\n&quot;, desc-&gt;name);
+<span class="lineNum">     389 </span>            :       continue;
+<span class="lineNum">     390 </span>            :     }
+<span class="lineNum">     391 </span>            :     /* queue -&gt;finalize() callback if any */
+<span class="lineNum">     392 </span>            :     if (desc-&gt;component-&gt;finalize)
+<span class="lineNum">     393 </span>            :       hwloc_component_finalize_cbs[hwloc_component_finalize_cb_count++] = desc-&gt;component-&gt;finalize;
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span>            :     /* register for real now */
+<span class="lineNum">     396 </span>            :     if (HWLOC_COMPONENT_TYPE_DISC == desc-&gt;component-&gt;type)
+<span class="lineNum">     397 </span>            :       hwloc_disc_component_register(desc-&gt;component-&gt;data, desc-&gt;filename);
+<span class="lineNum">     398 </span>            :     else if (HWLOC_COMPONENT_TYPE_XML == desc-&gt;component-&gt;type)
+<span class="lineNum">     399 </span>            :       hwloc_xml_callbacks_register(desc-&gt;component-&gt;data);
+<span class="lineNum">     400 </span>            :     else
+<span class="lineNum">     401 </span>            :       assert(0);
+<span class="lineNum">     402 </span>            :   }
+<span class="lineNum">     403 </span>            : #endif
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span><span class="lineCov">          2 :   HWLOC_COMPONENTS_UNLOCK();</span>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span>            :  ok:
+<span class="lineNum">     408 </span><span class="lineCov">          2 :   topology-&gt;backends = NULL;</span>
+<span class="lineNum">     409 </span><span class="lineCov">          2 : }</span>
+<a name="410"><span class="lineNum">     410 </span>            : </a>
+<span class="lineNum">     411 </span>            : static struct hwloc_disc_component *
+<span class="lineNum">     412 </span><span class="lineCov">          2 : hwloc_disc_component_find(int type /* hwloc_disc_component_type_t or -1 if any */,</span>
+<span class="lineNum">     413 </span>            :                                const char *name /* name of NULL if any */)
+<span class="lineNum">     414 </span>            : {
+<span class="lineNum">     415 </span><span class="lineCov">          2 :   struct hwloc_disc_component *comp = hwloc_disc_components;</span>
+<span class="lineNum">     416 </span><span class="lineCov">         10 :   while (NULL != comp) {</span>
+<span class="lineNum">     417 </span><span class="lineCov">          8 :     if ((-1 == type || type == (int) comp-&gt;type)</span>
+<span class="lineNum">     418 </span><span class="lineCov">          8 :        &amp;&amp; (NULL == name || !strcmp(name, comp-&gt;name)))</span>
+<span class="lineNum">     419 </span><span class="lineCov">          2 :       return comp;</span>
+<span class="lineNum">     420 </span><span class="lineCov">          6 :     comp = comp-&gt;next;</span>
+<span class="lineNum">     421 </span>            :   }
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :   return NULL;</span>
+<span class="lineNum">     423 </span>            : }
+<span class="lineNum">     424 </span>            : 
+<a name="425"><span class="lineNum">     425 </span>            : /* used by set_xml(), set_synthetic(), ... environment variables, ... to force the first backend */</a>
+<span class="lineNum">     426 </span>            : int
+<span class="lineNum">     427 </span><span class="lineCov">          2 : hwloc_disc_component_force_enable(struct hwloc_topology *topology,</span>
+<span class="lineNum">     428 </span>            :                                   int envvar_forced,
+<span class="lineNum">     429 </span>            :                                   int type, const char *name,
+<span class="lineNum">     430 </span>            :                                   const void *data1, const void *data2, const void *data3)
+<span class="lineNum">     431 </span>            : {
+<span class="lineNum">     432 </span>            :   struct hwloc_disc_component *comp;
+<span class="lineNum">     433 </span>            :   struct hwloc_backend *backend;
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span><span class="lineCov">          2 :   if (topology-&gt;is_loaded) {</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     errno = EBUSY;</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     438 </span>            :   }
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span><span class="lineCov">          2 :   comp = hwloc_disc_component_find(type, name);</span>
+<span class="lineNum">     441 </span><span class="lineCov">          2 :   if (!comp) {</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :     errno = ENOSYS;</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     444 </span>            :   }
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span><span class="lineCov">          2 :   backend = comp-&gt;instantiate(comp, data1, data2, data3);</span>
+<span class="lineNum">     447 </span><span class="lineCov">          2 :   if (backend) {</span>
+<span class="lineNum">     448 </span><span class="lineCov">          2 :     backend-&gt;envvar_forced = envvar_forced;</span>
+<span class="lineNum">     449 </span><span class="lineCov">          2 :     if (topology-&gt;backends)</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :       hwloc_backends_disable_all(topology);</span>
+<span class="lineNum">     451 </span><span class="lineCov">          2 :     return hwloc_backend_enable(topology, backend);</span>
+<span class="lineNum">     452 </span>            :   } else
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     454 </span>            : }
+<a name="455"><span class="lineNum">     455 </span>            : </a>
+<span class="lineNum">     456 </span>            : static int
+<span class="lineNum">     457 </span><span class="lineCov">         14 : hwloc_disc_component_try_enable(struct hwloc_topology *topology,</span>
+<span class="lineNum">     458 </span>            :                                 struct hwloc_disc_component *comp,
+<span class="lineNum">     459 </span>            :                                 const char *comparg,
+<span class="lineNum">     460 </span>            :                                 unsigned *excludes,
+<span class="lineNum">     461 </span>            :                                 int envvar_forced,
+<span class="lineNum">     462 </span>            :                                 int verbose_errors)
+<span class="lineNum">     463 </span>            : {
+<span class="lineNum">     464 </span>            :   struct hwloc_backend *backend;
+<span class="lineNum">     465 </span>            :   int err;
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span><span class="lineCov">         14 :   if ((*excludes) &amp; comp-&gt;type) {</span>
+<span class="lineNum">     468 </span><span class="lineCov">         14 :     if (hwloc_components_verbose || verbose_errors)</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Excluding %s discovery component `%s', conflicts with excludes 0x%x\n&quot;,</span>
+<span class="lineNum">     470 </span>            :               hwloc_disc_component_type_string(comp-&gt;type), comp-&gt;name, *excludes);
+<span class="lineNum">     471 </span><span class="lineCov">         14 :     return -1;</span>
+<span class="lineNum">     472 </span>            :   }
+<span class="lineNum">     473 </span>            : 
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :   backend = comp-&gt;instantiate(comp, comparg, NULL, NULL);</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :   if (!backend) {</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     if (hwloc_components_verbose || verbose_errors)</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Failed to instantiate discovery component `%s'\n&quot;, comp-&gt;name);</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     479 </span>            :   }
+<span class="lineNum">     480 </span>            : 
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :   backend-&gt;envvar_forced = envvar_forced;</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :   err = hwloc_backend_enable(topology, backend);</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   if (err &lt; 0)</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :   *excludes |= comp-&gt;excludes;</span>
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     489 </span>            : }
+<a name="490"><span class="lineNum">     490 </span>            : </a>
+<span class="lineNum">     491 </span>            : void
+<span class="lineNum">     492 </span><span class="lineCov">          2 : hwloc_disc_components_enable_others(struct hwloc_topology *topology)</span>
+<span class="lineNum">     493 </span>            : {
+<span class="lineNum">     494 </span>            :   struct hwloc_disc_component *comp;
+<span class="lineNum">     495 </span>            :   struct hwloc_backend *backend;
+<span class="lineNum">     496 </span><span class="lineCov">          2 :   unsigned excludes = 0;</span>
+<span class="lineNum">     497 </span><span class="lineCov">          2 :   int tryall = 1;</span>
+<span class="lineNum">     498 </span>            :   const char *_env;
+<span class="lineNum">     499 </span>            :   char *env; /* we'll to modify the env value, so duplicate it */
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span><span class="lineCov">          2 :   _env = getenv(&quot;HWLOC_COMPONENTS&quot;);</span>
+<span class="lineNum">     502 </span><span class="lineCov">          2 :   env = _env ? strdup(_env) : NULL;</span>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span>            :   /* compute current excludes */
+<span class="lineNum">     505 </span><span class="lineCov">          2 :   backend = topology-&gt;backends;</span>
+<span class="lineNum">     506 </span><span class="lineCov">          6 :   while (backend) {</span>
+<span class="lineNum">     507 </span><span class="lineCov">          2 :     excludes |= backend-&gt;component-&gt;excludes;</span>
+<span class="lineNum">     508 </span><span class="lineCov">          2 :     backend = backend-&gt;next;</span>
+<span class="lineNum">     509 </span>            :   }
+<span class="lineNum">     510 </span>            : 
+<span class="lineNum">     511 </span>            :   /* enable explicitly listed components */
+<span class="lineNum">     512 </span><span class="lineCov">          2 :   if (env) {</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     char *curenv = env;</span>
+<span class="lineNum">     514 </span>            :     size_t s;
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     while (*curenv) {</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :       s = strcspn(curenv, HWLOC_COMPONENT_SEPS);</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :       if (s) {</span>
+<span class="lineNum">     519 </span>            :         char *arg;
+<span class="lineNum">     520 </span>            :         char c, d;
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span>            :         /* replace libpci with pci for backward compatibility with v1.6 */
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :         if (!strncmp(curenv, &quot;libpci&quot;, s)) {</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :           curenv[0] = curenv[1] = curenv[2] = *HWLOC_COMPONENT_SEPS;</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :           curenv += 3;</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :           s -= 3;</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :         } else if (curenv[0] == HWLOC_COMPONENT_EXCLUDE_CHAR &amp;&amp; !strncmp(curenv+1, &quot;libpci&quot;, s-1)) {</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :           curenv[3] = curenv[0];</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :           curenv[0] = curenv[1] = curenv[2] = *HWLOC_COMPONENT_SEPS;</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :           curenv += 3;</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :           s -= 3;</span>
+<span class="lineNum">     532 </span>            :           /* skip this name, it's a negated one */
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :           goto nextname;</span>
+<span class="lineNum">     534 </span>            :         }
+<span class="lineNum">     535 </span>            : 
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :         if (curenv[0] == HWLOC_COMPONENT_EXCLUDE_CHAR)</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :           goto nextname;</span>
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :         if (!strncmp(curenv, HWLOC_COMPONENT_STOP_NAME, s)) {</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :           tryall = 0;</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">     542 </span>            :         }
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span>            :         /* save the last char and replace with \0 */
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :         c = curenv[s];</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :         curenv[s] = '\0';</span>
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :         arg = strchr(curenv, '=');</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :         if (arg) {</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :           d = *arg;</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :           *arg = '\0';</span>
+<span class="lineNum">     552 </span>            :         }
+<span class="lineNum">     553 </span>            : 
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :         comp = hwloc_disc_component_find(-1, curenv);</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :         if (comp) {</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :           hwloc_disc_component_try_enable(topology, comp, arg ? arg+1 : NULL, &amp;excludes, 1 /* envvar forced */, 1 /* envvar forced need warnings */);</span>
+<span class="lineNum">     557 </span>            :         } else {
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :           fprintf(stderr, &quot;Cannot find discovery component `%s'\n&quot;, curenv);</span>
+<span class="lineNum">     559 </span>            :         }
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span>            :         /* restore chars (the second loop below needs env to be unmodified) */
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :         curenv[s] = c;</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :         if (arg)</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :           *arg = d;</span>
+<span class="lineNum">     565 </span>            :       }
+<span class="lineNum">     566 </span>            : 
+<span class="lineNum">     567 </span>            : nextname:
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :       curenv += s;</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :       if (*curenv)</span>
+<span class="lineNum">     570 </span>            :         /* Skip comma */
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :         curenv++;</span>
+<span class="lineNum">     572 </span>            :     }
+<span class="lineNum">     573 </span>            :   }
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span>            :   /* env is still the same, the above loop didn't modify it */
+<span class="lineNum">     576 </span>            : 
+<span class="lineNum">     577 </span>            :   /* now enable remaining components (except the explicitly '-'-listed ones) */
+<span class="lineNum">     578 </span><span class="lineCov">          2 :   if (tryall) {</span>
+<span class="lineNum">     579 </span><span class="lineCov">          2 :     comp = hwloc_disc_components;</span>
+<span class="lineNum">     580 </span><span class="lineCov">         18 :     while (NULL != comp) {</span>
+<span class="lineNum">     581 </span>            :       /* check if this component was explicitly excluded in env */
+<span class="lineNum">     582 </span><span class="lineCov">         14 :       if (env) {</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :         char *curenv = env;</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :         while (*curenv) {</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :           size_t s = strcspn(curenv, HWLOC_COMPONENT_SEPS);</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :           if (curenv[0] == HWLOC_COMPONENT_EXCLUDE_CHAR &amp;&amp; !strncmp(curenv+1, comp-&gt;name, s-1)) {</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :             if (hwloc_components_verbose)</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :               fprintf(stderr, &quot;Excluding %s discovery component `%s' because of HWLOC_COMPONENTS environment variable\n&quot;,</span>
+<span class="lineNum">     589 </span>            :             hwloc_disc_component_type_string(comp-&gt;type), comp-&gt;name);
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :             goto nextcomp;</span>
+<span class="lineNum">     591 </span>            :           }
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :           curenv += s;</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :           if (*curenv)</span>
+<span class="lineNum">     594 </span>            :             /* Skip comma */
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :             curenv++;</span>
+<span class="lineNum">     596 </span>            :         }
+<span class="lineNum">     597 </span>            :       }
+<span class="lineNum">     598 </span><span class="lineCov">         14 :       hwloc_disc_component_try_enable(topology, comp, NULL, &amp;excludes, 0 /* defaults, not envvar forced */, 0 /* defaults don't need warnings on conflicts */);</span>
+<span class="lineNum">     599 </span>            : nextcomp:
+<span class="lineNum">     600 </span><span class="lineCov">         14 :       comp = comp-&gt;next;</span>
+<span class="lineNum">     601 </span>            :     }
+<span class="lineNum">     602 </span>            :   }
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span><span class="lineCov">          2 :   if (hwloc_components_verbose) {</span>
+<span class="lineNum">     605 </span>            :     /* print a summary */
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :     int first = 1;</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :     backend = topology-&gt;backends;</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :     fprintf(stderr, &quot;Final list of enabled discovery components: &quot;);</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :     while (backend != NULL) {</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;%s%s&quot;, first ? &quot;&quot; : &quot;,&quot;, backend-&gt;component-&gt;name);</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :       backend = backend-&gt;next;</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :       first = 0;</span>
+<span class="lineNum">     613 </span>            :     }
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :     fprintf(stderr, &quot;\n&quot;);</span>
+<span class="lineNum">     615 </span>            :   }
+<span class="lineNum">     616 </span>            : 
+<span class="lineNum">     617 </span><span class="lineCov">          2 :   if (env)</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :     free(env);</span>
+<span class="lineNum">     619 </span><span class="lineCov">          2 : }</span>
+<a name="620"><span class="lineNum">     620 </span>            : </a>
+<span class="lineNum">     621 </span>            : void
+<span class="lineNum">     622 </span><span class="lineCov">          2 : hwloc_components_destroy_all(struct hwloc_topology *topology __hwloc_attribute_unused)</span>
+<span class="lineNum">     623 </span>            : {
+<span class="lineNum">     624 </span>            :   unsigned i;
+<span class="lineNum">     625 </span>            : 
+<span class="lineNum">     626 </span><span class="lineCov">          2 :   HWLOC_COMPONENTS_LOCK();</span>
+<span class="lineNum">     627 </span><span class="lineCov">          2 :   assert(0 != hwloc_components_users);</span>
+<span class="lineNum">     628 </span><span class="lineCov">          2 :   if (0 != --hwloc_components_users) {</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :     HWLOC_COMPONENTS_UNLOCK();</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     631 </span>            :   }
+<span class="lineNum">     632 </span>            : 
+<span class="lineNum">     633 </span><span class="lineCov">          2 :   for(i=0; i&lt;hwloc_component_finalize_cb_count; i++)</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :     hwloc_component_finalize_cbs[hwloc_component_finalize_cb_count-i-1](0);</span>
+<span class="lineNum">     635 </span><span class="lineCov">          2 :   free(hwloc_component_finalize_cbs);</span>
+<span class="lineNum">     636 </span><span class="lineCov">          2 :   hwloc_component_finalize_cbs = NULL;</span>
+<span class="lineNum">     637 </span><span class="lineCov">          2 :   hwloc_component_finalize_cb_count = 0;</span>
+<span class="lineNum">     638 </span>            : 
+<span class="lineNum">     639 </span>            :   /* no need to unlink/free the list of components, they'll be unloaded below */
+<span class="lineNum">     640 </span>            : 
+<span class="lineNum">     641 </span><span class="lineCov">          2 :   hwloc_disc_components = NULL;</span>
+<span class="lineNum">     642 </span><span class="lineCov">          2 :   hwloc_xml_callbacks_reset();</span>
+<span class="lineNum">     643 </span>            : 
+<span class="lineNum">     644 </span>            : #ifdef HWLOC_HAVE_PLUGINS
+<span class="lineNum">     645 </span>            :   hwloc_plugins_exit();
+<span class="lineNum">     646 </span>            : #endif
+<span class="lineNum">     647 </span>            : 
+<span class="lineNum">     648 </span><span class="lineCov">          2 :   HWLOC_COMPONENTS_UNLOCK();</span>
+<span class="lineNum">     649 </span>            : }
+<a name="650"><span class="lineNum">     650 </span>            : </a>
+<span class="lineNum">     651 </span>            : struct hwloc_backend *
+<span class="lineNum">     652 </span><span class="lineCov">          2 : hwloc_backend_alloc(struct hwloc_disc_component *component)</span>
+<span class="lineNum">     653 </span>            : {
+<span class="lineNum">     654 </span><span class="lineCov">          2 :   struct hwloc_backend * backend = malloc(sizeof(*backend));</span>
+<span class="lineNum">     655 </span><span class="lineCov">          2 :   if (!backend) {</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :     errno = ENOMEM;</span>
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     658 </span>            :   }
+<span class="lineNum">     659 </span><span class="lineCov">          2 :   backend-&gt;component = component;</span>
+<span class="lineNum">     660 </span><span class="lineCov">          2 :   backend-&gt;flags = 0;</span>
+<span class="lineNum">     661 </span><span class="lineCov">          2 :   backend-&gt;discover = NULL;</span>
+<span class="lineNum">     662 </span><span class="lineCov">          2 :   backend-&gt;get_obj_cpuset = NULL;</span>
+<span class="lineNum">     663 </span><span class="lineCov">          2 :   backend-&gt;notify_new_object = NULL;</span>
+<span class="lineNum">     664 </span><span class="lineCov">          2 :   backend-&gt;disable = NULL;</span>
+<span class="lineNum">     665 </span><span class="lineCov">          2 :   backend-&gt;is_custom = 0;</span>
+<span class="lineNum">     666 </span><span class="lineCov">          2 :   backend-&gt;is_thissystem = -1;</span>
+<span class="lineNum">     667 </span><span class="lineCov">          2 :   backend-&gt;next = NULL;</span>
+<span class="lineNum">     668 </span><span class="lineCov">          2 :   backend-&gt;envvar_forced = 0;</span>
+<span class="lineNum">     669 </span><span class="lineCov">          2 :   return backend;</span>
+<span class="lineNum">     670 </span>            : }
+<a name="671"><span class="lineNum">     671 </span>            : </a>
+<span class="lineNum">     672 </span>            : static void
+<span class="lineNum">     673 </span><span class="lineCov">          2 : hwloc_backend_disable(struct hwloc_backend *backend)</span>
+<span class="lineNum">     674 </span>            : {
+<span class="lineNum">     675 </span><span class="lineCov">          2 :   if (backend-&gt;disable)</span>
+<span class="lineNum">     676 </span><span class="lineCov">          2 :     backend-&gt;disable(backend);</span>
+<span class="lineNum">     677 </span><span class="lineCov">          2 :   free(backend);</span>
+<span class="lineNum">     678 </span><span class="lineCov">          2 : }</span>
+<a name="679"><span class="lineNum">     679 </span>            : </a>
+<span class="lineNum">     680 </span>            : int
+<span class="lineNum">     681 </span><span class="lineCov">          2 : hwloc_backend_enable(struct hwloc_topology *topology, struct hwloc_backend *backend)</span>
+<span class="lineNum">     682 </span>            : {
+<span class="lineNum">     683 </span>            :   struct hwloc_backend **pprev;
+<span class="lineNum">     684 </span>            : 
+<span class="lineNum">     685 </span>            :   /* check backend flags */
+<span class="lineNum">     686 </span><span class="lineCov">          2 :   if (backend-&gt;flags &amp; (~(HWLOC_BACKEND_FLAG_NEED_LEVELS))) {</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :     fprintf(stderr, &quot;Cannot enable %s discovery component `%s' with unknown flags %lx\n&quot;,</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :             hwloc_disc_component_type_string(backend-&gt;component-&gt;type), backend-&gt;component-&gt;name, backend-&gt;flags);</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     690 </span>            :   }
+<span class="lineNum">     691 </span>            : 
+<span class="lineNum">     692 </span>            :   /* make sure we didn't already enable this backend, we don't want duplicates */
+<span class="lineNum">     693 </span><span class="lineCov">          2 :   pprev = &amp;topology-&gt;backends;</span>
+<span class="lineNum">     694 </span><span class="lineCov">          4 :   while (NULL != *pprev) {</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :     if ((*pprev)-&gt;component == backend-&gt;component) {</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :       if (hwloc_components_verbose)</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;Cannot enable %s discovery component `%s' twice\n&quot;,</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :                 hwloc_disc_component_type_string(backend-&gt;component-&gt;type), backend-&gt;component-&gt;name);</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :       hwloc_backend_disable(backend);</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :       errno = EBUSY;</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     702 </span>            :     }
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :     pprev = &amp;((*pprev)-&gt;next);</span>
+<span class="lineNum">     704 </span>            :   }
+<span class="lineNum">     705 </span>            : 
+<span class="lineNum">     706 </span><span class="lineCov">          2 :   if (hwloc_components_verbose)</span>
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :     fprintf(stderr, &quot;Enabling %s discovery component `%s'\n&quot;,</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :             hwloc_disc_component_type_string(backend-&gt;component-&gt;type), backend-&gt;component-&gt;name);</span>
+<span class="lineNum">     709 </span>            : 
+<span class="lineNum">     710 </span>            :   /* enqueue at the end */
+<span class="lineNum">     711 </span><span class="lineCov">          2 :   pprev = &amp;topology-&gt;backends;</span>
+<span class="lineNum">     712 </span><span class="lineCov">          4 :   while (NULL != *pprev)</span>
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :     pprev = &amp;((*pprev)-&gt;next);</span>
+<span class="lineNum">     714 </span><span class="lineCov">          2 :   backend-&gt;next = *pprev;</span>
+<span class="lineNum">     715 </span><span class="lineCov">          2 :   *pprev = backend;</span>
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span><span class="lineCov">          2 :   backend-&gt;topology = topology;</span>
+<span class="lineNum">     718 </span>            : 
+<span class="lineNum">     719 </span><span class="lineCov">          2 :   return 0;</span>
+<span class="lineNum">     720 </span>            : }
+<a name="721"><span class="lineNum">     721 </span>            : </a>
+<span class="lineNum">     722 </span>            : void
+<span class="lineNum">     723 </span><span class="lineCov">          2 : hwloc_backends_is_thissystem(struct hwloc_topology *topology)</span>
+<span class="lineNum">     724 </span>            : {
+<span class="lineNum">     725 </span>            :   struct hwloc_backend *backend;
+<span class="lineNum">     726 </span>            :   const char *local_env;
+<span class="lineNum">     727 </span>            : 
+<span class="lineNum">     728 </span>            :   /* Apply is_thissystem topology flag before we enforce envvar backends.
+<span class="lineNum">     729 </span>            :    * If the application changed the backend with set_foo(),
+<span class="lineNum">     730 </span>            :    * it may use set_flags() update the is_thissystem flag here.
+<span class="lineNum">     731 </span>            :    * If it changes the backend with environment variables below,
+<span class="lineNum">     732 </span>            :    * it may use HWLOC_THISSYSTEM envvar below as well.
+<span class="lineNum">     733 </span>            :    */
+<span class="lineNum">     734 </span>            : 
+<span class="lineNum">     735 </span><span class="lineCov">          2 :   topology-&gt;is_thissystem = 1;</span>
+<span class="lineNum">     736 </span>            : 
+<span class="lineNum">     737 </span>            :   /* apply thissystem from normally-given backends (envvar_forced=0, either set_foo() or defaults) */
+<span class="lineNum">     738 </span><span class="lineCov">          2 :   backend = topology-&gt;backends;</span>
+<span class="lineNum">     739 </span><span class="lineCov">          6 :   while (backend != NULL) {</span>
+<span class="lineNum">     740 </span><span class="lineCov">          2 :     if (backend-&gt;envvar_forced == 0 &amp;&amp; backend-&gt;is_thissystem != -1) {</span>
+<span class="lineNum">     741 </span><span class="lineCov">          2 :       assert(backend-&gt;is_thissystem == 0);</span>
+<span class="lineNum">     742 </span><span class="lineCov">          2 :       topology-&gt;is_thissystem = 0;</span>
+<span class="lineNum">     743 </span>            :     }
+<span class="lineNum">     744 </span><span class="lineCov">          2 :     backend = backend-&gt;next;</span>
+<span class="lineNum">     745 </span>            :   }
+<span class="lineNum">     746 </span>            : 
+<span class="lineNum">     747 </span>            :   /* override set_foo() with flags */
+<span class="lineNum">     748 </span><span class="lineCov">          2 :   if (topology-&gt;flags &amp; HWLOC_TOPOLOGY_FLAG_IS_THISSYSTEM)</span>
+<span class="lineNum">     749 </span><span class="lineCov">          2 :     topology-&gt;is_thissystem = 1;</span>
+<span class="lineNum">     750 </span>            : 
+<span class="lineNum">     751 </span>            :   /* now apply envvar-forced backend (envvar_forced=1) */
+<span class="lineNum">     752 </span><span class="lineCov">          2 :   backend = topology-&gt;backends;</span>
+<span class="lineNum">     753 </span><span class="lineCov">          6 :   while (backend != NULL) {</span>
+<span class="lineNum">     754 </span><span class="lineCov">          2 :     if (backend-&gt;envvar_forced == 1 &amp;&amp; backend-&gt;is_thissystem != -1) {</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :       assert(backend-&gt;is_thissystem == 0);</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :       topology-&gt;is_thissystem = 0;</span>
+<span class="lineNum">     757 </span>            :     }
+<span class="lineNum">     758 </span><span class="lineCov">          2 :     backend = backend-&gt;next;</span>
+<span class="lineNum">     759 </span>            :   }
+<span class="lineNum">     760 </span>            : 
+<span class="lineNum">     761 </span>            :   /* override with envvar-given flag */
+<span class="lineNum">     762 </span><span class="lineCov">          2 :   local_env = getenv(&quot;HWLOC_THISSYSTEM&quot;);</span>
+<span class="lineNum">     763 </span><span class="lineCov">          2 :   if (local_env)</span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :     topology-&gt;is_thissystem = atoi(local_env);</span>
+<span class="lineNum">     765 </span><span class="lineCov">          2 : }</span>
+<a name="766"><span class="lineNum">     766 </span>            : </a>
+<span class="lineNum">     767 </span>            : int
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 : hwloc_backends_get_obj_cpuset(struct hwloc_backend *caller, struct hwloc_obj *obj, hwloc_bitmap_t cpuset)</span>
+<span class="lineNum">     769 </span>            : {
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :   struct hwloc_topology *topology = caller-&gt;topology;</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :   struct hwloc_backend *backend = topology-&gt;backends;</span>
+<span class="lineNum">     772 </span>            :   /* use the first backend's get_obj_cpuset callback */
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :   while (backend != NULL) {</span>
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :     if (backend-&gt;get_obj_cpuset)</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :       return backend-&gt;get_obj_cpuset(backend, caller, obj, cpuset);</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :     backend = backend-&gt;next;</span>
+<span class="lineNum">     777 </span>            :   }
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :   return -1;</span>
+<span class="lineNum">     779 </span>            : }
+<a name="780"><span class="lineNum">     780 </span>            : </a>
+<span class="lineNum">     781 </span>            : int
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 : hwloc_backends_notify_new_object(struct hwloc_backend *caller, struct hwloc_obj *obj)</span>
+<span class="lineNum">     783 </span>            : {
+<span class="lineNum">     784 </span>            :   struct hwloc_backend *backend;
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :   int res = 0;</span>
+<span class="lineNum">     786 </span>            : 
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :   backend = caller-&gt;topology-&gt;backends;</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :   while (NULL != backend) {</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :     if (backend != caller &amp;&amp; backend-&gt;notify_new_object)</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :       res += backend-&gt;notify_new_object(backend, caller, obj);</span>
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :     backend = backend-&gt;next;</span>
+<span class="lineNum">     792 </span>            :   }
+<span class="lineNum">     793 </span>            : 
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :   return res;</span>
+<span class="lineNum">     795 </span>            : }
+<a name="796"><span class="lineNum">     796 </span>            : </a>
+<span class="lineNum">     797 </span>            : void
+<span class="lineNum">     798 </span><span class="lineCov">          2 : hwloc_backends_disable_all(struct hwloc_topology *topology)</span>
+<span class="lineNum">     799 </span>            : {
+<span class="lineNum">     800 </span>            :   struct hwloc_backend *backend;
+<span class="lineNum">     801 </span>            : 
+<span class="lineNum">     802 </span><span class="lineCov">          6 :   while (NULL != (backend = topology-&gt;backends)) {</span>
+<span class="lineNum">     803 </span><span class="lineCov">          2 :     struct hwloc_backend *next = backend-&gt;next;</span>
+<span class="lineNum">     804 </span><span class="lineCov">          2 :     if (hwloc_components_verbose)</span>
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Disabling %s discovery component `%s'\n&quot;,</span>
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :               hwloc_disc_component_type_string(backend-&gt;component-&gt;type), backend-&gt;component-&gt;name);</span>
+<span class="lineNum">     807 </span><span class="lineCov">          2 :     hwloc_backend_disable(backend);</span>
+<span class="lineNum">     808 </span><span class="lineCov">          2 :     topology-&gt;backends = next;</span>
+<span class="lineNum">     809 </span>            :   }
+<span class="lineNum">     810 </span><span class="lineCov">          2 :   topology-&gt;backends = NULL;</span>
+<span class="lineNum">     811 </span><span class="lineCov">          2 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

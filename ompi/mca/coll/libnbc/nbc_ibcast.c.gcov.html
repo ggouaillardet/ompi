@@ -1,0 +1,330 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - ompi/mca/coll/libnbc/nbc_ibcast.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/coll/libnbc</a> - nbc_ibcast.c<span style="font-size: 80%;"> (source / <a href="nbc_ibcast.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">89</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2006 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                    University Research and Technology
+<span class="lineNum">       4 </span>            :  *                    Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2006 The Technical University of Chemnitz. All
+<span class="lineNum">       6 </span>            :  *                    rights reserved.
+<span class="lineNum">       7 </span>            :  * Copyright (c) 2014      Research Organization for Information Science
+<span class="lineNum">       8 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  * Author(s): Torsten Hoefler &lt;htor@cs.indiana.edu&gt;
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  */
+<span class="lineNum">      13 </span>            : #include &quot;nbc_internal.h&quot;
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : static inline int bcast_sched_binomial(int rank, int p, int root, NBC_Schedule *schedule, void *buffer, int count, MPI_Datatype datatype);
+<span class="lineNum">      16 </span>            : static inline int bcast_sched_linear(int rank, int p, int root, NBC_Schedule *schedule, void *buffer, int count, MPI_Datatype datatype);
+<span class="lineNum">      17 </span>            : static inline int bcast_sched_chain(int rank, int p, int root, NBC_Schedule *schedule, void *buffer, int count, MPI_Datatype datatype, int fragsize, int size);
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #ifdef NBC_CACHE_SCHEDULE
+<span class="lineNum">      20 </span>            : /* tree comparison function for schedule cache */
+<span class="lineNum">      21 </span>            : int NBC_Bcast_args_compare(NBC_Bcast_args *a, NBC_Bcast_args *b, void *param) {
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            :         if( (a-&gt;buffer == b-&gt;buffer) &amp;&amp;
+<span class="lineNum">      24 </span>            :       (a-&gt;count == b-&gt;count) &amp;&amp;
+<span class="lineNum">      25 </span>            :       (a-&gt;datatype == b-&gt;datatype) &amp;&amp;
+<span class="lineNum">      26 </span>            :       (a-&gt;root == b-&gt;root) ) {
+<span class="lineNum">      27 </span>            :     return  0;
+<span class="lineNum">      28 </span>            :   }
+<span class="lineNum">      29 </span>            :         if( a-&gt;buffer &lt; b-&gt;buffer ) {
+<span class="lineNum">      30 </span>            :     return -1;
+<span class="lineNum">      31 </span>            :         }
+<span class="lineNum">      32 </span>            :         return +1;
+<span class="lineNum">      33 </span>            : }
+<a name="34"><span class="lineNum">      34 </span>            : #endif</a>
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span><span class="lineNoCov">          0 : int ompi_coll_libnbc_ibcast(void *buffer, int count, MPI_Datatype datatype, int root,</span>
+<span class="lineNum">      37 </span>            :                             struct ompi_communicator_t *comm, ompi_request_t ** request,
+<span class="lineNum">      38 </span>            :                               struct mca_coll_base_module_2_1_0_t *module)
+<span class="lineNum">      39 </span>            : {
+<span class="lineNum">      40 </span>            :   int rank, p, res, size, segsize;
+<span class="lineNum">      41 </span>            :   NBC_Schedule *schedule;
+<span class="lineNum">      42 </span>            : #ifdef NBC_CACHE_SCHEDULE
+<span class="lineNum">      43 </span>            :   NBC_Bcast_args *args, *found, search;
+<span class="lineNum">      44 </span>            : #endif
+<span class="lineNum">      45 </span>            :   enum { NBC_BCAST_LINEAR, NBC_BCAST_BINOMIAL, NBC_BCAST_CHAIN } alg;
+<span class="lineNum">      46 </span>            :   NBC_Handle *handle;
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :   ompi_coll_libnbc_request_t **coll_req = (ompi_coll_libnbc_request_t**) request;</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :   ompi_coll_libnbc_module_t *libnbc_module = (ompi_coll_libnbc_module_t*) module;</span>
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :   res = NBC_Init_handle(comm, coll_req, libnbc_module);</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :   if(res != NBC_OK) { printf(&quot;Error in NBC_Init_handle(%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :   handle = (*coll_req);</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :   res = MPI_Comm_rank(comm, &amp;rank);</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :   if (MPI_SUCCESS != res) { printf(&quot;MPI Error in MPI_Comm_rank() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :   res = MPI_Comm_size(comm, &amp;p);</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :   if (MPI_SUCCESS != res) { printf(&quot;MPI Error in MPI_Comm_rank() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :   res = MPI_Type_size(datatype, &amp;size);</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :   if (MPI_SUCCESS != res) { printf(&quot;MPI Error in MPI_Type_size() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :   segsize = 16384;</span>
+<span class="lineNum">      61 </span>            :   /* algorithm selection */
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :   if(p &lt;= 4) {</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :     alg = NBC_BCAST_LINEAR;</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :   } else if(size*count &lt; 65536) {</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     alg = NBC_BCAST_BINOMIAL;</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :   } else if(size*count &lt; 524288) {</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     alg = NBC_BCAST_CHAIN;</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :     segsize = 16384/2;</span>
+<span class="lineNum">      69 </span>            :   } else {
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     alg = NBC_BCAST_CHAIN;</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :     segsize = 65536/2;</span>
+<span class="lineNum">      72 </span>            :   }
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :   handle-&gt;tmpbuf=NULL;</span>
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            : #ifdef NBC_CACHE_SCHEDULE
+<span class="lineNum">      77 </span>            :   /* search schedule in communicator specific tree */
+<span class="lineNum">      78 </span>            :   search.buffer=buffer;
+<span class="lineNum">      79 </span>            :   search.count=count;
+<span class="lineNum">      80 </span>            :   search.datatype=datatype;
+<span class="lineNum">      81 </span>            :   search.root=root;
+<span class="lineNum">      82 </span>            :   found = (NBC_Bcast_args*)hb_tree_search((hb_tree*)handle-&gt;comminfo-&gt;NBC_Dict[NBC_BCAST], &amp;search);
+<span class="lineNum">      83 </span>            :   if(found == NULL) {
+<span class="lineNum">      84 </span>            : #endif
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :     schedule = (NBC_Schedule*)malloc(sizeof(NBC_Schedule));</span>
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     res = NBC_Sched_create(schedule);</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     if(res != NBC_OK) { printf(&quot;Error in NBC_Sched_create, res = %i\n&quot;, res); return res; }</span>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     switch(alg) {</span>
+<span class="lineNum">      91 </span>            :       case NBC_BCAST_LINEAR:
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         res = bcast_sched_linear(rank, p, root, schedule, buffer, count, datatype);</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">      94 </span>            :       case NBC_BCAST_BINOMIAL:
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         res = bcast_sched_binomial(rank, p, root, schedule, buffer, count, datatype);</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">      97 </span>            :       case NBC_BCAST_CHAIN:
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         res = bcast_sched_chain(rank, p, root, schedule, buffer, count, datatype, segsize, size);</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     100 </span>            :     }
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     if (NBC_OK != res) { printf(&quot;Error in Schedule creation() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :     res = NBC_Sched_commit(schedule);</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     if (NBC_OK != res) { printf(&quot;Error in NBC_Sched_commit() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">     105 </span>            : #ifdef NBC_CACHE_SCHEDULE
+<span class="lineNum">     106 </span>            :     /* save schedule to tree */
+<span class="lineNum">     107 </span>            :     args = (NBC_Bcast_args*)malloc(sizeof(NBC_Bcast_args));
+<span class="lineNum">     108 </span>            :     args-&gt;buffer=buffer;
+<span class="lineNum">     109 </span>            :     args-&gt;count=count;
+<span class="lineNum">     110 </span>            :     args-&gt;datatype=datatype;
+<span class="lineNum">     111 </span>            :     args-&gt;root=root;
+<span class="lineNum">     112 </span>            :     args-&gt;schedule=schedule;
+<span class="lineNum">     113 </span>            :           res = hb_tree_insert ((hb_tree*)handle-&gt;comminfo-&gt;NBC_Dict[NBC_BCAST], args, args, 0);
+<span class="lineNum">     114 </span>            :     if(res != 0) printf(&quot;error in dict_insert() (%i)\n&quot;, res);
+<span class="lineNum">     115 </span>            :     /* increase number of elements for A2A */
+<span class="lineNum">     116 </span>            :     if(++handle-&gt;comminfo-&gt;NBC_Dict_size[NBC_BCAST] &gt; NBC_SCHED_DICT_UPPER) {
+<span class="lineNum">     117 </span>            :       NBC_SchedCache_dictwipe((hb_tree*)handle-&gt;comminfo-&gt;NBC_Dict[NBC_BCAST], &amp;handle-&gt;comminfo-&gt;NBC_Dict_size[NBC_BCAST]);
+<span class="lineNum">     118 </span>            :     }
+<span class="lineNum">     119 </span>            :   } else {
+<span class="lineNum">     120 </span>            :     /* found schedule */
+<span class="lineNum">     121 </span>            :     schedule=found-&gt;schedule;
+<span class="lineNum">     122 </span>            :   }
+<span class="lineNum">     123 </span>            : #endif
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :   res = NBC_Start(handle, schedule);</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   if (NBC_OK != res) { printf(&quot;Error in NBC_Start() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :   return NBC_OK;</span>
+<span class="lineNum">     129 </span>            : }
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            : /* better binomial bcast
+<span class="lineNum">     132 </span>            :  * working principle:
+<span class="lineNum">     133 </span>            :  * - each node gets a virtual rank vrank
+<span class="lineNum">     134 </span>            :  * - the 'root' node get vrank 0
+<span class="lineNum">     135 </span>            :  * - node 0 gets the vrank of the 'root'
+<span class="lineNum">     136 </span>            :  * - all other ranks stay identical (they do not matter)
+<span class="lineNum">     137 </span>            :  *
+<span class="lineNum">     138 </span>            :  * Algorithm:
+<span class="lineNum">     139 </span>            :  * - each node with vrank &gt; 2^r and vrank &lt; 2^r+1 receives from node
+<span class="lineNum">     140 </span>            :  *   vrank - 2^r (vrank=1 receives from 0, vrank 0 receives never)
+<span class="lineNum">     141 </span>            :  * - each node sends each round r to node vrank + 2^r
+<span class="lineNum">     142 </span>            :  * - a node stops to send if 2^r &gt; commsize
+<span class="lineNum">     143 </span>            :  */
+<span class="lineNum">     144 </span>            : #define RANK2VRANK(rank, vrank, root) \
+<span class="lineNum">     145 </span>            : { \
+<span class="lineNum">     146 </span>            :   vrank = rank; \
+<span class="lineNum">     147 </span>            :   if (rank == 0) vrank = root; \
+<span class="lineNum">     148 </span>            :   if (rank == root) vrank = 0; \
+<span class="lineNum">     149 </span>            : }
+<span class="lineNum">     150 </span>            : #define VRANK2RANK(rank, vrank, root) \
+<span class="lineNum">     151 </span>            : { \
+<span class="lineNum">     152 </span>            :   rank = vrank; \
+<span class="lineNum">     153 </span>            :   if (vrank == 0) rank = root; \
+<a name="154"><span class="lineNum">     154 </span>            :   if (vrank == root) rank = 0; \</a>
+<span class="lineNum">     155 </span>            : }
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 : static inline int bcast_sched_binomial(int rank, int p, int root, NBC_Schedule *schedule, void *buffer, int count, MPI_Datatype datatype) {</span>
+<span class="lineNum">     157 </span>            :   int maxr, vrank, peer, r, res;
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :   maxr = (int)ceil((log((double)p)/LOG2));</span>
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :   RANK2VRANK(rank, vrank, root);</span>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            :   /* receive from the right hosts  */
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   if(vrank != 0) {</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     for(r=0; r&lt;maxr; r++) {</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :       if((vrank &gt;= (1&lt;&lt;r)) &amp;&amp; (vrank &lt; (1&lt;&lt;(r+1)))) {</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :         VRANK2RANK(peer, vrank-(1&lt;&lt;r), root);</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :         res = NBC_Sched_recv(buffer, false, count, datatype, peer, schedule);</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         if (NBC_OK != res) { printf(&quot;Error in NBC_Sched_recv() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">     170 </span>            :       }
+<span class="lineNum">     171 </span>            :     }
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     res = NBC_Sched_barrier(schedule);</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     if (NBC_OK != res) { printf(&quot;Error in NBC_Sched_barrier() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">     174 </span>            :   }
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            :   /* now send to the right hosts */
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   for(r=0; r&lt;maxr; r++) {</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :     if(((vrank + (1&lt;&lt;r) &lt; p) &amp;&amp; (vrank &lt; (1&lt;&lt;r))) || (vrank == 0)) {</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :       VRANK2RANK(peer, vrank+(1&lt;&lt;r), root);</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :       res = NBC_Sched_send(buffer, false, count, datatype, peer, schedule);</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :       if (NBC_OK != res) { printf(&quot;Error in NBC_Sched_send() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">     182 </span>            :     }
+<span class="lineNum">     183 </span>            :   }
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   return NBC_OK;</span>
+<span class="lineNum">     186 </span>            : }
+<a name="187"><span class="lineNum">     187 </span>            : </a>
+<span class="lineNum">     188 </span>            : /* simple linear MPI_Ibcast */
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 : static inline int bcast_sched_linear(int rank, int p, int root, NBC_Schedule *schedule, void *buffer, int count, MPI_Datatype datatype) {</span>
+<span class="lineNum">     190 </span>            :   int peer, res;
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            :   /* send to all others */
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   if(rank == root) {</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     for (peer=0; peer&lt;p;peer++) {</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :       if(peer != root) {</span>
+<span class="lineNum">     196 </span>            :         /* send msg to peer */
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         res = NBC_Sched_send(buffer, false, count, datatype, peer, schedule);</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :         if (NBC_OK != res) { printf(&quot;Error in NBC_Sched_send() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">     199 </span>            :       }
+<span class="lineNum">     200 </span>            :     }
+<span class="lineNum">     201 </span>            :   } else {
+<span class="lineNum">     202 </span>            :     /* recv msg from root */
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :     res = NBC_Sched_recv(buffer, false, count, datatype, root, schedule);</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     if (NBC_OK != res) { printf(&quot;Error in NBC_Sched_recv() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">     205 </span>            :   }
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :   return NBC_OK;</span>
+<span class="lineNum">     208 </span>            : }
+<a name="209"><span class="lineNum">     209 </span>            : </a>
+<span class="lineNum">     210 </span>            : /* simple chained MPI_Ibcast */
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 : static inline int bcast_sched_chain(int rank, int p, int root, NBC_Schedule *schedule, void *buffer, int count, MPI_Datatype datatype, int fragsize, int size) {</span>
+<span class="lineNum">     212 </span>            :   int res, vrank, rpeer, speer, numfrag, fragnum, fragcount, thiscount;
+<span class="lineNum">     213 </span>            :   MPI_Aint ext;
+<span class="lineNum">     214 </span>            :   char *buf;
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   RANK2VRANK(rank, vrank, root);</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :   VRANK2RANK(rpeer, vrank-1, root);</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :   VRANK2RANK(speer, vrank+1, root);</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   res = MPI_Type_extent(datatype, &amp;ext);</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :   if (MPI_SUCCESS != res) { printf(&quot;MPI Error in MPI_Type_extent() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :   if(count == 0) return NBC_OK;</span>
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   numfrag = count*size/fragsize;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :   if((count*size)%fragsize != 0) numfrag++;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :   fragcount = count/numfrag;</span>
+<span class="lineNum">     227 </span>            :   /*if(!rank) printf(&quot;numfrag: %i, count: %i, size: %i, fragcount: %i\n&quot;, numfrag, count, size, fragcount);*/
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :   for(fragnum = 0; fragnum &lt; numfrag; fragnum++) {</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     buf = (char*)buffer+fragnum*fragcount*ext;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     thiscount = fragcount;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     if(fragnum == numfrag-1) {</span>
+<span class="lineNum">     233 </span>            :       /* last fragment may not be full */
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :       thiscount = count-fragcount*fragnum;</span>
+<span class="lineNum">     235 </span>            :     }
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span>            :     /* root does not receive */
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     if(vrank != 0) {</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :       res = NBC_Sched_recv(buf, false, thiscount, datatype, rpeer, schedule);</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :       if (NBC_OK != res) { printf(&quot;Error in NBC_Sched_recv() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :       res = NBC_Sched_barrier(schedule);</span>
+<span class="lineNum">     242 </span>            :     }
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span>            :     /* last rank does not send */
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     if(vrank != p-1) {</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :       res = NBC_Sched_send(buf, false, thiscount, datatype, speer, schedule);</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :       if (NBC_OK != res) { printf(&quot;Error in NBC_Sched_send() (%i)\n&quot;, res); return res; }</span>
+<span class="lineNum">     248 </span>            :       /* this barrier here seems awaward but isn't!!!! */
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :       if(vrank == 0) res = NBC_Sched_barrier(schedule);</span>
+<span class="lineNum">     250 </span>            :     }
+<span class="lineNum">     251 </span>            :   }
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :   return NBC_OK;</span>
+<span class="lineNum">     254 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

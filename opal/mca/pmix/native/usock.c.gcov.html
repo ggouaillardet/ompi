@@ -1,0 +1,547 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/pmix/native/usock.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/pmix/native</a> - usock.c<span style="font-size: 80%;"> (source / <a href="usock.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">117</td>
+            <td class="headerCovTableEntry">185</td>
+            <td class="headerCovTableEntryLo">63.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryLo">71.4 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2010 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2011 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2006-2013 Los Alamos National Security, LLC.
+<span class="lineNum">      13 </span>            :  *                         All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2009-2012 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2011      Oak Ridge National Labs.  All rights reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2013-2015 Intel, Inc.  All rights reserved.
+<span class="lineNum">      17 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * $HEADER$
+<span class="lineNum">      22 </span>            :  *
+<span class="lineNum">      23 </span>            :  */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;opal/types.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      29 </span>            : #ifdef HAVE_SYS_UIO_H
+<span class="lineNum">      30 </span>            : #include &lt;sys/uio.h&gt;
+<span class="lineNum">      31 </span>            : #endif
+<span class="lineNum">      32 </span>            : #ifdef HAVE_NET_UIO_H
+<span class="lineNum">      33 </span>            : #include &lt;net/uio.h&gt;
+<span class="lineNum">      34 </span>            : #endif
+<span class="lineNum">      35 </span>            : #ifdef HAVE_SYS_TYPES_H
+<span class="lineNum">      36 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      37 </span>            : #endif
+<span class="lineNum">      38 </span>            : #ifdef HAVE_SYS_STAT_H
+<span class="lineNum">      39 </span>            : #include &lt;sys/stat.h&gt;
+<span class="lineNum">      40 </span>            : #endif
+<span class="lineNum">      41 </span>            : #ifdef HAVE_FCNTL_H
+<span class="lineNum">      42 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      43 </span>            : #endif
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : #include &quot;opal_stdint.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;opal/opal_socket_errno.h&quot;
+<span class="lineNum">      47 </span>            : #include &quot;opal/dss/dss.h&quot;
+<span class="lineNum">      48 </span>            : #include &quot;opal/mca/dstore/dstore.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;opal/mca/sec/sec.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;opal/runtime/opal.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;opal/util/show_help.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;opal/util/error.h&quot;
+<span class="lineNum">      53 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      54 </span>            : #include &quot;opal/util/proc.h&quot;
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : #include &quot;opal/mca/pmix/base/base.h&quot;
+<span class="lineNum">      57 </span>            : #include &quot;pmix_native.h&quot;
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : static int usock_send_blocking(char *ptr, size_t size);
+<span class="lineNum">      60 </span>            : static void pmix_usock_try_connect(int fd, short args, void *cbdata);
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : /* State machine for internal operations */
+<span class="lineNum">      63 </span>            : typedef struct {
+<span class="lineNum">      64 </span>            :     opal_object_t super;
+<span class="lineNum">      65 </span>            :     opal_event_t ev;
+<span class="lineNum">      66 </span>            : } pmix_usock_op_t;
+<span class="lineNum">      67 </span>            : static OBJ_CLASS_INSTANCE(pmix_usock_op_t,
+<span class="lineNum">      68 </span>            :                           opal_object_t,
+<span class="lineNum">      69 </span>            :                           NULL, NULL);
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : #define PMIX_ACTIVATE_USOCK_STATE(cbfunc)                               \
+<span class="lineNum">      72 </span>            :     do {                                                                \
+<span class="lineNum">      73 </span>            :         pmix_usock_op_t *op;                                            \
+<span class="lineNum">      74 </span>            :         op = OBJ_NEW(pmix_usock_op_t);                                  \
+<span class="lineNum">      75 </span>            :         opal_event_set(mca_pmix_native_component.evbase, &amp;op-&gt;ev, -1,   \
+<span class="lineNum">      76 </span>            :                        OPAL_EV_WRITE, (cbfunc), op);                    \
+<span class="lineNum">      77 </span>            :         opal_event_set_priority(&amp;op-&gt;ev, OPAL_EV_MSG_LO_PRI);           \
+<span class="lineNum">      78 </span>            :         opal_event_active(&amp;op-&gt;ev, OPAL_EV_WRITE, 1);                    \
+<a name="79"><span class="lineNum">      79 </span>            :     } while(0);</a>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineCov">         10 : void pmix_usock_send_recv(int fd, short args, void *cbdata)</span>
+<span class="lineNum">      82 </span>            : {
+<span class="lineNum">      83 </span><span class="lineCov">         10 :     pmix_usock_sr_t *ms = (pmix_usock_sr_t*)cbdata;</span>
+<span class="lineNum">      84 </span>            :     pmix_usock_posted_recv_t *req;
+<span class="lineNum">      85 </span>            :     pmix_usock_send_t *snd;
+<span class="lineNum">      86 </span><span class="lineCov">         10 :     uint32_t tag = UINT32_MAX;</span>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span><span class="lineCov">         10 :     if (NULL != ms-&gt;cbfunc) {</span>
+<span class="lineNum">      89 </span>            :         /* if a callback msg is expected, setup a recv for it */
+<span class="lineNum">      90 </span><span class="lineCov">         10 :         req = OBJ_NEW(pmix_usock_posted_recv_t);</span>
+<span class="lineNum">      91 </span>            :         /* take the next tag in the sequence */
+<span class="lineNum">      92 </span><span class="lineCov">         10 :         if (UINT32_MAX == mca_pmix_native_component.tag) {</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :             mca_pmix_native_component.tag = 0;</span>
+<span class="lineNum">      94 </span>            :         }
+<span class="lineNum">      95 </span><span class="lineCov">         10 :         req-&gt;tag = mca_pmix_native_component.tag++;</span>
+<span class="lineNum">      96 </span><span class="lineCov">         10 :         tag = req-&gt;tag;</span>
+<span class="lineNum">      97 </span><span class="lineCov">         10 :         req-&gt;cbfunc = ms-&gt;cbfunc;</span>
+<span class="lineNum">      98 </span><span class="lineCov">         10 :         req-&gt;cbdata = ms-&gt;cbdata;</span>
+<span class="lineNum">      99 </span><span class="lineCov">         20 :         opal_output_verbose(5, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     100 </span>            :                             &quot;%s posting recv on tag %d&quot;,
+<span class="lineNum">     101 </span><span class="lineCov">         10 :                             OPAL_NAME_PRINT(OPAL_PROC_MY_NAME), req-&gt;tag);</span>
+<span class="lineNum">     102 </span>            :         /* add it to the list of recvs - we cannot have unexpected messages
+<span class="lineNum">     103 </span>            :          * in this subsystem as the server never sends us something that
+<span class="lineNum">     104 </span>            :          * we didn't previously request */
+<span class="lineNum">     105 </span><span class="lineCov">         10 :         opal_list_append(&amp;mca_pmix_native_component.posted_recvs, &amp;req-&gt;super);</span>
+<span class="lineNum">     106 </span>            :     }
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineCov">         10 :     snd = OBJ_NEW(pmix_usock_send_t);</span>
+<span class="lineNum">     109 </span><span class="lineCov">         10 :     snd-&gt;hdr.id = mca_pmix_native_component.id;</span>
+<span class="lineNum">     110 </span><span class="lineCov">         10 :     snd-&gt;hdr.type = PMIX_USOCK_USER;</span>
+<span class="lineNum">     111 </span><span class="lineCov">         10 :     snd-&gt;hdr.tag = tag;</span>
+<span class="lineNum">     112 </span><span class="lineCov">         10 :     snd-&gt;hdr.nbytes = ms-&gt;bfr-&gt;bytes_used;</span>
+<span class="lineNum">     113 </span><span class="lineCov">         10 :     snd-&gt;data = ms-&gt;bfr-&gt;base_ptr;</span>
+<span class="lineNum">     114 </span>            :     /* always start with the header */
+<span class="lineNum">     115 </span><span class="lineCov">         10 :     snd-&gt;sdptr = (char*)&amp;snd-&gt;hdr;</span>
+<span class="lineNum">     116 </span><span class="lineCov">         10 :     snd-&gt;sdbytes = sizeof(pmix_usock_hdr_t);</span>
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            :     /* add the msg to the send queue if we are already connected*/
+<span class="lineNum">     119 </span><span class="lineCov">         10 :     if (PMIX_USOCK_CONNECTED == mca_pmix_native_component.state) {</span>
+<span class="lineNum">     120 </span><span class="lineCov">         16 :         opal_output_verbose(2, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     121 </span>            :                             &quot;%s usock:send_nb: already connected to server - queueing for send&quot;,
+<span class="lineNum">     122 </span><span class="lineCov">          8 :                             OPAL_NAME_PRINT(OPAL_PROC_MY_NAME));</span>
+<span class="lineNum">     123 </span>            :         /* if there is no message on-deck, put this one there */
+<span class="lineNum">     124 </span><span class="lineCov">          8 :         if (NULL == mca_pmix_native_component.send_msg) {</span>
+<span class="lineNum">     125 </span><span class="lineCov">          8 :             mca_pmix_native_component.send_msg = snd;</span>
+<span class="lineNum">     126 </span>            :         } else {
+<span class="lineNum">     127 </span>            :             /* add it to the queue */
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :             opal_list_append(&amp;mca_pmix_native_component.send_queue, &amp;snd-&gt;super);</span>
+<span class="lineNum">     129 </span>            :         }
+<span class="lineNum">     130 </span>            :         /* ensure the send event is active */
+<span class="lineNum">     131 </span><span class="lineCov">          8 :         if (!mca_pmix_native_component.send_ev_active) {</span>
+<span class="lineNum">     132 </span><span class="lineCov">          8 :             opal_event_add(&amp;mca_pmix_native_component.send_event, 0);</span>
+<span class="lineNum">     133 </span><span class="lineCov">          8 :             mca_pmix_native_component.send_ev_active = true;</span>
+<span class="lineNum">     134 </span>            :         }
+<span class="lineNum">     135 </span><span class="lineCov">          8 :         return;</span>
+<span class="lineNum">     136 </span>            :     }
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            :     /* add the message to the queue for sending after the
+<span class="lineNum">     139 </span>            :      * connection is formed
+<span class="lineNum">     140 </span>            :      */
+<span class="lineNum">     141 </span><span class="lineCov">          2 :     opal_list_append(&amp;mca_pmix_native_component.send_queue, &amp;snd-&gt;super);</span>
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span><span class="lineCov">          4 :     if (PMIX_USOCK_CONNECTING != mca_pmix_native_component.state &amp;&amp;</span>
+<span class="lineNum">     144 </span><span class="lineCov">          2 :         PMIX_USOCK_CONNECT_ACK != mca_pmix_native_component.state) {</span>
+<span class="lineNum">     145 </span>            :         /* we have to initiate the connection - again, we do not
+<span class="lineNum">     146 </span>            :          * want to block while the connection is created.
+<span class="lineNum">     147 </span>            :          * So throw us into an event that will create
+<span class="lineNum">     148 </span>            :          * the connection via a mini-state-machine :-)
+<span class="lineNum">     149 </span>            :          */
+<span class="lineNum">     150 </span><span class="lineCov">          4 :         opal_output_verbose(2, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     151 </span>            :                             &quot;%s usock:send_nb: initiating connection to server&quot;,
+<span class="lineNum">     152 </span><span class="lineCov">          2 :                             OPAL_NAME_PRINT(OPAL_PROC_MY_NAME));</span>
+<span class="lineNum">     153 </span><span class="lineCov">          2 :         mca_pmix_native_component.state = PMIX_USOCK_CONNECTING;</span>
+<span class="lineNum">     154 </span><span class="lineCov">          2 :         PMIX_ACTIVATE_USOCK_STATE(pmix_usock_try_connect);</span>
+<span class="lineNum">     155 </span>            :     }
+<a name="156"><span class="lineNum">     156 </span>            : }</a>
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span><span class="lineCov">         10 : void pmix_usock_process_msg(int fd, short flags, void *cbdata)</span>
+<span class="lineNum">     159 </span>            : {
+<span class="lineNum">     160 </span><span class="lineCov">         10 :     pmix_usock_recv_t *msg = (pmix_usock_recv_t*)cbdata;</span>
+<span class="lineNum">     161 </span>            :     pmix_usock_posted_recv_t *rcv;
+<span class="lineNum">     162 </span>            :     opal_buffer_t buf;
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineCov">         10 :     OPAL_OUTPUT_VERBOSE((5, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     165 </span>            :                          &quot;%s message received %d bytes for tag %u&quot;,
+<span class="lineNum">     166 </span>            :                          OPAL_NAME_PRINT(OPAL_PROC_MY_NAME),
+<span class="lineNum">     167 </span>            :                          (int)msg-&gt;hdr.nbytes, msg-&gt;hdr.tag));
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            :     /* see if we have a waiting recv for this message */
+<span class="lineNum">     170 </span><span class="lineCov">         10 :     OPAL_LIST_FOREACH(rcv, &amp;mca_pmix_native_component.posted_recvs, pmix_usock_posted_recv_t) {</span>
+<span class="lineNum">     171 </span><span class="lineCov">         20 :         opal_output_verbose(5, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     172 </span>            :                             &quot;%s checking msg on tag %u for tag %u&quot;,
+<span class="lineNum">     173 </span><span class="lineCov">         10 :                             OPAL_NAME_PRINT(OPAL_PROC_MY_NAME),</span>
+<span class="lineNum">     174 </span>            :                             msg-&gt;hdr.tag, rcv-&gt;tag);
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineCov">         10 :         if (msg-&gt;hdr.tag == rcv-&gt;tag) {</span>
+<span class="lineNum">     177 </span><span class="lineCov">         10 :             if (NULL != rcv-&gt;cbfunc) {</span>
+<span class="lineNum">     178 </span>            :                 /* construct and load the buffer */
+<span class="lineNum">     179 </span><span class="lineCov">         10 :                 OBJ_CONSTRUCT(&amp;buf, opal_buffer_t);</span>
+<span class="lineNum">     180 </span><span class="lineCov">         10 :                 if (NULL != msg-&gt;data) {</span>
+<span class="lineNum">     181 </span><span class="lineCov">          8 :                     opal_dss.load(&amp;buf, msg-&gt;data, msg-&gt;hdr.nbytes);</span>
+<span class="lineNum">     182 </span>            :                 }
+<span class="lineNum">     183 </span><span class="lineCov">         10 :                 msg-&gt;data = NULL;  // protect the data region</span>
+<span class="lineNum">     184 </span><span class="lineCov">         10 :                 if (NULL != rcv-&gt;cbfunc) {</span>
+<span class="lineNum">     185 </span><span class="lineCov">         10 :                     rcv-&gt;cbfunc(&amp;buf, rcv-&gt;cbdata);</span>
+<span class="lineNum">     186 </span>            :                 }
+<span class="lineNum">     187 </span><span class="lineCov">         10 :                 OBJ_DESTRUCT(&amp;buf);  // free's the msg data</span>
+<span class="lineNum">     188 </span>            :                 /* also done with the recv */
+<span class="lineNum">     189 </span><span class="lineCov">         10 :                 opal_list_remove_item(&amp;mca_pmix_native_component.posted_recvs, &amp;rcv-&gt;super);</span>
+<span class="lineNum">     190 </span><span class="lineCov">         20 :                 OBJ_RELEASE(rcv);</span>
+<span class="lineNum">     191 </span><span class="lineCov">         20 :                 OBJ_RELEASE(msg);</span>
+<span class="lineNum">     192 </span><span class="lineCov">         10 :                 return;</span>
+<span class="lineNum">     193 </span>            :             }
+<span class="lineNum">     194 </span>            :         }
+<span class="lineNum">     195 </span>            :     }
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            :     /* we get here if no matching recv was found - this is an error */
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     opal_output(0, &quot;%s UNEXPECTED MESSAGE&quot;,</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :                 OPAL_NAME_PRINT(OPAL_PROC_MY_NAME));</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     PMIX_NATIVE_ABNORMAL_TERM;  // report the error upstream</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(msg);</span>
+<span class="lineNum">     202 </span>            : }
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : /*
+<a name="205"><span class="lineNum">     205 </span>            :  * Try connecting to a peer</a>
+<span class="lineNum">     206 </span>            :  */
+<span class="lineNum">     207 </span><span class="lineCov">          2 : static void pmix_usock_try_connect(int fd, short args, void *cbdata)</span>
+<span class="lineNum">     208 </span>            : {
+<span class="lineNum">     209 </span>            :     int rc, flags;
+<span class="lineNum">     210 </span><span class="lineCov">          2 :     opal_socklen_t addrlen = 0;</span>
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span><span class="lineCov">          4 :     opal_output_verbose(2, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     213 </span>            :                         &quot;%s usock_peer_try_connect: attempting to connect to server&quot;,
+<span class="lineNum">     214 </span><span class="lineCov">          2 :                         OPAL_NAME_PRINT(OPAL_PROC_MY_NAME));</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineCov">          2 :     addrlen = sizeof(struct sockaddr_un);</span>
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineCov">          4 :     while (mca_pmix_native_component.retries &lt; mca_pmix_native_component.max_retries) {</span>
+<span class="lineNum">     219 </span><span class="lineCov">          2 :         mca_pmix_native_component.retries++;</span>
+<span class="lineNum">     220 </span>            :         /* Create the new socket */
+<span class="lineNum">     221 </span><span class="lineCov">          2 :         mca_pmix_native_component.sd = socket(PF_UNIX, SOCK_STREAM, 0);</span>
+<span class="lineNum">     222 </span><span class="lineCov">          2 :         if (mca_pmix_native_component.sd &lt; 0) {</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;pmix:create_socket: socket() failed: %s (%d)\n&quot;,</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :                         strerror(opal_socket_errno),</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :                         opal_socket_errno);</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     227 </span>            :         }
+<span class="lineNum">     228 </span><span class="lineCov">          2 :         opal_output_verbose(2, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     229 </span>            :                             &quot;usock_peer_try_connect: attempting to connect to server on socket %d&quot;,
+<span class="lineNum">     230 </span>            :                             mca_pmix_native_component.sd);
+<span class="lineNum">     231 </span>            :         /* try to connect */
+<span class="lineNum">     232 </span><span class="lineCov">          2 :         if (connect(mca_pmix_native_component.sd, (struct sockaddr*)&amp;mca_pmix_native_component.address, addrlen) &lt; 0) {</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :             if (opal_socket_errno == ETIMEDOUT) {</span>
+<span class="lineNum">     234 </span>            :                 /* The server may be too busy to accept new connections,
+<span class="lineNum">     235 </span>            :                  * so cycle around and let it try again */
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :                 opal_output_verbose(2, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     237 </span>            :                                     &quot;timeout connecting to server&quot;);
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :                 CLOSE_THE_SOCKET(mca_pmix_native_component.sd);</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     240 </span>            :             }
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            :             /* Some kernels (Linux 2.6) will automatically software
+<span class="lineNum">     243 </span>            :                abort a connection that was ECONNREFUSED on the last
+<span class="lineNum">     244 </span>            :                attempt, without even trying to establish the
+<span class="lineNum">     245 </span>            :                connection.  Handle that case in a semi-rational
+<span class="lineNum">     246 </span>            :                way by trying again before giving up */
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :             if (ECONNABORTED == opal_socket_errno) {</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :                 opal_output_verbose(2, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     249 </span>            :                                     &quot;connection to server aborted by OS - retrying&quot;);
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :                 CLOSE_THE_SOCKET(mca_pmix_native_component.sd);</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     252 </span>            :             }
+<span class="lineNum">     253 </span>            :         }
+<span class="lineNum">     254 </span>            :         /* otherwise, the connect succeeded - so break out of the loop */
+<span class="lineNum">     255 </span><span class="lineCov">          2 :         break;</span>
+<span class="lineNum">     256 </span>            :     }
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineCov">          4 :     if (mca_pmix_native_component.retries == mca_pmix_native_component.max_retries ||</span>
+<span class="lineNum">     259 </span><span class="lineCov">          2 :         mca_pmix_native_component.sd &lt; 0){</span>
+<span class="lineNum">     260 </span>            :         /* We were unsuccessful in establishing this connection, and are
+<span class="lineNum">     261 </span>            :          * not likely to suddenly become successful */
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;pmix:create_socket: connection to server failed&quot;);</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         if (0 &lt;= mca_pmix_native_component.sd) {</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(mca_pmix_native_component.sd);</span>
+<span class="lineNum">     265 </span>            :         }
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         PMIX_NATIVE_ABNORMAL_TERM;  // report the error upstream</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     268 </span>            :     }
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span>            :     /* connection succeeded */
+<span class="lineNum">     271 </span><span class="lineCov">          2 :     mca_pmix_native_component.retries = 0;</span>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineCov">          4 :     opal_output_verbose(2, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     274 </span>            :                         &quot;%s sock_peer_try_connect: Connection across to server succeeded&quot;,
+<span class="lineNum">     275 </span><span class="lineCov">          2 :                         OPAL_NAME_PRINT(OPAL_PROC_MY_NAME));</span>
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            :     /* setup event callbacks */
+<span class="lineNum">     278 </span><span class="lineCov">          2 :     opal_event_set(mca_pmix_native_component.evbase,</span>
+<span class="lineNum">     279 </span>            :                    &amp;mca_pmix_native_component.recv_event,
+<span class="lineNum">     280 </span>            :                    mca_pmix_native_component.sd,
+<span class="lineNum">     281 </span>            :                    OPAL_EV_READ|OPAL_EV_PERSIST,
+<span class="lineNum">     282 </span>            :                    pmix_usock_recv_handler, NULL);
+<span class="lineNum">     283 </span><span class="lineCov">          2 :     opal_event_set_priority(&amp;mca_pmix_native_component.recv_event, OPAL_EV_MSG_LO_PRI);</span>
+<span class="lineNum">     284 </span><span class="lineCov">          2 :     mca_pmix_native_component.recv_ev_active = false;</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span><span class="lineCov">          2 :     opal_event_set(mca_pmix_native_component.evbase,</span>
+<span class="lineNum">     287 </span>            :                    &amp;mca_pmix_native_component.send_event,
+<span class="lineNum">     288 </span>            :                    mca_pmix_native_component.sd,
+<span class="lineNum">     289 </span>            :                    OPAL_EV_WRITE|OPAL_EV_PERSIST,
+<span class="lineNum">     290 </span>            :                    pmix_usock_send_handler, NULL);
+<span class="lineNum">     291 </span><span class="lineCov">          2 :     opal_event_set_priority(&amp;mca_pmix_native_component.send_event, OPAL_EV_MSG_LO_PRI);</span>
+<span class="lineNum">     292 </span><span class="lineCov">          2 :     mca_pmix_native_component.send_ev_active = false;</span>
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span>            :     /* setup the socket as non-blocking */
+<span class="lineNum">     295 </span><span class="lineCov">          2 :     if ((flags = fcntl(mca_pmix_native_component.sd, F_GETFL, 0)) &lt; 0) {</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;usock_peer_connect: fcntl(F_GETFL) failed: %s (%d)\n&quot;,</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :                     strerror(opal_socket_errno),</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :                     opal_socket_errno);</span>
+<span class="lineNum">     299 </span>            :     } else {
+<span class="lineNum">     300 </span><span class="lineCov">          2 :         flags |= O_NONBLOCK;</span>
+<span class="lineNum">     301 </span><span class="lineCov">          2 :         if (fcntl(mca_pmix_native_component.sd, F_SETFL, flags) &lt; 0)</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;usock_peer_connect: fcntl(F_SETFL) failed: %s (%d)\n&quot;,</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :                         strerror(opal_socket_errno),</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :                         opal_socket_errno);</span>
+<span class="lineNum">     305 </span>            :     }
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            :     /* setup our recv to catch the return ack call */
+<span class="lineNum">     308 </span><span class="lineCov">          2 :     if (!mca_pmix_native_component.recv_ev_active) {</span>
+<span class="lineNum">     309 </span><span class="lineCov">          2 :         opal_event_add(&amp;mca_pmix_native_component.recv_event, 0);</span>
+<span class="lineNum">     310 </span><span class="lineCov">          2 :         mca_pmix_native_component.recv_ev_active = true;</span>
+<span class="lineNum">     311 </span>            :     }
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            :     /* send our globally unique process identifier to the server */
+<span class="lineNum">     314 </span><span class="lineCov">          2 :     if (OPAL_SUCCESS == (rc = usock_send_connect_ack())) {</span>
+<span class="lineNum">     315 </span><span class="lineCov">          2 :         mca_pmix_native_component.state = PMIX_USOCK_CONNECT_ACK;</span>
+<span class="lineNum">     316 </span>            :     } else {
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         opal_output(0,</span>
+<span class="lineNum">     318 </span>            :                     &quot;%s usock_peer_try_connect: &quot;
+<span class="lineNum">     319 </span>            :                     &quot;usock_send_connect_ack to server failed: %s (%d)&quot;,
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :                     OPAL_NAME_PRINT(OPAL_PROC_MY_NAME),</span>
+<span class="lineNum">     321 </span>            :                     opal_strerror(rc), rc);
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         CLOSE_THE_SOCKET(mca_pmix_native_component.sd);</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :         PMIX_NATIVE_ABNORMAL_TERM;  // report the error upstream</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     325 </span>            :     }
+<a name="326"><span class="lineNum">     326 </span>            : }</a>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineCov">          2 : int usock_send_connect_ack(void)</span>
+<span class="lineNum">     329 </span>            : {
+<span class="lineNum">     330 </span>            :     char *msg;
+<span class="lineNum">     331 </span>            :     pmix_usock_hdr_t hdr;
+<span class="lineNum">     332 </span>            :     int rc;
+<span class="lineNum">     333 </span>            :     size_t sdsize;
+<span class="lineNum">     334 </span>            :     char *cred;
+<span class="lineNum">     335 </span>            :     size_t credsize;
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineCov">          4 :     opal_output_verbose(2, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     338 </span>            :                         &quot;%s SEND CONNECT ACK&quot;,
+<span class="lineNum">     339 </span><span class="lineCov">          2 :                         OPAL_NAME_PRINT(OPAL_PROC_MY_NAME));</span>
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span>            :     /* setup the header */
+<span class="lineNum">     342 </span><span class="lineCov">          2 :     hdr.id = OPAL_PROC_MY_NAME;</span>
+<span class="lineNum">     343 </span><span class="lineCov">          2 :     hdr.tag = UINT32_MAX;</span>
+<span class="lineNum">     344 </span><span class="lineCov">          2 :     hdr.type = PMIX_USOCK_IDENT;</span>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            :     /* get our security credential */
+<span class="lineNum">     347 </span><span class="lineCov">          2 :     if (OPAL_SUCCESS != (rc = opal_sec.get_my_credential(NULL, opal_dstore_internal, &amp;OPAL_PROC_MY_NAME, &amp;cred, &amp;credsize))) {</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     349 </span>            :     }
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span>            :     /* set the number of bytes to be read beyond the header */
+<span class="lineNum">     352 </span><span class="lineCov">          2 :     hdr.nbytes = strlen(opal_version_string) + 1 + credsize;</span>
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span>            :     /* create a space for our message */
+<span class="lineNum">     355 </span><span class="lineCov">          2 :     sdsize = (sizeof(hdr) + strlen(opal_version_string) + 1 + credsize);</span>
+<span class="lineNum">     356 </span><span class="lineCov">          2 :     if (NULL == (msg = (char*)malloc(sdsize))) {</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     358 </span>            :     }
+<span class="lineNum">     359 </span><span class="lineCov">          2 :     memset(msg, 0, sdsize);</span>
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span>            :     /* load the message */
+<span class="lineNum">     362 </span><span class="lineCov">          2 :     memcpy(msg, &amp;hdr, sizeof(hdr));</span>
+<span class="lineNum">     363 </span><span class="lineCov">          2 :     memcpy(msg+sizeof(hdr), opal_version_string, strlen(opal_version_string));</span>
+<span class="lineNum">     364 </span><span class="lineCov">          2 :     memcpy(msg+sizeof(hdr)+strlen(opal_version_string)+1, cred, credsize);</span>
+<span class="lineNum">     365 </span><span class="lineCov">          2 :     if (NULL != cred) {</span>
+<span class="lineNum">     366 </span><span class="lineCov">          2 :         free(cred);</span>
+<span class="lineNum">     367 </span>            :     }
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineCov">          2 :     if (OPAL_SUCCESS != usock_send_blocking(msg, sdsize)) {</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :         free(msg);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         return OPAL_ERR_UNREACH;</span>
+<span class="lineNum">     372 </span>            :     }
+<span class="lineNum">     373 </span><span class="lineCov">          2 :     free(msg);</span>
+<span class="lineNum">     374 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     375 </span>            : }
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span>            : /*
+<span class="lineNum">     378 </span>            :  * A blocking send on a non-blocking socket. Used to send the small amount of connection
+<a name="379"><span class="lineNum">     379 </span>            :  * information that identifies the peers endpoint.</a>
+<span class="lineNum">     380 </span>            :  */
+<span class="lineNum">     381 </span><span class="lineCov">          2 : static int usock_send_blocking(char *ptr, size_t size)</span>
+<span class="lineNum">     382 </span>            : {
+<span class="lineNum">     383 </span><span class="lineCov">          2 :     size_t cnt = 0;</span>
+<span class="lineNum">     384 </span>            :     int retval;
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineCov">          4 :     opal_output_verbose(2, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     387 </span>            :                         &quot;%s send blocking of %&quot;PRIsize_t&quot; bytes to socket %d&quot;,
+<span class="lineNum">     388 </span><span class="lineCov">          2 :                         OPAL_NAME_PRINT(OPAL_PROC_MY_NAME),</span>
+<span class="lineNum">     389 </span>            :                         size, mca_pmix_native_component.sd);
+<span class="lineNum">     390 </span>            : 
+<span class="lineNum">     391 </span><span class="lineCov">          6 :     while (cnt &lt; size) {</span>
+<span class="lineNum">     392 </span><span class="lineCov">          2 :         retval = send(mca_pmix_native_component.sd, (char*)ptr+cnt, size-cnt, 0);</span>
+<span class="lineNum">     393 </span><span class="lineCov">          2 :         if (retval &lt; 0) {</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :             if (opal_socket_errno != EINTR &amp;&amp; opal_socket_errno != EAGAIN &amp;&amp; opal_socket_errno != EWOULDBLOCK) {</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :                 opal_output(0, &quot;%s usock_peer_send_blocking: send() to socket %d failed: %s (%d)\n&quot;,</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :                             OPAL_NAME_PRINT(OPAL_PROC_MY_NAME),</span>
+<span class="lineNum">     397 </span>            :                             mca_pmix_native_component.sd,
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :                             strerror(opal_socket_errno),</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :                             opal_socket_errno);</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :                 mca_pmix_native_component.state = PMIX_USOCK_FAILED;</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :                 CLOSE_THE_SOCKET(mca_pmix_native_component.sd);</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :                 return OPAL_ERR_UNREACH;</span>
+<span class="lineNum">     403 </span>            :             }
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     405 </span>            :         }
+<span class="lineNum">     406 </span><span class="lineCov">          2 :         cnt += retval;</span>
+<span class="lineNum">     407 </span>            :     }
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineCov">          4 :     opal_output_verbose(2, opal_pmix_base_framework.framework_output,</span>
+<span class="lineNum">     410 </span>            :                         &quot;%s blocking send complete to socket %d&quot;,
+<span class="lineNum">     411 </span><span class="lineCov">          2 :                         OPAL_NAME_PRINT(OPAL_PROC_MY_NAME),</span>
+<span class="lineNum">     412 </span>            :                         mca_pmix_native_component.sd);
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     415 </span>            : }
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span>            : /*
+<a name="418"><span class="lineNum">     418 </span>            :  * Routine for debugging to print the connection state and socket options</a>
+<span class="lineNum">     419 </span>            :  */
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 : void pmix_usock_dump(const char* msg)</span>
+<span class="lineNum">     421 </span>            : {
+<span class="lineNum">     422 </span>            :     char buff[255];
+<span class="lineNum">     423 </span>            :     int nodelay,flags;
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     if ((flags = fcntl(mca_pmix_native_component.sd, F_GETFL, 0)) &lt; 0) {</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;%s usock_peer_dump: fcntl(F_GETFL) failed: %s (%d)\n&quot;,</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :                     OPAL_NAME_PRINT(OPAL_PROC_MY_NAME),</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :                     strerror(opal_socket_errno),</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :                     opal_socket_errno);</span>
+<span class="lineNum">     430 </span>            :     }
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span>            : #if defined(USOCK_NODELAY)
+<span class="lineNum">     433 </span>            :     optlen = sizeof(nodelay);
+<span class="lineNum">     434 </span>            :     if (getsockopt(mca_pmix_native_component.sd, IPPROTO_USOCK, USOCK_NODELAY, (char *)&amp;nodelay, &amp;optlen) &lt; 0) {
+<span class="lineNum">     435 </span>            :         opal_output(0, &quot;%s usock_peer_dump: USOCK_NODELAY option: %s (%d)\n&quot;,
+<span class="lineNum">     436 </span>            :                     OPAL_NAME_PRINT(OPAL_PROC_MY_NAME),
+<span class="lineNum">     437 </span>            :                     strerror(opal_socket_errno),
+<span class="lineNum">     438 </span>            :                     opal_socket_errno);
+<span class="lineNum">     439 </span>            :     }
+<span class="lineNum">     440 </span>            : #else
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     nodelay = 0;</span>
+<span class="lineNum">     442 </span>            : #endif
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     snprintf(buff, sizeof(buff), &quot;%s %s: nodelay %d flags %08x\n&quot;,</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :              OPAL_NAME_PRINT(OPAL_PROC_MY_NAME),</span>
+<span class="lineNum">     446 </span>            :              msg, nodelay, flags);
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :     opal_output(0, &quot;%s&quot;, buff);</span>
+<a name="448"><span class="lineNum">     448 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 : char* pmix_usock_state_print(pmix_usock_state_t state)</span>
+<span class="lineNum">     451 </span>            : {
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     switch (state) {</span>
+<span class="lineNum">     453 </span>            :     case PMIX_USOCK_UNCONNECTED:
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :         return &quot;UNCONNECTED&quot;;</span>
+<span class="lineNum">     455 </span>            :     case PMIX_USOCK_CLOSED:
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :         return &quot;CLOSED&quot;;</span>
+<span class="lineNum">     457 </span>            :     case PMIX_USOCK_RESOLVE:
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :         return &quot;RESOLVE&quot;;</span>
+<span class="lineNum">     459 </span>            :     case PMIX_USOCK_CONNECTING:
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :         return &quot;CONNECTING&quot;;</span>
+<span class="lineNum">     461 </span>            :     case PMIX_USOCK_CONNECT_ACK:
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :         return &quot;ACK&quot;;</span>
+<span class="lineNum">     463 </span>            :     case PMIX_USOCK_CONNECTED:
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :         return &quot;CONNECTED&quot;;</span>
+<span class="lineNum">     465 </span>            :     case PMIX_USOCK_FAILED:
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :         return &quot;FAILED&quot;;</span>
+<span class="lineNum">     467 </span>            :     default:
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :         return &quot;UNKNOWN&quot;;</span>
+<span class="lineNum">     469 </span>            :     }
+<span class="lineNum">     470 </span>            : }
+<span class="lineNum">     471 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

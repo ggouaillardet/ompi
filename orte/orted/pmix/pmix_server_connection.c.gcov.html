@@ -1,0 +1,599 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/orted/pmix/pmix_server_connection.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="index.html">orte/orted/pmix</a> - pmix_server_connection.c<span style="font-size: 80%;"> (source / <a href="pmix_server_connection.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">207</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2010 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2011 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2006-2013 Los Alamos National Security, LLC.
+<span class="lineNum">      13 </span>            :  *                         All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2009      Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2011      Oak Ridge National Labs.  All rights reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2013-2015 Intel, Inc.  All rights reserved.
+<span class="lineNum">      17 </span>            :  * Copyright (c) 2014      Research Organization for Information Science
+<span class="lineNum">      18 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      19 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      22 </span>            :  *
+<span class="lineNum">      23 </span>            :  * $HEADER$
+<span class="lineNum">      24 </span>            :  */
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      29 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      30 </span>            : #endif
+<span class="lineNum">      31 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      32 </span>            : #ifdef HAVE_SYS_UIO_H
+<span class="lineNum">      33 </span>            : #include &lt;sys/uio.h&gt;
+<span class="lineNum">      34 </span>            : #endif
+<span class="lineNum">      35 </span>            : #ifdef HAVE_NET_UIO_H
+<span class="lineNum">      36 </span>            : #include &lt;net/uio.h&gt;
+<span class="lineNum">      37 </span>            : #endif
+<span class="lineNum">      38 </span>            : #ifdef HAVE_SYS_TYPES_H
+<span class="lineNum">      39 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      40 </span>            : #endif
+<span class="lineNum">      41 </span>            : #include &quot;opal/opal_socket_errno.h&quot;
+<span class="lineNum">      42 </span>            : #ifdef HAVE_NETINET_IN_H
+<span class="lineNum">      43 </span>            : #include &lt;netinet/in.h&gt;
+<span class="lineNum">      44 </span>            : #endif
+<span class="lineNum">      45 </span>            : #ifdef HAVE_ARPA_INET_H
+<span class="lineNum">      46 </span>            : #include &lt;arpa/inet.h&gt;
+<span class="lineNum">      47 </span>            : #endif
+<span class="lineNum">      48 </span>            : #ifdef HAVE_NETINET_TCP_H
+<span class="lineNum">      49 </span>            : #include &lt;netinet/tcp.h&gt;
+<span class="lineNum">      50 </span>            : #endif
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : #include &quot;opal/types.h&quot;
+<span class="lineNum">      53 </span>            : #include &quot;opal_stdint.h&quot;
+<span class="lineNum">      54 </span>            : #include &quot;opal/mca/backtrace/backtrace.h&quot;
+<span class="lineNum">      55 </span>            : #include &quot;opal/mca/base/mca_base_var.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;opal/mca/dstore/dstore.h&quot;
+<span class="lineNum">      57 </span>            : #include &quot;opal/mca/sec/sec.h&quot;
+<span class="lineNum">      58 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      59 </span>            : #include &quot;opal/util/net.h&quot;
+<span class="lineNum">      60 </span>            : #include &quot;opal/util/error.h&quot;
+<span class="lineNum">      61 </span>            : #include &quot;opal/class/opal_hash_table.h&quot;
+<span class="lineNum">      62 </span>            : #include &quot;opal/mca/event/event.h&quot;
+<span class="lineNum">      63 </span>            : #include &quot;opal/runtime/opal.h&quot;
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      66 </span>            : #include &quot;orte/mca/state/state.h&quot;
+<span class="lineNum">      67 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      68 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      69 </span>            : #include &quot;orte/mca/ess/ess.h&quot;
+<span class="lineNum">      70 </span>            : #include &quot;orte/mca/routed/routed.h&quot;
+<span class="lineNum">      71 </span>            : #include &quot;orte/runtime/orte_wait.h&quot;
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : #include &quot;pmix_server_internal.h&quot;
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            : static int usock_peer_send_blocking(pmix_server_peer_t* peer,
+<span class="lineNum">      76 </span>            :                                     int sd, void* data, size_t size);
+<span class="lineNum">      77 </span>            : static bool usock_peer_recv_blocking(pmix_server_peer_t* peer,
+<a name="78"><span class="lineNum">      78 </span>            :                                      int sd, void* data, size_t size);</a>
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 : int pmix_server_send_connect_ack(pmix_server_peer_t* peer)</span>
+<span class="lineNum">      81 </span>            : {
+<span class="lineNum">      82 </span>            :     char *msg;
+<span class="lineNum">      83 </span>            :     pmix_server_hdr_t hdr;
+<span class="lineNum">      84 </span>            :     int rc;
+<span class="lineNum">      85 </span>            :     size_t sdsize;
+<span class="lineNum">      86 </span>            :     char *cred;
+<span class="lineNum">      87 </span>            :     size_t credsize;
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">      90 </span>            :                         &quot;%s SEND CONNECT ACK&quot;, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            :     /* send a handshake that includes our process identifier
+<span class="lineNum">      93 </span>            :      * to ensure we are talking to another OMPI process
+<span class="lineNum">      94 </span>            :     */
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     hdr.id = *ORTE_PROC_MY_NAME;</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     hdr.type = PMIX_USOCK_IDENT;</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     hdr.tag = UINT32_MAX;</span>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            :     /* get our security credential*/
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_sec.get_my_credential(peer-&gt;auth_method,</span>
+<span class="lineNum">     101 </span>            :                                                          opal_dstore_internal,
+<span class="lineNum">     102 </span>            :                                                          ORTE_PROC_MY_NAME, &amp;cred, &amp;credsize))) {
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     105 </span>            :     }
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            :     /* set the number of bytes to be read beyond the header */
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :     hdr.nbytes = strlen(orte_version_string) + 1 + credsize;</span>
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            :     /* create a space for our message */
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     sdsize = (sizeof(hdr) + strlen(opal_version_string) + 1 + credsize);</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     if (NULL == (msg = (char*)malloc(sdsize))) {</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     114 </span>            :     }
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     memset(msg, 0, sdsize);</span>
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            :     /* load the message */
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     memcpy(msg, &amp;hdr, sizeof(hdr));</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     memcpy(msg+sizeof(hdr), opal_version_string, strlen(opal_version_string));</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     memcpy(msg+sizeof(hdr)+strlen(opal_version_string)+1, cred, credsize);</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     free(cred);</span>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != usock_peer_send_blocking(peer, peer-&gt;sd, msg, sdsize)) {</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_UNREACH);</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         free(msg);</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :         return ORTE_ERR_UNREACH;</span>
+<span class="lineNum">     127 </span>            :     }
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     free(msg);</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     130 </span>            : }
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : /*
+<a name="133"><span class="lineNum">     133 </span>            :  * Initialize events to be used by the peer instance for USOCK select/poll callbacks.</a>
+<span class="lineNum">     134 </span>            :  */
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 : void pmix_server_peer_event_init(pmix_server_peer_t* peer)</span>
+<span class="lineNum">     136 </span>            : {
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     if (peer-&gt;sd &gt;= 0) {</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :         opal_event_set(orte_event_base,</span>
+<span class="lineNum">     139 </span>            :                        &amp;peer-&gt;recv_event,
+<span class="lineNum">     140 </span>            :                        peer-&gt;sd,
+<span class="lineNum">     141 </span>            :                        OPAL_EV_READ|OPAL_EV_PERSIST,
+<span class="lineNum">     142 </span>            :                        pmix_server_recv_handler,
+<span class="lineNum">     143 </span>            :                        peer);
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         opal_event_set_priority(&amp;peer-&gt;recv_event, ORTE_MSG_PRI);</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         if (peer-&gt;recv_ev_active) {</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :             opal_event_del(&amp;peer-&gt;recv_event);</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :             peer-&gt;recv_ev_active = false;</span>
+<span class="lineNum">     148 </span>            :         }
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         opal_event_set(orte_event_base,</span>
+<span class="lineNum">     151 </span>            :                        &amp;peer-&gt;send_event,
+<span class="lineNum">     152 </span>            :                        peer-&gt;sd,
+<span class="lineNum">     153 </span>            :                        OPAL_EV_WRITE|OPAL_EV_PERSIST,
+<span class="lineNum">     154 </span>            :                        pmix_server_send_handler,
+<span class="lineNum">     155 </span>            :                        peer);
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         opal_event_set_priority(&amp;peer-&gt;send_event, ORTE_MSG_PRI);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :         if (peer-&gt;send_ev_active) {</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :             opal_event_del(&amp;peer-&gt;send_event);</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :             peer-&gt;send_ev_active = false;</span>
+<span class="lineNum">     160 </span>            :         }
+<span class="lineNum">     161 </span>            :     }
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span>            : /*
+<span class="lineNum">     165 </span>            :  * A blocking send on a non-blocking socket. Used to send the small amount of connection
+<a name="166"><span class="lineNum">     166 </span>            :  * information that identifies the peers endpoint.</a>
+<span class="lineNum">     167 </span>            :  */
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 : static int usock_peer_send_blocking(pmix_server_peer_t* peer,</span>
+<span class="lineNum">     169 </span>            :                                     int sd, void* data, size_t size)
+<span class="lineNum">     170 </span>            : {
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     unsigned char* ptr = (unsigned char*)data;</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     size_t cnt = 0;</span>
+<span class="lineNum">     173 </span>            :     int retval;
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     176 </span>            :                         &quot;%s send blocking of %&quot;PRIsize_t&quot; bytes to socket %d&quot;,
+<span class="lineNum">     177 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     178 </span>            :                         size, sd);
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :     while (cnt &lt; size) {</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         retval = send(sd, (char*)ptr+cnt, size-cnt, 0);</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         if (retval &lt; 0) {</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :             if (opal_socket_errno != EINTR &amp;&amp; opal_socket_errno != EAGAIN &amp;&amp; opal_socket_errno != EWOULDBLOCK) {</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :                 opal_output(0, &quot;%s usock_peer_send_blocking: send() to socket %d failed: %s (%d)\n&quot;,</span>
+<span class="lineNum">     185 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), sd,
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :                             strerror(opal_socket_errno),</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :                             opal_socket_errno);</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :                 peer-&gt;state = PMIX_SERVER_FAILED;</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :                 CLOSE_THE_SOCKET(peer-&gt;sd);</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_UNREACH;</span>
+<span class="lineNum">     191 </span>            :             }
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     193 </span>            :         }
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         cnt += retval;</span>
+<span class="lineNum">     195 </span>            :     }
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     198 </span>            :                         &quot;%s blocking send complete to socket %d&quot;,
+<span class="lineNum">     199 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), sd);
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     202 </span>            : }
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : /*
+<span class="lineNum">     205 </span>            :  *  Receive the peers globally unique process identification from a newly
+<span class="lineNum">     206 </span>            :  *  connected socket and verify the expected response. If so, move the
+<a name="207"><span class="lineNum">     207 </span>            :  *  socket to a connected state.</a>
+<span class="lineNum">     208 </span>            :  */
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 : int pmix_server_recv_connect_ack(pmix_server_peer_t* pr, int sd,</span>
+<span class="lineNum">     210 </span>            :                                  pmix_server_hdr_t *dhdr)
+<span class="lineNum">     211 </span>            : {
+<span class="lineNum">     212 </span>            :     char *msg;
+<span class="lineNum">     213 </span>            :     char *version;
+<span class="lineNum">     214 </span>            :     int rc;
+<span class="lineNum">     215 </span>            :     char *cred;
+<span class="lineNum">     216 </span>            :     size_t credsize;
+<span class="lineNum">     217 </span>            :     pmix_server_peer_t *peer;
+<span class="lineNum">     218 </span>            :     pmix_server_hdr_t hdr;
+<span class="lineNum">     219 </span>            :     orte_process_name_t sender;
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     222 </span>            :                         &quot;%s RECV CONNECT ACK FROM %s ON SOCKET %d&quot;,
+<span class="lineNum">     223 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :                         (NULL == pr) ? &quot;UNKNOWN&quot; : ORTE_NAME_PRINT(&amp;pr-&gt;name), sd);</span>
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :     peer = pr;</span>
+<span class="lineNum">     227 </span>            :     /* ensure all is zero'd */
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     memset(&amp;hdr, 0, sizeof(pmix_server_hdr_t));</span>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     if (usock_peer_recv_blocking(peer, sd, &amp;hdr, sizeof(pmix_server_hdr_t))) {</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         if (NULL != peer) {</span>
+<span class="lineNum">     232 </span>            :             /* If the peer state is CONNECT_ACK, then we were waiting for
+<span class="lineNum">     233 </span>            :              * the connection to be ack'd
+<span class="lineNum">     234 </span>            :              */
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :             if (peer-&gt;state != PMIX_SERVER_CONNECT_ACK) {</span>
+<span class="lineNum">     236 </span>            :                 /* handshake broke down - abort this connection */
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :                 opal_output(0, &quot;%s RECV CONNECT BAD HANDSHAKE FROM %s ON SOCKET %d&quot;,</span>
+<span class="lineNum">     238 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :                             ORTE_NAME_PRINT(&amp;peer-&gt;name), sd);</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :                 peer-&gt;state = PMIX_SERVER_FAILED;</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :                 CLOSE_THE_SOCKET(peer-&gt;sd);</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_UNREACH;</span>
+<span class="lineNum">     243 </span>            :             }
+<span class="lineNum">     244 </span>            :         }
+<span class="lineNum">     245 </span>            :     } else {
+<span class="lineNum">     246 </span>            :         /* unable to complete the recv */
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :         opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     248 </span>            :                             &quot;%s unable to complete recv of connect-ack from %s ON SOCKET %d&quot;,
+<span class="lineNum">     249 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :                             (NULL == peer) ? &quot;UNKNOWN&quot; : ORTE_NAME_PRINT(&amp;peer-&gt;name), sd);</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :         return ORTE_ERR_UNREACH;</span>
+<span class="lineNum">     252 </span>            :     }
+<span class="lineNum">     253 </span>            :     /* if the requestor wanted the header returned, then do so now */
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     if (NULL != dhdr) {</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :         *dhdr = hdr;</span>
+<span class="lineNum">     256 </span>            :     }
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :     if (hdr.type != PMIX_USOCK_IDENT) {</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;usock_peer_recv_connect_ack: invalid header type: %d\n&quot;, hdr.type);</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         if (NULL != peer) {</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :             peer-&gt;state = PMIX_SERVER_FAILED;</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(peer-&gt;sd);</span>
+<span class="lineNum">     263 </span>            :         } else {
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     265 </span>            :         }
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         return ORTE_ERR_UNREACH;</span>
+<span class="lineNum">     267 </span>            :     }
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     270 </span>            :                         &quot;%s connect-ack recvd from %s&quot;,
+<span class="lineNum">     271 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :                         (NULL == peer) ? &quot;UNKNOWN&quot; : ORTE_NAME_PRINT(&amp;peer-&gt;name));</span>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     sender = hdr.id;</span>
+<span class="lineNum">     275 </span>            :     /* if we don't already have it, get the peer */
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     if (NULL == peer) {</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :         peer = pmix_server_peer_lookup(sd);</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         if (NULL == peer) {</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :             opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     280 </span>            :                                 &quot;%s pmix_server_recv_connect: connection from new peer&quot;,
+<span class="lineNum">     281 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :             peer = OBJ_NEW(pmix_server_peer_t);</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :             peer-&gt;name = sender;</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :             peer-&gt;state = PMIX_SERVER_ACCEPTING;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :             peer-&gt;sd = sd;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != opal_hash_table_set_value_uint64(pmix_server_peers, sd, peer)) {</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(peer);</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :                 CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_UNREACH;</span>
+<span class="lineNum">     290 </span>            :             }
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         } else if (PMIX_SERVER_CONNECTED == peer-&gt;state ||</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                    PMIX_SERVER_CONNECTING == peer-&gt;state ||</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :                    PMIX_SERVER_CONNECT_ACK == peer-&gt;state) {</span>
+<span class="lineNum">     294 </span>            :             /* if I already have an established such a connection, then we need
+<span class="lineNum">     295 </span>            :              * to reject this connection */
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :             opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     297 </span>            :                                 &quot;%s EXISTING CONNECTION WITH %s&quot;,
+<span class="lineNum">     298 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     299 </span>            :                                 ORTE_NAME_PRINT(&amp;sender));
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :             if (peer-&gt;recv_ev_active) {</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :                 opal_event_del(&amp;peer-&gt;recv_event);</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :                 peer-&gt;recv_ev_active = false;</span>
+<span class="lineNum">     303 </span>            :             }
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :             if (peer-&gt;send_ev_active) {</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :                 opal_event_del(&amp;peer-&gt;send_event);</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :                 peer-&gt;send_ev_active = false;</span>
+<span class="lineNum">     307 </span>            :             }
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :             if (0 &lt; peer-&gt;sd) {</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :                 CLOSE_THE_SOCKET(peer-&gt;sd);</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :                 peer-&gt;sd = -1;</span>
+<span class="lineNum">     311 </span>            :             }
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :             peer-&gt;retries = 0;</span>
+<span class="lineNum">     313 </span>            :         }
+<span class="lineNum">     314 </span>            :     } else {
+<span class="lineNum">     315 </span>            :         /* compare the peers name to the expected value */
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         if (OPAL_EQUAL != orte_util_compare_name_fields(ORTE_NS_CMP_ALL, &amp;peer-&gt;name, &amp;sender)) {</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;%s usock_peer_recv_connect_ack: &quot;</span>
+<span class="lineNum">     318 </span>            :                         &quot;received unexpected process identifier %s from %s\n&quot;,
+<span class="lineNum">     319 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     320 </span>            :                         ORTE_NAME_PRINT(&amp;sender),
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :                         ORTE_NAME_PRINT(&amp;(peer-&gt;name)));</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :             peer-&gt;state = PMIX_SERVER_FAILED;</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(peer-&gt;sd);</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :             return ORTE_ERR_UNREACH;</span>
+<span class="lineNum">     325 </span>            :         }
+<span class="lineNum">     326 </span>            :     }
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     329 </span>            :                         &quot;%s connect-ack header from %s is okay&quot;,
+<span class="lineNum">     330 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :                         ORTE_NAME_PRINT(&amp;peer-&gt;name));</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span>            :     /* get the authentication and version payload */
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :     if (NULL == (msg = (char*)malloc(hdr.nbytes))) {</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :         peer-&gt;state = PMIX_SERVER_FAILED;</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :         CLOSE_THE_SOCKET(peer-&gt;sd);</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     338 </span>            :     }
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     memset(msg, 0, hdr.nbytes);</span>
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     if (!usock_peer_recv_blocking(peer, sd, msg, hdr.nbytes)) {</span>
+<span class="lineNum">     342 </span>            :         /* unable to complete the recv */
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :         opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     344 </span>            :                             &quot;%s unable to complete recv of connect-ack from %s ON SOCKET %d&quot;,
+<span class="lineNum">     345 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :                             ORTE_NAME_PRINT(&amp;peer-&gt;name), peer-&gt;sd);</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :         free(msg);</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :         return ORTE_ERR_UNREACH;</span>
+<span class="lineNum">     349 </span>            :     }
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span>            :     /* check that this is from a matching version */
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     version = (char*)(msg);</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     if (0 != strcmp(version, opal_version_string)) {</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;%s usock_peer_recv_connect_ack: &quot;</span>
+<span class="lineNum">     355 </span>            :                     &quot;received different version from %s: %s instead of %s\n&quot;,
+<span class="lineNum">     356 </span>            :                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :                     ORTE_NAME_PRINT(&amp;(peer-&gt;name)),</span>
+<span class="lineNum">     358 </span>            :                     version, opal_version_string);
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :         peer-&gt;state = PMIX_SERVER_FAILED;</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :         CLOSE_THE_SOCKET(peer-&gt;sd);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :         free(msg);</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         return ORTE_ERR_UNREACH;</span>
+<span class="lineNum">     363 </span>            :     }
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     366 </span>            :                         &quot;%s connect-ack version from %s matches ours&quot;,
+<span class="lineNum">     367 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :                         ORTE_NAME_PRINT(&amp;peer-&gt;name));</span>
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span>            :     /* check security token */
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     cred =  (char*)(msg + strlen(version) + 1);</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     credsize = hdr.nbytes - strlen(version) - 1;</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != (rc = opal_sec.authenticate(cred, credsize, &amp;peer-&gt;auth_method))) {</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :         peer-&gt;state = PMIX_SERVER_FAILED;</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :         CLOSE_THE_SOCKET(peer-&gt;sd);</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :         free(msg);</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :         return ORTE_ERR_UNREACH;</span>
+<span class="lineNum">     379 </span>            :     }
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :     free(msg);</span>
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     383 </span>            :                         &quot;%s connect-ack %s authenticated&quot;,
+<span class="lineNum">     384 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :                         ORTE_NAME_PRINT(&amp;peer-&gt;name));</span>
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span>            :     /* if the requestor wanted the header returned, then they
+<span class="lineNum">     388 </span>            :      * will complete their processing
+<span class="lineNum">     389 </span>            :      */
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     if (NULL != dhdr) {</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     392 </span>            :     }
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            :     /* connected */
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :     pmix_server_peer_connected(peer);</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     if (2 &lt;= opal_output_get_verbosity(pmix_server_output)) {</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :         pmix_server_peer_dump(peer, &quot;connected&quot;);</span>
+<span class="lineNum">     398 </span>            :     }
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     400 </span>            : }
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span>            : /*
+<span class="lineNum">     403 </span>            :  *  Setup peer state to reflect that connection has been established,
+<a name="404"><span class="lineNum">     404 </span>            :  *  and start any pending sends.</a>
+<span class="lineNum">     405 </span>            :  */
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 : void pmix_server_peer_connected(pmix_server_peer_t* peer)</span>
+<span class="lineNum">     407 </span>            : {
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     409 </span>            :                         &quot;%s-%s usock_peer_connected on socket %d&quot;,
+<span class="lineNum">     410 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :                         ORTE_NAME_PRINT(&amp;(peer-&gt;name)), peer-&gt;sd);</span>
+<span class="lineNum">     412 </span>            : 
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     if (peer-&gt;timer_ev_active) {</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         opal_event_del(&amp;peer-&gt;timer_event);</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :         peer-&gt;timer_ev_active = false;</span>
+<span class="lineNum">     416 </span>            :     }
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :     peer-&gt;state = PMIX_SERVER_CONNECTED;</span>
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :     /* ensure the recv event is active */
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :     if (!peer-&gt;recv_ev_active) {</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :         opal_event_add(&amp;peer-&gt;recv_event, 0);</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :         peer-&gt;recv_ev_active = true;</span>
+<span class="lineNum">     423 </span>            :     }
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span>            :     /* initiate send of first message on queue */
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     if (NULL == peer-&gt;send_msg) {</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :         peer-&gt;send_msg = (pmix_server_send_t*)</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :             opal_list_remove_first(&amp;peer-&gt;send_queue);</span>
+<span class="lineNum">     429 </span>            :     }
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :     if (NULL != peer-&gt;send_msg &amp;&amp; !peer-&gt;send_ev_active) {</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :         opal_event_add(&amp;peer-&gt;send_event, 0);</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :         peer-&gt;send_ev_active = true;</span>
+<span class="lineNum">     433 </span>            :     }
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span>            : /*
+<span class="lineNum">     437 </span>            :  * A blocking recv on a non-blocking socket. Used to receive the small amount of connection
+<a name="438"><span class="lineNum">     438 </span>            :  * information that identifies the peers endpoint.</a>
+<span class="lineNum">     439 </span>            :  */
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 : static bool usock_peer_recv_blocking(pmix_server_peer_t* peer,</span>
+<span class="lineNum">     441 </span>            :                                      int sd, void* data, size_t size)
+<span class="lineNum">     442 </span>            : {
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     unsigned char* ptr = (unsigned char*)data;</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     size_t cnt = 0;</span>
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     447 </span>            :                         &quot;%s waiting for connect ack from %s&quot;,
+<span class="lineNum">     448 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :                         (NULL == peer) ? &quot;UNKNOWN&quot; : ORTE_NAME_PRINT(&amp;(peer-&gt;name)));</span>
+<span class="lineNum">     450 </span>            : 
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :     while (cnt &lt; size) {</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :         int retval = recv(sd, (char *)ptr+cnt, size-cnt, 0);</span>
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span>            :         /* remote closed connection */
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :         if (retval == 0) {</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :             opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     457 </span>            :                                 &quot;%s-%s usock_peer_recv_blocking: &quot;
+<span class="lineNum">     458 </span>            :                                 &quot;peer closed connection: peer state %d&quot;,
+<span class="lineNum">     459 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :                                 (NULL == peer) ? &quot;UNKNOWN&quot; : ORTE_NAME_PRINT(&amp;(peer-&gt;name)),</span>
+<span class="lineNum">     461 </span>            :                                 (NULL == peer) ? 0 : peer-&gt;state);
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :             if (NULL != peer) {</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :                 peer-&gt;state = PMIX_SERVER_FAILED;</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :                 CLOSE_THE_SOCKET(peer-&gt;sd);</span>
+<span class="lineNum">     465 </span>            :             }
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     467 </span>            :         }
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span>            :         /* socket is non-blocking so handle errors */
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :         if (retval &lt; 0) {</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :             if (opal_socket_errno != EINTR &amp;&amp;</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :                 opal_socket_errno != EAGAIN &amp;&amp;</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :                 opal_socket_errno != EWOULDBLOCK) {</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :                 if (peer-&gt;state == PMIX_SERVER_CONNECT_ACK) {</span>
+<span class="lineNum">     475 </span>            :                     /* If we overflow the listen backlog, it's
+<span class="lineNum">     476 </span>            :                        possible that even though we finished the three
+<span class="lineNum">     477 </span>            :                        way handshake, the remote host was unable to
+<span class="lineNum">     478 </span>            :                        transition the connection from half connected
+<span class="lineNum">     479 </span>            :                        (received the initial SYN) to fully connected
+<span class="lineNum">     480 </span>            :                        (in the listen backlog).  We likely won't see
+<span class="lineNum">     481 </span>            :                        the failure until we try to receive, due to
+<span class="lineNum">     482 </span>            :                        timing and the like.  The first thing we'll get
+<span class="lineNum">     483 </span>            :                        in that case is a RST packet, which receive
+<span class="lineNum">     484 </span>            :                        will turn into a connection reset by peer
+<span class="lineNum">     485 </span>            :                        errno.  In that case, leave the socket in
+<span class="lineNum">     486 </span>            :                        CONNECT_ACK and propogate the error up to
+<span class="lineNum">     487 </span>            :                        recv_connect_ack, who will try to establish the
+<span class="lineNum">     488 </span>            :                        connection again */
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :                     opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     490 </span>            :                                         &quot;%s connect ack received error %s from %s&quot;,
+<span class="lineNum">     491 </span>            :                                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :                                         strerror(opal_socket_errno),</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :                                         (NULL == peer) ? &quot;UNKNOWN&quot; : ORTE_NAME_PRINT(&amp;(peer-&gt;name)));</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :                     return false;</span>
+<span class="lineNum">     495 </span>            :                 } else {
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :                     opal_output(0,</span>
+<span class="lineNum">     497 </span>            :                                 &quot;%s usock_peer_recv_blocking: &quot;
+<span class="lineNum">     498 </span>            :                                 &quot;recv() failed for %s: %s (%d)\n&quot;,
+<span class="lineNum">     499 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :                                 (NULL == peer) ? &quot;UNKNOWN&quot; : ORTE_NAME_PRINT(&amp;(peer-&gt;name)),</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :                                 strerror(opal_socket_errno),</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :                                 opal_socket_errno);</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :                     if (NULL != peer) {</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :                         peer-&gt;state = PMIX_SERVER_FAILED;</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :                         CLOSE_THE_SOCKET(peer-&gt;sd);</span>
+<span class="lineNum">     506 </span>            :                     } else {
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :                         CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     508 </span>            :                     }
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :                     return false;</span>
+<span class="lineNum">     510 </span>            :                 }
+<span class="lineNum">     511 </span>            :             }
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     513 </span>            :         }
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :         cnt += retval;</span>
+<span class="lineNum">     515 </span>            :     }
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, pmix_server_output,</span>
+<span class="lineNum">     518 </span>            :                         &quot;%s connect ack received from %s&quot;,
+<span class="lineNum">     519 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :                         (NULL == peer) ? &quot;UNKNOWN&quot; : ORTE_NAME_PRINT(&amp;(peer-&gt;name)));</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     522 </span>            : }
+<span class="lineNum">     523 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

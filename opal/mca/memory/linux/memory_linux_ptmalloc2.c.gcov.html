@@ -1,0 +1,212 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/memory/linux/memory_linux_ptmalloc2.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/memory/linux</a> - memory_linux_ptmalloc2.c<span style="font-size: 80%;"> (source / <a href="memory_linux_ptmalloc2.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntry">39</td>
+            <td class="headerCovTableEntryLo">53.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2007 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2005 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2009-2010 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  * $HEADER$
+<span class="lineNum">      18 </span>            :  */
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &lt;sys/mman.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;malloc.h&gt;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;opal/memoryhooks/memory.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;opal/memoryhooks/memory_internal.h&quot;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &quot;opal/mca/memory/linux/memory_linux.h&quot;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : /* Need to call a function in hooks.c to ensure that all those symbols
+<span class="lineNum">      35 </span>            :    get pulled in at link time (e.g., when building libmpi.a, so that
+<span class="lineNum">      36 </span>            :    those symbols end up in the final executable -- especially if we
+<span class="lineNum">      37 </span>            :    use --disable-dlopen and therefore -Wl,--export-dynamic isn't used
+<span class="lineNum">      38 </span>            :    when we build OMPI). */
+<span class="lineNum">      39 </span>            : extern void opal_memory_linux_hook_pull(bool *want_hooks);
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : /*
+<a name="43"><span class="lineNum">      43 </span>            :  * Try to initialize ptmalloc2</a>
+<span class="lineNum">      44 </span>            :  */
+<span class="lineNum">      45 </span><span class="lineCov">          2 : int opal_memory_linux_ptmalloc2_open(void)</span>
+<span class="lineNum">      46 </span>            : {
+<span class="lineNum">      47 </span><span class="lineCov">          2 :     int val = 0;</span>
+<span class="lineNum">      48 </span>            :     void *p;
+<span class="lineNum">      49 </span><span class="lineCov">          2 :     bool want_hooks = true;</span>
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            :     /* Call a [somewhat] dummy function in hooks.c.  ***Do not remove
+<span class="lineNum">      52 </span>            :        this call!*** See comment at the beginning of this file
+<span class="lineNum">      53 </span>            :        explaining why it is here.  It will also check to see if an
+<span class="lineNum">      54 </span>            :        environment variable has been set to disable this component
+<span class="lineNum">      55 </span>            :        (note that OPAL_ERR_NOT_AVAILABLE is a special return value
+<span class="lineNum">      56 </span>            :        that will silently fail the open component call; all others
+<span class="lineNum">      57 </span>            :        will issue an error). */
+<span class="lineNum">      58 </span><span class="lineCov">          2 :     opal_memory_linux_hook_pull(&amp;want_hooks);</span>
+<span class="lineNum">      59 </span><span class="lineCov">          2 :     if (!want_hooks) {</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :         return OPAL_ERR_NOT_AVAILABLE;</span>
+<span class="lineNum">      61 </span>            :     }
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            :     /* We will also provide malloc/free support if we've been
+<span class="lineNum">      64 </span>            :        activated.  We don't exclusively rely on the
+<span class="lineNum">      65 </span>            :        __malloc_initialize_hook() previously being called because it's
+<span class="lineNum">      66 </span>            :        possible that our hook was called, but then someone else reset
+<span class="lineNum">      67 </span>            :        the hooks to point to something else (i.e., before MPI_INIT).
+<span class="lineNum">      68 </span>            :        So explicitly test here if our hooks are still in place.  If
+<span class="lineNum">      69 </span>            :        they are, then enable FREE|CHUNK_SUPPORT.  If not, then don't
+<span class="lineNum">      70 </span>            :        enable that support -- just leave it at MUNMAP_SUPPORT.
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            :        (Look in hooks.c for the __malloc_initialize_hook setup) */
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            :     /* Do a simple set of tests to see if our hooks are still the ones
+<span class="lineNum">      75 </span>            :        installed.  Explicitly reset the flags indicating that our
+<span class="lineNum">      76 </span>            :        functions were invoked */
+<span class="lineNum">      77 </span><span class="lineCov">          2 :     p = malloc(1024 * 1024 * 4);</span>
+<span class="lineNum">      78 </span><span class="lineCov">          2 :     if (NULL == p) {</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">      80 </span>            :     }
+<span class="lineNum">      81 </span><span class="lineCov">          2 :     p = realloc(p, 1024 * 1024 * 4 + 32);</span>
+<span class="lineNum">      82 </span><span class="lineCov">          2 :     if (NULL == p) {</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">      84 </span>            :     }
+<span class="lineNum">      85 </span><span class="lineCov">          2 :     free(p);</span>
+<span class="lineNum">      86 </span><span class="lineCov">          2 :     p = memalign(4, 1024 * 1024);</span>
+<span class="lineNum">      87 </span><span class="lineCov">          2 :     if (NULL == p) {</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">      89 </span>            :     }
+<span class="lineNum">      90 </span><span class="lineCov">          2 :     free(p);</span>
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : #if HAVE_POSIX_MEMALIGN
+<span class="lineNum">      93 </span>            :     /* Double check for posix_memalign, too */
+<span class="lineNum">      94 </span><span class="lineCov">          2 :     if (mca_memory_linux_component.memalign_invoked) {</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         mca_memory_linux_component.memalign_invoked = false;</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :         if (0 != posix_memalign(&amp;p, sizeof(void*), 1024 * 1024)) {</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :             return OPAL_ERR_IN_ERRNO;</span>
+<span class="lineNum">      98 </span>            :         }
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :         free(p);</span>
+<span class="lineNum">     100 </span>            :     }
+<span class="lineNum">     101 </span>            : #endif
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineCov">          2 :     if (mca_memory_linux_component.malloc_invoked &amp;&amp;</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :         mca_memory_linux_component.realloc_invoked &amp;&amp;</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :         mca_memory_linux_component.memalign_invoked &amp;&amp;</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :         mca_memory_linux_component.free_invoked) {</span>
+<span class="lineNum">     107 </span>            :         /* Happiness; our functions were invoked */
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :         val |= OPAL_MEMORY_FREE_SUPPORT | OPAL_MEMORY_CHUNK_SUPPORT;</span>
+<span class="lineNum">     109 </span>            :     }
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :     /* Check if our mmap layering is working */
+<span class="lineNum">     112 </span><span class="lineCov">          2 :     p = mmap(NULL, 4096, PROT_READ, (MAP_ANONYMOUS | MAP_PRIVATE), -1, 0);</span>
+<span class="lineNum">     113 </span><span class="lineCov">          2 :     if (MAP_FAILED == p) {</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     115 </span>            :     }
+<span class="lineNum">     116 </span><span class="lineCov">          2 :     munmap(p, 4096);</span>
+<span class="lineNum">     117 </span><span class="lineCov">          2 :     if (mca_memory_linux_component.munmap_invoked) {</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :         val |= OPAL_MEMORY_MUNMAP_SUPPORT;</span>
+<span class="lineNum">     119 </span>            :     }
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            :     /* All done */
+<span class="lineNum">     122 </span><span class="lineCov">          2 :     if (val &gt; 0) {</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :         opal_mem_hooks_set_support(val);</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :         return OPAL_SUCCESS;</span>
+<span class="lineNum">     125 </span>            :     }
+<span class="lineNum">     126 </span><span class="lineCov">          2 :     return OPAL_ERR_NOT_AVAILABLE;</span>
+<span class="lineNum">     127 </span>            : }
+<a name="128"><span class="lineNum">     128 </span>            : </a>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 : int opal_memory_linux_ptmalloc2_close(void)</span>
+<span class="lineNum">     131 </span>            : {
+<span class="lineNum">     132 </span>            :     /* Nothing to do, really.  This function exists just for
+<span class="lineNum">     133 </span>            :        symmetry. */
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     136 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

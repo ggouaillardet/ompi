@@ -1,0 +1,794 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/btl/openib/btl_openib_async.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/btl/openib</a> - btl_openib_async.c<span style="font-size: 80%;"> (source / <a href="btl_openib_async.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">292</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2008-2009 Mellanox Technologies. All rights reserved.
+<span class="lineNum">       4 </span>            :  * Copyright (c) 2007-2013 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2006-2007 Voltaire All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2009-2010 Oracle and/or its affiliates.  All rights reserved
+<span class="lineNum">       7 </span>            :  * Copyright (c) 2013-2015 Los Alamos National Security, LLC. All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2014      Bull SAS.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      12 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      13 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  * $HEADER$
+<span class="lineNum">      18 </span>            :  */
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &lt;infiniband/verbs.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;sys/poll.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &quot;opal/util/show_help.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;opal/util/proc.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &quot;opal/mca/btl/base/base.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;btl_openib.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;btl_openib_mca.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;btl_openib_async.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;btl_openib_proc.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;btl_openib_endpoint.h&quot;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : struct mca_btl_openib_async_poll {
+<span class="lineNum">      40 </span>            :     int active_poll_size;
+<span class="lineNum">      41 </span>            :     int poll_size;
+<span class="lineNum">      42 </span>            :     struct pollfd *async_pollfd;
+<span class="lineNum">      43 </span>            : };
+<span class="lineNum">      44 </span>            : typedef struct mca_btl_openib_async_poll mca_btl_openib_async_poll;
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : typedef struct {
+<span class="lineNum">      47 </span>            :     opal_list_item_t super;
+<span class="lineNum">      48 </span>            :     struct ibv_qp *qp;
+<span class="lineNum">      49 </span>            : } mca_btl_openib_qp_list;
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            : OBJ_CLASS_INSTANCE(mca_btl_openib_qp_list, opal_list_item_t, NULL, NULL);
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : static int return_status = OPAL_ERROR;
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : static int btl_openib_async_poll_init(struct mca_btl_openib_async_poll *hcas_poll);
+<span class="lineNum">      56 </span>            : static int btl_openib_async_commandh(struct mca_btl_openib_async_poll *hcas_poll, opal_list_t *ignore_qp_err_list);
+<span class="lineNum">      57 </span>            : static int btl_openib_async_deviceh(struct mca_btl_openib_async_poll *hcas_poll, int index,
+<span class="lineNum">      58 </span>            :                                     opal_list_t *ignore_qp_err_list);
+<span class="lineNum">      59 </span>            : static const char *openib_event_to_str (enum ibv_event_type event);
+<span class="lineNum">      60 </span>            : static int send_command_comp(int in);
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : /* Function converts event to string (name)
+<a name="63"><span class="lineNum">      63 </span>            :  * Open Fabris don't have function that do this job :(</a>
+<span class="lineNum">      64 </span>            :  */
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 : static const char *openib_event_to_str (enum ibv_event_type event)</span>
+<span class="lineNum">      66 </span>            : {
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     switch (event) {</span>
+<span class="lineNum">      68 </span>            :     case IBV_EVENT_CQ_ERR:
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_CQ_ERR&quot;;</span>
+<span class="lineNum">      70 </span>            :     case IBV_EVENT_QP_FATAL:
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_QP_FATAL&quot;;</span>
+<span class="lineNum">      72 </span>            :     case IBV_EVENT_QP_REQ_ERR:
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_QP_REQ_ERR&quot;;</span>
+<span class="lineNum">      74 </span>            :     case IBV_EVENT_QP_ACCESS_ERR:
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_QP_ACCESS_ERR&quot;;</span>
+<span class="lineNum">      76 </span>            :     case IBV_EVENT_PATH_MIG:
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_PATH_MIG&quot;;</span>
+<span class="lineNum">      78 </span>            :     case IBV_EVENT_PATH_MIG_ERR:
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_PATH_MIG_ERR&quot;;</span>
+<span class="lineNum">      80 </span>            :     case IBV_EVENT_DEVICE_FATAL:
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_DEVICE_FATAL&quot;;</span>
+<span class="lineNum">      82 </span>            :     case IBV_EVENT_SRQ_ERR:
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_SRQ_ERR&quot;;</span>
+<span class="lineNum">      84 </span>            :     case IBV_EVENT_PORT_ERR:
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_PORT_ERR&quot;;</span>
+<span class="lineNum">      86 </span>            :     case IBV_EVENT_COMM_EST:
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_COMM_EST&quot;;</span>
+<span class="lineNum">      88 </span>            :     case IBV_EVENT_PORT_ACTIVE:
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_PORT_ACTIVE&quot;;</span>
+<span class="lineNum">      90 </span>            :     case IBV_EVENT_SQ_DRAINED:
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_SQ_DRAINED&quot;;</span>
+<span class="lineNum">      92 </span>            :     case IBV_EVENT_LID_CHANGE:
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_LID_CHANGE&quot;;</span>
+<span class="lineNum">      94 </span>            :     case IBV_EVENT_PKEY_CHANGE:
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_PKEY_CHANGE&quot;;</span>
+<span class="lineNum">      96 </span>            :     case IBV_EVENT_SM_CHANGE:
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_SM_CHANGE&quot;;</span>
+<span class="lineNum">      98 </span>            :     case IBV_EVENT_QP_LAST_WQE_REACHED:
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_QP_LAST_WQE_REACHED&quot;;</span>
+<span class="lineNum">     100 </span>            : #if HAVE_DECL_IBV_EVENT_CLIENT_REREGISTER
+<span class="lineNum">     101 </span>            :     case IBV_EVENT_CLIENT_REREGISTER:
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_CLIENT_REREGISTER&quot;;</span>
+<span class="lineNum">     103 </span>            : #endif
+<span class="lineNum">     104 </span>            :     case IBV_EVENT_SRQ_LIMIT_REACHED:
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :         return &quot;IBV_EVENT_SRQ_LIMIT_REACHED&quot;;</span>
+<span class="lineNum">     106 </span>            :     default:
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :         return &quot;UNKNOWN&quot;;</span>
+<span class="lineNum">     108 </span>            :     }
+<a name="109"><span class="lineNum">     109 </span>            : }</a>
+<span class="lineNum">     110 </span>            : /* QP to endpoint */
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 : static mca_btl_openib_endpoint_t * qp2endpoint(struct ibv_qp *qp, mca_btl_openib_device_t *device)</span>
+<span class="lineNum">     112 </span>            : {
+<span class="lineNum">     113 </span>            :     mca_btl_openib_endpoint_t *ep;
+<span class="lineNum">     114 </span>            :     int  ep_i, qp_i;
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     for(ep_i = 0; ep_i &lt; opal_pointer_array_get_size(device-&gt;endpoints); ep_i++) {</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :         ep = opal_pointer_array_get_item(device-&gt;endpoints, ep_i);</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :         for(qp_i = 0; qp_i &lt; mca_btl_openib_component.num_qps; qp_i++) {</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :             if (qp == ep-&gt;qps[qp_i].qp-&gt;lcl_qp)</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :                 return ep;</span>
+<span class="lineNum">     120 </span>            :         }
+<span class="lineNum">     121 </span>            :     }
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     123 </span>            : }
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            : #if OPAL_HAVE_CONNECTX_XRC
+<span class="lineNum">     126 </span>            : /* XRC recive QP to endpoint */
+<span class="lineNum">     127 </span>            : static mca_btl_openib_endpoint_t * xrc_qp2endpoint(uint32_t qp_num, mca_btl_openib_device_t *device)
+<span class="lineNum">     128 </span>            : {
+<span class="lineNum">     129 </span>            :     mca_btl_openib_endpoint_t *ep;
+<span class="lineNum">     130 </span>            :     int  ep_i;
+<span class="lineNum">     131 </span>            :     for(ep_i = 0; ep_i &lt; opal_pointer_array_get_size(device-&gt;endpoints); ep_i++) {
+<span class="lineNum">     132 </span>            :         ep = opal_pointer_array_get_item(device-&gt;endpoints, ep_i);
+<span class="lineNum">     133 </span>            :         if (qp_num == ep-&gt;xrc_recv_qp_num)
+<span class="lineNum">     134 </span>            :             return ep;
+<span class="lineNum">     135 </span>            :     }
+<span class="lineNum">     136 </span>            :     return NULL;
+<span class="lineNum">     137 </span>            : }
+<span class="lineNum">     138 </span>            : #endif
+<a name="139"><span class="lineNum">     139 </span>            : </a>
+<span class="lineNum">     140 </span>            : /* Function inits mca_btl_openib_async_poll */
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 : static int btl_openib_async_poll_init(struct mca_btl_openib_async_poll *devices_poll)</span>
+<span class="lineNum">     142 </span>            : {
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     devices_poll-&gt;active_poll_size = 1;</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     devices_poll-&gt;poll_size = 4;</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     devices_poll-&gt;async_pollfd = malloc(sizeof(struct pollfd) * devices_poll-&gt;poll_size);</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     if (NULL == devices_poll-&gt;async_pollfd) {</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Failed malloc: %s:%d&quot;</span>
+<span class="lineNum">     148 </span>            :                     , __FILE__, __LINE__));
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     150 </span>            :     }
+<span class="lineNum">     151 </span>            :     /* Creating comunication channel with the main thread */
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     devices_poll-&gt;async_pollfd[0].fd = mca_btl_openib_component.async_pipe[0];</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :     devices_poll-&gt;async_pollfd[0].events = POLLIN;</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     devices_poll-&gt;async_pollfd[0].revents = 0;</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     156 </span>            : }
+<a name="157"><span class="lineNum">     157 </span>            : </a>
+<span class="lineNum">     158 </span>            : /* Send command completion to main thread */
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 : static int send_command_comp(int in)</span>
+<span class="lineNum">     160 </span>            : {
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :     if (write(mca_btl_openib_component.async_comp_pipe[1], &amp;in, sizeof(int)) &lt; 0) {</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Write failed [%d]&quot;,errno));</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     164 </span>            :     }
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     166 </span>            : }
+<a name="167"><span class="lineNum">     167 </span>            : </a>
+<span class="lineNum">     168 </span>            : /* Function handle async thread commands */
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 : static int btl_openib_async_commandh(struct mca_btl_openib_async_poll *devices_poll, opal_list_t *ignore_qp_err_list)</span>
+<span class="lineNum">     170 </span>            : {
+<span class="lineNum">     171 </span>            :     struct pollfd *async_pollfd_tmp;
+<span class="lineNum">     172 </span>            :     mca_btl_openib_async_cmd_t cmd;
+<span class="lineNum">     173 </span>            :     int fd,flags,j,ret;
+<span class="lineNum">     174 </span>            :     /* Got command from main thread */
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     ret = read(devices_poll-&gt;async_pollfd[0].fd, &amp;cmd, sizeof(mca_btl_openib_async_cmd_t));</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     if (sizeof(mca_btl_openib_async_cmd_t) != ret) {</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Read failed [%d]&quot;,errno));</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     179 </span>            :     }
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     BTL_VERBOSE((&quot;Got cmd %d&quot;, cmd.a_cmd));</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     if (OPENIB_ASYNC_CMD_FD_ADD == cmd.a_cmd) {</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :         fd = cmd.fd;</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         BTL_VERBOSE((&quot;Got fd %d&quot;, fd));</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :         BTL_VERBOSE((&quot;Adding device [%d] to async event poll[%d]&quot;,</span>
+<span class="lineNum">     186 </span>            :                      fd, devices_poll-&gt;active_poll_size));
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :         flags = fcntl(fd, F_GETFL);</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :         if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) &lt; 0) {</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :             BTL_ERROR((&quot;Failed to change file descriptor of async event&quot;));</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :             return OPAL_ERROR;</span>
+<span class="lineNum">     191 </span>            :         }
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         if ((devices_poll-&gt;active_poll_size + 1) &gt; devices_poll-&gt;poll_size) {</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :             devices_poll-&gt;poll_size+=devices_poll-&gt;poll_size;</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :             async_pollfd_tmp = malloc(sizeof(struct pollfd) * devices_poll-&gt;poll_size);</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :             if (NULL == async_pollfd_tmp) {</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :                 BTL_ERROR((&quot;Failed malloc: %s:%d.  &quot;</span>
+<span class="lineNum">     197 </span>            :                             &quot;Fatal error, stoping asynch event thread&quot;
+<span class="lineNum">     198 </span>            :                             , __FILE__, __LINE__));
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :                 return OPAL_ERROR;</span>
+<span class="lineNum">     200 </span>            :             }
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :             memcpy (async_pollfd_tmp,devices_poll-&gt;async_pollfd,</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :                     sizeof(struct pollfd) * (devices_poll-&gt;active_poll_size));</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :             free(devices_poll-&gt;async_pollfd);</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :             devices_poll-&gt;async_pollfd = async_pollfd_tmp;</span>
+<span class="lineNum">     205 </span>            :         }
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         devices_poll-&gt;async_pollfd[devices_poll-&gt;active_poll_size].fd = fd;</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :         devices_poll-&gt;async_pollfd[devices_poll-&gt;active_poll_size].events = POLLIN;</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         devices_poll-&gt;async_pollfd[devices_poll-&gt;active_poll_size].revents = 0;</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :         devices_poll-&gt;active_poll_size++;</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != send_command_comp(fd)) {</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :             return OPAL_ERROR;</span>
+<span class="lineNum">     212 </span>            :         }
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     } else if (OPENIB_ASYNC_CMD_FD_REMOVE == cmd.a_cmd) {</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         bool fd_found = false;</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :         fd = cmd.fd;</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         BTL_VERBOSE((&quot;Got fd %d&quot;, fd));</span>
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            :         /* Removing device from poll */
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         BTL_VERBOSE((&quot;Removing device [%d] from async event poll [%d]&quot;,</span>
+<span class="lineNum">     221 </span>            :                      fd, devices_poll-&gt;active_poll_size));
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         if (devices_poll-&gt;active_poll_size &gt; 1) {</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :             for (j=0; (j &lt; devices_poll-&gt;active_poll_size || !fd_found); j++) {</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :                 if (devices_poll-&gt;async_pollfd[j].fd == fd) {</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :                     devices_poll-&gt;async_pollfd[j].fd =</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :                         devices_poll-&gt;async_pollfd[devices_poll-&gt;active_poll_size-1].fd;</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :                     devices_poll-&gt;async_pollfd[j].events =</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :                         devices_poll-&gt;async_pollfd[devices_poll-&gt;active_poll_size-1].events;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :                     devices_poll-&gt;async_pollfd[j].revents =</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :                         devices_poll-&gt;async_pollfd[devices_poll-&gt;active_poll_size-1].revents;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :                     fd_found = true;</span>
+<span class="lineNum">     232 </span>            :                 }
+<span class="lineNum">     233 </span>            :             }
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :             if (!fd_found) {</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :                 BTL_ERROR((&quot;Requested FD[%d] was not found in poll array&quot;,fd));</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :                 return OPAL_ERROR;</span>
+<span class="lineNum">     237 </span>            :             }
+<span class="lineNum">     238 </span>            :         }
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         devices_poll-&gt;active_poll_size--;</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != send_command_comp(fd)) {</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :             return OPAL_ERROR;</span>
+<span class="lineNum">     242 </span>            :         }
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     } else if (OPENIB_ASYNC_IGNORE_QP_ERR == cmd.a_cmd) {</span>
+<span class="lineNum">     244 </span>            :         mca_btl_openib_qp_list *new_qp;
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :         new_qp = OBJ_NEW(mca_btl_openib_qp_list);</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :         BTL_VERBOSE((&quot;Ignore errors on QP %p&quot;, (void *)cmd.qp));</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :         new_qp-&gt;qp = cmd.qp;</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :         opal_list_append(ignore_qp_err_list, (opal_list_item_t *)new_qp);</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :         send_command_comp(OPENIB_ASYNC_IGNORE_QP_ERR);</span>
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :     } else if (OPENIB_ASYNC_THREAD_EXIT == cmd.a_cmd) {</span>
+<span class="lineNum">     252 </span>            :         /* Got 0 - command to close the thread */
+<span class="lineNum">     253 </span>            :         opal_list_item_t *item;
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         BTL_VERBOSE((&quot;Async event thread exit&quot;));</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :         free(devices_poll-&gt;async_pollfd);</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         return_status = OPAL_SUCCESS;</span>
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         while ((item = opal_list_remove_first(ignore_qp_err_list))) {</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(item);</span>
+<span class="lineNum">     260 </span>            :         }
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(ignore_qp_err_list);</span>
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         pthread_exit(&amp;return_status);</span>
+<span class="lineNum">     264 </span>            :     }
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     266 </span>            : }
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span>            : /* The main idea of resizing SRQ algorithm -
+<span class="lineNum">     269 </span>            :    We create a SRQ with size = rd_num, but for efficient usage of resources
+<span class="lineNum">     270 </span>            :    the number of WQEs that we post = rd_curr_num &lt; rd_num and this value is
+<a name="271"><span class="lineNum">     271 </span>            :    increased (by needs) in IBV_EVENT_SRQ_LIMIT_REACHED event handler (i.e. in this function),</a>
+<span class="lineNum">     272 </span>            :    the event will thrown by device if number of WQEs in SRQ will be less than srq_limit */
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 : static int btl_openib_async_srq_limit_event(struct ibv_srq* srq)</span>
+<span class="lineNum">     274 </span>            : {
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     int qp, rc = OPAL_SUCCESS;</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     mca_btl_openib_module_t *openib_btl = NULL;</span>
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     opal_mutex_t *lock = &amp;mca_btl_openib_component.srq_manager.lock;</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     opal_hash_table_t *srq_addr_table = &amp;mca_btl_openib_component.srq_manager.srq_addr_table;</span>
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     opal_mutex_lock(lock);</span>
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != opal_hash_table_get_value_ptr(srq_addr_table,</span>
+<span class="lineNum">     284 </span>            :                             &amp;srq, sizeof(struct ibv_srq*), (void*) &amp;openib_btl)) {
+<span class="lineNum">     285 </span>            :         /* If there isn't any element with the key in the table =&gt;
+<span class="lineNum">     286 </span>            :            we assume that SRQ was destroyed and don't serve the event */
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :         goto srq_limit_event_exit;</span>
+<span class="lineNum">     288 </span>            :     }
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     for(qp = 0; qp &lt; mca_btl_openib_component.num_qps; qp++) {</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         if (!BTL_OPENIB_QP_TYPE_PP(qp)) {</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :             if(openib_btl-&gt;qps[qp].u.srq_qp.srq == srq) {</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     294 </span>            :             }
+<span class="lineNum">     295 </span>            :         }
+<span class="lineNum">     296 </span>            :     }
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     if(qp &gt;= mca_btl_openib_component.num_qps) {</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Open MPI tried to access a shared receive queue (SRQ) on the device %s that was not found.  This should not happen, and is a fatal error.  Your MPI job will now abort.\n&quot;, ibv_get_device_name(openib_btl-&gt;device-&gt;ib_dev)));</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :         rc = OPAL_ERROR;</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :         goto srq_limit_event_exit;</span>
+<span class="lineNum">     302 </span>            :     }
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            :     /* dynamically re-size the SRQ to be larger */
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :     openib_btl-&gt;qps[qp].u.srq_qp.rd_curr_num &lt;&lt;= 1;</span>
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     if(openib_btl-&gt;qps[qp].u.srq_qp.rd_curr_num &gt;=</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :                          mca_btl_openib_component.qp_infos[qp].rd_num) {</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :         openib_btl-&gt;qps[qp].u.srq_qp.rd_curr_num = mca_btl_openib_component.qp_infos[qp].rd_num;</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :         openib_btl-&gt;qps[qp].u.srq_qp.rd_low_local = mca_btl_openib_component.qp_infos[qp].rd_low;</span>
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :         openib_btl-&gt;qps[qp].u.srq_qp.srq_limit_event_flag = false;</span>
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         goto srq_limit_event_exit;</span>
+<span class="lineNum">     315 </span>            :     }
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     openib_btl-&gt;qps[qp].u.srq_qp.rd_low_local &lt;&lt;= 1;</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     openib_btl-&gt;qps[qp].u.srq_qp.srq_limit_event_flag = true;</span>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            : srq_limit_event_exit:
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     opal_mutex_unlock(lock);</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     323 </span>            : }
+<a name="324"><span class="lineNum">     324 </span>            : </a>
+<span class="lineNum">     325 </span>            : /* Function handle async device events */
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 : static int btl_openib_async_deviceh(struct mca_btl_openib_async_poll *devices_poll, int index,</span>
+<span class="lineNum">     327 </span>            :                                     opal_list_t *ignore_qp_err_list)
+<span class="lineNum">     328 </span>            : {
+<span class="lineNum">     329 </span>            :     int j;
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     mca_btl_openib_device_t *device = NULL;</span>
+<span class="lineNum">     331 </span>            :     struct ibv_async_event event;
+<span class="lineNum">     332 </span>            :     int event_type;
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span>            :     /* We need to find correct device and process this event */
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :     for (j=0; j &lt; mca_btl_openib_component.ib_num_btls; j++) {</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :         if (mca_btl_openib_component.openib_btls[j]-&gt;device-&gt;ib_dev_context-&gt;async_fd ==</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :                 devices_poll-&gt;async_pollfd[index].fd ) {</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :             device = mca_btl_openib_component.openib_btls[j]-&gt;device;</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     340 </span>            :         }
+<span class="lineNum">     341 </span>            :     }
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     if (NULL != device) {</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :         if (ibv_get_async_event((struct ibv_context *)device-&gt;ib_dev_context,&amp;event) &lt; 0) {</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :             if (EWOULDBLOCK == errno) {</span>
+<span class="lineNum">     345 </span>            :                 /* No event found ?
+<span class="lineNum">     346 </span>            :                  * It was handled by somebody other */
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :                 return OPAL_SUCCESS;</span>
+<span class="lineNum">     348 </span>            :             } else {
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :                 BTL_ERROR((&quot;Failed to get async event&quot;));</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :                 return OPAL_ERROR;</span>
+<span class="lineNum">     351 </span>            :             }
+<span class="lineNum">     352 </span>            :         }
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         event_type = event.event_type;</span>
+<span class="lineNum">     355 </span>            : #if OPAL_HAVE_CONNECTX_XRC
+<span class="lineNum">     356 </span>            :         /* is it XRC event ?*/
+<span class="lineNum">     357 </span>            :         bool xrc_event = false;
+<span class="lineNum">     358 </span>            :         if (IBV_XRC_QP_EVENT_FLAG &amp; event.event_type) {
+<span class="lineNum">     359 </span>            :             xrc_event = true;
+<span class="lineNum">     360 </span>            :             /* Clean the bitnd handel as usual */
+<span class="lineNum">     361 </span>            :             event_type ^= IBV_XRC_QP_EVENT_FLAG;
+<span class="lineNum">     362 </span>            :         }
+<span class="lineNum">     363 </span>            : #endif
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :         switch(event_type) {</span>
+<span class="lineNum">     365 </span>            :             case IBV_EVENT_PATH_MIG:
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :                 BTL_ERROR((&quot;Alternative path migration event reported&quot;));</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :                 if (APM_ENABLED) {</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :                     BTL_ERROR((&quot;Trying to find additional path...&quot;));</span>
+<span class="lineNum">     369 </span>            : #if OPAL_HAVE_CONNECTX_XRC
+<span class="lineNum">     370 </span>            :                     if (xrc_event)
+<span class="lineNum">     371 </span>            :                         mca_btl_openib_load_apm_xrc_rcv(event.element.xrc_qp_num,
+<span class="lineNum">     372 </span>            :                                 xrc_qp2endpoint(event.element.xrc_qp_num, device));
+<span class="lineNum">     373 </span>            :                     else
+<span class="lineNum">     374 </span>            : #endif
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :                         mca_btl_openib_load_apm(event.element.qp,</span>
+<span class="lineNum">     376 </span>            :                                 qp2endpoint(event.element.qp, device));
+<span class="lineNum">     377 </span>            :                 }
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     379 </span>            :             case IBV_EVENT_DEVICE_FATAL:
+<span class="lineNum">     380 </span>            :                 /* Set the flag to fatal */
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :                 device-&gt;got_fatal_event = true;</span>
+<span class="lineNum">     382 </span>            :                 /* It is not critical to protect the counter */
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :                 OPAL_THREAD_ADD32(&amp;mca_btl_openib_component.error_counter, 1);</span>
+<span class="lineNum">     384 </span>            :                 /* fall through */
+<span class="lineNum">     385 </span>            :             case IBV_EVENT_CQ_ERR:
+<span class="lineNum">     386 </span>            :             case IBV_EVENT_QP_FATAL:
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :               if (event_type == IBV_EVENT_QP_FATAL) {</span>
+<span class="lineNum">     388 </span>            :                   opal_list_item_t *item;
+<span class="lineNum">     389 </span>            :                   mca_btl_openib_qp_list *qp_item;
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :                   bool in_ignore_list = false;</span>
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :                   BTL_VERBOSE((&quot;QP is in err state %p&quot;, (void *)event.element.qp));</span>
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            :                   /* look through ignore list */
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :                   for (item = opal_list_get_first(ignore_qp_err_list);</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :                        item != opal_list_get_end(ignore_qp_err_list);</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :                        item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :                       qp_item = (mca_btl_openib_qp_list *)item;</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :                       if (qp_item-&gt;qp == event.element.qp) {</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :                           BTL_VERBOSE((&quot;QP %p is in error ignore list&quot;,</span>
+<span class="lineNum">     401 </span>            :                                        (void *)event.element.qp));
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :                           in_ignore_list = true;</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :                           break;</span>
+<span class="lineNum">     404 </span>            :                       }
+<span class="lineNum">     405 </span>            :                   }
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :                   if (in_ignore_list)</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :                       break;</span>
+<span class="lineNum">     408 </span>            :               }
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span>            :             case IBV_EVENT_QP_REQ_ERR:
+<span class="lineNum">     411 </span>            :             case IBV_EVENT_QP_ACCESS_ERR:
+<span class="lineNum">     412 </span>            :             case IBV_EVENT_PATH_MIG_ERR:
+<span class="lineNum">     413 </span>            :             case IBV_EVENT_SRQ_ERR:
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :                 opal_show_help(&quot;help-mpi-btl-openib.txt&quot;, &quot;of error event&quot;,</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :                     true,opal_process_info.nodename, (int)getpid(),</span>
+<span class="lineNum">     416 </span>            :                     event_type,
+<span class="lineNum">     417 </span>            :                     openib_event_to_str((enum ibv_event_type)event_type));
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     419 </span>            :             case IBV_EVENT_PORT_ERR:
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :                 opal_show_help(&quot;help-mpi-btl-openib.txt&quot;, &quot;of error event&quot;,</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :                     true,opal_process_info.nodename, (int)getpid(),</span>
+<span class="lineNum">     422 </span>            :                     event_type,
+<span class="lineNum">     423 </span>            :                     openib_event_to_str((enum ibv_event_type)event_type));
+<span class="lineNum">     424 </span>            :                 /* Set the flag to indicate port error */
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :                 device-&gt;got_port_event = true;</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :                 OPAL_THREAD_ADD32(&amp;mca_btl_openib_component.error_counter, 1);</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     428 </span>            :             case IBV_EVENT_COMM_EST:
+<span class="lineNum">     429 </span>            :             case IBV_EVENT_PORT_ACTIVE:
+<span class="lineNum">     430 </span>            :             case IBV_EVENT_SQ_DRAINED:
+<span class="lineNum">     431 </span>            :             case IBV_EVENT_LID_CHANGE:
+<span class="lineNum">     432 </span>            :             case IBV_EVENT_PKEY_CHANGE:
+<span class="lineNum">     433 </span>            :             case IBV_EVENT_SM_CHANGE:
+<span class="lineNum">     434 </span>            :             case IBV_EVENT_QP_LAST_WQE_REACHED:
+<span class="lineNum">     435 </span>            : #if HAVE_DECL_IBV_EVENT_CLIENT_REREGISTER
+<span class="lineNum">     436 </span>            :             case IBV_EVENT_CLIENT_REREGISTER:
+<span class="lineNum">     437 </span>            : #endif
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     439 </span>            :             /* The event is signaled when number of prepost receive WQEs is going
+<span class="lineNum">     440 </span>            :                                             under predefined threshold - srq_limit */
+<span class="lineNum">     441 </span>            :             case IBV_EVENT_SRQ_LIMIT_REACHED:
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :                 if(OPAL_SUCCESS !=</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :                          btl_openib_async_srq_limit_event(event.element.srq)) {</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :                     return OPAL_ERROR;</span>
+<span class="lineNum">     445 </span>            :                 }
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     448 </span>            :             default:
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :                 opal_show_help(&quot;help-mpi-btl-openib.txt&quot;, &quot;of unknown event&quot;,</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :                         true,opal_process_info.nodename, (int)getpid(),</span>
+<span class="lineNum">     451 </span>            :                         event_type);
+<span class="lineNum">     452 </span>            :         }
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :         ibv_ack_async_event(&amp;event);</span>
+<span class="lineNum">     454 </span>            :     } else {
+<span class="lineNum">     455 </span>            :         /* if (device == NULL), then failed to locate the device!
+<span class="lineNum">     456 </span>            :            This should never happen... */
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Failed to find device with FD %d.  &quot;</span>
+<span class="lineNum">     458 </span>            :                    &quot;Fatal error, stoping asynch event thread&quot;,
+<span class="lineNum">     459 </span>            :                    devices_poll-&gt;async_pollfd[index].fd));
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     461 </span>            :     }
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     463 </span>            : }
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            : /* This Async event thread is handling all async event of
+<a name="466"><span class="lineNum">     466 </span>            :  * all btls/devices in openib component</a>
+<span class="lineNum">     467 </span>            :  */
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 : static void* btl_openib_async_thread(void * async)</span>
+<span class="lineNum">     469 </span>            : {
+<span class="lineNum">     470 </span>            :     int rc;
+<span class="lineNum">     471 </span>            :     int i;
+<span class="lineNum">     472 </span>            :     struct mca_btl_openib_async_poll devices_poll;
+<span class="lineNum">     473 </span>            :     opal_list_t ignore_qp_err_list;
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;ignore_qp_err_list, opal_list_t);</span>
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     if (OPAL_SUCCESS != btl_openib_async_poll_init(&amp;devices_poll)) {</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Fatal error, stoping asynch event thread&quot;));</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :         pthread_exit(&amp;return_status);</span>
+<span class="lineNum">     480 </span>            :     }
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span>            :     while(1) {
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :         rc = poll(devices_poll.async_pollfd, devices_poll.active_poll_size, -1);</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :         if (rc &lt; 0) {</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :             if (errno != EINTR) {</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :                 BTL_ERROR((&quot;Poll failed.  Fatal error, stoping asynch event thread&quot;));</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :                 pthread_exit(&amp;return_status);</span>
+<span class="lineNum">     488 </span>            :             } else {
+<span class="lineNum">     489 </span>            :                 /* EINTR - we got interupt */
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     491 </span>            :             }
+<span class="lineNum">     492 </span>            :         }
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :         for(i = 0; i &lt; devices_poll.active_poll_size; i++) {</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :             switch (devices_poll.async_pollfd[i].revents) {</span>
+<span class="lineNum">     495 </span>            :                 case 0:
+<span class="lineNum">     496 </span>            :                     /* no events */
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     498 </span>            :                 case POLLIN:
+<span class="lineNum">     499 </span>            : #if defined(__SVR4) &amp;&amp; defined(__sun)
+<span class="lineNum">     500 </span>            :                 /*
+<span class="lineNum">     501 </span>            :                  * Need workaround for Solaris IB user verbs since
+<span class="lineNum">     502 </span>            :                  * &quot;Poll on IB async fd returns POLLRDNORM revent even though it is masked out&quot;
+<span class="lineNum">     503 </span>            :                  */
+<span class="lineNum">     504 </span>            :                 case POLLIN | POLLRDNORM:
+<span class="lineNum">     505 </span>            : #endif
+<span class="lineNum">     506 </span>            :                     /* Processing our event */
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :                     if (0 == i) {</span>
+<span class="lineNum">     508 </span>            :                         /* 0 poll we use for comunication with main thread */
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :                         if (OPAL_SUCCESS != btl_openib_async_commandh(&amp;devices_poll,</span>
+<span class="lineNum">     510 </span>            :                                                                       &amp;ignore_qp_err_list)) {
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :                             free(devices_poll.async_pollfd);</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :                             BTL_ERROR((&quot;Failed to process async thread process.  &quot;</span>
+<span class="lineNum">     513 </span>            :                                         &quot;Fatal error, stoping asynch event thread&quot;));
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :                             pthread_exit(&amp;return_status);</span>
+<span class="lineNum">     515 </span>            :                         }
+<span class="lineNum">     516 </span>            :                     } else {
+<span class="lineNum">     517 </span>            :                         /* We get device event */
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :                         if (btl_openib_async_deviceh(&amp;devices_poll, i,</span>
+<span class="lineNum">     519 </span>            :                                                      &amp;ignore_qp_err_list)) {
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :                             free(devices_poll.async_pollfd);</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :                             BTL_ERROR((&quot;Failed to process async thread process.  &quot;</span>
+<span class="lineNum">     522 </span>            :                                         &quot;Fatal error, stoping asynch event thread&quot;));
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :                             pthread_exit(&amp;return_status);</span>
+<span class="lineNum">     524 </span>            :                         }
+<span class="lineNum">     525 </span>            :                     }
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     527 </span>            :                 default:
+<span class="lineNum">     528 </span>            :                     /* Get event other than POLLIN
+<span class="lineNum">     529 </span>            :                      * this case should not never happend */
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :                     BTL_ERROR((&quot;Got unexpected event %d.  &quot;</span>
+<span class="lineNum">     531 </span>            :                                &quot;Fatal error, stoping asynch event thread&quot;,
+<span class="lineNum">     532 </span>            :                                devices_poll.async_pollfd[i].revents));
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :                     free(devices_poll.async_pollfd);</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :                     pthread_exit(&amp;return_status);</span>
+<span class="lineNum">     535 </span>            :             }
+<span class="lineNum">     536 </span>            :         }
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     538 </span>            :     return PTHREAD_CANCELED;
+<a name="539"><span class="lineNum">     539 </span>            : }</a>
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 : int btl_openib_async_command_done(int exp)</span>
+<span class="lineNum">     542 </span>            : {
+<span class="lineNum">     543 </span>            :     int comp;
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :     if (read(mca_btl_openib_component.async_comp_pipe[0], &amp;comp,</span>
+<span class="lineNum">     545 </span>            :              sizeof(int)) &lt; (int) sizeof (int)){
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Failed to read from pipe&quot;));</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     548 </span>            :     }
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :     if (exp != comp){</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Get wrong completion on async command. Waiting for %d and got %d&quot;,</span>
+<span class="lineNum">     551 </span>            :                     exp, comp));
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     553 </span>            :     }
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<a name="555"><span class="lineNum">     555 </span>            : }</a>
+<span class="lineNum">     556 </span>            : 
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 : static void apm_update_attr(struct ibv_qp_attr *attr, enum ibv_qp_attr_mask *mask)</span>
+<span class="lineNum">     558 </span>            : {
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :     *mask = IBV_QP_ALT_PATH|IBV_QP_PATH_MIG_STATE;</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :     attr-&gt;alt_ah_attr.dlid = attr-&gt;ah_attr.dlid + 1;</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     attr-&gt;alt_ah_attr.src_path_bits = attr-&gt;ah_attr.src_path_bits + 1;</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :     attr-&gt;alt_ah_attr.static_rate = attr-&gt;ah_attr.static_rate;</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :     attr-&gt;alt_ah_attr.sl = attr-&gt;ah_attr.sl;</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :     attr-&gt;alt_pkey_index = attr-&gt;pkey_index;</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :     attr-&gt;alt_port_num = attr-&gt;port_num;</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :     attr-&gt;alt_timeout = attr-&gt;timeout;</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     attr-&gt;path_mig_state = IBV_MIG_REARM;</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     BTL_VERBOSE((&quot;New APM LMC loaded: alt_src_port:%d, dlid: %d, src_bits %d, old_src_bits: %d, old_dlid %d&quot;,</span>
+<span class="lineNum">     569 </span>            :                 attr-&gt;alt_port_num, attr-&gt;alt_ah_attr.dlid,
+<span class="lineNum">     570 </span>            :                 attr-&gt;alt_ah_attr.src_path_bits, attr-&gt;ah_attr.src_path_bits, attr-&gt;ah_attr.dlid));
+<a name="571"><span class="lineNum">     571 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 : static int apm_update_port(mca_btl_openib_endpoint_t *ep,</span>
+<span class="lineNum">     574 </span>            :         struct ibv_qp_attr *attr, enum ibv_qp_attr_mask *mask)
+<span class="lineNum">     575 </span>            : {
+<span class="lineNum">     576 </span>            :     size_t port_i;
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :     uint16_t apm_lid = 0;</span>
+<span class="lineNum">     578 </span>            : 
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :     if (attr-&gt;port_num == ep-&gt;endpoint_btl-&gt;apm_port) {</span>
+<span class="lineNum">     580 </span>            :         /* all ports were used */
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;APM: already all ports were used port_num %d apm_port %d&quot;,</span>
+<span class="lineNum">     582 </span>            :                     attr-&gt;port_num, ep-&gt;endpoint_btl-&gt;apm_port));
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     584 </span>            :     }
+<span class="lineNum">     585 </span>            :     /* looking for alternatve lid on remote site */
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :     for(port_i = 0; port_i &lt; ep-&gt;endpoint_proc-&gt;proc_port_count; port_i++) {</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :         if (ep-&gt;endpoint_proc-&gt;proc_ports[port_i].pm_port_info.lid == attr-&gt;ah_attr.dlid - mca_btl_openib_component.apm_lmc) {</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :             apm_lid = ep-&gt;endpoint_proc-&gt;proc_ports[port_i].pm_port_info.apm_lid;</span>
+<span class="lineNum">     589 </span>            :         }
+<span class="lineNum">     590 </span>            :     }
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :     if (0 == apm_lid) {</span>
+<span class="lineNum">     592 </span>            :         /* APM was disabled on one of site ? */
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :         BTL_VERBOSE((&quot;APM: Was disabled ? dlid %d %d %d&quot;, attr-&gt;ah_attr.dlid, attr-&gt;ah_attr.src_path_bits, ep-&gt;endpoint_btl-&gt;src_path_bits));</span>
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     595 </span>            :     }
+<span class="lineNum">     596 </span>            :     /* We guess cthat the LMC is the same on all ports */
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :     attr-&gt;alt_ah_attr.static_rate = attr-&gt;ah_attr.static_rate;</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :     attr-&gt;alt_ah_attr.sl = attr-&gt;ah_attr.sl;</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :     attr-&gt;alt_pkey_index = attr-&gt;pkey_index;</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :     attr-&gt;alt_timeout = attr-&gt;timeout;</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :     attr-&gt;path_mig_state = IBV_MIG_REARM;</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :     *mask = IBV_QP_ALT_PATH|IBV_QP_PATH_MIG_STATE;</span>
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :     attr-&gt;alt_port_num = ep-&gt;endpoint_btl-&gt;apm_port;</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :     attr-&gt;alt_ah_attr.src_path_bits = ep-&gt;endpoint_btl-&gt;src_path_bits;</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :     attr-&gt;alt_ah_attr.dlid = apm_lid;</span>
+<span class="lineNum">     607 </span>            : 
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :     BTL_VERBOSE((&quot;New APM port loaded: alt_src_port:%d, dlid: %d, src_bits: %d:%d, old_dlid %d&quot;,</span>
+<span class="lineNum">     609 </span>            :                 attr-&gt;alt_port_num, attr-&gt;alt_ah_attr.dlid,
+<span class="lineNum">     610 </span>            :                 attr-&gt;ah_attr.src_path_bits, attr-&gt;alt_ah_attr.src_path_bits,
+<span class="lineNum">     611 </span>            :                 attr-&gt;ah_attr.dlid));
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     613 </span>            : }
+<a name="614"><span class="lineNum">     614 </span>            : </a>
+<span class="lineNum">     615 </span>            : /* Load new dlid to the QP */
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 : void mca_btl_openib_load_apm(struct ibv_qp *qp, mca_btl_openib_endpoint_t *ep)</span>
+<span class="lineNum">     617 </span>            : {
+<span class="lineNum">     618 </span>            :     struct ibv_qp_init_attr qp_init_attr;
+<span class="lineNum">     619 </span>            :     struct ibv_qp_attr attr;
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :     enum ibv_qp_attr_mask mask = 0;</span>
+<span class="lineNum">     621 </span>            :     struct mca_btl_openib_module_t *btl;
+<span class="lineNum">     622 </span>            : 
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :     BTL_VERBOSE((&quot;APM: Loading alternative path&quot;));</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :     assert (NULL != ep);</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :     btl = ep-&gt;endpoint_btl;</span>
+<span class="lineNum">     626 </span>            : 
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :     if (ibv_query_qp(qp, &amp;attr, mask, &amp;qp_init_attr))</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Failed to ibv_query_qp, qp num: %d&quot;, qp-&gt;qp_num));</span>
+<span class="lineNum">     629 </span>            : 
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :     if (mca_btl_openib_component.apm_lmc &amp;&amp;</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :             attr.ah_attr.src_path_bits - btl-&gt;src_path_bits &lt; mca_btl_openib_component.apm_lmc) {</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :         BTL_VERBOSE((&quot;APM LMC: src: %d btl_src: %d lmc_max: %d&quot;,</span>
+<span class="lineNum">     633 </span>            :                     attr.ah_attr.src_path_bits,
+<span class="lineNum">     634 </span>            :                     btl-&gt;src_path_bits,
+<span class="lineNum">     635 </span>            :                     mca_btl_openib_component.apm_lmc));
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :         apm_update_attr(&amp;attr, &amp;mask);</span>
+<span class="lineNum">     637 </span>            :     } else {
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :         if (mca_btl_openib_component.apm_ports) {</span>
+<span class="lineNum">     639 </span>            :             /* Try to migrate to next port */
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != apm_update_port(ep, &amp;attr, &amp;mask))</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     642 </span>            :         } else {
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :             BTL_ERROR((&quot;Failed to load alternative path, all %d were used&quot;,</span>
+<span class="lineNum">     644 </span>            :                         attr.ah_attr.src_path_bits - btl-&gt;src_path_bits));
+<span class="lineNum">     645 </span>            :         }
+<span class="lineNum">     646 </span>            :     }
+<span class="lineNum">     647 </span>            : 
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :     if (ibv_modify_qp(qp, &amp;attr, mask))</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Failed to ibv_query_qp, qp num: %d, errno says: %s (%d)&quot;,</span>
+<span class="lineNum">     650 </span>            :                    qp-&gt;qp_num, strerror(errno), errno));
+<span class="lineNum">     651 </span>            : }
+<span class="lineNum">     652 </span>            : 
+<span class="lineNum">     653 </span>            : #if OPAL_HAVE_CONNECTX_XRC
+<span class="lineNum">     654 </span>            : void mca_btl_openib_load_apm_xrc_rcv(uint32_t qp_num, mca_btl_openib_endpoint_t *ep)
+<span class="lineNum">     655 </span>            : {
+<span class="lineNum">     656 </span>            :     struct ibv_qp_init_attr qp_init_attr;
+<span class="lineNum">     657 </span>            :     struct ibv_qp_attr attr;
+<span class="lineNum">     658 </span>            :     enum ibv_qp_attr_mask mask = 0;
+<span class="lineNum">     659 </span>            :     struct mca_btl_openib_module_t *btl;
+<span class="lineNum">     660 </span>            : 
+<span class="lineNum">     661 </span>            :     BTL_VERBOSE((&quot;APM XRC: Loading alternative path&quot;));
+<span class="lineNum">     662 </span>            :     assert (NULL != ep);
+<span class="lineNum">     663 </span>            :     btl = ep-&gt;endpoint_btl;
+<span class="lineNum">     664 </span>            : 
+<span class="lineNum">     665 </span>            :     if (ibv_query_xrc_rcv_qp(btl-&gt;device-&gt;xrc_domain, qp_num, &amp;attr, mask, &amp;qp_init_attr))
+<span class="lineNum">     666 </span>            :         BTL_ERROR((&quot;Failed to ibv_query_qp, qp num: %d&quot;, qp_num));
+<span class="lineNum">     667 </span>            : 
+<span class="lineNum">     668 </span>            :     if (mca_btl_openib_component.apm_lmc &amp;&amp;
+<span class="lineNum">     669 </span>            :             attr.ah_attr.src_path_bits - btl-&gt;src_path_bits &lt; mca_btl_openib_component.apm_lmc) {
+<span class="lineNum">     670 </span>            :         apm_update_attr(&amp;attr, &amp;mask);
+<span class="lineNum">     671 </span>            :     } else {
+<span class="lineNum">     672 </span>            :         if (mca_btl_openib_component.apm_ports) {
+<span class="lineNum">     673 </span>            :             /* Try to migrate to next port */
+<span class="lineNum">     674 </span>            :             if (OPAL_SUCCESS != apm_update_port(ep, &amp;attr, &amp;mask))
+<span class="lineNum">     675 </span>            :                 return;
+<span class="lineNum">     676 </span>            :         } else {
+<span class="lineNum">     677 </span>            :             BTL_ERROR((&quot;Failed to load alternative path, all %d were used&quot;,
+<span class="lineNum">     678 </span>            :                         attr.ah_attr.src_path_bits - btl-&gt;src_path_bits));
+<span class="lineNum">     679 </span>            :         }
+<span class="lineNum">     680 </span>            :     }
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span>            :     ibv_modify_xrc_rcv_qp(btl-&gt;device-&gt;xrc_domain, qp_num, &amp;attr, mask);
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span>            :     /* Maybe the qp already was modified by other process - ignoring error */
+<span class="lineNum">     685 </span>            : }
+<a name="686"><span class="lineNum">     686 </span>            : #endif</a>
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 : int start_async_event_thread(void)</span>
+<span class="lineNum">     689 </span>            : {
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :     if (0 != mca_btl_openib_component.async_thread) {</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :         return OPAL_SUCCESS;</span>
+<span class="lineNum">     692 </span>            :     }
+<span class="lineNum">     693 </span>            : 
+<span class="lineNum">     694 </span>            :     /* Set the error counter to zero */
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :     mca_btl_openib_component.error_counter = 0;</span>
+<span class="lineNum">     696 </span>            : 
+<span class="lineNum">     697 </span>            :     /* Create pipe for communication with async event thread */
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :     if (pipe(mca_btl_openib_component.async_pipe)) {</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Failed to create pipe for communication with &quot;</span>
+<span class="lineNum">     700 </span>            :                    &quot;async event thread&quot;));
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     702 </span>            :     }
+<span class="lineNum">     703 </span>            : 
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :     if (pipe(mca_btl_openib_component.async_comp_pipe)) {</span>
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Failed to create comp pipe for communication with &quot;</span>
+<span class="lineNum">     706 </span>            :                    &quot;main thread&quot;));
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     708 </span>            :     }
+<span class="lineNum">     709 </span>            : 
+<span class="lineNum">     710 </span>            :     /* Starting async event thread for the component */
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     if (pthread_create(&amp;mca_btl_openib_component.async_thread, NULL,</span>
+<span class="lineNum">     712 </span>            :                        (void*(*)(void*)) btl_openib_async_thread, NULL)) {
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Failed to create async event thread&quot;));</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     715 </span>            :     }
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     718 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,769 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/btl/openib/btl_openib_fd.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/btl/openib</a> - btl_openib_fd.c<span style="font-size: 80%;"> (source / <a href="btl_openib_fd.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">245</td>
+            <td class="headerCovTableEntryLo">1.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryLo">6.2 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2008-2013 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2009 Sandia National Laboratories. All rights reserved.
+<span class="lineNum">       4 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">       5 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">       6 </span>            :  *
+<span class="lineNum">       7 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * $HEADER$
+<span class="lineNum">      12 </span>            :  */
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : /**
+<span class="lineNum">      15 </span>            :  * Note: this file is a little fast-n-loose --
+<span class="lineNum">      16 </span>            :  * it uses this value in run-time &quot;if&quot; conditionals (vs. compile-time
+<span class="lineNum">      17 </span>            :  * #if conditionals).  We also don't protect including &lt;pthread.h&gt;.
+<span class="lineNum">      18 </span>            :  * That's because this component currently only compiles on Linux and
+<span class="lineNum">      19 </span>            :  * Solaris, and both of these OS's have pthreads.  Using the run-time
+<span class="lineNum">      20 </span>            :  * conditionals gives us better compile-time checking, even of code
+<span class="lineNum">      21 </span>            :  * that isn't activated.
+<span class="lineNum">      22 </span>            :  *
+<span class="lineNum">      23 </span>            :  * Note, too, that the functionality in this file does *not* require
+<span class="lineNum">      24 </span>            :  * all the heavyweight OMPI thread infrastructure (e.g., from
+<span class="lineNum">      25 </span>            :  * --enable-mpi-thread-multiple or --enable-progress-threads).  All work that
+<span class="lineNum">      26 </span>            :  * is done in a separate progress thread is very carefully segregated
+<span class="lineNum">      27 </span>            :  * from that of the main thread, and communication back to the main
+<span class="lineNum">      28 </span>            :  * thread
+<span class="lineNum">      29 </span>            :  */
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #include &lt;pthread.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : #include &quot;opal/class/opal_list.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;opal/mca/event/event.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;opal/util/fd.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;opal/threads/threads.h&quot;
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : #include &quot;btl_openib_fd.h&quot;
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : typedef union {
+<span class="lineNum">      48 </span>            :     opal_btl_openib_fd_event_callback_fn_t *event;
+<span class="lineNum">      49 </span>            :     opal_btl_openib_fd_main_callback_fn_t *main;
+<span class="lineNum">      50 </span>            : } callback_u_t;
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : /*
+<span class="lineNum">      53 </span>            :  * Data for each registered item
+<span class="lineNum">      54 </span>            :  */
+<span class="lineNum">      55 </span>            : typedef struct {
+<span class="lineNum">      56 </span>            :     opal_list_item_t super;
+<span class="lineNum">      57 </span>            :     bool ri_event_used;
+<span class="lineNum">      58 </span>            :     opal_event_t ri_event;
+<span class="lineNum">      59 </span>            :     int ri_fd;
+<span class="lineNum">      60 </span>            :     int ri_flags;
+<span class="lineNum">      61 </span>            :     callback_u_t ri_callback;
+<span class="lineNum">      62 </span>            :     void *ri_context;
+<span class="lineNum">      63 </span>            : } registered_item_t;
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : static OBJ_CLASS_INSTANCE(registered_item_t, opal_list_item_t, NULL, NULL);
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            : /*
+<span class="lineNum">      68 </span>            :  * Command types
+<span class="lineNum">      69 </span>            :  */
+<span class="lineNum">      70 </span>            : typedef enum {
+<span class="lineNum">      71 </span>            :     /* Read by service thread */
+<span class="lineNum">      72 </span>            :     CMD_TIME_TO_QUIT,
+<span class="lineNum">      73 </span>            :     CMD_ADD_FD,
+<span class="lineNum">      74 </span>            :     CMD_REMOVE_FD,
+<span class="lineNum">      75 </span>            :     ACK_RAN_FUNCTION,
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            :     /* Read by service and main threads */
+<span class="lineNum">      78 </span>            :     CMD_CALL_FUNCTION,
+<span class="lineNum">      79 </span>            :     CMD_MAX
+<span class="lineNum">      80 </span>            : } cmd_type_t;
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : /*
+<span class="lineNum">      83 </span>            :  * Commands.  Fields ordered to avoid memory holes (and valgrind warnings).
+<span class="lineNum">      84 </span>            :  */
+<span class="lineNum">      85 </span>            : typedef struct {
+<span class="lineNum">      86 </span>            :     callback_u_t pc_fn;
+<span class="lineNum">      87 </span>            :     void *pc_context;
+<span class="lineNum">      88 </span>            :     int pc_fd;
+<span class="lineNum">      89 </span>            :     int pc_flags;
+<span class="lineNum">      90 </span>            :     cmd_type_t pc_cmd;
+<span class="lineNum">      91 </span>            :     char end;
+<span class="lineNum">      92 </span>            : } cmd_t;
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : /*
+<span class="lineNum">      95 </span>            :  * Queued up list of commands to send to the main thread
+<span class="lineNum">      96 </span>            :  */
+<span class="lineNum">      97 </span>            : typedef struct {
+<span class="lineNum">      98 </span>            :     opal_list_item_t super;
+<span class="lineNum">      99 </span>            :     cmd_t cli_cmd;
+<span class="lineNum">     100 </span>            : } cmd_list_item_t;
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            : static OBJ_CLASS_INSTANCE(cmd_list_item_t, opal_list_item_t, NULL, NULL);
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            : static bool initialized = false;
+<span class="lineNum">     105 </span>            : static int cmd_size = 0;
+<span class="lineNum">     106 </span>            : static fd_set read_fds, write_fds;
+<span class="lineNum">     107 </span>            : static int max_fd;
+<span class="lineNum">     108 </span>            : static opal_list_t registered_items;
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : /* These items are only used in the threaded version */
+<span class="lineNum">     111 </span>            : /* Owned by the main thread */
+<span class="lineNum">     112 </span>            : static pthread_t thread;
+<span class="lineNum">     113 </span>            : static opal_event_t main_thread_event;
+<span class="lineNum">     114 </span>            : static int pipe_to_service_thread[2] = { -1, -1 };
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span>            : /* Owned by the service thread */
+<span class="lineNum">     117 </span>            : static int pipe_to_main_thread[2] = { -1, -1 };
+<span class="lineNum">     118 </span>            : static const size_t max_outstanding_to_main_thread = 32;
+<span class="lineNum">     119 </span>            : static size_t waiting_for_ack_from_main_thread = 0;
+<span class="lineNum">     120 </span>            : static opal_list_t pending_to_main_thread;
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            : /*
+<a name="124"><span class="lineNum">     124 </span>            :  * Write a command to the main thread, or queue it up if the pipe is full</a>
+<span class="lineNum">     125 </span>            :  */
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 : static int write_to_main_thread(cmd_t *cmd)</span>
+<span class="lineNum">     127 </span>            : {
+<span class="lineNum">     128 </span>            :     /* Note that if we write too much to the main thread pipe and the
+<span class="lineNum">     129 </span>            :        main thread doesn't check it often, we could fill up the pipe
+<span class="lineNum">     130 </span>            :        and cause this thread to block.  Bad!  So we do some simple
+<span class="lineNum">     131 </span>            :        counting here and ensure that we don't fill the pipe.  If we
+<span class="lineNum">     132 </span>            :        are in danger of that, then queue up the commands here in the
+<span class="lineNum">     133 </span>            :        service thread.  The main thread will ACK every CALL_FUNCTION
+<span class="lineNum">     134 </span>            :        command, so we have a built-in mechanism to wake up the service
+<span class="lineNum">     135 </span>            :        thread to drain any queued-up commands. */
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     if (opal_list_get_size(&amp;pending_to_main_thread) &gt; 0 ||</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :         waiting_for_ack_from_main_thread &gt;= max_outstanding_to_main_thread) {</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :         cmd_list_item_t *cli = OBJ_NEW(cmd_list_item_t);</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :         if (NULL == cli) {</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :             return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     141 </span>            :         }
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         memcpy(&amp;cli-&gt;cli_cmd, cmd, cmd_size);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         opal_list_append(&amp;pending_to_main_thread, &amp;(cli-&gt;super));</span>
+<span class="lineNum">     144 </span>            :     } else {
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT((-1, &quot;fd: writing to main thread&quot;));</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         opal_fd_write(pipe_to_main_thread[1], cmd_size, cmd);</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         ++waiting_for_ack_from_main_thread;</span>
+<span class="lineNum">     148 </span>            :     }
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<a name="151"><span class="lineNum">     151 </span>            : }</a>
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 : static void service_fd_callback(int fd, short event, void *context)</span>
+<span class="lineNum">     154 </span>            : {
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     registered_item_t *ri = (registered_item_t*) context;</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     ri-&gt;ri_callback.event(fd, event, ri-&gt;ri_context);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            : /*
+<a name="161"><span class="lineNum">     161 </span>            :  * Add an fd to the listening set</a>
+<span class="lineNum">     162 </span>            :  */
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 : static int service_pipe_cmd_add_fd(bool use_libevent, cmd_t *cmd)</span>
+<span class="lineNum">     164 </span>            : {
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     registered_item_t *ri = OBJ_NEW(registered_item_t);</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     if (NULL == ri) {</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     168 </span>            :     }
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :     ri-&gt;ri_event_used = false;</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     ri-&gt;ri_fd = cmd-&gt;pc_fd;</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     ri-&gt;ri_flags = cmd-&gt;pc_flags;</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     ri-&gt;ri_callback.event = cmd-&gt;pc_fn.event;</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     ri-&gt;ri_context = cmd-&gt;pc_context;</span>
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     if (use_libevent) {</span>
+<span class="lineNum">     176 </span>            :         /* Make an event for this fd */
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :         ri-&gt;ri_event_used = true;</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :         opal_event_set(opal_sync_event_base, &amp;ri-&gt;ri_event, ri-&gt;ri_fd,</span>
+<span class="lineNum">     179 </span>            :                        ri-&gt;ri_flags | OPAL_EV_PERSIST, service_fd_callback,
+<span class="lineNum">     180 </span>            :                        ri);
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         opal_event_add(&amp;ri-&gt;ri_event, 0);</span>
+<span class="lineNum">     182 </span>            :     } else {
+<span class="lineNum">     183 </span>            :         /* Add the fd to the relevant fd local sets and update max_fd */
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         if (OPAL_EV_READ &amp; ri-&gt;ri_flags) {</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :             FD_SET(ri-&gt;ri_fd, &amp;read_fds);</span>
+<span class="lineNum">     186 </span>            :         }
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :         if (OPAL_EV_WRITE &amp; cmd-&gt;pc_flags) {</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :             FD_SET(ri-&gt;ri_fd, &amp;write_fds);</span>
+<span class="lineNum">     189 </span>            :         }
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :         max_fd = (max_fd &gt; ri-&gt;ri_fd) ? max_fd : ri-&gt;ri_fd + 1;</span>
+<span class="lineNum">     191 </span>            :     }
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;registered_items, &amp;ri-&gt;super);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     195 </span>            : }
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            : /*
+<a name="198"><span class="lineNum">     198 </span>            :  * Run a function</a>
+<span class="lineNum">     199 </span>            :  */
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 : static int service_pipe_cmd_call_function(cmd_t *cmd)</span>
+<span class="lineNum">     201 </span>            : {
+<span class="lineNum">     202 </span>            :     cmd_t local_cmd;
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((-1, &quot;fd service thread: calling function!&quot;));</span>
+<span class="lineNum">     205 </span>            :     /* Call the function */
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :     if (NULL != cmd-&gt;pc_fn.main) {</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :         cmd-&gt;pc_fn.main(cmd-&gt;pc_context);</span>
+<span class="lineNum">     208 </span>            :     }
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            :     /* Now ACK that we ran the function */
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :     memset(&amp;local_cmd, 0, cmd_size);</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     local_cmd.pc_cmd = ACK_RAN_FUNCTION;</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     opal_fd_write(pipe_to_main_thread[1], cmd_size, &amp;local_cmd);</span>
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            :     /* Done */
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     217 </span>            : }
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            : /*
+<a name="220"><span class="lineNum">     220 </span>            :  * Remove an fd from the listening set</a>
+<span class="lineNum">     221 </span>            :  */
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 : static int service_pipe_cmd_remove_fd(cmd_t *cmd)</span>
+<span class="lineNum">     223 </span>            : {
+<span class="lineNum">     224 </span>            :     int i;
+<span class="lineNum">     225 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     226 </span>            :     registered_item_t *ri;
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((-1, &quot;service thread got unmonitor fd %d&quot;, cmd-&gt;pc_fd));</span>
+<span class="lineNum">     229 </span>            :     /* Go through the list of registered fd's and find the fd to
+<span class="lineNum">     230 </span>            :        remove */
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     for (item = opal_list_get_first(&amp;registered_items);</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :          NULL != opal_list_get_end(&amp;registered_items);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :          item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         ri = (registered_item_t*) item;</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         if (cmd-&gt;pc_fd == ri-&gt;ri_fd) {</span>
+<span class="lineNum">     236 </span>            :             /* Found it.  The item knows if it was used as a libevent
+<span class="lineNum">     237 </span>            :                event or an entry in the local fd sets. */
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :             if (ri-&gt;ri_event_used) {</span>
+<span class="lineNum">     239 </span>            :                 /* Remove this event from libevent */
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :                 opal_event_del(&amp;ri-&gt;ri_event);</span>
+<span class="lineNum">     241 </span>            :             } else {
+<span class="lineNum">     242 </span>            :                 /* Remove this item from the fd_sets and recalculate
+<span class="lineNum">     243 </span>            :                    MAX_FD */
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :                 FD_CLR(cmd-&gt;pc_fd, &amp;read_fds);</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :                 FD_CLR(cmd-&gt;pc_fd, &amp;write_fds);</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :                 for (max_fd = i = pipe_to_service_thread[0]; i &lt; FD_SETSIZE; ++i) {</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :                     if (FD_ISSET(i, &amp;read_fds) || FD_ISSET(i, &amp;write_fds)) {</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :                         max_fd = i + 1;</span>
+<span class="lineNum">     249 </span>            :                     }
+<span class="lineNum">     250 </span>            :                 }
+<span class="lineNum">     251 </span>            :             }
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            :             /* Let the caller know that we have stopped monitoring
+<span class="lineNum">     254 </span>            :                this fd (if they care) */
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :             if (NULL != cmd-&gt;pc_fn.event) {</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :                 cmd-&gt;pc_fn.event(cmd-&gt;pc_fd, 0, cmd-&gt;pc_context);</span>
+<span class="lineNum">     257 </span>            :             }
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            :             /* Remove this item from the list of registered items and
+<span class="lineNum">     260 </span>            :                release it */
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :             opal_list_remove_item(&amp;registered_items, item);</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(item);</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :             return OPAL_SUCCESS;</span>
+<span class="lineNum">     264 </span>            :         }
+<span class="lineNum">     265 </span>            :     }
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            :     /* This shouldn't happen */
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     return OPAL_ERR_NOT_FOUND;</span>
+<span class="lineNum">     269 </span>            : }
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            : /*
+<a name="273"><span class="lineNum">     273 </span>            :  * Call a function and ACK that we ran it</a>
+<span class="lineNum">     274 </span>            :  */
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 : static int main_pipe_cmd_call_function(cmd_t *cmd)</span>
+<span class="lineNum">     276 </span>            : {
+<span class="lineNum">     277 </span>            :     cmd_t local_cmd;
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((-1, &quot;fd main thread: calling function!&quot;));</span>
+<span class="lineNum">     280 </span>            :     /* Call the function */
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     if (NULL != cmd-&gt;pc_fn.main) {</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :         cmd-&gt;pc_fn.main(cmd-&gt;pc_context);</span>
+<span class="lineNum">     283 </span>            :     }
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            :     /* Now ACK that we ran the function */
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     memset(&amp;local_cmd, 0, cmd_size);</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     local_cmd.pc_cmd = ACK_RAN_FUNCTION;</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     opal_fd_write(pipe_to_service_thread[1], cmd_size, &amp;local_cmd);</span>
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span>            :     /* Done */
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     292 </span>            : }
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            : /*
+<a name="296"><span class="lineNum">     296 </span>            :  * Act on pipe commands</a>
+<span class="lineNum">     297 </span>            :  */
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 : static bool service_pipe_cmd(void)</span>
+<span class="lineNum">     299 </span>            : {
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     bool ret = false;</span>
+<span class="lineNum">     301 </span>            :     cmd_t cmd;
+<span class="lineNum">     302 </span>            :     cmd_list_item_t *cli;
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     opal_fd_read(pipe_to_service_thread[0], cmd_size, &amp;cmd);</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :     switch (cmd.pc_cmd) {</span>
+<span class="lineNum">     306 </span>            :     case CMD_ADD_FD:
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT((-1, &quot;fd service thread: CMD_ADD_FD&quot;));</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != service_pipe_cmd_add_fd(false, &amp;cmd)) {</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :             ret = true;</span>
+<span class="lineNum">     310 </span>            :         }
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            :     case CMD_REMOVE_FD:
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT((-1, &quot;fd service thread: CMD_REMOVE_FD&quot;));</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != service_pipe_cmd_remove_fd(&amp;cmd)) {</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :             ret = true;</span>
+<span class="lineNum">     317 </span>            :         }
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            :     case CMD_CALL_FUNCTION:
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT((-1, &quot;fd service thread: CMD_RUN_FUNCTION&quot;));</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != service_pipe_cmd_call_function(&amp;cmd)) {</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :             ret = true;</span>
+<span class="lineNum">     324 </span>            :         }
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span>            :     case CMD_TIME_TO_QUIT:
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT((-1, &quot;fd service thread: CMD_TIME_TO_QUIT&quot;));</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         ret = true;</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span>            :     case ACK_RAN_FUNCTION:
+<span class="lineNum">     333 </span>            :         /* We don't have a guarantee that the main thread will check
+<span class="lineNum">     334 </span>            :            its pipe frequently, so we do some simple counting to
+<span class="lineNum">     335 </span>            :            ensure we just don't have too many outstanding commands to
+<span class="lineNum">     336 </span>            :            the main thread at any given time.  The main thread will
+<span class="lineNum">     337 </span>            :            ACK every CALL_FUNCTION command, so this thread will always
+<span class="lineNum">     338 </span>            :            wake up and continue to drain any queued up functions. */
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :         cli = (cmd_list_item_t*) opal_list_remove_first(&amp;pending_to_main_thread);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         if (NULL != cli) {</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT((-1, &quot;sending queued up cmd function to main thread&quot;));</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :             opal_fd_write(pipe_to_main_thread[1], cmd_size, &amp;(cli-&gt;cli_cmd));</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(cli);</span>
+<span class="lineNum">     344 </span>            :         } else {
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :             --waiting_for_ack_from_main_thread;</span>
+<span class="lineNum">     346 </span>            :         }
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            :     default:
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT((-1, &quot;fd service thread: unknown pipe command!&quot;));</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     352 </span>            :     }
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     355 </span>            : }
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            : /*
+<a name="359"><span class="lineNum">     359 </span>            :  * Main thread logic</a>
+<span class="lineNum">     360 </span>            :  */
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 : static void *service_thread_start(void *context)</span>
+<span class="lineNum">     362 </span>            : {
+<span class="lineNum">     363 </span>            :     int rc, flags;
+<span class="lineNum">     364 </span>            :     fd_set read_fds_copy, write_fds_copy;
+<span class="lineNum">     365 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     366 </span>            :     registered_item_t *ri;
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            :     /* Make an fd set that we can select() on */
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     FD_ZERO(&amp;write_fds);</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     FD_ZERO(&amp;read_fds);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     FD_SET(pipe_to_service_thread[0], &amp;read_fds);</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     max_fd = pipe_to_service_thread[0] + 1;</span>
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((-1, &quot;fd service thread running&quot;));</span>
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            :     /* Main loop waiting for commands over the fd's */
+<span class="lineNum">     377 </span>            :     while (1) {
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :         memcpy(&amp;read_fds_copy, &amp;read_fds, sizeof(read_fds));</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :         memcpy(&amp;write_fds_copy, &amp;write_fds, sizeof(write_fds));</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT((-1, &quot;fd service thread blocking on select...&quot;));</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :         rc = select(max_fd, &amp;read_fds_copy, &amp;write_fds_copy, NULL, NULL);</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :         if (0 != rc &amp;&amp; EAGAIN == errno) {</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     384 </span>            :         }
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT((-1, &quot;fd service thread woke up!&quot;));</span>
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         if (0 &gt; rc) {</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :             if (EBADF == errno) {</span>
+<span class="lineNum">     390 </span>            :                 /* We are assuming we lost a socket so set rc to 1 so we'll
+<span class="lineNum">     391 </span>            :                  * try to read a command off the service pipe to receive a
+<span class="lineNum">     392 </span>            :                  * rm command (corresponding to the socket that went away).
+<span class="lineNum">     393 </span>            :                  * If the EBADF is from the service pipe then the error
+<span class="lineNum">     394 </span>            :                  * condition will be handled by the service_pipe_cmd().
+<span class="lineNum">     395 </span>            :                  */
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT((-1,&quot;fd service thread: non-EAGAIN from select %d&quot;, errno));</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :                 rc = 1;</span>
+<span class="lineNum">     398 </span>            :             }
+<span class="lineNum">     399 </span>            :         }
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :         if (rc &gt; 0) {</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :             if (FD_ISSET(pipe_to_service_thread[0], &amp;read_fds_copy)) {</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT((-1, &quot;fd service thread: pipe command&quot;));</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :                 if (service_pipe_cmd()) {</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     405 </span>            :                 }
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT((-1, &quot;fd service thread: back from pipe command&quot;));</span>
+<span class="lineNum">     407 </span>            :                 /* Continue to the top of the loop to see if there are more
+<span class="lineNum">     408 </span>            :                  * commands on the pipe.  This is done to reset the fds
+<span class="lineNum">     409 </span>            :                  * list just in case the last select incurred an EBADF.
+<span class="lineNum">     410 </span>            :                  * Please do not remove this continue thinking one is trying
+<span class="lineNum">     411 </span>            :                  * to enforce a fairness of reading the sockets or we'll
+<span class="lineNum">     412 </span>            :                  * end up with segv's below when select incurs an EBADF.
+<span class="lineNum">     413 </span>            :                  */
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     415 </span>            :             }
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span>            :             /* Go through all the registered events and see who had
+<span class="lineNum">     418 </span>            :                activity */
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :             if (!opal_list_is_empty(&amp;registered_items)) {</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :                 for (item = opal_list_get_first(&amp;registered_items);</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :                      item != opal_list_get_end(&amp;registered_items);</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :                      item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :                     ri = (registered_item_t*) item;</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :                     flags = 0;</span>
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span>            :                     /* See if this fd was ready for reading or writing
+<span class="lineNum">     427 </span>            :                        (fd's will only be in the read_fds or write_fds
+<span class="lineNum">     428 </span>            :                        set depending on what they registered for) */
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :                     if (FD_ISSET(ri-&gt;ri_fd, &amp;read_fds_copy)) {</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :                         flags |= OPAL_EV_READ;</span>
+<span class="lineNum">     431 </span>            :                     }
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :                     if (FD_ISSET(ri-&gt;ri_fd, &amp;write_fds_copy)) {</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :                         flags |= OPAL_EV_WRITE;</span>
+<span class="lineNum">     434 </span>            :                     }
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span>            :                     /* If either was ready, invoke the callback */
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :                     if (0 != flags) {</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :                         OPAL_OUTPUT((-1, &quot;fd service thread: invoking callback for registered fd %d&quot;, ri-&gt;ri_fd));</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :                         ri-&gt;ri_callback.event(ri-&gt;ri_fd, flags,</span>
+<span class="lineNum">     440 </span>            :                                               ri-&gt;ri_context);
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :                         OPAL_OUTPUT((-1, &quot;fd service thread: back from callback for registered fd %d&quot;, ri-&gt;ri_fd));</span>
+<span class="lineNum">     442 </span>            :                     }
+<span class="lineNum">     443 </span>            :                 }
+<span class="lineNum">     444 </span>            :             }
+<span class="lineNum">     445 </span>            :         }
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span>            :     /* All done */
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((-1, &quot;fd service thread: exiting&quot;));</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     opal_atomic_wmb();</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     452 </span>            : }
+<a name="453"><span class="lineNum">     453 </span>            : </a>
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 : static void main_thread_event_callback(int fd, short event, void *context)</span>
+<span class="lineNum">     456 </span>            : {
+<span class="lineNum">     457 </span>            :     cmd_t cmd;
+<span class="lineNum">     458 </span>            : 
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((-1, &quot;main thread -- reading command&quot;));</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     opal_fd_read(pipe_to_main_thread[0], cmd_size, &amp;cmd);</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     switch (cmd.pc_cmd) {</span>
+<span class="lineNum">     462 </span>            :     case CMD_CALL_FUNCTION:
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT((-1, &quot;fd main thread: calling command&quot;));</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :         main_pipe_cmd_call_function(&amp;cmd);</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span>            :     default:
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT((-1, &quot;fd main thread: unknown pipe command: %d&quot;,</span>
+<span class="lineNum">     469 </span>            :                     cmd.pc_cmd));
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     471 </span>            :     }
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     473 </span>            : 
+<span class="lineNum">     474 </span>            : /******************************************************************
+<span class="lineNum">     475 </span>            :  * Main interface calls
+<span class="lineNum">     476 </span>            :  ******************************************************************/
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span>            : /*
+<span class="lineNum">     479 </span>            :  * Initialize
+<a name="480"><span class="lineNum">     480 </span>            :  * Called by main thread</a>
+<span class="lineNum">     481 </span>            :  */
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 : int opal_btl_openib_fd_init(void)</span>
+<span class="lineNum">     483 </span>            : {
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     if (!initialized) {</span>
+<span class="lineNum">     485 </span>            :         cmd_t bogus;
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :         OBJ_CONSTRUCT(&amp;registered_items, opal_list_t);</span>
+<span class="lineNum">     488 </span>            : 
+<span class="lineNum">     489 </span>            :         /* Calculate the real size of the cmd struct */
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :         cmd_size = (int) (&amp;(bogus.end) - ((char*) &amp;bogus));</span>
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :         OBJ_CONSTRUCT(&amp;pending_to_main_thread, opal_list_t);</span>
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span>            :         /* Create pipes to communicate between the two threads */
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :         if (0 != pipe(pipe_to_service_thread)) {</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :             return OPAL_ERR_IN_ERRNO;</span>
+<span class="lineNum">     497 </span>            :         }
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :         if (0 != pipe(pipe_to_main_thread)) {</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :             return OPAL_ERR_IN_ERRNO;</span>
+<span class="lineNum">     500 </span>            :         }
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span>            :         /* Create a libevent event that is used in the main thread
+<span class="lineNum">     503 </span>            :            to watch its pipe */
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :         opal_event_set(opal_sync_event_base, &amp;main_thread_event, pipe_to_main_thread[0],</span>
+<span class="lineNum">     505 </span>            :                        OPAL_EV_READ | OPAL_EV_PERSIST,
+<span class="lineNum">     506 </span>            :                        main_thread_event_callback, NULL);
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :         opal_event_add(&amp;main_thread_event, 0);</span>
+<span class="lineNum">     508 </span>            : 
+<span class="lineNum">     509 </span>            :         /* Start the service thread */
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :         if (0 != pthread_create(&amp;thread, NULL, service_thread_start,</span>
+<span class="lineNum">     511 </span>            :                                 NULL)) {
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :             int errno_save = errno;</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :             opal_event_del(&amp;main_thread_event);</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :             close(pipe_to_service_thread[0]);</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :             close(pipe_to_service_thread[1]);</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :             close(pipe_to_main_thread[0]);</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :             close(pipe_to_main_thread[1]);</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :             errno = errno_save;</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :             return OPAL_ERR_IN_ERRNO;</span>
+<span class="lineNum">     520 </span>            :         }
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :         initialized = true;</span>
+<span class="lineNum">     523 </span>            :     }
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     525 </span>            : }
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span>            : 
+<span class="lineNum">     528 </span>            : /*
+<span class="lineNum">     529 </span>            :  * Start monitoring an fd
+<a name="530"><span class="lineNum">     530 </span>            :  * Called by main or service thread; callback will be in service thread</a>
+<span class="lineNum">     531 </span>            :  */
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 : int opal_btl_openib_fd_monitor(int fd, int flags,</span>
+<span class="lineNum">     533 </span>            :                                opal_btl_openib_fd_event_callback_fn_t *callback,
+<span class="lineNum">     534 </span>            :                                void *context)
+<span class="lineNum">     535 </span>            : {
+<span class="lineNum">     536 </span>            :     cmd_t cmd;
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span>            :     /* Sanity check */
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :     if (fd &lt; 0 || 0 == flags || NULL == callback) {</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     541 </span>            :     }
+<span class="lineNum">     542 </span>            : 
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :     cmd.pc_cmd = CMD_ADD_FD;</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :     cmd.pc_fd = fd;</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :     cmd.pc_flags = flags;</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :     cmd.pc_fn.event = callback;</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :     cmd.pc_context = context;</span>
+<span class="lineNum">     548 </span>            :     /* For the threaded version, write a command down the pipe */
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((-1, &quot;main thread sending monitor fd %d&quot;, fd));</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :     opal_fd_write(pipe_to_service_thread[1], cmd_size, &amp;cmd);</span>
+<span class="lineNum">     551 </span>            : 
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     553 </span>            : }
+<span class="lineNum">     554 </span>            : 
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span>            : /*
+<span class="lineNum">     557 </span>            :  * Stop monitoring an fd
+<a name="558"><span class="lineNum">     558 </span>            :  * Called by main or service thread; callback will be in service thread</a>
+<span class="lineNum">     559 </span>            :  */
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 : int opal_btl_openib_fd_unmonitor(int fd,</span>
+<span class="lineNum">     561 </span>            :                                  opal_btl_openib_fd_event_callback_fn_t *callback,
+<span class="lineNum">     562 </span>            :                                  void *context)
+<span class="lineNum">     563 </span>            : {
+<span class="lineNum">     564 </span>            :     cmd_t cmd;
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span>            :     /* Sanity check */
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     if (fd &lt; 0) {</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     569 </span>            :     }
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :     cmd.pc_cmd = CMD_REMOVE_FD;</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :     cmd.pc_fd = fd;</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :     cmd.pc_flags = 0;</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :     cmd.pc_fn.event = callback;</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     cmd.pc_context = context;</span>
+<span class="lineNum">     576 </span>            :     /* For the threaded version, write a command down the pipe */
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((-1, &quot;main thread sending unmonitor fd %d&quot;, fd));</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :     opal_fd_write(pipe_to_service_thread[1], cmd_size, &amp;cmd);</span>
+<span class="lineNum">     579 </span>            : 
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     581 </span>            : }
+<span class="lineNum">     582 </span>            : 
+<span class="lineNum">     583 </span>            : /*
+<span class="lineNum">     584 </span>            :  * Run in the service thread
+<a name="585"><span class="lineNum">     585 </span>            :  * Called by main thread; callback will be in service thread</a>
+<span class="lineNum">     586 </span>            :  */
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 : int opal_btl_openib_fd_run_in_service(opal_btl_openib_fd_main_callback_fn_t *callback,</span>
+<span class="lineNum">     588 </span>            :                                       void *context)
+<span class="lineNum">     589 </span>            : {
+<span class="lineNum">     590 </span>            :     cmd_t cmd;
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :     cmd.pc_cmd = CMD_CALL_FUNCTION;</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :     cmd.pc_fd = -1;</span>
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :     cmd.pc_flags = 0;</span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :     cmd.pc_fn.main = callback;</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :     cmd.pc_context = context;</span>
+<span class="lineNum">     597 </span>            :     /* For the threaded version, write a command down the pipe */
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((-1, &quot;main thread sending 'run in service'&quot;));</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :     opal_fd_write(pipe_to_service_thread[1], cmd_size, &amp;cmd);</span>
+<span class="lineNum">     600 </span>            : 
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     602 </span>            : }
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span>            : /*
+<span class="lineNum">     605 </span>            :  * Run a function in the main thread
+<a name="606"><span class="lineNum">     606 </span>            :  * Called by service thread</a>
+<span class="lineNum">     607 </span>            :  */
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 : int opal_btl_openib_fd_run_in_main(opal_btl_openib_fd_main_callback_fn_t *callback,</span>
+<span class="lineNum">     609 </span>            :                                    void *context)
+<span class="lineNum">     610 </span>            : {
+<span class="lineNum">     611 </span>            :     cmd_t cmd;
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((-1, &quot;run in main -- sending command&quot;));</span>
+<span class="lineNum">     614 </span>            :     /* For the threaded version, write a command down the pipe */
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :     cmd.pc_cmd = CMD_CALL_FUNCTION;</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :     cmd.pc_fd = -1;</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :     cmd.pc_flags = 0;</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :     cmd.pc_fn.main = callback;</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :     cmd.pc_context = context;</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :     write_to_main_thread(&amp;cmd);</span>
+<span class="lineNum">     621 </span>            : 
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     623 </span>            : }
+<span class="lineNum">     624 </span>            : 
+<a name="625"><span class="lineNum">     625 </span>            : </a>
+<span class="lineNum">     626 </span>            : int
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 : opal_btl_openib_fd_main_thread_drain(void)</span>
+<span class="lineNum">     628 </span>            : {
+<span class="lineNum">     629 </span>            :     int nfds, ret;
+<span class="lineNum">     630 </span>            :     fd_set rfds;
+<span class="lineNum">     631 </span>            :     struct timeval tv;
+<span class="lineNum">     632 </span>            : 
+<span class="lineNum">     633 </span>            :     while (1) {
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :         FD_ZERO(&amp;rfds);</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :         FD_SET(pipe_to_main_thread[0], &amp;rfds);</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :         nfds = pipe_to_main_thread[0] + 1;</span>
+<span class="lineNum">     637 </span>            : 
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :         tv.tv_sec = 0;</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :         tv.tv_usec = 0;</span>
+<span class="lineNum">     640 </span>            : 
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :         ret = select(nfds, &amp;rfds, NULL, NULL, &amp;tv);</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :         if (ret &gt; 0) {</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :             main_thread_event_callback(pipe_to_main_thread[0], 0, NULL);</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :             return 0;</span>
+<span class="lineNum">     645 </span>            :         } else {
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :             return ret;</span>
+<span class="lineNum">     647 </span>            :         }
+<span class="lineNum">     648 </span>            :     }
+<span class="lineNum">     649 </span>            : }
+<span class="lineNum">     650 </span>            : 
+<span class="lineNum">     651 </span>            : 
+<span class="lineNum">     652 </span>            : /*
+<span class="lineNum">     653 </span>            :  * Finalize
+<a name="654"><span class="lineNum">     654 </span>            :  * Called by main thread</a>
+<span class="lineNum">     655 </span>            :  */
+<span class="lineNum">     656 </span><span class="lineCov">          2 : int opal_btl_openib_fd_finalize(void)</span>
+<span class="lineNum">     657 </span>            : {
+<span class="lineNum">     658 </span><span class="lineCov">          2 :     if (initialized) {</span>
+<span class="lineNum">     659 </span>            :         /* For the threaded version, send a command down the pipe */
+<span class="lineNum">     660 </span>            :         cmd_t cmd;
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT((-1, &quot;shutting down openib fd&quot;));</span>
+<span class="lineNum">     662 </span>            :         /* Check if the thread exists before asking it to quit */
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :         if (ESRCH != pthread_kill(thread, 0)) {</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :             memset(&amp;cmd, 0, cmd_size);</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :             cmd.pc_cmd = CMD_TIME_TO_QUIT;</span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :             if (OPAL_SUCCESS != opal_fd_write(pipe_to_service_thread[1],</span>
+<span class="lineNum">     667 </span>            :                                               cmd_size, &amp;cmd)) {
+<span class="lineNum">     668 </span>            :                 /* We cancel the thread if there's an error
+<span class="lineNum">     669 </span>            :                  * sending the &quot;quit&quot; cmd. This only ever happens on
+<span class="lineNum">     670 </span>            :                  * a &quot;restart&quot; which could result in dangling
+<span class="lineNum">     671 </span>            :                  * fds. OMPI must not rely on the checkpointer to
+<span class="lineNum">     672 </span>            :                  * save/restore any fds or connections
+<span class="lineNum">     673 </span>            :                  */
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :                 pthread_cancel(thread);</span>
+<span class="lineNum">     675 </span>            :             }
+<span class="lineNum">     676 </span>            : 
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :             pthread_join(thread, NULL);</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :             opal_atomic_rmb();</span>
+<span class="lineNum">     679 </span>            :         }
+<span class="lineNum">     680 </span>            : 
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :         opal_event_del(&amp;main_thread_event);</span>
+<span class="lineNum">     682 </span>            : 
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :         close(pipe_to_service_thread[0]);</span>
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :         close(pipe_to_service_thread[1]);</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :         close(pipe_to_main_thread[0]);</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :         close(pipe_to_main_thread[1]);</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;pending_to_main_thread);</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;registered_items);</span>
+<span class="lineNum">     689 </span>            :     }
+<span class="lineNum">     690 </span><span class="lineCov">          2 :     initialized = false;</span>
+<span class="lineNum">     691 </span>            : 
+<span class="lineNum">     692 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     693 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,1398 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - ompi/attribute/attribute.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">ompi/attribute</a> - attribute.c<span style="font-size: 80%;"> (source / <a href="attribute.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">143</td>
+            <td class="headerCovTableEntry">299</td>
+            <td class="headerCovTableEntryLo">47.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntry">26</td>
+            <td class="headerCovTableEntryLo">53.8 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2014 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2006-2014 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2012      Los Alamos National Security, LLC.  All rights
+<span class="lineNum">      14 </span>            :  *                         reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      16 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      17 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * $HEADER$
+<span class="lineNum">      22 </span>            :  */
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : /**
+<span class="lineNum">      25 </span>            :  * @file
+<span class="lineNum">      26 </span>            :  *
+<span class="lineNum">      27 </span>            :  * Back-end MPI attribute engine.
+<span class="lineNum">      28 </span>            :  *
+<span class="lineNum">      29 </span>            :  * This is complicated enough that it deserves a lengthy discussion of
+<span class="lineNum">      30 </span>            :  * what is happening.  This is extremely complicated stuff, paired
+<span class="lineNum">      31 </span>            :  * with the fact that it is not described well in the MPI standard.
+<span class="lineNum">      32 </span>            :  * There are several places in the standard that should be read about
+<span class="lineNum">      33 </span>            :  * attributes:
+<span class="lineNum">      34 </span>            :  *
+<span class="lineNum">      35 </span>            :  * MPI-1: Section 5.7 (pp 167-173)
+<span class="lineNum">      36 </span>            :  * MPI-1: Section 7.1 (pp 191-192) predefined attributes in MPI-1
+<span class="lineNum">      37 </span>            :  * MPI-2: Section 4.12.7 (pp 57-59) interlanguage attribute
+<span class="lineNum">      38 </span>            :  *        clarifications
+<span class="lineNum">      39 </span>            :  * MPI-2: Section 6.2.2 (pp 112) window predefined attributes
+<span class="lineNum">      40 </span>            :  * MPI-2: Section 8.8 (pp 198-208) new attribute caching functions
+<span class="lineNum">      41 </span>            :  *
+<span class="lineNum">      42 </span>            :  * After reading all of this, note the following:
+<span class="lineNum">      43 </span>            :  *
+<span class="lineNum">      44 </span>            :  * - C MPI-1 and MPI-2 attribute functions and functionality are
+<span class="lineNum">      45 </span>            :  *   identical except for their function names.
+<span class="lineNum">      46 </span>            :  * - Fortran MPI-1 and MPI-2 attribute functions and functionality are
+<span class="lineNum">      47 </span>            :  *   different (namely: the parameters are different sizes, both in the
+<span class="lineNum">      48 </span>            :  *   functions and the user callbacks, and the assignments to the
+<span class="lineNum">      49 </span>            :  *   different sized types occur differently [e.g., truncation and sign
+<span class="lineNum">      50 </span>            :  *   extension])
+<span class="lineNum">      51 </span>            :  * - C functions store values by reference (i.e., writing an attribute
+<span class="lineNum">      52 </span>            :  *   means writing a pointer to an instance of something; changing the
+<span class="lineNum">      53 </span>            :  *   value of that instance will make it visible to anyone who reads
+<span class="lineNum">      54 </span>            :  *   that attribute value).
+<span class="lineNum">      55 </span>            :  * - Fortran functions store values by value (i.e., writing an
+<span class="lineNum">      56 </span>            :  *   attribute value means that anyone who reads that attribute value
+<span class="lineNum">      57 </span>            :  *   will not be able to affect the value read by anyone else).
+<span class="lineNum">      58 </span>            :  * - The predefined attribute MPI_WIN_BASE seems to flaunt the rules
+<span class="lineNum">      59 </span>            :  *   designated by the rest of the standard; it is handled
+<span class="lineNum">      60 </span>            :  *   specifically in the MPI_WIN_GET_ATTR binding functions (see the
+<span class="lineNum">      61 </span>            :  *   comments in there for an explanation).
+<span class="lineNum">      62 </span>            :  * - MPI-2 4.12.7:Example 4.13 (p58) is wrong.  The C-&gt;Fortran example
+<span class="lineNum">      63 </span>            :  *   should have the Fortran &quot;val&quot; variable equal to &amp;I.
+<span class="lineNum">      64 </span>            :  *
+<span class="lineNum">      65 </span>            :  * By the first two of these, there are 9 possible use cases -- 3
+<span class="lineNum">      66 </span>            :  * possibilities for writing an attribute value, each of which has 3
+<span class="lineNum">      67 </span>            :  * possibilities for reading that value back.  The following lists
+<span class="lineNum">      68 </span>            :  * each of the 9 cases, and what happens in each.
+<span class="lineNum">      69 </span>            :  *
+<span class="lineNum">      70 </span>            :  * Cases where C writes an attribute value:
+<span class="lineNum">      71 </span>            :  * ----------------------------------------
+<span class="lineNum">      72 </span>            :  *
+<span class="lineNum">      73 </span>            :  * In all of these cases, a pointer was written by C (e.g., a pointer
+<span class="lineNum">      74 </span>            :  * to an int -- but it could have been a pointer to anything, such as
+<span class="lineNum">      75 </span>            :  * a struct).  These scenarios each have 2 examples:
+<span class="lineNum">      76 </span>            :  *
+<span class="lineNum">      77 </span>            :  * Example A: int foo = 3;
+<span class="lineNum">      78 </span>            :  *            MPI_Attr_put(..., &amp;foo);
+<span class="lineNum">      79 </span>            :  * Example B: struct foo bar;
+<span class="lineNum">      80 </span>            :  *            MPI_Attr_put(..., &amp;bar);
+<span class="lineNum">      81 </span>            :  *
+<span class="lineNum">      82 </span>            :  * 1. C reads the attribute value.  Clearly, this is a &quot;unity&quot; case,
+<span class="lineNum">      83 </span>            :  * and no translation occurs.  A pointer is written, and that same
+<span class="lineNum">      84 </span>            :  * pointer is returned.
+<span class="lineNum">      85 </span>            :  *
+<span class="lineNum">      86 </span>            :  * Example A: int *ret;
+<span class="lineNum">      87 </span>            :  *            MPI_Attr_get(..., &amp;ret);
+<span class="lineNum">      88 </span>            :  *            --&gt; *ret will equal 3
+<span class="lineNum">      89 </span>            :  * Example B: struct foo *ret;
+<span class="lineNum">      90 </span>            :  *            MPI_Attr_get(..., &amp;ret);
+<span class="lineNum">      91 </span>            :  *            --&gt; *ret will point to the instance bar that was written
+<span class="lineNum">      92 </span>            :  *
+<span class="lineNum">      93 </span>            :  * 2. Fortran MPI-1 reads the attribute value.  The C pointer is cast
+<span class="lineNum">      94 </span>            :  * to a fortran INTEGER (i.e., MPI_Fint) -- potentially being
+<span class="lineNum">      95 </span>            :  * truncated if sizeof(void*) &gt; sizeof(INTEGER).
+<span class="lineNum">      96 </span>            :  *
+<span class="lineNum">      97 </span>            :  * Example A: INTEGER ret
+<span class="lineNum">      98 </span>            :  *            CALL MPI_ATTR_GET(..., ret, ierr)
+<span class="lineNum">      99 </span>            :  *            --&gt; ret will equal &amp;foo, possibly truncated
+<span class="lineNum">     100 </span>            :  * Example B: INTEGER ret
+<span class="lineNum">     101 </span>            :  *            CALL MPI_ATTR_GET(..., ret, ierr)
+<span class="lineNum">     102 </span>            :  *            --&gt; ret will equal &amp;bar, possibly truncated
+<span class="lineNum">     103 </span>            :  *
+<span class="lineNum">     104 </span>            :  * 3. Fortran MPI-2 reads the attribute value.  The C pointer is cast
+<span class="lineNum">     105 </span>            :  * to a fortran INTEGER(KIND=MPI_ADDRESS_KIND) (i.e., a (MPI_Aint)).
+<span class="lineNum">     106 </span>            :  *
+<span class="lineNum">     107 </span>            :  * Example A: INTEGER(KIND=MPI_ADDRESS_KIND) ret
+<span class="lineNum">     108 </span>            :  *            CALL MPI_COMM_GET_ATTR(..., ret, ierr)
+<span class="lineNum">     109 </span>            :  *            --&gt; ret will equal &amp;foo
+<span class="lineNum">     110 </span>            :  * Example B: INTEGER(KIND=MPI_ADDRESS_KIND) ret
+<span class="lineNum">     111 </span>            :  *            CALL MPI_COMM_GET_ATTR(..., ret, ierr)
+<span class="lineNum">     112 </span>            :  *            --&gt; ret will equal &amp;bar
+<span class="lineNum">     113 </span>            :  *
+<span class="lineNum">     114 </span>            :  * Cases where Fortran MPI-1 writes an attribute value:
+<span class="lineNum">     115 </span>            :  * ----------------------------------------------------
+<span class="lineNum">     116 </span>            :  *
+<span class="lineNum">     117 </span>            :  * In all of these cases, an INTEGER is written by Fortran.
+<span class="lineNum">     118 </span>            :  *
+<span class="lineNum">     119 </span>            :  * Example: INTEGER FOO = 7
+<span class="lineNum">     120 </span>            :  *          CALL MPI_ATTR_PUT(..., foo, ierr)
+<span class="lineNum">     121 </span>            :  *
+<span class="lineNum">     122 </span>            :  * 4. C reads the attribute value.  The value returned is a pointer
+<span class="lineNum">     123 </span>            :  *    that points to an INTEGER (i.e., an MPI_Fint) that has a value
+<span class="lineNum">     124 </span>            :  *    of 7.
+<span class="lineNum">     125 </span>            :  *    --&gt; NOTE: The external MPI interface does not distinguish between
+<span class="lineNum">     126 </span>            :  *        this case and case 7.  It is the programer's responsibility
+<span class="lineNum">     127 </span>            :  *        to code accordingly.
+<span class="lineNum">     128 </span>            :  *
+<span class="lineNum">     129 </span>            :  * Example: MPI_Fint *ret;
+<span class="lineNum">     130 </span>            :  *          MPI_Attr_get(..., &amp;ret);
+<span class="lineNum">     131 </span>            :  *          -&gt; *ret will equal 7.
+<span class="lineNum">     132 </span>            :  *
+<span class="lineNum">     133 </span>            :  * 5. Fortran MPI-1 reads the attribute value.  This is the unity
+<span class="lineNum">     134 </span>            :  *    case; the same value is returned.
+<span class="lineNum">     135 </span>            :  *
+<span class="lineNum">     136 </span>            :  * Example: INTEGER ret
+<span class="lineNum">     137 </span>            :  *          CALL MPI_ATTR_GET(..., ret, ierr)
+<span class="lineNum">     138 </span>            :  *          --&gt; ret will equal 7
+<span class="lineNum">     139 </span>            :  *
+<span class="lineNum">     140 </span>            :  * 6. Fortran MPI-2 reads the attribute value.  The same value is
+<span class="lineNum">     141 </span>            :  *    returned, but potentially sign-extended if sizeof(INTEGER) &lt;
+<span class="lineNum">     142 </span>            :  *    sizeof(INTEGER(KIND=MPI_ADDRESS_KIND)).
+<span class="lineNum">     143 </span>            :  *
+<span class="lineNum">     144 </span>            :  * Example: INTEGER(KIND=MPI_ADDRESS_KIND) ret
+<span class="lineNum">     145 </span>            :  *          CALL MPI_COMM_GET_ATTR(..., ret, ierr)
+<span class="lineNum">     146 </span>            :  *          --&gt; ret will equal 7
+<span class="lineNum">     147 </span>            :  *
+<span class="lineNum">     148 </span>            :  * Cases where Fortran MPI-2 writes an attribute value:
+<span class="lineNum">     149 </span>            :  * ----------------------------------------------------
+<span class="lineNum">     150 </span>            :  *
+<span class="lineNum">     151 </span>            :  * In all of these cases, an INTEGER(KIND=MPI_ADDRESS_KIND) is written
+<span class="lineNum">     152 </span>            :  * by Fortran.
+<span class="lineNum">     153 </span>            :  *
+<span class="lineNum">     154 </span>            :  * Example A: INTEGER(KIND=MPI_ADDRESS_KIND) FOO = 12
+<span class="lineNum">     155 </span>            :  *            CALL MPI_COMM_PUT_ATTR(..., foo, ierr)
+<span class="lineNum">     156 </span>            :  * Example B: // Assume a platform where sizeof(void*) = 8 and
+<span class="lineNum">     157 </span>            :  *            // sizeof(INTEGER) = 4.
+<span class="lineNum">     158 </span>            :  *            INTEGER(KIND=MPI_ADDRESS_KIND) FOO = pow(2, 40)
+<span class="lineNum">     159 </span>            :  *            CALL MPI_COMM_PUT_ATTR(..., foo, ierr)
+<span class="lineNum">     160 </span>            :  *
+<span class="lineNum">     161 </span>            :  * 7. C reads the attribute value.  The value returned is a pointer
+<span class="lineNum">     162 </span>            :  *    that points to an INTEGER(KIND=MPI_ADDRESS_KIND) (i.e., a void*)
+<span class="lineNum">     163 </span>            :  *    that has a value of 12.
+<span class="lineNum">     164 </span>            :  *    --&gt; NOTE: The external MPI interface does not distinguish between
+<span class="lineNum">     165 </span>            :  *        this case and case 4.  It is the programer's responsibility
+<span class="lineNum">     166 </span>            :  *        to code accordingly.
+<span class="lineNum">     167 </span>            :  *
+<span class="lineNum">     168 </span>            :  * Example A: MPI_Aint *ret;
+<span class="lineNum">     169 </span>            :  *            MPI_Attr_get(..., &amp;ret);
+<span class="lineNum">     170 </span>            :  *            -&gt; *ret will equal 12
+<span class="lineNum">     171 </span>            :  * Example B: MPI_Aint *ret;
+<span class="lineNum">     172 </span>            :  *            MPI_Attr_get(..., &amp;ret);
+<span class="lineNum">     173 </span>            :  *            -&gt; *ret will equal 2^40
+<span class="lineNum">     174 </span>            :  *
+<span class="lineNum">     175 </span>            :  * 8. Fortran MPI-1 reads the attribute value.  The same value is
+<span class="lineNum">     176 </span>            :  *    returned, but potentially truncated if sizeof(INTEGER) &lt;
+<span class="lineNum">     177 </span>            :  *    sizeof(INTEGER(KIND=MPI_ADDRESS_KIND)).
+<span class="lineNum">     178 </span>            :  *
+<span class="lineNum">     179 </span>            :  * Example A: INTEGER ret
+<span class="lineNum">     180 </span>            :  *            CALL MPI_ATTR_GET(..., ret, ierr)
+<span class="lineNum">     181 </span>            :  *            --&gt; ret will equal 12
+<span class="lineNum">     182 </span>            :  * Example B: INTEGER ret
+<span class="lineNum">     183 </span>            :  *            CALL MPI_ATTR_GET(..., ret, ierr)
+<span class="lineNum">     184 </span>            :  *            --&gt; ret will equal 0
+<span class="lineNum">     185 </span>            :  *
+<span class="lineNum">     186 </span>            :  * 9. Fortran MPI-2 reads the attribute value.  This is the unity
+<span class="lineNum">     187 </span>            :  *    case; the same value is returned.
+<span class="lineNum">     188 </span>            :  *
+<span class="lineNum">     189 </span>            :  * Example A: INTEGER(KIND=MPI_ADDRESS_KIND) ret
+<span class="lineNum">     190 </span>            :  *            CALL MPI_COMM_GET_ATTR(..., ret, ierr)
+<span class="lineNum">     191 </span>            :  *            --&gt; ret will equal 7
+<span class="lineNum">     192 </span>            :  * Example B: INTEGER(KIND=MPI_ADDRESS_KIND) ret
+<span class="lineNum">     193 </span>            :  *            CALL MPI_COMM_GET_ATTR(..., ret, ierr)
+<span class="lineNum">     194 </span>            :  *            --&gt; ret will equal 2^40
+<span class="lineNum">     195 </span>            :  */
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span>            : #include &quot;opal/class/opal_bitmap.h&quot;
+<span class="lineNum">     200 </span>            : #include &quot;opal/threads/mutex.h&quot;
+<span class="lineNum">     201 </span>            : #include &quot;opal/sys/atomic.h&quot;
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span>            : #include &quot;ompi/attribute/attribute.h&quot;
+<span class="lineNum">     204 </span>            : #include &quot;ompi/constants.h&quot;
+<span class="lineNum">     205 </span>            : #include &quot;ompi/datatype/ompi_datatype.h&quot;
+<span class="lineNum">     206 </span>            : #include &quot;ompi/communicator/communicator.h&quot;  /* ompi_communicator_t generated in [COPY|DELETE]_ATTR_CALLBACKS */
+<span class="lineNum">     207 </span>            : #include &quot;ompi/win/win.h&quot;                    /* ompi_win_t generated in [COPY|DELETE]_ATTR_CALLBACKS */
+<span class="lineNum">     208 </span>            : #include &quot;ompi/mpi/fortran/base/fint_2_int.h&quot;
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            : /*
+<span class="lineNum">     211 </span>            :  * Macros
+<span class="lineNum">     212 </span>            :  */
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span>            : #define ATTR_TABLE_SIZE 10
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            : /* This is done so that I can have a consistent interface to my macros
+<span class="lineNum">     217 </span>            :    here */
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            : #define MPI_DATATYPE_NULL_COPY_FN MPI_TYPE_NULL_COPY_FN
+<span class="lineNum">     220 </span>            : #define attr_communicator_f c_f_to_c_index
+<span class="lineNum">     221 </span>            : #define attr_datatype_f d_f_to_c_index
+<span class="lineNum">     222 </span>            : #define attr_win_f w_f_to_c_index
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            : #define CREATE_KEY(key) opal_bitmap_find_and_set_first_unset_bit(key_bitmap, (key))
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            : #define FREE_KEY(key) opal_bitmap_clear_bit(key_bitmap, (key))
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            : /* Not checking for NULL_DELETE_FN here, since according to the
+<span class="lineNum">     230 </span>            :    MPI-standard it should be a valid function that returns
+<span class="lineNum">     231 </span>            :    MPI_SUCCESS.
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            :    This macro exists because we have to replicate the same code for
+<span class="lineNum">     234 </span>            :    MPI_Comm, MPI_Datatype, and MPI_Win.  Ick.
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            :    There are 3 possible sets of callbacks:
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span>            :    1. MPI-1 Fortran-style: attribute and extra state arguments are of
+<span class="lineNum">     239 </span>            :       type (INTEGER).  This is used if both the OMPI_KEYVAL_F77 and
+<span class="lineNum">     240 </span>            :       OMPI_KEYVAL_F77_MPI1 flags are set.
+<span class="lineNum">     241 </span>            :    2. MPI-2 Fortran-style: attribute and extra state arguments are of
+<span class="lineNum">     242 </span>            :       type (INTEGER(KIND=MPI_ADDRESS_KIND)).  This is used if the
+<span class="lineNum">     243 </span>            :       OMPI_KEYVAL_F77 flag is set and the OMPI_KEYVAL_F77_MPI1 flag is
+<span class="lineNum">     244 </span>            :       *not* set.
+<span class="lineNum">     245 </span>            :    3. C-style: attribute arguments are of type (void*).  This is used
+<span class="lineNum">     246 </span>            :       if OMPI_KEYVAL_F77 is not set.
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span>            :    Ick.
+<span class="lineNum">     249 </span>            :  */
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            : #define DELETE_ATTR_CALLBACKS(type, attribute, keyval_obj, object, err)     \
+<span class="lineNum">     252 </span>            : do { \
+<span class="lineNum">     253 </span>            :     OPAL_THREAD_UNLOCK(&amp;attribute_lock); \
+<span class="lineNum">     254 </span>            :     if (0 != (keyval_obj-&gt;attr_flag &amp; OMPI_KEYVAL_F77)) { \
+<span class="lineNum">     255 </span>            :         MPI_Fint f_key = OMPI_INT_2_FINT(key); \
+<span class="lineNum">     256 </span>            :         MPI_Fint f_err; \
+<span class="lineNum">     257 </span>            :         /* MPI-1 Fortran-style */ \
+<span class="lineNum">     258 </span>            :         if (0 != (keyval_obj-&gt;attr_flag &amp; OMPI_KEYVAL_F77_MPI1)) { \
+<span class="lineNum">     259 </span>            :             MPI_Fint attr_val = translate_to_fortran_mpi1(attribute); \
+<span class="lineNum">     260 </span>            :             (*((keyval_obj-&gt;delete_attr_fn).attr_mpi1_fortran_delete_fn)) \
+<span class="lineNum">     261 </span>            :                 (&amp;(((ompi_##type##_t *)object)-&gt;attr_##type##_f), \
+<span class="lineNum">     262 </span>            :                  &amp;f_key, &amp;attr_val, &amp;keyval_obj-&gt;extra_state.f_integer, &amp;f_err); \
+<span class="lineNum">     263 </span>            :             if (MPI_SUCCESS != OMPI_FINT_2_INT(f_err)) { \
+<span class="lineNum">     264 </span>            :                 err = OMPI_FINT_2_INT(f_err);           \
+<span class="lineNum">     265 </span>            :             } \
+<span class="lineNum">     266 </span>            :         } \
+<span class="lineNum">     267 </span>            :         /* MPI-2 Fortran-style */ \
+<span class="lineNum">     268 </span>            :         else { \
+<span class="lineNum">     269 </span>            :             MPI_Aint attr_val = translate_to_fortran_mpi2(attribute); \
+<span class="lineNum">     270 </span>            :             (*((keyval_obj-&gt;delete_attr_fn).attr_mpi2_fortran_delete_fn)) \
+<span class="lineNum">     271 </span>            :                 (&amp;(((ompi_##type##_t *)object)-&gt;attr_##type##_f), \
+<span class="lineNum">     272 </span>            :                  &amp;f_key, (int*)&amp;attr_val, &amp;keyval_obj-&gt;extra_state.f_address, &amp;f_err); \
+<span class="lineNum">     273 </span>            :             if (MPI_SUCCESS != OMPI_FINT_2_INT(f_err)) { \
+<span class="lineNum">     274 </span>            :                 err = OMPI_FINT_2_INT(f_err); \
+<span class="lineNum">     275 </span>            :             } \
+<span class="lineNum">     276 </span>            :         } \
+<span class="lineNum">     277 </span>            :     } \
+<span class="lineNum">     278 </span>            :     /* C style */ \
+<span class="lineNum">     279 </span>            :     else { \
+<span class="lineNum">     280 </span>            :         void *attr_val = translate_to_c(attribute); \
+<span class="lineNum">     281 </span>            :         err = (*((keyval_obj-&gt;delete_attr_fn).attr_##type##_delete_fn)) \
+<span class="lineNum">     282 </span>            :             ((ompi_##type##_t *)object,                                 \
+<span class="lineNum">     283 </span>            :              key, attr_val,                                             \
+<span class="lineNum">     284 </span>            :              keyval_obj-&gt;extra_state.c_ptr);                            \
+<span class="lineNum">     285 </span>            :     } \
+<span class="lineNum">     286 </span>            :     OPAL_THREAD_LOCK(&amp;attribute_lock); \
+<span class="lineNum">     287 </span>            : } while (0)
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span>            : /* See the big, long comment above from DELETE_ATTR_CALLBACKS -- most of
+<span class="lineNum">     290 </span>            :    that text applies here, too. */
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span>            : #define COPY_ATTR_CALLBACKS(type, old_object, keyval_obj, in_attr, new_object, out_attr, err) \
+<span class="lineNum">     293 </span>            : do { \
+<span class="lineNum">     294 </span>            :     OPAL_THREAD_UNLOCK(&amp;attribute_lock); \
+<span class="lineNum">     295 </span>            :     if (0 != (keyval_obj-&gt;attr_flag &amp; OMPI_KEYVAL_F77)) { \
+<span class="lineNum">     296 </span>            :         MPI_Fint f_key = OMPI_INT_2_FINT(key); \
+<span class="lineNum">     297 </span>            :         MPI_Fint f_err; \
+<span class="lineNum">     298 </span>            :         ompi_fortran_logical_t f_flag; \
+<span class="lineNum">     299 </span>            :         /* MPI-1 Fortran-style */ \
+<span class="lineNum">     300 </span>            :         if (0 != (keyval_obj-&gt;attr_flag &amp; OMPI_KEYVAL_F77_MPI1)) { \
+<span class="lineNum">     301 </span>            :             MPI_Fint in, out;                                      \
+<span class="lineNum">     302 </span>            :             in = translate_to_fortran_mpi1(in_attr); \
+<span class="lineNum">     303 </span>            :             (*((keyval_obj-&gt;copy_attr_fn).attr_mpi1_fortran_copy_fn)) \
+<span class="lineNum">     304 </span>            :                 (&amp;(((ompi_##type##_t *)old_object)-&gt;attr_##type##_f), \
+<span class="lineNum">     305 </span>            :                  &amp;f_key, &amp;keyval_obj-&gt;extra_state.f_integer, \
+<span class="lineNum">     306 </span>            :                  &amp;in, &amp;out, &amp;f_flag, &amp;f_err); \
+<span class="lineNum">     307 </span>            :             if (MPI_SUCCESS != OMPI_FINT_2_INT(f_err)) { \
+<span class="lineNum">     308 </span>            :                 err = OMPI_FINT_2_INT(f_err);           \
+<span class="lineNum">     309 </span>            :             } else {                                    \
+<span class="lineNum">     310 </span>            :                 out_attr-&gt;av_value = (void*) 0;         \
+<span class="lineNum">     311 </span>            :                 *out_attr-&gt;av_integer_pointer = out;    \
+<span class="lineNum">     312 </span>            :                 flag = OMPI_LOGICAL_2_INT(f_flag);      \
+<span class="lineNum">     313 </span>            :             }                                           \
+<span class="lineNum">     314 </span>            :         } \
+<span class="lineNum">     315 </span>            :         /* MPI-2 Fortran-style */ \
+<span class="lineNum">     316 </span>            :         else { \
+<span class="lineNum">     317 </span>            :             MPI_Aint in, out;                        \
+<span class="lineNum">     318 </span>            :             in = translate_to_fortran_mpi2(in_attr); \
+<span class="lineNum">     319 </span>            :             (*((keyval_obj-&gt;copy_attr_fn).attr_mpi2_fortran_copy_fn)) \
+<span class="lineNum">     320 </span>            :                 (&amp;(((ompi_##type##_t *)old_object)-&gt;attr_##type##_f), \
+<span class="lineNum">     321 </span>            :                  &amp;f_key, &amp;keyval_obj-&gt;extra_state.f_address, &amp;in, &amp;out, \
+<span class="lineNum">     322 </span>            :                  &amp;f_flag, &amp;f_err); \
+<span class="lineNum">     323 </span>            :             if (MPI_SUCCESS != OMPI_FINT_2_INT(f_err)) { \
+<span class="lineNum">     324 </span>            :                 err = OMPI_FINT_2_INT(f_err);           \
+<span class="lineNum">     325 </span>            :             } else {                                    \
+<span class="lineNum">     326 </span>            :                 out_attr-&gt;av_value = (void *) out;      \
+<span class="lineNum">     327 </span>            :                 flag = OMPI_LOGICAL_2_INT(f_flag);      \
+<span class="lineNum">     328 </span>            :             }                                           \
+<span class="lineNum">     329 </span>            :         } \
+<span class="lineNum">     330 </span>            :     } \
+<span class="lineNum">     331 </span>            :     /* C style */ \
+<span class="lineNum">     332 </span>            :     else { \
+<span class="lineNum">     333 </span>            :         void *in, *out; \
+<span class="lineNum">     334 </span>            :         in = translate_to_c(in_attr); \
+<span class="lineNum">     335 </span>            :         if ((err = (*((keyval_obj-&gt;copy_attr_fn).attr_##type##_copy_fn)) \
+<span class="lineNum">     336 </span>            :               ((ompi_##type##_t *)old_object, key, keyval_obj-&gt;extra_state.c_ptr, \
+<span class="lineNum">     337 </span>            :                in, &amp;out, &amp;flag, (ompi_##type##_t *)(new_object))) == MPI_SUCCESS) { \
+<span class="lineNum">     338 </span>            :             out_attr-&gt;av_value = out;                                   \
+<span class="lineNum">     339 </span>            :         }                                                               \
+<span class="lineNum">     340 </span>            :     } \
+<span class="lineNum">     341 </span>            :     OPAL_THREAD_LOCK(&amp;attribute_lock); \
+<span class="lineNum">     342 </span>            : } while (0)
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span>            : /*
+<span class="lineNum">     346 </span>            :  * Cases for attribute values
+<span class="lineNum">     347 </span>            :  */
+<span class="lineNum">     348 </span>            : typedef enum ompi_attribute_translate_t {
+<span class="lineNum">     349 </span>            :     OMPI_ATTRIBUTE_C,
+<span class="lineNum">     350 </span>            :     OMPI_ATTRIBUTE_FORTRAN_MPI1,
+<span class="lineNum">     351 </span>            :     OMPI_ATTRIBUTE_FORTRAN_MPI2
+<span class="lineNum">     352 </span>            : } ompi_attribute_translate_t;
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span>            : /*
+<span class="lineNum">     356 </span>            :  * struct to hold attribute values on each MPI object
+<span class="lineNum">     357 </span>            :  */
+<span class="lineNum">     358 </span>            : typedef struct attribute_value_t {
+<span class="lineNum">     359 </span>            :     opal_object_t super;
+<span class="lineNum">     360 </span>            :     int av_key;
+<span class="lineNum">     361 </span>            :     void *av_value;
+<span class="lineNum">     362 </span>            :     MPI_Aint *av_address_kind_pointer;
+<span class="lineNum">     363 </span>            :     MPI_Fint *av_integer_pointer;
+<span class="lineNum">     364 </span>            :     int av_set_from;
+<span class="lineNum">     365 </span>            :     int av_sequence;
+<span class="lineNum">     366 </span>            : } attribute_value_t;
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span>            : /*
+<span class="lineNum">     370 </span>            :  * Local functions
+<span class="lineNum">     371 </span>            :  */
+<span class="lineNum">     372 </span>            : static void attribute_value_construct(attribute_value_t *item);
+<span class="lineNum">     373 </span>            : static void ompi_attribute_keyval_construct(ompi_attribute_keyval_t *keyval);
+<span class="lineNum">     374 </span>            : static void ompi_attribute_keyval_destruct(ompi_attribute_keyval_t *keyval);
+<span class="lineNum">     375 </span>            : static int set_value(ompi_attribute_type_t type, void *object,
+<span class="lineNum">     376 </span>            :                      opal_hash_table_t **attr_hash, int key,
+<span class="lineNum">     377 </span>            :                      attribute_value_t *new_attr,
+<span class="lineNum">     378 </span>            :                      bool predefined);
+<span class="lineNum">     379 </span>            : static int get_value(opal_hash_table_t *attr_hash, int key,
+<span class="lineNum">     380 </span>            :                      attribute_value_t **attribute, int *flag);
+<span class="lineNum">     381 </span>            : static void *translate_to_c(attribute_value_t *val);
+<span class="lineNum">     382 </span>            : static MPI_Fint translate_to_fortran_mpi1(attribute_value_t *val);
+<span class="lineNum">     383 </span>            : static MPI_Aint translate_to_fortran_mpi2(attribute_value_t *val);
+<span class="lineNum">     384 </span>            : static int compare_attr_sequence(const void *attr1, const void *attr2);
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span>            : /*
+<span class="lineNum">     388 </span>            :  * attribute_value_t class
+<span class="lineNum">     389 </span>            :  */
+<span class="lineNum">     390 </span>            : static OBJ_CLASS_INSTANCE(attribute_value_t,
+<span class="lineNum">     391 </span>            :                           opal_object_t,
+<span class="lineNum">     392 </span>            :                           attribute_value_construct,
+<span class="lineNum">     393 </span>            :                           NULL);
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span>            : /*
+<span class="lineNum">     397 </span>            :  * ompi_attribute_entry_t classes
+<span class="lineNum">     398 </span>            :  */
+<span class="lineNum">     399 </span>            : static OBJ_CLASS_INSTANCE(ompi_attribute_keyval_t,
+<span class="lineNum">     400 </span>            :                           opal_object_t,
+<span class="lineNum">     401 </span>            :                           ompi_attribute_keyval_construct,
+<span class="lineNum">     402 </span>            :                           ompi_attribute_keyval_destruct);
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span>            : /*
+<span class="lineNum">     406 </span>            :  * Static variables
+<span class="lineNum">     407 </span>            :  */
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span>            : static opal_hash_table_t *keyval_hash;
+<span class="lineNum">     410 </span>            : static opal_bitmap_t *key_bitmap;
+<span class="lineNum">     411 </span>            : static int attr_sequence;
+<span class="lineNum">     412 </span>            : static unsigned int int_pos = 12345;
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span>            : /*
+<span class="lineNum">     415 </span>            :  * MPI attributes are *not* high performance, so just use a One Big Lock
+<span class="lineNum">     416 </span>            :  * approach. However, this lock is released before a user provided callback is
+<span class="lineNum">     417 </span>            :  * triggered and acquired right after, allowing for recursive behaviors.
+<span class="lineNum">     418 </span>            :  */
+<span class="lineNum">     419 </span>            : static opal_mutex_t attribute_lock;
+<span class="lineNum">     420 </span>            : 
+<a name="421"><span class="lineNum">     421 </span>            : </a>
+<span class="lineNum">     422 </span>            : /*
+<span class="lineNum">     423 </span><span class="lineCov">         14 :  * attribute_value_t constructor function</span>
+<span class="lineNum">     424 </span>            :  */
+<span class="lineNum">     425 </span><span class="lineCov">         14 : static void attribute_value_construct(attribute_value_t *item)</span>
+<span class="lineNum">     426 </span><span class="lineCov">         14 : {</span>
+<span class="lineNum">     427 </span><span class="lineCov">         14 :     item-&gt;av_key = MPI_KEYVAL_INVALID;</span>
+<span class="lineNum">     428 </span><span class="lineCov">         14 :     item-&gt;av_address_kind_pointer = (MPI_Aint*) &amp;item-&gt;av_value;</span>
+<span class="lineNum">     429 </span><span class="lineCov">         14 :     item-&gt;av_integer_pointer = &amp;(((MPI_Fint*) &amp;item-&gt;av_value)[int_pos]);</span>
+<span class="lineNum">     430 </span><span class="lineCov">         14 :     item-&gt;av_set_from = 0;</span>
+<span class="lineNum">     431 </span>            :     item-&gt;av_sequence = -1;
+<span class="lineNum">     432 </span>            : }
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span>            : 
+<a name="435"><span class="lineNum">     435 </span>            : /*</a>
+<span class="lineNum">     436 </span>            :  * ompi_attribute_keyval_t constructor / destructor
+<span class="lineNum">     437 </span><span class="lineCov">         24 :  */</span>
+<span class="lineNum">     438 </span>            : static void
+<span class="lineNum">     439 </span><span class="lineCov">         24 : ompi_attribute_keyval_construct(ompi_attribute_keyval_t *keyval)</span>
+<span class="lineNum">     440 </span><span class="lineCov">         24 : {</span>
+<span class="lineNum">     441 </span><span class="lineCov">         24 :     keyval-&gt;attr_type = UNUSED_ATTR;</span>
+<span class="lineNum">     442 </span><span class="lineCov">         24 :     keyval-&gt;attr_flag = 0;</span>
+<span class="lineNum">     443 </span><span class="lineCov">         24 :     keyval-&gt;copy_attr_fn.attr_communicator_copy_fn = NULL;</span>
+<span class="lineNum">     444 </span><span class="lineCov">         24 :     keyval-&gt;delete_attr_fn.attr_communicator_copy_fn = NULL;</span>
+<span class="lineNum">     445 </span>            :     keyval-&gt;extra_state.c_ptr = NULL;
+<span class="lineNum">     446 </span>            :     keyval-&gt;bindings_extra_state = NULL;
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span>            :     /* Set the keyval-&gt;key value to an invalid value so that we can know
+<span class="lineNum">     449 </span>            :        if it has been initialized with a proper value or not.
+<span class="lineNum">     450 </span>            :        Specifically, the destructor may get invoked if we weren't able
+<span class="lineNum">     451 </span><span class="lineCov">         24 :        to assign a key properly.  So we don't want to try to remove it</span>
+<span class="lineNum">     452 </span><span class="lineCov">         24 :        from the table if it wasn't there. */</span>
+<span class="lineNum">     453 </span>            :     keyval-&gt;key = -1;
+<a name="454"><span class="lineNum">     454 </span>            : }</a>
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span><span class="lineCov">         24 : </span>
+<span class="lineNum">     457 </span>            : static void
+<span class="lineNum">     458 </span><span class="lineCov">         24 : ompi_attribute_keyval_destruct(ompi_attribute_keyval_t *keyval)</span>
+<span class="lineNum">     459 </span>            : {
+<span class="lineNum">     460 </span><span class="lineCov">         24 :     if (-1 != keyval-&gt;key) {</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :         /* If the bindings_extra_state pointer is not NULL, free it */</span>
+<span class="lineNum">     462 </span>            :         if (NULL != keyval-&gt;bindings_extra_state) {
+<span class="lineNum">     463 </span>            :             free(keyval-&gt;bindings_extra_state);
+<span class="lineNum">     464 </span><span class="lineCov">         24 :         }</span>
+<span class="lineNum">     465 </span><span class="lineCov">         24 : </span>
+<span class="lineNum">     466 </span>            :         opal_hash_table_remove_value_uint32(keyval_hash, keyval-&gt;key);
+<span class="lineNum">     467 </span><span class="lineCov">         24 :         FREE_KEY(keyval-&gt;key);</span>
+<span class="lineNum">     468 </span>            :     }
+<span class="lineNum">     469 </span>            : }
+<span class="lineNum">     470 </span>            : 
+<span class="lineNum">     471 </span>            : 
+<a name="472"><span class="lineNum">     472 </span>            : /*</a>
+<span class="lineNum">     473 </span>            :  * This will initialize the main list to store key- attribute
+<span class="lineNum">     474 </span><span class="lineCov">          2 :  * items. This will be called one time, during MPI_INIT().</span>
+<span class="lineNum">     475 </span>            :  */
+<span class="lineNum">     476 </span>            : int ompi_attr_init(void)
+<span class="lineNum">     477 </span><span class="lineCov">          2 : {</span>
+<span class="lineNum">     478 </span><span class="lineCov">          2 :     int ret;</span>
+<span class="lineNum">     479 </span>            :     void *bogus = (void*) 1;
+<span class="lineNum">     480 </span><span class="lineCov">          2 :     MPI_Fint *p = (MPI_Fint*) &amp;bogus;</span>
+<span class="lineNum">     481 </span><span class="lineCov">          2 : </span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :     keyval_hash = OBJ_NEW(opal_hash_table_t);</span>
+<span class="lineNum">     483 </span>            :     if (NULL == keyval_hash) {
+<span class="lineNum">     484 </span><span class="lineCov">          2 :         return OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     485 </span>            :     }
+<span class="lineNum">     486 </span>            :     key_bitmap = OBJ_NEW(opal_bitmap_t);
+<span class="lineNum">     487 </span>            :     /*
+<span class="lineNum">     488 </span><span class="lineCov">          2 :      * Set the max size to OMPI_FORTRAN_HANDLE_MAX to enforce bound</span>
+<span class="lineNum">     489 </span><span class="lineCov">          2 :      */</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :     opal_bitmap_set_max_size (key_bitmap, OMPI_FORTRAN_HANDLE_MAX);</span>
+<span class="lineNum">     491 </span>            :     if (0 != opal_bitmap_init(key_bitmap, 32)) {
+<span class="lineNum">     492 </span>            :         return OMPI_ERR_OUT_OF_RESOURCE;
+<span class="lineNum">     493 </span><span class="lineCov">          4 :     }</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     495 </span><span class="lineCov">          2 :     for (int_pos = 0; int_pos &lt; (sizeof(void*) / sizeof(MPI_Fint));</span>
+<span class="lineNum">     496 </span><span class="lineCov">          2 :          ++int_pos) {</span>
+<span class="lineNum">     497 </span>            :         if (p[int_pos] == 1) {
+<span class="lineNum">     498 </span>            :             break;
+<span class="lineNum">     499 </span>            :         }
+<span class="lineNum">     500 </span><span class="lineCov">          2 :     }</span>
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;attribute_lock, opal_mutex_t);</span>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != (ret = opal_hash_table_init(keyval_hash,</span>
+<span class="lineNum">     505 </span>            :                                                     ATTR_TABLE_SIZE))) {
+<span class="lineNum">     506 </span><span class="lineCov">          2 :         return ret;</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     508 </span>            :     if (OMPI_SUCCESS != (ret = ompi_attr_create_predefined())) {
+<span class="lineNum">     509 </span>            :         return ret;
+<span class="lineNum">     510 </span><span class="lineCov">          2 :     }</span>
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span>            :     return OMPI_SUCCESS;
+<span class="lineNum">     513 </span>            : }
+<span class="lineNum">     514 </span>            : 
+<a name="515"><span class="lineNum">     515 </span>            : </a>
+<span class="lineNum">     516 </span>            : /*
+<span class="lineNum">     517 </span><span class="lineCov">          2 :  * Cleanup everything during MPI_Finalize().</span>
+<span class="lineNum">     518 </span>            :  */
+<span class="lineNum">     519 </span><span class="lineCov">          2 : int ompi_attr_finalize(void)</span>
+<span class="lineNum">     520 </span><span class="lineCov">          2 : {</span>
+<span class="lineNum">     521 </span><span class="lineCov">          4 :     ompi_attr_free_predefined();</span>
+<span class="lineNum">     522 </span><span class="lineCov">          4 :     OBJ_DESTRUCT(&amp;attribute_lock);</span>
+<span class="lineNum">     523 </span>            :     OBJ_RELEASE(keyval_hash);
+<span class="lineNum">     524 </span><span class="lineCov">          2 :     OBJ_RELEASE(key_bitmap);</span>
+<span class="lineNum">     525 </span>            : 
+<span class="lineNum">     526 </span>            :     return OMPI_SUCCESS;
+<a name="527"><span class="lineNum">     527 </span>            : }</a>
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span><span class="lineCov">         24 : /*****************************************************************************/</span>
+<span class="lineNum">     530 </span>            : 
+<span class="lineNum">     531 </span>            : static int ompi_attr_create_keyval_impl(ompi_attribute_type_t type,
+<span class="lineNum">     532 </span>            :                             ompi_attribute_fn_ptr_union_t copy_attr_fn,
+<span class="lineNum">     533 </span>            :                             ompi_attribute_fn_ptr_union_t delete_attr_fn,
+<span class="lineNum">     534 </span>            :                             int *key,
+<span class="lineNum">     535 </span>            :                             ompi_attribute_fortran_ptr_t *extra_state,
+<span class="lineNum">     536 </span>            :                             int flags,
+<span class="lineNum">     537 </span>            :                             void *bindings_extra_state)
+<span class="lineNum">     538 </span>            : {
+<span class="lineNum">     539 </span>            :     ompi_attribute_keyval_t *keyval;
+<span class="lineNum">     540 </span>            :     int ret;
+<span class="lineNum">     541 </span><span class="lineCov">         24 : </span>
+<span class="lineNum">     542 </span><span class="lineCov">         24 :     /* Allocate space for the list item */</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :     keyval = OBJ_NEW(ompi_attribute_keyval_t);</span>
+<span class="lineNum">     544 </span>            :     if (NULL == keyval) {
+<span class="lineNum">     545 </span>            :         return OMPI_ERR_OUT_OF_RESOURCE;
+<span class="lineNum">     546 </span>            :     }
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span>            :     /* Fill in the list item (must be done before we set the keyval
+<span class="lineNum">     549 </span><span class="lineCov">         24 :        on the keyval_hash in case some other thread immediately reads</span>
+<span class="lineNum">     550 </span><span class="lineCov">         24 :        it from the keyval_hash) */</span>
+<span class="lineNum">     551 </span><span class="lineCov">         24 :     keyval-&gt;copy_attr_fn = copy_attr_fn;</span>
+<span class="lineNum">     552 </span><span class="lineCov">         24 :     keyval-&gt;delete_attr_fn = delete_attr_fn;</span>
+<span class="lineNum">     553 </span><span class="lineCov">         24 :     keyval-&gt;extra_state = *extra_state;</span>
+<span class="lineNum">     554 </span><span class="lineCov">         24 :     keyval-&gt;attr_type = type;</span>
+<span class="lineNum">     555 </span><span class="lineCov">         24 :     keyval-&gt;attr_flag = flags;</span>
+<span class="lineNum">     556 </span>            :     keyval-&gt;key = -1;
+<span class="lineNum">     557 </span>            :     keyval-&gt;bindings_extra_state = bindings_extra_state;
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span><span class="lineCov">         24 :     /* Create a new unique key and fill the hash */</span>
+<span class="lineNum">     560 </span><span class="lineCov">         24 :     OPAL_THREAD_LOCK(&amp;attribute_lock);</span>
+<span class="lineNum">     561 </span><span class="lineCov">         24 :     ret = CREATE_KEY(key);</span>
+<span class="lineNum">     562 </span><span class="lineCov">         24 :     if (OMPI_SUCCESS == ret) {</span>
+<span class="lineNum">     563 </span>            :         keyval-&gt;key = *key;
+<span class="lineNum">     564 </span>            :         ret = opal_hash_table_set_value_uint32(keyval_hash, *key, keyval);
+<span class="lineNum">     565 </span><span class="lineCov">         24 :     }</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     567 </span>            :     if (OMPI_SUCCESS != ret) {
+<span class="lineNum">     568 </span><span class="lineCov">         24 :         OBJ_RELEASE(keyval);</span>
+<span class="lineNum">     569 </span>            :     } else {
+<span class="lineNum">     570 </span>            :         ret = MPI_SUCCESS;
+<span class="lineNum">     571 </span><span class="lineCov">         24 :     }</span>
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span><span class="lineCov">         24 :     opal_atomic_wmb();</span>
+<a name="574"><span class="lineNum">     574 </span>            :     OPAL_THREAD_UNLOCK(&amp;attribute_lock);</a>
+<span class="lineNum">     575 </span>            :     return ret;
+<span class="lineNum">     576 </span><span class="lineCov">         24 : }</span>
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span>            : int ompi_attr_create_keyval(ompi_attribute_type_t type,
+<span class="lineNum">     579 </span>            :                             ompi_attribute_fn_ptr_union_t copy_attr_fn,
+<span class="lineNum">     580 </span>            :                             ompi_attribute_fn_ptr_union_t delete_attr_fn,
+<span class="lineNum">     581 </span>            :                             int *key,
+<span class="lineNum">     582 </span>            :                             void *extra_state,
+<span class="lineNum">     583 </span>            :                             int flags,
+<span class="lineNum">     584 </span>            :                             void *bindings_extra_state)
+<span class="lineNum">     585 </span>            : {
+<span class="lineNum">     586 </span><span class="lineCov">         24 :     ompi_attribute_fortran_ptr_t es_tmp;</span>
+<span class="lineNum">     587 </span><span class="lineCov">         24 : </span>
+<span class="lineNum">     588 </span>            :     es_tmp.c_ptr = extra_state;
+<span class="lineNum">     589 </span>            :     return ompi_attr_create_keyval_impl(type, copy_attr_fn, delete_attr_fn,
+<a name="590"><span class="lineNum">     590 </span>            :                                         key, &amp;es_tmp, flags,</a>
+<span class="lineNum">     591 </span>            :                                         bindings_extra_state);
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span>            : int ompi_attr_create_keyval_fint(ompi_attribute_type_t type,
+<span class="lineNum">     595 </span>            :                                  ompi_attribute_fn_ptr_union_t copy_attr_fn,
+<span class="lineNum">     596 </span>            :                                  ompi_attribute_fn_ptr_union_t delete_attr_fn,
+<span class="lineNum">     597 </span>            :                                  int *key,
+<span class="lineNum">     598 </span>            :                                  MPI_Fint extra_state,
+<span class="lineNum">     599 </span>            :                                  int flags,
+<span class="lineNum">     600 </span>            :                                  void *bindings_extra_state)
+<span class="lineNum">     601 </span>            : {
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :     ompi_attribute_fortran_ptr_t es_tmp;</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     604 </span>            :     es_tmp.f_integer = extra_state;
+<span class="lineNum">     605 </span>            :     return ompi_attr_create_keyval_impl(type, copy_attr_fn, delete_attr_fn,
+<a name="606"><span class="lineNum">     606 </span>            :                                         key, &amp;es_tmp, flags,</a>
+<span class="lineNum">     607 </span>            :                                         bindings_extra_state);
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span>            : int ompi_attr_create_keyval_aint(ompi_attribute_type_t type,
+<span class="lineNum">     611 </span>            :                                  ompi_attribute_fn_ptr_union_t copy_attr_fn,
+<span class="lineNum">     612 </span>            :                                  ompi_attribute_fn_ptr_union_t delete_attr_fn,
+<span class="lineNum">     613 </span>            :                                  int *key,
+<span class="lineNum">     614 </span>            :                                  MPI_Aint extra_state,
+<span class="lineNum">     615 </span>            :                                  int flags,
+<span class="lineNum">     616 </span>            :                                  void *bindings_extra_state)
+<span class="lineNum">     617 </span>            : {
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :     ompi_attribute_fortran_ptr_t es_tmp;</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     620 </span>            :     es_tmp.f_address = extra_state;
+<span class="lineNum">     621 </span>            :     return ompi_attr_create_keyval_impl(type, copy_attr_fn, delete_attr_fn,
+<span class="lineNum">     622 </span>            :                                         key, &amp;es_tmp, flags,
+<span class="lineNum">     623 </span>            :                                         bindings_extra_state);
+<a name="624"><span class="lineNum">     624 </span>            : }</a>
+<span class="lineNum">     625 </span>            : 
+<span class="lineNum">     626 </span><span class="lineCov">         24 : /*****************************************************************************/</span>
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span>            : int ompi_attr_free_keyval(ompi_attribute_type_t type, int *key,
+<span class="lineNum">     629 </span>            :                           bool predefined)
+<span class="lineNum">     630 </span>            : {
+<span class="lineNum">     631 </span>            :     int ret;
+<span class="lineNum">     632 </span>            :     ompi_attribute_keyval_t *keyval;
+<span class="lineNum">     633 </span>            : 
+<span class="lineNum">     634 </span><span class="lineCov">         24 :     /* Find the key-value pair */</span>
+<span class="lineNum">     635 </span>            :     OPAL_THREAD_LOCK(&amp;attribute_lock);
+<span class="lineNum">     636 </span><span class="lineCov">         48 :     ret = opal_hash_table_get_value_uint32(keyval_hash, *key,</span>
+<span class="lineNum">     637 </span><span class="lineCov">         48 :                                            (void **) &amp;keyval);</span>
+<span class="lineNum">     638 </span><span class="lineCov">         24 :     if ((OMPI_SUCCESS != ret) || (NULL == keyval) ||</span>
+<span class="lineNum">     639 </span>            :         (keyval-&gt;attr_type != type) ||
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :         ((!predefined) &amp;&amp; (keyval-&gt;attr_flag &amp; OMPI_KEYVAL_PREDEFINED))) {</span>
+<span class="lineNum">     641 </span>            :         OPAL_THREAD_UNLOCK(&amp;attribute_lock);
+<span class="lineNum">     642 </span>            :         return OMPI_ERR_BAD_PARAM;
+<span class="lineNum">     643 </span>            :     }
+<span class="lineNum">     644 </span><span class="lineCov">         24 : </span>
+<span class="lineNum">     645 </span>            :     /* MPI says to set the returned value to MPI_KEYVAL_INVALID */
+<span class="lineNum">     646 </span>            :     *key = MPI_KEYVAL_INVALID;
+<span class="lineNum">     647 </span>            : 
+<span class="lineNum">     648 </span>            :     /* This will delete the key only when no attributes are associated
+<span class="lineNum">     649 </span><span class="lineCov">         48 :        with it, else it will just decrement the reference count, so that when</span>
+<span class="lineNum">     650 </span>            :        the last attribute is deleted, this object gets deleted too */
+<span class="lineNum">     651 </span><span class="lineCov">         24 :     OBJ_RELEASE(keyval);</span>
+<span class="lineNum">     652 </span>            : 
+<span class="lineNum">     653 </span>            :     opal_atomic_wmb();
+<span class="lineNum">     654 </span><span class="lineCov">         24 :     OPAL_THREAD_UNLOCK(&amp;attribute_lock);</span>
+<span class="lineNum">     655 </span>            : 
+<span class="lineNum">     656 </span>            :     return MPI_SUCCESS;
+<span class="lineNum">     657 </span>            : }
+<span class="lineNum">     658 </span>            : 
+<span class="lineNum">     659 </span>            : /*****************************************************************************/
+<span class="lineNum">     660 </span>            : 
+<a name="661"><span class="lineNum">     661 </span>            : /*</a>
+<span class="lineNum">     662 </span>            :  * Front-end function called by the C MPI API functions to set an
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :  * attribute.</span>
+<span class="lineNum">     664 </span>            :  */
+<span class="lineNum">     665 </span>            : int ompi_attr_set_c(ompi_attribute_type_t type, void *object,
+<span class="lineNum">     666 </span>            :                     opal_hash_table_t **attr_hash,
+<span class="lineNum">     667 </span>            :                     int key, void *attribute, bool predefined)
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :     int ret;</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :     attribute_value_t *new_attr = OBJ_NEW(attribute_value_t);</span>
+<span class="lineNum">     671 </span>            :     if (NULL == new_attr) {
+<span class="lineNum">     672 </span>            :         return OMPI_ERR_OUT_OF_RESOURCE;
+<span class="lineNum">     673 </span>            :     }
+<span class="lineNum">     674 </span>            : 
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :     OPAL_THREAD_LOCK(&amp;attribute_lock);</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :     new_attr-&gt;av_value = attribute;</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :     new_attr-&gt;av_set_from = OMPI_ATTRIBUTE_C;</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :     ret = set_value(type, object, attr_hash, key, new_attr, predefined);</span>
+<span class="lineNum">     680 </span>            :     if (OMPI_SUCCESS != ret) {
+<span class="lineNum">     681 </span>            :         OBJ_RELEASE(new_attr);
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span>            :     opal_atomic_wmb();
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :     OPAL_THREAD_UNLOCK(&amp;attribute_lock);</span>
+<span class="lineNum">     686 </span>            : 
+<span class="lineNum">     687 </span>            :     return ret;
+<span class="lineNum">     688 </span>            : }
+<span class="lineNum">     689 </span>            : 
+<span class="lineNum">     690 </span>            : 
+<a name="691"><span class="lineNum">     691 </span>            : /*</a>
+<span class="lineNum">     692 </span>            :  * Front-end function called by the Fortran MPI-1 API functions to set
+<span class="lineNum">     693 </span><span class="lineCov">         14 :  * an attribute.</span>
+<span class="lineNum">     694 </span>            :  */
+<span class="lineNum">     695 </span>            : int ompi_attr_set_fortran_mpi1(ompi_attribute_type_t type, void *object,
+<span class="lineNum">     696 </span>            :                                opal_hash_table_t **attr_hash,
+<span class="lineNum">     697 </span>            :                                int key, MPI_Fint attribute,
+<span class="lineNum">     698 </span>            :                                bool predefined)
+<span class="lineNum">     699 </span><span class="lineCov">         14 : {</span>
+<span class="lineNum">     700 </span><span class="lineCov">         14 :     int ret;</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :     attribute_value_t *new_attr = OBJ_NEW(attribute_value_t);</span>
+<span class="lineNum">     702 </span>            :     if (NULL == new_attr) {
+<span class="lineNum">     703 </span>            :         return OMPI_ERR_OUT_OF_RESOURCE;
+<span class="lineNum">     704 </span>            :     }
+<span class="lineNum">     705 </span>            : 
+<span class="lineNum">     706 </span><span class="lineCov">         14 :     OPAL_THREAD_LOCK(&amp;attribute_lock);</span>
+<span class="lineNum">     707 </span><span class="lineCov">         14 : </span>
+<span class="lineNum">     708 </span><span class="lineCov">         14 :     new_attr-&gt;av_value = (void *) 0;</span>
+<span class="lineNum">     709 </span><span class="lineCov">         14 :     *new_attr-&gt;av_integer_pointer = attribute;</span>
+<span class="lineNum">     710 </span><span class="lineCov">         14 :     new_attr-&gt;av_set_from = OMPI_ATTRIBUTE_FORTRAN_MPI1;</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     ret = set_value(type, object, attr_hash, key, new_attr, predefined);</span>
+<span class="lineNum">     712 </span>            :     if (OMPI_SUCCESS != ret) {
+<span class="lineNum">     713 </span>            :         OBJ_RELEASE(new_attr);
+<span class="lineNum">     714 </span><span class="lineCov">         14 :     }</span>
+<span class="lineNum">     715 </span>            : 
+<span class="lineNum">     716 </span>            :     opal_atomic_wmb();
+<span class="lineNum">     717 </span><span class="lineCov">         14 :     OPAL_THREAD_UNLOCK(&amp;attribute_lock);</span>
+<span class="lineNum">     718 </span>            : 
+<span class="lineNum">     719 </span>            :     return ret;
+<span class="lineNum">     720 </span>            : }
+<span class="lineNum">     721 </span>            : 
+<span class="lineNum">     722 </span>            : 
+<a name="723"><span class="lineNum">     723 </span>            : /*</a>
+<span class="lineNum">     724 </span>            :  * Front-end function called by the Fortran MPI-2 API functions to set
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :  * an attribute.</span>
+<span class="lineNum">     726 </span>            :  */
+<span class="lineNum">     727 </span>            : int ompi_attr_set_fortran_mpi2(ompi_attribute_type_t type, void *object,
+<span class="lineNum">     728 </span>            :                                opal_hash_table_t **attr_hash,
+<span class="lineNum">     729 </span>            :                                int key, MPI_Aint attribute,
+<span class="lineNum">     730 </span>            :                                bool predefined)
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :     int ret;</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :     attribute_value_t *new_attr = OBJ_NEW(attribute_value_t);</span>
+<span class="lineNum">     734 </span>            :     if (NULL == new_attr) {
+<span class="lineNum">     735 </span>            :         return OMPI_ERR_OUT_OF_RESOURCE;
+<span class="lineNum">     736 </span>            :     }
+<span class="lineNum">     737 </span>            : 
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :     OPAL_THREAD_LOCK(&amp;attribute_lock);</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :     new_attr-&gt;av_value = (void *) attribute;</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :     new_attr-&gt;av_set_from = OMPI_ATTRIBUTE_FORTRAN_MPI2;</span>
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :     ret = set_value(type, object, attr_hash, key, new_attr, predefined);</span>
+<span class="lineNum">     743 </span>            :     if (OMPI_SUCCESS != ret) {
+<span class="lineNum">     744 </span>            :         OBJ_RELEASE(new_attr);
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     746 </span>            : 
+<span class="lineNum">     747 </span>            :     opal_atomic_wmb();
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :     OPAL_THREAD_UNLOCK(&amp;attribute_lock);</span>
+<span class="lineNum">     749 </span>            : 
+<span class="lineNum">     750 </span>            :     return ret;
+<span class="lineNum">     751 </span>            : }
+<span class="lineNum">     752 </span>            : 
+<span class="lineNum">     753 </span>            : /*****************************************************************************/
+<span class="lineNum">     754 </span>            : 
+<a name="755"><span class="lineNum">     755 </span>            : /*</a>
+<span class="lineNum">     756 </span>            :  * Front-end function called by the C MPI API functions to get
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :  * attributes.</span>
+<span class="lineNum">     758 </span>            :  */
+<span class="lineNum">     759 </span>            : int ompi_attr_get_c(opal_hash_table_t *attr_hash, int key,
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :                     void **attribute, int *flag)</span>
+<span class="lineNum">     761 </span>            : {
+<span class="lineNum">     762 </span>            :     attribute_value_t *val = NULL;
+<span class="lineNum">     763 </span>            :     int ret;
+<span class="lineNum">     764 </span>            : 
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :     OPAL_THREAD_LOCK(&amp;attribute_lock);</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :     ret = get_value(attr_hash, key, &amp;val, flag);</span>
+<span class="lineNum">     768 </span>            :     if (MPI_SUCCESS == ret &amp;&amp; 1 == *flag) {
+<span class="lineNum">     769 </span>            :         *attribute = translate_to_c(val);
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     771 </span>            : 
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :     opal_atomic_wmb();</span>
+<span class="lineNum">     773 </span>            :     OPAL_THREAD_UNLOCK(&amp;attribute_lock);
+<span class="lineNum">     774 </span>            :     return ret;
+<span class="lineNum">     775 </span>            : }
+<span class="lineNum">     776 </span>            : 
+<span class="lineNum">     777 </span>            : 
+<a name="778"><span class="lineNum">     778 </span>            : /*</a>
+<span class="lineNum">     779 </span>            :  * Front-end function called by the Fortran MPI-1 API functions to get
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :  * attributes.</span>
+<span class="lineNum">     781 </span>            :  */
+<span class="lineNum">     782 </span>            : int ompi_attr_get_fortran_mpi1(opal_hash_table_t *attr_hash, int key,
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :                                MPI_Fint *attribute, int *flag)</span>
+<span class="lineNum">     784 </span>            : {
+<span class="lineNum">     785 </span>            :     attribute_value_t *val = NULL;
+<span class="lineNum">     786 </span>            :     int ret;
+<span class="lineNum">     787 </span>            : 
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :     OPAL_THREAD_LOCK(&amp;attribute_lock);</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :     ret = get_value(attr_hash, key, &amp;val, flag);</span>
+<span class="lineNum">     791 </span>            :     if (MPI_SUCCESS == ret &amp;&amp; 1 == *flag) {
+<span class="lineNum">     792 </span>            :         *attribute = translate_to_fortran_mpi1(val);
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     794 </span>            : 
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :     opal_atomic_wmb();</span>
+<span class="lineNum">     796 </span>            :     OPAL_THREAD_UNLOCK(&amp;attribute_lock);
+<span class="lineNum">     797 </span>            :     return ret;
+<span class="lineNum">     798 </span>            : }
+<span class="lineNum">     799 </span>            : 
+<span class="lineNum">     800 </span>            : 
+<a name="801"><span class="lineNum">     801 </span>            : /*</a>
+<span class="lineNum">     802 </span>            :  * Front-end function called by the Fortran MPI-2 API functions to get
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :  * attributes.</span>
+<span class="lineNum">     804 </span>            :  */
+<span class="lineNum">     805 </span>            : int ompi_attr_get_fortran_mpi2(opal_hash_table_t *attr_hash, int key,
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :                                MPI_Aint *attribute, int *flag)</span>
+<span class="lineNum">     807 </span>            : {
+<span class="lineNum">     808 </span>            :     attribute_value_t *val = NULL;
+<span class="lineNum">     809 </span>            :     int ret;
+<span class="lineNum">     810 </span>            : 
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :     OPAL_THREAD_LOCK(&amp;attribute_lock);</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :     ret = get_value(attr_hash, key, &amp;val, flag);</span>
+<span class="lineNum">     814 </span>            :     if (MPI_SUCCESS == ret &amp;&amp; 1 == *flag) {
+<span class="lineNum">     815 </span>            :         *attribute = translate_to_fortran_mpi2(val);
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     817 </span>            : 
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :     opal_atomic_wmb();</span>
+<span class="lineNum">     819 </span>            :     OPAL_THREAD_UNLOCK(&amp;attribute_lock);
+<span class="lineNum">     820 </span>            :     return ret;
+<span class="lineNum">     821 </span>            : }
+<span class="lineNum">     822 </span>            : 
+<span class="lineNum">     823 </span>            : /*****************************************************************************/
+<span class="lineNum">     824 </span>            : 
+<span class="lineNum">     825 </span>            : /*
+<a name="826"><span class="lineNum">     826 </span>            :  * Copy all the attributes from one MPI object to another.  Called</a>
+<span class="lineNum">     827 </span>            :  * when MPI objects are copied (e.g., back-end actions to
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :  * MPI_COMM_DUP).</span>
+<span class="lineNum">     829 </span>            :  */
+<span class="lineNum">     830 </span>            : int ompi_attr_copy_all(ompi_attribute_type_t type, void *old_object,
+<span class="lineNum">     831 </span>            :                        void *new_object, opal_hash_table_t *oldattr_hash,
+<span class="lineNum">     832 </span>            :                        opal_hash_table_t *newattr_hash)
+<span class="lineNum">     833 </span>            : {
+<span class="lineNum">     834 </span>            :     int ret;
+<span class="lineNum">     835 </span>            :     int err;
+<span class="lineNum">     836 </span>            :     uint32_t key;
+<span class="lineNum">     837 </span>            :     int flag;
+<span class="lineNum">     838 </span>            :     void *node, *in_node;
+<span class="lineNum">     839 </span>            :     attribute_value_t *old_attr, *new_attr;
+<span class="lineNum">     840 </span>            :     ompi_attribute_keyval_t *hash_value;
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :     /* If there's nothing to do, just return */</span>
+<span class="lineNum">     843 </span>            :     if (NULL == oldattr_hash) {
+<span class="lineNum">     844 </span>            :         return MPI_SUCCESS;
+<span class="lineNum">     845 </span>            :     }
+<span class="lineNum">     846 </span>            : 
+<span class="lineNum">     847 </span>            :     OPAL_THREAD_LOCK(&amp;attribute_lock);
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     849 </span>            :     /* Get the first attribute in the object's hash */
+<span class="lineNum">     850 </span>            :     ret = opal_hash_table_get_first_key_uint32(oldattr_hash, &amp;key,
+<span class="lineNum">     851 </span>            :                                                (void **) &amp;old_attr,
+<span class="lineNum">     852 </span>            :                                                &amp;node);
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :     /* While we still have some attribute in the object's key hash */</span>
+<span class="lineNum">     855 </span>            :     while (OMPI_SUCCESS == ret) {
+<span class="lineNum">     856 </span>            :         in_node = node;
+<span class="lineNum">     857 </span>            : 
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :         /* Get the keyval in the main keyval hash - so that we know</span>
+<span class="lineNum">     859 </span>            :            what the copy_attr_fn is */
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :         err = opal_hash_table_get_value_uint32(keyval_hash, key,</span>
+<span class="lineNum">     861 </span>            :                                                (void **) &amp;hash_value);
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :         if (OMPI_SUCCESS != err) {</span>
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :             /* This should not happen! */</span>
+<span class="lineNum">     864 </span>            :             ret = MPI_ERR_INTERN;
+<span class="lineNum">     865 </span>            :             goto out;
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :         err = 0;</span>
+<span class="lineNum">     869 </span>            :         new_attr = OBJ_NEW(attribute_value_t);
+<span class="lineNum">     870 </span>            :         switch (type) {
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :         case COMM_ATTR:</span>
+<span class="lineNum">     872 </span>            :             /* Now call the copy_attr_fn */
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :             COPY_ATTR_CALLBACKS(communicator, old_object, hash_value,</span>
+<span class="lineNum">     874 </span>            :                                 old_attr, new_object, new_attr, err);
+<span class="lineNum">     875 </span>            :             break;
+<span class="lineNum">     876 </span>            : 
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :         case TYPE_ATTR:</span>
+<span class="lineNum">     878 </span>            :             /* Now call the copy_attr_fn */
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :             COPY_ATTR_CALLBACKS(datatype, old_object, hash_value,</span>
+<span class="lineNum">     880 </span>            :                                 old_attr, new_object, new_attr, err);
+<span class="lineNum">     881 </span>            :             break;
+<span class="lineNum">     882 </span>            : 
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :         case WIN_ATTR:</span>
+<span class="lineNum">     884 </span>            :             /* Now call the copy_attr_fn */
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :             COPY_ATTR_CALLBACKS(win, old_object, hash_value,</span>
+<span class="lineNum">     886 </span>            :                                 old_attr, new_object, new_attr, err);
+<span class="lineNum">     887 </span>            :             break;
+<span class="lineNum">     888 </span>            : 
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :         default:</span>
+<span class="lineNum">     890 </span>            :             /* This should not happen */
+<span class="lineNum">     891 </span>            :             assert(0);
+<span class="lineNum">     892 </span>            :             break;
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :         /* Did the callback return non-MPI_SUCCESS? */</span>
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :         if (0 != err) {</span>
+<span class="lineNum">     896 </span>            :             ret = err;
+<span class="lineNum">     897 </span>            :             goto out;
+<span class="lineNum">     898 </span>            :         }
+<span class="lineNum">     899 </span>            : 
+<span class="lineNum">     900 </span>            :         /* Hang this off the object's hash */
+<span class="lineNum">     901 </span>            : 
+<span class="lineNum">     902 </span>            :         /* The COPY_ATTR_CALLBACKS macro will have converted the
+<span class="lineNum">     903 </span>            :            _flag_ callback output value from Fortran's .TRUE. value to
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :            0/1 (if necessary).  So we only need to check for 0/1 here</span>
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :            -- not .TRUE. */</span>
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :         if (1 == flag) {</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :             if (0 != (hash_value-&gt;attr_flag &amp; OMPI_KEYVAL_F77)) {</span>
+<span class="lineNum">     908 </span>            :                 if (0 != (hash_value-&gt;attr_flag &amp; OMPI_KEYVAL_F77_MPI1)) {
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :                     new_attr-&gt;av_set_from = OMPI_ATTRIBUTE_FORTRAN_MPI1;</span>
+<span class="lineNum">     910 </span>            :                 } else {
+<span class="lineNum">     911 </span>            :                     new_attr-&gt;av_set_from = OMPI_ATTRIBUTE_FORTRAN_MPI2;
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     913 </span>            :             } else {
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :                 new_attr-&gt;av_set_from = OMPI_ATTRIBUTE_C;</span>
+<span class="lineNum">     915 </span>            :             }
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :             ret = set_value(type, new_object, &amp;newattr_hash, key,</span>
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :                             new_attr, true);</span>
+<span class="lineNum">     918 </span>            :             if (MPI_SUCCESS != ret) {
+<span class="lineNum">     919 </span>            :                 goto out;
+<span class="lineNum">     920 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     921 </span>            :         } else {
+<span class="lineNum">     922 </span>            :             OBJ_RELEASE(new_attr);
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     924 </span>            : 
+<span class="lineNum">     925 </span>            :         ret = opal_hash_table_get_next_key_uint32(oldattr_hash, &amp;key,
+<span class="lineNum">     926 </span>            :                                                   (void **) &amp;old_attr,
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :                                                   in_node, &amp;node);</span>
+<span class="lineNum">     928 </span>            :     }
+<span class="lineNum">     929 </span>            :     ret = MPI_SUCCESS;
+<span class="lineNum">     930 </span>            : 
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :  out:</span>
+<span class="lineNum">     932 </span>            :     /* All done */
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :     opal_atomic_wmb();</span>
+<span class="lineNum">     934 </span>            :     OPAL_THREAD_UNLOCK(&amp;attribute_lock);
+<span class="lineNum">     935 </span>            :     return ret;
+<span class="lineNum">     936 </span>            : }
+<span class="lineNum">     937 </span>            : 
+<span class="lineNum">     938 </span>            : /*****************************************************************************/
+<span class="lineNum">     939 </span>            : 
+<span class="lineNum">     940 </span>            : /*
+<a name="941"><span class="lineNum">     941 </span>            :  * Back-end function to delete a single attribute.</a>
+<span class="lineNum">     942 </span>            :  *
+<span class="lineNum">     943 </span><span class="lineCov">         14 :  * Assumes that you DO already have the attribute_lock.</span>
+<span class="lineNum">     944 </span>            :  */
+<span class="lineNum">     945 </span>            : static int ompi_attr_delete_impl(ompi_attribute_type_t type, void *object,
+<span class="lineNum">     946 </span>            :                                  opal_hash_table_t *attr_hash, int key,
+<span class="lineNum">     947 </span>            :                                  bool predefined)
+<span class="lineNum">     948 </span><span class="lineCov">         14 : {</span>
+<span class="lineNum">     949 </span>            :     ompi_attribute_keyval_t *keyval;
+<span class="lineNum">     950 </span>            :     int ret = OMPI_SUCCESS;
+<span class="lineNum">     951 </span>            :     attribute_value_t *attr;
+<span class="lineNum">     952 </span><span class="lineCov">         14 : </span>
+<span class="lineNum">     953 </span>            :     /* Check if the key is valid in the master keyval hash */
+<span class="lineNum">     954 </span>            :     ret = opal_hash_table_get_value_uint32(keyval_hash, key,
+<span class="lineNum">     955 </span><span class="lineCov">         28 :                                            (void **) &amp;keyval);</span>
+<span class="lineNum">     956 </span><span class="lineCov">         28 : </span>
+<span class="lineNum">     957 </span><span class="lineCov">         14 :     if ((OMPI_SUCCESS != ret) || (NULL == keyval) ||</span>
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :         (keyval-&gt;attr_type!= type) ||</span>
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :         ((!predefined) &amp;&amp; (keyval-&gt;attr_flag &amp; OMPI_KEYVAL_PREDEFINED))) {</span>
+<span class="lineNum">     960 </span>            :         ret = OMPI_ERR_BAD_PARAM;
+<span class="lineNum">     961 </span>            :         goto exit;
+<span class="lineNum">     962 </span>            :     }
+<span class="lineNum">     963 </span><span class="lineCov">         14 : </span>
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :     /* Ensure that we don't have an empty attr_hash */</span>
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :     if (NULL == attr_hash) {</span>
+<span class="lineNum">     966 </span>            :         ret = OMPI_ERR_BAD_PARAM;
+<span class="lineNum">     967 </span>            :         goto exit;
+<span class="lineNum">     968 </span>            :     }
+<span class="lineNum">     969 </span>            : 
+<span class="lineNum">     970 </span>            :     /* Check if the key is valid for the communicator/window/dtype. If
+<span class="lineNum">     971 </span><span class="lineCov">         14 :        yes, then delete the attribute and key entry from the object's</span>
+<span class="lineNum">     972 </span><span class="lineCov">         14 :        hash */</span>
+<span class="lineNum">     973 </span><span class="lineCov">         14 :     ret = opal_hash_table_get_value_uint32(attr_hash, key, (void**) &amp;attr);</span>
+<span class="lineNum">     974 </span>            :     if (OMPI_SUCCESS == ret) {
+<span class="lineNum">     975 </span><span class="lineCov">         14 :         switch (type) {</span>
+<span class="lineNum">     976 </span><span class="lineCov">         14 :         case COMM_ATTR:</span>
+<span class="lineNum">     977 </span>            :             DELETE_ATTR_CALLBACKS(communicator, attr, keyval, object, ret);
+<span class="lineNum">     978 </span>            :             break;
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :         case WIN_ATTR:</span>
+<span class="lineNum">     981 </span>            :             DELETE_ATTR_CALLBACKS(win, attr, keyval, object, ret);
+<span class="lineNum">     982 </span>            :             break;
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :         case TYPE_ATTR:</span>
+<span class="lineNum">     985 </span>            :             DELETE_ATTR_CALLBACKS(datatype, attr, keyval, object, ret);
+<span class="lineNum">     986 </span>            :             break;
+<span class="lineNum">     987 </span>            : 
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :         default:</span>
+<span class="lineNum">     989 </span>            :             /* This should not happen */
+<span class="lineNum">     990 </span>            :             assert(0);
+<span class="lineNum">     991 </span><span class="lineCov">         14 :             break;</span>
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     993 </span>            :         if (MPI_SUCCESS != ret) {
+<span class="lineNum">     994 </span>            :             goto exit;
+<span class="lineNum">     995 </span>            :         }
+<span class="lineNum">     996 </span>            : 
+<span class="lineNum">     997 </span><span class="lineCov">         14 :         /* Ignore the return value at this point; it can't help any</span>
+<span class="lineNum">     998 </span><span class="lineCov">         28 :            more */</span>
+<span class="lineNum">     999 </span>            :         (void) opal_hash_table_remove_value_uint32(attr_hash, key);
+<span class="lineNum">    1000 </span>            :         OBJ_RELEASE(attr);
+<span class="lineNum">    1001 </span>            :     }
+<span class="lineNum">    1002 </span>            : 
+<span class="lineNum">    1003 </span>            :  exit:
+<span class="lineNum">    1004 </span>            :     /* Decrement the ref count for the keyval.  If ref count goes to
+<span class="lineNum">    1005 </span>            :        0, destroy the keyval (the destructor deletes the key
+<span class="lineNum">    1006 </span>            :        implicitly for this object).  The ref count will only go to 0
+<span class="lineNum">    1007 </span><span class="lineCov">         14 :        here if MPI_*_FREE_KEYVAL was previously invoked and we just</span>
+<span class="lineNum">    1008 </span><span class="lineCov">         28 :        freed the last attribute that was using the keyval. */</span>
+<span class="lineNum">    1009 </span>            :     if (OMPI_SUCCESS == ret) {
+<span class="lineNum">    1010 </span>            :         OBJ_RELEASE(keyval);
+<span class="lineNum">    1011 </span><span class="lineCov">         14 :     }</span>
+<span class="lineNum">    1012 </span>            : 
+<span class="lineNum">    1013 </span>            :     return ret;
+<span class="lineNum">    1014 </span>            : }
+<a name="1015"><span class="lineNum">    1015 </span>            : </a>
+<span class="lineNum">    1016 </span>            : /*
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :  * Front end function to delete a single attribute.</span>
+<span class="lineNum">    1018 </span>            :  */
+<span class="lineNum">    1019 </span>            : int ompi_attr_delete(ompi_attribute_type_t type, void *object,
+<span class="lineNum">    1020 </span>            :                      opal_hash_table_t *attr_hash, int key,
+<span class="lineNum">    1021 </span>            :                      bool predefined)
+<span class="lineNum">    1022 </span>            : {
+<span class="lineNum">    1023 </span>            :     int ret;
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :     OPAL_THREAD_LOCK(&amp;attribute_lock);</span>
+<span class="lineNum">    1026 </span>            :     ret = ompi_attr_delete_impl(type, object, attr_hash, key, predefined);
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :     opal_atomic_wmb();</span>
+<span class="lineNum">    1028 </span>            :     OPAL_THREAD_UNLOCK(&amp;attribute_lock);
+<span class="lineNum">    1029 </span>            :     return ret;
+<span class="lineNum">    1030 </span>            : }
+<a name="1031"><span class="lineNum">    1031 </span>            : </a>
+<span class="lineNum">    1032 </span>            : /*
+<span class="lineNum">    1033 </span><span class="lineCov">          2 :  * Front-end function to delete all the attributes on an MPI object</span>
+<span class="lineNum">    1034 </span>            :  */
+<span class="lineNum">    1035 </span>            : int ompi_attr_delete_all(ompi_attribute_type_t type, void *object,
+<span class="lineNum">    1036 </span>            :                          opal_hash_table_t *attr_hash)
+<span class="lineNum">    1037 </span>            : {
+<span class="lineNum">    1038 </span>            :     int ret, i, num_attrs;
+<span class="lineNum">    1039 </span>            :     uint32_t key;
+<span class="lineNum">    1040 </span>            :     void *node, *in_node, *attr;
+<span class="lineNum">    1041 </span>            :     attribute_value_t **attrs;
+<span class="lineNum">    1042 </span>            : 
+<span class="lineNum">    1043 </span><span class="lineCov">          2 :     /* Ensure that the table is not empty */</span>
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">    1045 </span>            :     if (NULL == attr_hash) {
+<span class="lineNum">    1046 </span>            :         return MPI_SUCCESS;
+<span class="lineNum">    1047 </span>            :     }
+<span class="lineNum">    1048 </span>            : 
+<span class="lineNum">    1049 </span>            :     OPAL_THREAD_LOCK(&amp;attribute_lock);
+<span class="lineNum">    1050 </span><span class="lineCov">          2 : </span>
+<span class="lineNum">    1051 </span><span class="lineCov">          2 :     /* Make an array that contains all attributes in local object's hash */</span>
+<span class="lineNum">    1052 </span>            :     num_attrs = opal_hash_table_get_size(attr_hash);
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :     if (0 == num_attrs) {</span>
+<span class="lineNum">    1054 </span>            :         OPAL_THREAD_UNLOCK(&amp;attribute_lock);
+<span class="lineNum">    1055 </span>            :         return MPI_SUCCESS;
+<span class="lineNum">    1056 </span><span class="lineCov">          2 :     }</span>
+<span class="lineNum">    1057 </span><span class="lineCov">          2 : </span>
+<span class="lineNum">    1058 </span>            :     attrs = malloc(sizeof(attribute_value_t *) * num_attrs);
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :     if (NULL == attrs) {</span>
+<span class="lineNum">    1060 </span>            :         OPAL_THREAD_UNLOCK(&amp;attribute_lock);
+<span class="lineNum">    1061 </span>            :         return OMPI_ERR_OUT_OF_RESOURCE;
+<span class="lineNum">    1062 </span><span class="lineCov">          2 :     }</span>
+<span class="lineNum">    1063 </span><span class="lineCov">         16 : </span>
+<span class="lineNum">    1064 </span><span class="lineCov">         14 :     ret = opal_hash_table_get_first_key_uint32(attr_hash, &amp;key, &amp;attr, &amp;node);</span>
+<span class="lineNum">    1065 </span><span class="lineCov">         14 :     for (i = 0; OMPI_SUCCESS == ret; i++) {</span>
+<span class="lineNum">    1066 </span><span class="lineCov">         14 :         attrs[i] = attr;</span>
+<span class="lineNum">    1067 </span>            :         in_node = node;
+<span class="lineNum">    1068 </span>            :         ret = opal_hash_table_get_next_key_uint32(attr_hash, &amp;key, &amp;attr,
+<span class="lineNum">    1069 </span>            :                                                   in_node, &amp;node);
+<span class="lineNum">    1070 </span>            :     }
+<span class="lineNum">    1071 </span><span class="lineCov">          2 : </span>
+<span class="lineNum">    1072 </span>            :     /* Sort attributes in the order that they were set */
+<span class="lineNum">    1073 </span>            :     qsort(attrs, num_attrs, sizeof(attribute_value_t *), compare_attr_sequence);
+<span class="lineNum">    1074 </span>            : 
+<span class="lineNum">    1075 </span>            :     /* Delete attributes in the reverse order that they were set.
+<span class="lineNum">    1076 </span>            :        Actually this ordering is required only for MPI_COMM_SELF, as
+<span class="lineNum">    1077 </span>            :        specified in MPI-2.2: 8.7.1 Allowing User Functions at Process
+<span class="lineNum">    1078 </span><span class="lineCov">         16 :        Termination, but we do it for everything -- what the heck.</span>
+<span class="lineNum">    1079 </span><span class="lineCov">         14 :        :-) */</span>
+<span class="lineNum">    1080 </span><span class="lineCov">         14 :     for (i = num_attrs - 1; i &gt;= 0; i--) {</span>
+<span class="lineNum">    1081 </span><span class="lineCov">         14 :         ret = ompi_attr_delete_impl(type, object, attr_hash,</span>
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :                                     attrs[i]-&gt;av_key, true);</span>
+<span class="lineNum">    1083 </span>            :         if (OMPI_SUCCESS != ret) {
+<span class="lineNum">    1084 </span>            :             break;
+<span class="lineNum">    1085 </span>            :         }
+<span class="lineNum">    1086 </span>            :     }
+<span class="lineNum">    1087 </span>            : 
+<span class="lineNum">    1088 </span><span class="lineCov">          2 :     /* All done */</span>
+<span class="lineNum">    1089 </span><span class="lineCov">          2 : </span>
+<span class="lineNum">    1090 </span>            :     free(attrs);
+<span class="lineNum">    1091 </span><span class="lineCov">          2 :     opal_atomic_wmb();</span>
+<span class="lineNum">    1092 </span>            :     OPAL_THREAD_UNLOCK(&amp;attribute_lock);
+<span class="lineNum">    1093 </span>            :     return ret;
+<span class="lineNum">    1094 </span>            : }
+<span class="lineNum">    1095 </span>            : 
+<span class="lineNum">    1096 </span>            : /*************************************************************************/
+<span class="lineNum">    1097 </span>            : 
+<a name="1098"><span class="lineNum">    1098 </span>            : /*</a>
+<span class="lineNum">    1099 </span>            :  * Back-end function to set an attribute on an MPI object.  Assumes
+<span class="lineNum">    1100 </span><span class="lineCov">         14 :  * that you already hold the attribute_lock.</span>
+<span class="lineNum">    1101 </span>            :  */
+<span class="lineNum">    1102 </span>            : static int set_value(ompi_attribute_type_t type, void *object,
+<span class="lineNum">    1103 </span>            :                      opal_hash_table_t **attr_hash, int key,
+<span class="lineNum">    1104 </span>            :                      attribute_value_t *new_attr,
+<span class="lineNum">    1105 </span>            :                      bool predefined)
+<span class="lineNum">    1106 </span>            : {
+<span class="lineNum">    1107 </span>            :     ompi_attribute_keyval_t *keyval;
+<span class="lineNum">    1108 </span><span class="lineCov">         14 :     int ret;</span>
+<span class="lineNum">    1109 </span>            :     attribute_value_t *old_attr;
+<span class="lineNum">    1110 </span>            :     bool had_old = false;
+<span class="lineNum">    1111 </span>            : 
+<span class="lineNum">    1112 </span>            :     /* Note that this function can be invoked by ompi_attr_copy_all()
+<span class="lineNum">    1113 </span><span class="lineCov">         14 :        to set attributes on the new object (in addition to the</span>
+<span class="lineNum">    1114 </span>            :        top-level MPI_* functions that set attributes). */
+<span class="lineNum">    1115 </span>            :     ret = opal_hash_table_get_value_uint32(keyval_hash, key,
+<span class="lineNum">    1116 </span>            :                                            (void **) &amp;keyval);
+<span class="lineNum">    1117 </span><span class="lineCov">         28 : </span>
+<span class="lineNum">    1118 </span><span class="lineCov">         28 :     /* If key not found */</span>
+<span class="lineNum">    1119 </span><span class="lineCov">         14 :     if ((OMPI_SUCCESS != ret ) || (NULL == keyval) ||</span>
+<span class="lineNum">    1120 </span><span class="lineNoCov">          0 :         (keyval-&gt;attr_type != type) ||</span>
+<span class="lineNum">    1121 </span>            :         ((!predefined) &amp;&amp; (keyval-&gt;attr_flag &amp; OMPI_KEYVAL_PREDEFINED))) {
+<span class="lineNum">    1122 </span>            :         return OMPI_ERR_BAD_PARAM;
+<span class="lineNum">    1123 </span>            :     }
+<span class="lineNum">    1124 </span><span class="lineCov">         14 : </span>
+<span class="lineNum">    1125 </span><span class="lineNoCov">          0 :     /* Do we need to make a new attr_hash? */</span>
+<span class="lineNum">    1126 </span>            :     if (NULL == *attr_hash) {
+<span class="lineNum">    1127 </span>            :         ompi_attr_hash_init(attr_hash);
+<span class="lineNum">    1128 </span>            :     }
+<span class="lineNum">    1129 </span>            : 
+<span class="lineNum">    1130 </span><span class="lineCov">         14 :     /* Now see if an attribute is already present in the object's hash</span>
+<span class="lineNum">    1131 </span><span class="lineCov">         14 :        on the old keyval. If so, delete the old attribute value. */</span>
+<span class="lineNum">    1132 </span><span class="lineNoCov">          0 :     ret = opal_hash_table_get_value_uint32(*attr_hash, key, (void**) &amp;old_attr);</span>
+<span class="lineNum">    1133 </span>            :     if (OMPI_SUCCESS == ret)  {
+<span class="lineNum">    1134 </span><span class="lineNoCov">          0 :         switch (type) {</span>
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :         case COMM_ATTR:</span>
+<span class="lineNum">    1136 </span>            :             DELETE_ATTR_CALLBACKS(communicator, old_attr, keyval, object, ret);
+<span class="lineNum">    1137 </span>            :             break;
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :         case WIN_ATTR:</span>
+<span class="lineNum">    1140 </span>            :             DELETE_ATTR_CALLBACKS(win, old_attr, keyval, object, ret);
+<span class="lineNum">    1141 </span>            :             break;
+<span class="lineNum">    1142 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">    1143 </span><span class="lineNoCov">          0 :         case TYPE_ATTR:</span>
+<span class="lineNum">    1144 </span>            :             DELETE_ATTR_CALLBACKS(datatype, old_attr, keyval, object, ret);
+<span class="lineNum">    1145 </span>            :             break;
+<span class="lineNum">    1146 </span>            : 
+<span class="lineNum">    1147 </span><span class="lineNoCov">          0 :         default:</span>
+<span class="lineNum">    1148 </span>            :             /* This should not happen */
+<span class="lineNum">    1149 </span>            :             assert(0);
+<span class="lineNum">    1150 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1152 </span>            :         if (MPI_SUCCESS != ret) {
+<span class="lineNum">    1153 </span><span class="lineNoCov">          0 :             return ret;</span>
+<span class="lineNum">    1154 </span>            :         }
+<span class="lineNum">    1155 </span>            :         had_old = true;
+<span class="lineNum">    1156 </span><span class="lineCov">         14 :     }</span>
+<span class="lineNum">    1157 </span>            : 
+<span class="lineNum">    1158 </span><span class="lineCov">         14 :     ret = opal_hash_table_get_value_uint32(keyval_hash, key,</span>
+<span class="lineNum">    1159 </span>            :                                            (void **) &amp;keyval);
+<span class="lineNum">    1160 </span>            :     if ((OMPI_SUCCESS != ret ) || (NULL == keyval)) {
+<span class="lineNum">    1161 </span><span class="lineNoCov">          0 :         /* Keyval has disappeared underneath us -- this shouldn't</span>
+<span class="lineNum">    1162 </span>            :            happen! */
+<span class="lineNum">    1163 </span>            :         assert(0);
+<span class="lineNum">    1164 </span>            :         return OMPI_ERR_BAD_PARAM;
+<span class="lineNum">    1165 </span><span class="lineCov">         14 :     }</span>
+<span class="lineNum">    1166 </span><span class="lineCov">         14 : </span>
+<span class="lineNum">    1167 </span>            :     new_attr-&gt;av_key = key;
+<span class="lineNum">    1168 </span><span class="lineCov">         14 :     new_attr-&gt;av_sequence = attr_sequence++;</span>
+<span class="lineNum">    1169 </span>            : 
+<span class="lineNum">    1170 </span>            :     ret = opal_hash_table_set_value_uint32(*attr_hash, key, new_attr);
+<span class="lineNum">    1171 </span>            : 
+<span class="lineNum">    1172 </span><span class="lineCov">         14 :     /* Increase the reference count of the object, only if there was no</span>
+<span class="lineNum">    1173 </span><span class="lineCov">         28 :        old atribute/no old entry in the object's key hash */</span>
+<span class="lineNum">    1174 </span>            :     if (OMPI_SUCCESS == ret &amp;&amp; !had_old) {
+<span class="lineNum">    1175 </span>            :         OBJ_RETAIN(keyval);
+<span class="lineNum">    1176 </span><span class="lineCov">         14 :     }</span>
+<span class="lineNum">    1177 </span>            : 
+<span class="lineNum">    1178 </span>            :     return ret;
+<span class="lineNum">    1179 </span>            : }
+<span class="lineNum">    1180 </span>            : 
+<span class="lineNum">    1181 </span>            : /*************************************************************************/
+<span class="lineNum">    1182 </span>            : 
+<span class="lineNum">    1183 </span>            : /*
+<span class="lineNum">    1184 </span>            :  * Back-end function to get an attribute from the hash map and return
+<span class="lineNum">    1185 </span>            :  * it to the caller.  Translation services are not provided -- they're
+<span class="lineNum">    1186 </span>            :  * in small, standalone functions that are called from several
+<a name="1187"><span class="lineNum">    1187 </span>            :  * different places.</a>
+<span class="lineNum">    1188 </span>            :  *
+<span class="lineNum">    1189 </span><span class="lineNoCov">          0 :  * Assumes that you do NOT already have the attribute lock.</span>
+<span class="lineNum">    1190 </span>            :  */
+<span class="lineNum">    1191 </span>            : static int get_value(opal_hash_table_t *attr_hash, int key,
+<span class="lineNum">    1192 </span>            :                      attribute_value_t **attribute, int *flag)
+<span class="lineNum">    1193 </span>            : {
+<span class="lineNum">    1194 </span>            :     int ret;
+<span class="lineNum">    1195 </span>            :     void *attr;
+<span class="lineNum">    1196 </span>            :     ompi_attribute_keyval_t *keyval;
+<span class="lineNum">    1197 </span>            : 
+<span class="lineNum">    1198 </span>            :     /* According to MPI specs, the call is invalid if the keyval does
+<span class="lineNum">    1199 </span>            :        not exist (i.e., the key is not present in the main keyval
+<span class="lineNum">    1200 </span>            :        hash).  If the keyval exists but no attribute is associated
+<span class="lineNum">    1201 </span><span class="lineNoCov">          0 :        with the key, then the call is valid and returns FALSE in the</span>
+<span class="lineNum">    1202 </span><span class="lineNoCov">          0 :        flag argument */</span>
+<span class="lineNum">    1203 </span>            :     *flag = 0;
+<span class="lineNum">    1204 </span><span class="lineNoCov">          0 :     ret = opal_hash_table_get_value_uint32(keyval_hash, key,</span>
+<span class="lineNum">    1205 </span><span class="lineNoCov">          0 :                                            (void**) &amp;keyval);</span>
+<span class="lineNum">    1206 </span>            :     if (OMPI_ERR_NOT_FOUND == ret) {
+<span class="lineNum">    1207 </span>            :         return MPI_KEYVAL_INVALID;
+<span class="lineNum">    1208 </span>            :     }
+<span class="lineNum">    1209 </span>            : 
+<span class="lineNum">    1210 </span><span class="lineNoCov">          0 :     /* If we have a null attr_hash table, that means that nothing has</span>
+<span class="lineNum">    1211 </span><span class="lineNoCov">          0 :        been cached on this object yet.  So just return *flag = 0. */</span>
+<span class="lineNum">    1212 </span>            :     if (NULL == attr_hash) {
+<span class="lineNum">    1213 </span>            :         return OMPI_SUCCESS;
+<span class="lineNum">    1214 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1215 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">    1216 </span><span class="lineNoCov">          0 :     ret = opal_hash_table_get_value_uint32(attr_hash, key, &amp;attr);</span>
+<span class="lineNum">    1217 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS == ret) {</span>
+<span class="lineNum">    1218 </span>            :         *attribute = (attribute_value_t*)attr;
+<span class="lineNum">    1219 </span>            :         *flag = 1;
+<span class="lineNum">    1220 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1221 </span>            : 
+<span class="lineNum">    1222 </span>            :     return OMPI_SUCCESS;
+<span class="lineNum">    1223 </span>            : }
+<span class="lineNum">    1224 </span>            : 
+<span class="lineNum">    1225 </span>            : /*************************************************************************/
+<span class="lineNum">    1226 </span>            : 
+<span class="lineNum">    1227 </span>            : /*
+<span class="lineNum">    1228 </span>            :  * Take an attribute and translate it according to the cases listed in
+<span class="lineNum">    1229 </span>            :  * the comments at the top of this file.
+<a name="1230"><span class="lineNum">    1230 </span>            :  *</a>
+<span class="lineNum">    1231 </span>            :  * This function does not fail -- it is only invoked in &quot;safe&quot;
+<span class="lineNum">    1232 </span><span class="lineCov">         14 :  * situations.</span>
+<span class="lineNum">    1233 </span>            :  */
+<span class="lineNum">    1234 </span><span class="lineCov">         14 : static void *translate_to_c(attribute_value_t *val)</span>
+<span class="lineNum">    1235 </span>            : {
+<span class="lineNum">    1236 </span>            :     switch (val-&gt;av_set_from) {
+<span class="lineNum">    1237 </span><span class="lineNoCov">          0 :     case OMPI_ATTRIBUTE_C:</span>
+<span class="lineNum">    1238 </span>            :         /* Case 1: written in C, read in C (unity) */
+<span class="lineNum">    1239 </span>            :         return val-&gt;av_value;
+<span class="lineNum">    1240 </span>            : 
+<span class="lineNum">    1241 </span>            :     case OMPI_ATTRIBUTE_FORTRAN_MPI1:
+<span class="lineNum">    1242 </span><span class="lineCov">         14 :         /* Case 4: written in Fortran MPI-1, read in C */</span>
+<span class="lineNum">    1243 </span>            :         return (void *) val-&gt;av_integer_pointer;
+<span class="lineNum">    1244 </span>            : 
+<span class="lineNum">    1245 </span>            :     case OMPI_ATTRIBUTE_FORTRAN_MPI2:
+<span class="lineNum">    1246 </span>            :         /* Case 7: written in Fortran MPI-2, read in C */
+<span class="lineNum">    1247 </span><span class="lineNoCov">          0 :         return (void *) val-&gt;av_address_kind_pointer;</span>
+<span class="lineNum">    1248 </span>            : 
+<span class="lineNum">    1249 </span>            :     default:
+<span class="lineNum">    1250 </span>            :         /* Should never reach here */
+<span class="lineNum">    1251 </span>            :         return NULL;
+<span class="lineNum">    1252 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1253 </span>            : }
+<span class="lineNum">    1254 </span>            : 
+<span class="lineNum">    1255 </span>            : 
+<span class="lineNum">    1256 </span>            : /*
+<span class="lineNum">    1257 </span>            :  * Take an attribute and translate it according to the cases listed in
+<span class="lineNum">    1258 </span>            :  * the comments at the top of this file.
+<span class="lineNum">    1259 </span>            :  *
+<span class="lineNum">    1260 </span>            :  * This function does not fail -- it is only invoked in &quot;safe&quot;
+<span class="lineNum">    1261 </span>            :  * situations.
+<a name="1262"><span class="lineNum">    1262 </span>            :  */</a>
+<span class="lineNum">    1263 </span>            : static MPI_Fint translate_to_fortran_mpi1(attribute_value_t *val)
+<span class="lineNum">    1264 </span><span class="lineNoCov">          0 : {</span>
+<span class="lineNum">    1265 </span>            :     switch (val-&gt;av_set_from) {
+<span class="lineNum">    1266 </span><span class="lineNoCov">          0 :     case OMPI_ATTRIBUTE_C:</span>
+<span class="lineNum">    1267 </span>            :         /* Case 2: written in C, read in Fortran MPI-1 */
+<span class="lineNum">    1268 </span>            :         return *val-&gt;av_integer_pointer;
+<span class="lineNum">    1269 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">    1270 </span>            :     case OMPI_ATTRIBUTE_FORTRAN_MPI1:
+<span class="lineNum">    1271 </span>            :         /* Case 5: written in Fortran MPI-1, read in Fortran MPI-1
+<span class="lineNum">    1272 </span>            :            (unity) */
+<span class="lineNum">    1273 </span>            :         return *val-&gt;av_integer_pointer;
+<span class="lineNum">    1274 </span>            : 
+<span class="lineNum">    1275 </span><span class="lineNoCov">          0 :     case OMPI_ATTRIBUTE_FORTRAN_MPI2:</span>
+<span class="lineNum">    1276 </span>            :         /* Case 8: written in Fortran MPI-2, read in Fortran MPI-1 */
+<span class="lineNum">    1277 </span>            :         return *val-&gt;av_integer_pointer;
+<span class="lineNum">    1278 </span>            : 
+<span class="lineNum">    1279 </span>            :     default:
+<span class="lineNum">    1280 </span><span class="lineNoCov">          0 :         /* Should never reach here */</span>
+<span class="lineNum">    1281 </span>            :         return 0;
+<span class="lineNum">    1282 </span>            :     }
+<span class="lineNum">    1283 </span>            : }
+<span class="lineNum">    1284 </span>            : 
+<span class="lineNum">    1285 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">    1286 </span>            : /*
+<span class="lineNum">    1287 </span>            :  * Take an attribute and translate it according to the cases listed in
+<span class="lineNum">    1288 </span>            :  * the comments at the top of this file.
+<span class="lineNum">    1289 </span>            :  *
+<span class="lineNum">    1290 </span>            :  * This function does not fail -- it is only invoked in &quot;safe&quot;
+<span class="lineNum">    1291 </span>            :  * situations.
+<span class="lineNum">    1292 </span>            :  */
+<span class="lineNum">    1293 </span>            : static MPI_Aint translate_to_fortran_mpi2(attribute_value_t *val)
+<span class="lineNum">    1294 </span>            : {
+<a name="1295"><span class="lineNum">    1295 </span>            :     switch (val-&gt;av_set_from) {</a>
+<span class="lineNum">    1296 </span>            :     case OMPI_ATTRIBUTE_C:
+<span class="lineNum">    1297 </span><span class="lineNoCov">          0 :         /* Case 3: written in C, read in Fortran MPI-2 */</span>
+<span class="lineNum">    1298 </span>            :         return (MPI_Aint) val-&gt;av_value;
+<span class="lineNum">    1299 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">    1300 </span>            :     case OMPI_ATTRIBUTE_FORTRAN_MPI1:
+<span class="lineNum">    1301 </span>            :         /* Case 6: written in Fortran MPI-1, read in Fortran MPI-2 */
+<span class="lineNum">    1302 </span><span class="lineNoCov">          0 :         return (MPI_Aint) *val-&gt;av_integer_pointer;</span>
+<span class="lineNum">    1303 </span>            : 
+<span class="lineNum">    1304 </span>            :     case OMPI_ATTRIBUTE_FORTRAN_MPI2:
+<span class="lineNum">    1305 </span>            :         /* Case 9: written in Fortran MPI-2, read in Fortran MPI-2
+<span class="lineNum">    1306 </span>            :            (unity) */
+<span class="lineNum">    1307 </span><span class="lineNoCov">          0 :         return (MPI_Aint) val-&gt;av_value;</span>
+<span class="lineNum">    1308 </span>            : 
+<span class="lineNum">    1309 </span>            :     default:
+<span class="lineNum">    1310 </span>            :         /* Should never reach here */
+<span class="lineNum">    1311 </span>            :         return 0;
+<span class="lineNum">    1312 </span>            :     }
+<span class="lineNum">    1313 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1314 </span>            : 
+<span class="lineNum">    1315 </span>            : /*
+<span class="lineNum">    1316 </span>            :  * Comparator for qsort() to sort attributes in the order that they were set.
+<span class="lineNum">    1317 </span>            :  */
+<span class="lineNum">    1318 </span><span class="lineNoCov">          0 : static int compare_attr_sequence(const void *attr1, const void *attr2)</span>
+<span class="lineNum">    1319 </span>            : {
+<span class="lineNum">    1320 </span>            :     return (*(attribute_value_t **)attr1)-&gt;av_sequence -
+<span class="lineNum">    1321 </span>            :            (*(attribute_value_t **)attr2)-&gt;av_sequence;
+<span class="lineNum">    1322 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

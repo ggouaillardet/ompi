@@ -1,0 +1,569 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/util/net.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/util</a> - net.c<span style="font-size: 80%;"> (source / <a href="net.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">52</td>
+            <td class="headerCovTableEntry">87</td>
+            <td class="headerCovTableEntryLo">59.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntryMed">77.8 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2005 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2007      Los Alamos National Security, LLC.  All rights
+<span class="lineNum">      13 </span>            :  *                         reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2009-2015 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2013-2015 Intel, Inc.  All rights reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      17 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      18 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      21 </span>            :  *
+<span class="lineNum">      22 </span>            :  * $HEADER$
+<span class="lineNum">      23 </span>            :  */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      29 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      30 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      31 </span>            : #endif
+<span class="lineNum">      32 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      33 </span>            : #ifdef HAVE_SYS_TYPES_H
+<span class="lineNum">      34 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      35 </span>            : #endif
+<span class="lineNum">      36 </span>            : #ifdef HAVE_SYS_SOCKET_H
+<span class="lineNum">      37 </span>            : #include &lt;sys/socket.h&gt;
+<span class="lineNum">      38 </span>            : #endif
+<span class="lineNum">      39 </span>            : #ifdef HAVE_SYS_SOCKIO_H
+<span class="lineNum">      40 </span>            : #include &lt;sys/sockio.h&gt;
+<span class="lineNum">      41 </span>            : #endif
+<span class="lineNum">      42 </span>            : #ifdef HAVE_SYS_IOCTL_H
+<span class="lineNum">      43 </span>            : #include &lt;sys/ioctl.h&gt;
+<span class="lineNum">      44 </span>            : #endif
+<span class="lineNum">      45 </span>            : #ifdef HAVE_NETINET_IN_H
+<span class="lineNum">      46 </span>            : #include &lt;netinet/in.h&gt;
+<span class="lineNum">      47 </span>            : #endif
+<span class="lineNum">      48 </span>            : #ifdef HAVE_ARPA_INET_H
+<span class="lineNum">      49 </span>            : #include &lt;arpa/inet.h&gt;
+<span class="lineNum">      50 </span>            : #endif
+<span class="lineNum">      51 </span>            : #ifdef HAVE_NET_IF_H
+<span class="lineNum">      52 </span>            : #if defined(__APPLE__) &amp;&amp; defined(_LP64)
+<span class="lineNum">      53 </span>            : /* Apple engineering suggested using options align=power as a
+<span class="lineNum">      54 </span>            :    workaround for a bug in OS X 10.4 (Tiger) that prevented ioctl(...,
+<span class="lineNum">      55 </span>            :    SIOCGIFCONF, ...) from working properly in 64 bit mode on Power PC.
+<span class="lineNum">      56 </span>            :    It turns out that the underlying issue is the size of struct
+<span class="lineNum">      57 </span>            :    ifconf, which the kernel expects to be 12 and natural 64 bit
+<span class="lineNum">      58 </span>            :    alignment would make 16.  The same bug appears in 64 bit mode on
+<span class="lineNum">      59 </span>            :    Intel macs, but align=power is a no-op there, so instead, use the
+<span class="lineNum">      60 </span>            :    pack pragma to instruct the compiler to pack on 4 byte words, which
+<span class="lineNum">      61 </span>            :    has the same effect as align=power for our needs and works on both
+<span class="lineNum">      62 </span>            :    Intel and Power PC Macs. */
+<span class="lineNum">      63 </span>            : #pragma pack(push,4)
+<span class="lineNum">      64 </span>            : #endif
+<span class="lineNum">      65 </span>            : #include &lt;net/if.h&gt;
+<span class="lineNum">      66 </span>            : #if defined(__APPLE__) &amp;&amp; defined(_LP64)
+<span class="lineNum">      67 </span>            : #pragma pack(pop)
+<span class="lineNum">      68 </span>            : #endif
+<span class="lineNum">      69 </span>            : #endif
+<span class="lineNum">      70 </span>            : #ifdef HAVE_NETDB_H
+<span class="lineNum">      71 </span>            : #include &lt;netdb.h&gt;
+<span class="lineNum">      72 </span>            : #endif
+<span class="lineNum">      73 </span>            : #ifdef HAVE_IFADDRS_H
+<span class="lineNum">      74 </span>            : #include &lt;ifaddrs.h&gt;
+<span class="lineNum">      75 </span>            : #endif
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : #include &quot;opal/util/net.h&quot;
+<span class="lineNum">      78 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      79 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      80 </span>            : #include &quot;opal/util/show_help.h&quot;
+<span class="lineNum">      81 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      82 </span>            : #include &quot;opal/threads/tsd.h&quot;
+<span class="lineNum">      83 </span>            : #include &quot;opal/runtime/opal_params.h&quot;
+<a name="84"><span class="lineNum">      84 </span>            : </a>
+<span class="lineNum">      85 </span>            : /* this function doesn't depend on sockaddr_h */
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 : bool opal_net_isaddr(const char *name)</span>
+<span class="lineNum">      87 </span>            : {
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     struct addrinfo hint, *res = NULL;</span>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :     /* initialize the hint */
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     memset(&amp;hint, '\0', sizeof hint);</span>
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            :     /* indicate that we don't know the family */
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :     hint.ai_family = PF_UNSPEC;</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     hint.ai_flags = AI_NUMERICHOST;</span>
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     if (0 != getaddrinfo(name, NULL, &amp;hint, &amp;res)) {</span>
+<span class="lineNum">      98 </span>            :         /* the input wasn't a recognizable address */
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     100 </span>            :     }
+<span class="lineNum">     101 </span>            :     /* we don't care what family - all we care is that
+<span class="lineNum">     102 </span>            :      * it is indeed an address
+<span class="lineNum">     103 </span>            :      */
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     freeaddrinfo(res);</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     106 </span>            : }
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            : #ifdef HAVE_STRUCT_SOCKADDR_IN
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : typedef struct private_ipv4_t {
+<span class="lineNum">     111 </span>            :     in_addr_t addr;
+<span class="lineNum">     112 </span>            :     uint32_t netmask_bits;
+<span class="lineNum">     113 </span>            : } private_ipv4_t;
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            : static private_ipv4_t* private_ipv4 = NULL;
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     118 </span>            : static opal_tsd_key_t hostname_tsd_key;
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            : static void
+<span class="lineNum">     122 </span>            : hostname_cleanup(void *value)
+<span class="lineNum">     123 </span>            : {
+<span class="lineNum">     124 </span>            :     if (NULL != value) free(value);
+<span class="lineNum">     125 </span>            : }
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            : static char*
+<span class="lineNum">     129 </span>            : get_hostname_buffer(void)
+<span class="lineNum">     130 </span>            : {
+<span class="lineNum">     131 </span>            :     void *buffer;
+<span class="lineNum">     132 </span>            :     int ret;
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            :     ret = opal_tsd_getspecific(hostname_tsd_key, &amp;buffer);
+<span class="lineNum">     135 </span>            :     if (OPAL_SUCCESS != ret) return NULL;
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span>            :     if (NULL == buffer) {
+<span class="lineNum">     138 </span>            :         buffer = (void*) malloc((NI_MAXHOST + 1) * sizeof(char));
+<span class="lineNum">     139 </span>            :         ret = opal_tsd_setspecific(hostname_tsd_key, buffer);
+<span class="lineNum">     140 </span>            :     }
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            :     return (char*) buffer;
+<span class="lineNum">     143 </span>            : }
+<span class="lineNum">     144 </span>            : #endif
+<a name="145"><span class="lineNum">     145 </span>            : </a>
+<span class="lineNum">     146 </span>            : int
+<span class="lineNum">     147 </span><span class="lineCov">          2 : opal_net_init(void)</span>
+<span class="lineNum">     148 </span>            : {
+<span class="lineNum">     149 </span>            :     char **args, *arg;
+<span class="lineNum">     150 </span>            :     uint32_t a, b, c, d, bits, addr;
+<span class="lineNum">     151 </span><span class="lineCov">          2 :     int i, count, found_bad = 0;</span>
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineCov">          2 :     args = opal_argv_split( opal_net_private_ipv4, ';' );</span>
+<span class="lineNum">     154 </span><span class="lineCov">          2 :     if( NULL != args ) {</span>
+<span class="lineNum">     155 </span><span class="lineCov">          2 :         count = opal_argv_count(args);</span>
+<span class="lineNum">     156 </span><span class="lineCov">          2 :         private_ipv4 = (private_ipv4_t*)malloc( (count + 1) * sizeof(private_ipv4_t));</span>
+<span class="lineNum">     157 </span><span class="lineCov">          2 :         if( NULL == private_ipv4 ) {</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;Unable to allocate memory for the private addresses array&quot; );</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :             opal_argv_free(args);</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :             goto do_local_init;</span>
+<span class="lineNum">     161 </span>            :         }
+<span class="lineNum">     162 </span><span class="lineCov">         10 :         for( i = 0; i &lt; count; i++ ) {</span>
+<span class="lineNum">     163 </span><span class="lineCov">          8 :             arg = args[i];</span>
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineCov">          8 :             (void)sscanf( arg, &quot;%u.%u.%u.%u/%u&quot;, &amp;a, &amp;b, &amp;c, &amp;d, &amp;bits );</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineCov">         16 :             if( (a &gt; 255) || (b &gt; 255) || (c &gt; 255) ||</span>
+<span class="lineNum">     168 </span><span class="lineCov">         16 :                 (d &gt; 255) || (bits &gt; 32) ) {</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :                 if (0 == found_bad) {</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :                     opal_show_help(&quot;help-opal-util.txt&quot;,</span>
+<span class="lineNum">     171 </span>            :                                    &quot;malformed net_private_ipv4&quot;,
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :                                    true, args[i]);</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :                     found_bad = 1;</span>
+<span class="lineNum">     174 </span>            :                 }
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     176 </span>            :             }
+<span class="lineNum">     177 </span><span class="lineCov">          8 :             addr = (a &lt;&lt; 24) | (b &lt;&lt; 16) | (c &lt;&lt; 8) | d;</span>
+<span class="lineNum">     178 </span><span class="lineCov">          8 :             private_ipv4[i].addr = htonl(addr);</span>
+<span class="lineNum">     179 </span><span class="lineCov">          8 :             private_ipv4[i].netmask_bits = bits;</span>
+<span class="lineNum">     180 </span>            :         }
+<span class="lineNum">     181 </span><span class="lineCov">          2 :         private_ipv4[i].addr         = 0;</span>
+<span class="lineNum">     182 </span><span class="lineCov">          2 :         private_ipv4[i].netmask_bits = 0;</span>
+<span class="lineNum">     183 </span><span class="lineCov">          2 :         opal_argv_free(args);</span>
+<span class="lineNum">     184 </span>            :     }
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            :  do_local_init:
+<span class="lineNum">     187 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     188 </span>            :     return opal_tsd_key_create(&amp;hostname_tsd_key, hostname_cleanup);
+<span class="lineNum">     189 </span>            : #else
+<span class="lineNum">     190 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     191 </span>            : #endif
+<span class="lineNum">     192 </span>            : }
+<span class="lineNum">     193 </span>            : 
+<a name="194"><span class="lineNum">     194 </span>            : </a>
+<span class="lineNum">     195 </span>            : int
+<span class="lineNum">     196 </span><span class="lineCov">          2 : opal_net_finalize()</span>
+<span class="lineNum">     197 </span>            : {
+<span class="lineNum">     198 </span><span class="lineCov">          2 :     free(private_ipv4);</span>
+<span class="lineNum">     199 </span><span class="lineCov">          2 :     private_ipv4 = NULL;</span>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     202 </span>            : }
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : 
+<a name="205"><span class="lineNum">     205 </span>            : /* convert a CIDR prefixlen to netmask (in network byte order) */</a>
+<span class="lineNum">     206 </span>            : uint32_t
+<span class="lineNum">     207 </span><span class="lineCov">         50 : opal_net_prefix2netmask(uint32_t prefixlen)</span>
+<span class="lineNum">     208 </span>            : {
+<span class="lineNum">     209 </span><span class="lineCov">         50 :     return htonl (((1 &lt;&lt; prefixlen) - 1) &lt;&lt; (32 - prefixlen));</span>
+<span class="lineNum">     210 </span>            : }
+<span class="lineNum">     211 </span>            : 
+<a name="212"><span class="lineNum">     212 </span>            : </a>
+<span class="lineNum">     213 </span>            : bool
+<span class="lineNum">     214 </span><span class="lineCov">         48 : opal_net_islocalhost(const struct sockaddr *addr)</span>
+<span class="lineNum">     215 </span>            : {
+<span class="lineNum">     216 </span><span class="lineCov">         48 :     switch (addr-&gt;sa_family) {</span>
+<span class="lineNum">     217 </span>            :     case AF_INET:
+<span class="lineNum">     218 </span>            :         {
+<span class="lineNum">     219 </span><span class="lineCov">         48 :             const struct sockaddr_in *inaddr = (struct sockaddr_in*) addr;</span>
+<span class="lineNum">     220 </span>            :             /* if it's in the 127. domain, it shouldn't be routed
+<span class="lineNum">     221 </span>            :                (0x7f == 127) */
+<span class="lineNum">     222 </span><span class="lineCov">         48 :             if (0x7F000000 == (0x7F000000 &amp; ntohl(inaddr-&gt;sin_addr.s_addr))) {</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :                 return true;</span>
+<span class="lineNum">     224 </span>            :             }
+<span class="lineNum">     225 </span><span class="lineCov">         48 :         }</span>
+<span class="lineNum">     226 </span>            :         break;
+<span class="lineNum">     227 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     228 </span>            :     case AF_INET6:
+<span class="lineNum">     229 </span>            :         {
+<span class="lineNum">     230 </span>            :             const struct sockaddr_in6 *inaddr = (struct sockaddr_in6*) addr;
+<span class="lineNum">     231 </span>            :             if (IN6_IS_ADDR_LOOPBACK (&amp;inaddr-&gt;sin6_addr)) {
+<span class="lineNum">     232 </span>            :                return true; /* Bug, FIXME: check for 127.0.0.1/8 */
+<span class="lineNum">     233 </span>            :             }
+<span class="lineNum">     234 </span>            :         }
+<span class="lineNum">     235 </span>            :         break;
+<span class="lineNum">     236 </span>            : #endif
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span>            :     default:
+<span class="lineNum">     239 </span>            :         opal_output(0, &quot;unhandled sa_family %d passed to opal_net_islocalhost&quot;,
+<span class="lineNum">     240 </span>            :                     addr-&gt;sa_family);
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     244 </span>            : }
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            : bool
+<a name="248"><span class="lineNum">     248 </span>            : opal_net_samenetwork(const struct sockaddr *addr1,</a>
+<span class="lineNum">     249 </span>            :                      const struct sockaddr *addr2,
+<span class="lineNum">     250 </span><span class="lineCov">         18 :                      uint32_t plen)</span>
+<span class="lineNum">     251 </span>            : {
+<span class="lineNum">     252 </span>            :     uint32_t prefixlen;
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            :     if(addr1-&gt;sa_family != addr2-&gt;sa_family) {
+<span class="lineNum">     255 </span>            :         return false; /* address families must be equal */
+<span class="lineNum">     256 </span><span class="lineCov">         18 :     }</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     258 </span>            :     switch (addr1-&gt;sa_family) {
+<span class="lineNum">     259 </span>            :     case AF_INET:
+<span class="lineNum">     260 </span><span class="lineCov">         18 :         {</span>
+<span class="lineNum">     261 </span>            :             if (0 == plen) {
+<span class="lineNum">     262 </span>            :                 prefixlen = 32;
+<span class="lineNum">     263 </span><span class="lineCov">         18 :             } else {</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :                 prefixlen = plen;</span>
+<span class="lineNum">     265 </span>            :             }
+<span class="lineNum">     266 </span><span class="lineCov">         18 :             struct sockaddr_in inaddr1, inaddr2;</span>
+<span class="lineNum">     267 </span>            :             /* Use temporary variables and memcpy's so that we don't
+<span class="lineNum">     268 </span>            :                run into bus errors on Solaris/SPARC */
+<span class="lineNum">     269 </span>            :             memcpy(&amp;inaddr1, addr1, sizeof(inaddr1));
+<span class="lineNum">     270 </span>            :             memcpy(&amp;inaddr2, addr2, sizeof(inaddr2));
+<span class="lineNum">     271 </span><span class="lineCov">         18 :             uint32_t netmask = opal_net_prefix2netmask (prefixlen);</span>
+<span class="lineNum">     272 </span><span class="lineCov">         18 : </span>
+<span class="lineNum">     273 </span><span class="lineCov">         18 :             if((inaddr1.sin_addr.s_addr &amp; netmask) ==</span>
+<span class="lineNum">     274 </span>            :                (inaddr2.sin_addr.s_addr &amp; netmask)) {
+<span class="lineNum">     275 </span><span class="lineCov">         36 :                 return true;</span>
+<span class="lineNum">     276 </span><span class="lineCov">         18 :             }</span>
+<span class="lineNum">     277 </span><span class="lineCov">         10 :         }</span>
+<span class="lineNum">     278 </span>            :         break;
+<span class="lineNum">     279 </span><span class="lineCov">          8 : #if OPAL_ENABLE_IPV6</span>
+<span class="lineNum">     280 </span>            :     case AF_INET6:
+<span class="lineNum">     281 </span>            :         {
+<span class="lineNum">     282 </span>            :             struct sockaddr_in6 inaddr1, inaddr2;
+<span class="lineNum">     283 </span>            :             /* Use temporary variables and memcpy's so that we don't
+<span class="lineNum">     284 </span>            :                run into bus errors on Solaris/SPARC */
+<span class="lineNum">     285 </span>            :             memcpy(&amp;inaddr1, addr1, sizeof(inaddr1));
+<span class="lineNum">     286 </span>            :             memcpy(&amp;inaddr2, addr2, sizeof(inaddr2));
+<span class="lineNum">     287 </span>            :             struct in6_addr *a6_1 = (struct in6_addr*) &amp;inaddr1.sin6_addr;
+<span class="lineNum">     288 </span>            :             struct in6_addr *a6_2 = (struct in6_addr*) &amp;inaddr2.sin6_addr;
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span>            :             if (0 == plen) {
+<span class="lineNum">     291 </span>            :                 prefixlen = 64;
+<span class="lineNum">     292 </span>            :             } else {
+<span class="lineNum">     293 </span>            :                 prefixlen = plen;
+<span class="lineNum">     294 </span>            :             }
+<span class="lineNum">     295 </span>            :             if (64 == prefixlen) {
+<span class="lineNum">     296 </span>            :                 /* prefixlen is always /64, any other case would be routing.
+<span class="lineNum">     297 </span>            :                    Compare the first eight bytes (64 bits) and hope that
+<span class="lineNum">     298 </span>            :                    endianess is not an issue on any system as long as
+<span class="lineNum">     299 </span>            :                    addresses are always stored in network byte order.
+<span class="lineNum">     300 </span>            :                 */
+<span class="lineNum">     301 </span>            :                 if (((const uint32_t *) (a6_1))[0] ==
+<span class="lineNum">     302 </span>            :                     ((const uint32_t *) (a6_2))[0] &amp;&amp;
+<span class="lineNum">     303 </span>            :                     ((const uint32_t *) (a6_1))[1] ==
+<span class="lineNum">     304 </span>            :                     ((const uint32_t *) (a6_2))[1]) {
+<span class="lineNum">     305 </span>            :                     return true;
+<span class="lineNum">     306 </span>            :                 }
+<span class="lineNum">     307 </span>            :             }
+<span class="lineNum">     308 </span>            :         }
+<span class="lineNum">     309 </span>            :         break;
+<span class="lineNum">     310 </span>            : #endif
+<span class="lineNum">     311 </span>            :     default:
+<span class="lineNum">     312 </span>            :         opal_output(0, &quot;unhandled sa_family %d passed to opal_samenetwork&quot;,
+<span class="lineNum">     313 </span>            :                     addr1-&gt;sa_family);
+<span class="lineNum">     314 </span>            :     }
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 : /**</span>
+<span class="lineNum">     321 </span>            :  * Returns true if the given address is a public IPv4 address.
+<span class="lineNum">     322 </span>            :  */
+<span class="lineNum">     323 </span>            : bool
+<span class="lineNum">     324 </span>            : opal_net_addr_isipv4public(const struct sockaddr *addr)
+<span class="lineNum">     325 </span>            : {
+<a name="326"><span class="lineNum">     326 </span>            :     switch (addr-&gt;sa_family) {</a>
+<span class="lineNum">     327 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     328 </span><span class="lineCov">         16 :         case AF_INET6:</span>
+<span class="lineNum">     329 </span>            :             return false;
+<span class="lineNum">     330 </span><span class="lineCov">         16 : #endif</span>
+<span class="lineNum">     331 </span>            :         case AF_INET:
+<span class="lineNum">     332 </span>            :             {
+<span class="lineNum">     333 </span>            :                 const struct sockaddr_in *inaddr = (struct sockaddr_in*) addr;
+<span class="lineNum">     334 </span>            :                 int i;
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span>            :                 if( NULL == private_ipv4 ) {
+<span class="lineNum">     337 </span><span class="lineCov">         16 :                     return true;</span>
+<span class="lineNum">     338 </span>            :                 }
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineCov">         16 :                 for( i = 0; private_ipv4[i].addr != 0; i++ ) {</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :                     if( private_ipv4[i].addr == (inaddr-&gt;sin_addr.s_addr &amp;</span>
+<span class="lineNum">     342 </span>            :                                                  opal_net_prefix2netmask(private_ipv4[i].netmask_bits)) )
+<span class="lineNum">     343 </span>            :                         return false;
+<span class="lineNum">     344 </span><span class="lineCov">         32 :                 }</span>
+<span class="lineNum">     345 </span><span class="lineCov">         64 : </span>
+<span class="lineNum">     346 </span><span class="lineCov">         32 :             }</span>
+<span class="lineNum">     347 </span><span class="lineCov">         16 :             return true;</span>
+<span class="lineNum">     348 </span>            :         default:
+<span class="lineNum">     349 </span>            :             opal_output (0,
+<span class="lineNum">     350 </span>            :                          &quot;unhandled sa_family %d passed to opal_net_addr_isipv4public\n&quot;,
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :                          addr-&gt;sa_family);</span>
+<span class="lineNum">     352 </span>            :     }
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     354 </span>            :     return false;
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 : char*</span>
+<span class="lineNum">     359 </span>            : opal_net_get_hostname(const struct sockaddr *addr)
+<span class="lineNum">     360 </span>            : {
+<a name="361"><span class="lineNum">     361 </span>            : #if OPAL_ENABLE_IPV6</a>
+<span class="lineNum">     362 </span>            :     char *name = get_hostname_buffer();
+<span class="lineNum">     363 </span><span class="lineCov">         12 :     int error;</span>
+<span class="lineNum">     364 </span>            :     socklen_t addrlen;
+<span class="lineNum">     365 </span>            :     char *p;
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span>            :     if (NULL == name) {
+<span class="lineNum">     368 </span>            :         opal_output(0, &quot;opal_sockaddr2str: malloc() failed\n&quot;);
+<span class="lineNum">     369 </span>            :         return NULL;
+<span class="lineNum">     370 </span>            :     }
+<span class="lineNum">     371 </span>            :     OPAL_DEBUG_ZERO(*name);
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span>            :     switch (addr-&gt;sa_family) {
+<span class="lineNum">     374 </span>            :     case AF_INET:
+<span class="lineNum">     375 </span>            :         addrlen = sizeof (struct sockaddr_in);
+<span class="lineNum">     376 </span>            :         break;
+<span class="lineNum">     377 </span>            :     case AF_INET6:
+<span class="lineNum">     378 </span>            : #if defined( __NetBSD__)
+<span class="lineNum">     379 </span>            :         /* hotfix for netbsd: on my netbsd machine, getnameinfo
+<span class="lineNum">     380 </span>            :            returns an unkown error code. */
+<span class="lineNum">     381 </span>            :         if(NULL == inet_ntop(AF_INET6, &amp;((struct sockaddr_in6*) addr)-&gt;sin6_addr,
+<span class="lineNum">     382 </span>            :                              name, NI_MAXHOST)) {
+<span class="lineNum">     383 </span>            :             opal_output(0, &quot;opal_sockaddr2str failed with error code %d&quot;, errno);
+<span class="lineNum">     384 </span>            :             free(name);
+<span class="lineNum">     385 </span>            :             return NULL;
+<span class="lineNum">     386 </span>            :         }
+<span class="lineNum">     387 </span>            :         return name;
+<span class="lineNum">     388 </span>            : #else
+<span class="lineNum">     389 </span>            :         addrlen = sizeof (struct sockaddr_in6);
+<span class="lineNum">     390 </span>            : #endif
+<span class="lineNum">     391 </span>            :         break;
+<span class="lineNum">     392 </span>            :     default:
+<span class="lineNum">     393 </span>            :         free(name);
+<span class="lineNum">     394 </span>            :         return NULL;
+<span class="lineNum">     395 </span>            :     }
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span>            :     error = getnameinfo(addr, addrlen,
+<span class="lineNum">     398 </span>            :                         name, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            :     if (error) {
+<span class="lineNum">     401 </span>            :        int err = errno;
+<span class="lineNum">     402 </span>            :        opal_output (0, &quot;opal_sockaddr2str failed:%s (return code %i)\n&quot;,
+<span class="lineNum">     403 </span>            :                     gai_strerror(err), error);
+<span class="lineNum">     404 </span>            :        free (name);
+<span class="lineNum">     405 </span>            :        return NULL;
+<span class="lineNum">     406 </span>            :     }
+<span class="lineNum">     407 </span>            :     /* strip any trailing % data as it isn't pertinent */
+<span class="lineNum">     408 </span>            :     if (NULL != (p = strrchr(name, '%'))) {
+<span class="lineNum">     409 </span>            :         *p = '\0';
+<span class="lineNum">     410 </span>            :     }
+<span class="lineNum">     411 </span>            :     return name;
+<span class="lineNum">     412 </span>            : #else
+<span class="lineNum">     413 </span>            :     return inet_ntoa(((struct sockaddr_in*) addr)-&gt;sin_addr);
+<span class="lineNum">     414 </span>            : #endif
+<span class="lineNum">     415 </span>            : }
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineCov">         12 : </span>
+<span class="lineNum">     418 </span>            : int
+<span class="lineNum">     419 </span>            : opal_net_get_port(const struct sockaddr *addr)
+<span class="lineNum">     420 </span>            : {
+<a name="421"><span class="lineNum">     421 </span>            :     switch (addr-&gt;sa_family) {</a>
+<span class="lineNum">     422 </span>            :     case AF_INET:
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :         return ntohs(((struct sockaddr_in*) addr)-&gt;sin_port);</span>
+<span class="lineNum">     424 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     case AF_INET6:</span>
+<span class="lineNum">     426 </span>            :         return ntohs(((struct sockaddr_in6*) addr)-&gt;sin6_port);
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 : #endif</span>
+<span class="lineNum">     428 </span>            :     }
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span>            :     return -1;
+<span class="lineNum">     431 </span>            : }
+<span class="lineNum">     432 </span>            : 
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span>            : #else /* HAVE_STRUCT_SOCKADDR_IN */
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 : int</span>
+<span class="lineNum">     437 </span>            : opal_net_init()
+<span class="lineNum">     438 </span>            : {
+<span class="lineNum">     439 </span>            :     return OPAL_SUCCESS;
+<span class="lineNum">     440 </span>            : }
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span>            : int
+<span class="lineNum">     444 </span>            : opal_net_finalize()
+<span class="lineNum">     445 </span>            : {
+<span class="lineNum">     446 </span>            :     return OPAL_SUCCESS;
+<span class="lineNum">     447 </span>            : }
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span>            : uint32_t
+<span class="lineNum">     451 </span>            : opal_net_prefix2netmask(uint32_t prefixlen)
+<span class="lineNum">     452 </span>            : {
+<span class="lineNum">     453 </span>            :     return 0;
+<span class="lineNum">     454 </span>            : }
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span>            : 
+<span class="lineNum">     457 </span>            : bool
+<span class="lineNum">     458 </span>            : opal_net_islocalhost(const struct sockaddr *addr)
+<span class="lineNum">     459 </span>            : {
+<span class="lineNum">     460 </span>            :     return false;
+<span class="lineNum">     461 </span>            : }
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span>            : bool
+<span class="lineNum">     465 </span>            : opal_net_samenetwork(const struct sockaddr *addr1,
+<span class="lineNum">     466 </span>            :                      const struct sockaddr *addr2,
+<span class="lineNum">     467 </span>            :                      uint32_t prefixlen)
+<span class="lineNum">     468 </span>            : {
+<span class="lineNum">     469 </span>            :     return false;
+<span class="lineNum">     470 </span>            : }
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span>            : bool
+<span class="lineNum">     474 </span>            : opal_net_addr_isipv4public(const struct sockaddr *addr)
+<span class="lineNum">     475 </span>            : {
+<span class="lineNum">     476 </span>            :     return false;
+<span class="lineNum">     477 </span>            : }
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span>            : char*
+<span class="lineNum">     481 </span>            : opal_net_get_hostname(const struct sockaddr *addr)
+<span class="lineNum">     482 </span>            : {
+<span class="lineNum">     483 </span>            :     return NULL;
+<span class="lineNum">     484 </span>            : }
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span>            : int
+<span class="lineNum">     488 </span>            : opal_net_get_port(const struct sockaddr *addr)
+<span class="lineNum">     489 </span>            : {
+<span class="lineNum">     490 </span>            :     return -1;
+<span class="lineNum">     491 </span>            : }
+<span class="lineNum">     492 </span>            : 
+<span class="lineNum">     493 </span>            : #endif /* HAVE_STRUCT_SOCKADDR_IN */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,1280 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/ras/slurm/ras_slurm_module.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/ras/slurm</a> - ras_slurm_module.c<span style="font-size: 80%;"> (source / <a href="ras_slurm_module.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">538</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2007 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2005 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2011-2012 Los Alamos National Security, LLC.  All rights
+<span class="lineNum">      13 </span>            :  *                         reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2013      Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2013-2014 Intel, Inc. All rights reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      17 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      18 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      21 </span>            :  *
+<span class="lineNum">      22 </span>            :  * $HEADER$
+<span class="lineNum">      23 </span>            :  */
+<span class="lineNum">      24 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;orte/constants.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;orte/types.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;ctype.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;sys/socket.h&gt;
+<span class="lineNum">      33 </span>            : #ifdef HAVE_NETINET_IN_H
+<span class="lineNum">      34 </span>            : #include &lt;netinet/in.h&gt;
+<span class="lineNum">      35 </span>            : #endif
+<span class="lineNum">      36 </span>            : #ifdef HAVE_ARPA_INET_H
+<span class="lineNum">      37 </span>            : #include &lt;arpa/inet.h&gt;
+<span class="lineNum">      38 </span>            : #endif
+<span class="lineNum">      39 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      40 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      41 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      44 </span>            : #include &quot;opal/util/net.h&quot;
+<span class="lineNum">      45 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;opal/opal_socket_errno.h&quot;
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : #include &quot;orte/util/show_help.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;orte/mca/rmaps/base/base.h&quot;
+<span class="lineNum">      51 </span>            : #include &quot;orte/mca/state/state.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      53 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : #include &quot;orte/mca/ras/base/ras_private.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;ras_slurm.h&quot;
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : #define ORTE_SLURM_DYN_MAX_SIZE 256
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : /*
+<span class="lineNum">      61 </span>            :  * API functions
+<span class="lineNum">      62 </span>            :  */
+<span class="lineNum">      63 </span>            : static int init(void);
+<span class="lineNum">      64 </span>            : static int orte_ras_slurm_allocate(orte_job_t *jdata, opal_list_t *nodes);
+<span class="lineNum">      65 </span>            : static void deallocate(orte_job_t *jdata,
+<span class="lineNum">      66 </span>            :                        orte_app_context_t *app);
+<span class="lineNum">      67 </span>            : static int orte_ras_slurm_finalize(void);
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : /*
+<span class="lineNum">      70 </span>            :  * RAS slurm module
+<span class="lineNum">      71 </span>            :  */
+<span class="lineNum">      72 </span>            : orte_ras_base_module_t orte_ras_slurm_module = {
+<span class="lineNum">      73 </span>            :     init,
+<span class="lineNum">      74 </span>            :     orte_ras_slurm_allocate,
+<span class="lineNum">      75 </span>            :     deallocate,
+<span class="lineNum">      76 </span>            :     orte_ras_slurm_finalize
+<span class="lineNum">      77 </span>            : };
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : /* Local functions */
+<span class="lineNum">      80 </span>            : static int orte_ras_slurm_discover(char *regexp, char* tasks_per_node,
+<span class="lineNum">      81 </span>            :                                    opal_list_t *nodelist);
+<span class="lineNum">      82 </span>            : static int orte_ras_slurm_parse_ranges(char *base, char *ranges, char ***nodelist);
+<span class="lineNum">      83 </span>            : static int orte_ras_slurm_parse_range(char *base, char *range, char ***nodelist);
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : static int dyn_allocate(orte_job_t *jdata);
+<span class="lineNum">      86 </span>            : static char* get_node_list(orte_app_context_t *app);
+<span class="lineNum">      87 </span>            : static int parse_alloc_msg(char *msg, int *idx, int *sjob,
+<span class="lineNum">      88 </span>            :                            char **nodelist, char **tpn);
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            : static void recv_data(int fd, short args, void *cbdata);
+<span class="lineNum">      91 </span>            : static void timeout(int fd, short args, void *cbdata);
+<span class="lineNum">      92 </span>            : static int read_ip_port(char *filename, char **ip, uint16_t *port);
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            : /* define structs for tracking dynamic allocations */
+<span class="lineNum">      96 </span>            : typedef struct {
+<span class="lineNum">      97 </span>            :     opal_object_t super;
+<span class="lineNum">      98 </span>            :     int sjob;
+<span class="lineNum">      99 </span>            : } local_apptracker_t;
+<span class="lineNum">     100 </span>            : OBJ_CLASS_INSTANCE(local_apptracker_t,
+<span class="lineNum">     101 </span>            :                    opal_object_t,
+<span class="lineNum">     102 </span>            :                    NULL, NULL);
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            : typedef struct {
+<span class="lineNum">     105 </span>            :     opal_list_item_t super;
+<span class="lineNum">     106 </span>            :     char *cmd;
+<span class="lineNum">     107 </span>            :     opal_event_t timeout_ev;
+<span class="lineNum">     108 </span>            :     orte_jobid_t jobid;
+<span class="lineNum">     109 </span>            :     opal_pointer_array_t apps;
+<a name="110"><span class="lineNum">     110 </span>            :     int napps;</a>
+<span class="lineNum">     111 </span>            : } local_jobtracker_t;
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 : static void jtrk_cons(local_jobtracker_t *ptr)</span>
+<span class="lineNum">     113 </span>            : {
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     ptr-&gt;cmd = NULL;</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;ptr-&gt;apps, opal_pointer_array_t);</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     opal_pointer_array_init(&amp;ptr-&gt;apps, 1, INT_MAX, 1);</span>
+<a name="117"><span class="lineNum">     117 </span><span class="lineNoCov">          0 :     ptr-&gt;napps = 0;</span></a>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 : static void jtrk_des(local_jobtracker_t *ptr)</span>
+<span class="lineNum">     120 </span>            : {
+<span class="lineNum">     121 </span>            :     int i;
+<span class="lineNum">     122 </span>            :     local_apptracker_t *ap;
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     if (NULL != ptr-&gt;cmd) {</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         free(ptr-&gt;cmd);</span>
+<span class="lineNum">     126 </span>            :     }
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; ptr-&gt;apps.size; i++) {</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         if (NULL != (ap = (local_apptracker_t*)opal_pointer_array_get_item(&amp;ptr-&gt;apps, i))) {</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(ap);</span>
+<span class="lineNum">     130 </span>            :         }
+<span class="lineNum">     131 </span>            :     }
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;ptr-&gt;apps);</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     134 </span>            : OBJ_CLASS_INSTANCE(local_jobtracker_t,
+<span class="lineNum">     135 </span>            :                    opal_list_item_t,
+<span class="lineNum">     136 </span>            :                    jtrk_cons, jtrk_des);
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            : /* local vars */
+<span class="lineNum">     139 </span>            : static int socket_fd;
+<span class="lineNum">     140 </span>            : static opal_list_t jobs;
+<span class="lineNum">     141 </span>            : static opal_event_t recv_ev;
+<a name="142"><span class="lineNum">     142 </span>            : </a>
+<span class="lineNum">     143 </span>            : /* init the module */
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 : static int init(void)</span>
+<span class="lineNum">     145 </span>            : {
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     char *slurm_host=NULL;</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :     uint16_t port=0;</span>
+<span class="lineNum">     148 </span>            :     struct sockaddr_in address;
+<span class="lineNum">     149 </span>            :     int flags;
+<span class="lineNum">     150 </span>            :     struct hostent *h;
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     if (mca_ras_slurm_component.dyn_alloc_enabled) {</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         if (NULL == mca_ras_slurm_component.config_file) {</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;dyn-alloc-no-config&quot;, true);</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :             return ORTE_ERR_SILENT;</span>
+<span class="lineNum">     156 </span>            :         }
+<span class="lineNum">     157 </span>            :         /* setup the socket */
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != read_ip_port(mca_ras_slurm_component.config_file,</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :                                          &amp;slurm_host, &amp;port) ||</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :             NULL == slurm_host || 0 == port) {</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :             if (NULL != slurm_host) {</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                 free(slurm_host);</span>
+<span class="lineNum">     163 </span>            :             }
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :             return ORTE_ERR_SILENT;</span>
+<span class="lineNum">     165 </span>            :         }
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((2, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     167 </span>            :                              &quot;ras:slurm got [ ip = %s, port = %u ] from %s\n&quot;,
+<span class="lineNum">     168 </span>            :                              slurm_host, port, mca_ras_slurm_component.config_file));
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span>            :         /* obtain a socket for our use */
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :         if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) &lt; 0) {</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :             free(slurm_host);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     175 </span>            :         }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            :         /* connect to the Slurm dynamic allocation port */
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :         bzero(&amp;address, sizeof(address));</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         address.sin_family = AF_INET;</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :         if (!opal_net_isaddr(slurm_host)) {</span>
+<span class="lineNum">     181 </span>            :             /* if the ControlMachine was not specified as an IP address,
+<span class="lineNum">     182 </span>            :              * we need to resolve it here
+<span class="lineNum">     183 </span>            :              */
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :             if (NULL == (h = gethostbyname(slurm_host))) {</span>
+<span class="lineNum">     185 </span>            :                 /* could not resolve it */
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;host-not-resolved&quot;,</span>
+<span class="lineNum">     187 </span>            :                                true, slurm_host);
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :                 free(slurm_host);</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_SILENT;</span>
+<span class="lineNum">     190 </span>            :             }
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :             free(slurm_host);</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :             slurm_host = strdup(inet_ntoa(*(struct in_addr*)h-&gt;h_addr_list[0]));</span>
+<span class="lineNum">     193 </span>            :         }
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         address.sin_addr.s_addr = inet_addr(slurm_host);</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :         address.sin_port =  htons(port);</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :         if (connect(socket_fd, (struct sockaddr*)&amp;address, sizeof(address)) &lt; 0) {</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;connection-failed&quot;,</span>
+<span class="lineNum">     198 </span>            :                            true, slurm_host, (int)port);
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             free(slurm_host);</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :             return ORTE_ERR_SILENT;</span>
+<span class="lineNum">     201 </span>            :         }
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         free(slurm_host);</span>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            :         /* set socket up to be non-blocking */
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :         if ((flags = fcntl(socket_fd, F_GETFL, 0)) &lt; 0) {</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;ras:slurm:dyn: fcntl(F_GETFL) failed: %s (%d)&quot;,</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :                         strerror(opal_socket_errno), opal_socket_errno);</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :             return ORTE_ERROR;</span>
+<span class="lineNum">     209 </span>            :         } else {
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :             flags |= O_NONBLOCK;</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :             if (fcntl(socket_fd, F_SETFL, flags) &lt; 0) {</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :                 opal_output(0, &quot;ras:slurm:dyn: fcntl(F_SETFL) failed: %s (%d)&quot;,</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :                             strerror(opal_socket_errno), opal_socket_errno);</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :                 return ORTE_ERROR;</span>
+<span class="lineNum">     215 </span>            :             }
+<span class="lineNum">     216 </span>            :         }
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            :         /* setup to recv data */
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         opal_event_set(orte_event_base, &amp;recv_ev, socket_fd,</span>
+<span class="lineNum">     220 </span>            :                        OPAL_EV_READ, recv_data, NULL);
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         opal_event_add(&amp;recv_ev, 0);</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            :         /* initialize the list of jobs for tracking dynamic allocations */
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :         OBJ_CONSTRUCT(&amp;jobs, opal_list_t);</span>
+<span class="lineNum">     225 </span>            :     }
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     227 </span>            : }
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            : /**
+<span class="lineNum">     230 </span>            :  * Discover available (pre-allocated) nodes.  Allocate the
+<span class="lineNum">     231 </span>            :  * requested number of nodes/process slots to the job.
+<a name="232"><span class="lineNum">     232 </span>            :  *</a>
+<span class="lineNum">     233 </span>            :  */
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 : static int orte_ras_slurm_allocate(orte_job_t *jdata, opal_list_t *nodes)</span>
+<span class="lineNum">     235 </span>            : {
+<span class="lineNum">     236 </span>            :     int ret, cpus_per_task;
+<span class="lineNum">     237 </span>            :     char *slurm_node_str, *regexp;
+<span class="lineNum">     238 </span>            :     char *tasks_per_node, *node_tasks;
+<span class="lineNum">     239 </span>            :     char *tmp;
+<span class="lineNum">     240 </span>            :     char *slurm_jobid;
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     if (NULL == (slurm_jobid = getenv(&quot;SLURM_JOBID&quot;))) {</span>
+<span class="lineNum">     243 </span>            :         /* we are not in a slurm allocation - see if dyn alloc
+<span class="lineNum">     244 </span>            :          * is enabled
+<span class="lineNum">     245 </span>            :          */
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :         if (!mca_ras_slurm_component.dyn_alloc_enabled) {</span>
+<span class="lineNum">     247 </span>            :             /* nope - nothing we can do */
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :             opal_output_verbose(2, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     249 </span>            :                                 &quot;%s ras:slurm: no prior allocation and dynamic alloc disabled&quot;,
+<span class="lineNum">     250 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :             return ORTE_ERR_TAKE_NEXT_OPTION;</span>
+<span class="lineNum">     252 </span>            :         }
+<span class="lineNum">     253 </span>            :     } else {
+<span class="lineNum">     254 </span>            :         /* save this value in the global job ident string for
+<span class="lineNum">     255 </span>            :          * later use in any error reporting
+<span class="lineNum">     256 </span>            :          */
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :         orte_job_ident = strdup(slurm_jobid);</span>
+<span class="lineNum">     258 </span>            :     }
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     slurm_node_str = getenv(&quot;SLURM_NODELIST&quot;);</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     if (NULL == slurm_node_str) {</span>
+<span class="lineNum">     262 </span>            :         /* see if dynamic allocation is enabled */
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         if (mca_ras_slurm_component.dyn_alloc_enabled) {</span>
+<span class="lineNum">     264 </span>            :             /* attempt to get the allocation - the function
+<span class="lineNum">     265 </span>            :              * dyn_allocate will return as ORTE_ERR_ALLOCATION_PENDING
+<span class="lineNum">     266 </span>            :              * if it succeeds in sending the allocation request
+<span class="lineNum">     267 </span>            :              */
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :             ret = dyn_allocate(jdata);</span>
+<span class="lineNum">     269 </span>            :             /* return to the above layer in ras/base/ras_base_allocate.c
+<span class="lineNum">     270 </span>            :              * to wait for event (libevent) happening
+<span class="lineNum">     271 </span>            :              */
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :             return ret;</span>
+<span class="lineNum">     273 </span>            :         }
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;slurm-env-var-not-found&quot;, 1,</span>
+<span class="lineNum">     275 </span>            :                        &quot;SLURM_NODELIST&quot;);
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :         return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     277 </span>            :     }
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     regexp = strdup(slurm_node_str);</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     if(NULL == regexp) {</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     282 </span>            :     }
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     if (mca_ras_slurm_component.use_all) {</span>
+<span class="lineNum">     285 </span>            :         /* this is an oddball case required for debug situations where
+<span class="lineNum">     286 </span>            :          * a tool is started that will then call mpirun. In this case,
+<span class="lineNum">     287 </span>            :          * Slurm will assign only 1 tasks/per node to the tool, but
+<span class="lineNum">     288 </span>            :          * we want mpirun to use the entire allocation. They don't give
+<span class="lineNum">     289 </span>            :          * us a specific variable for this purpose, so we have to fudge
+<span class="lineNum">     290 </span>            :          * a bit - but this is a special edge case, and we'll live with it */
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         tasks_per_node = getenv(&quot;SLURM_JOB_CPUS_PER_NODE&quot;);</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :         if (NULL == tasks_per_node) {</span>
+<span class="lineNum">     293 </span>            :             /* couldn't find any version - abort */
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;slurm-env-var-not-found&quot;, 1,</span>
+<span class="lineNum">     295 </span>            :                            &quot;SLURM_JOB_CPUS_PER_NODE&quot;);
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :             free(regexp);</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :             return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     298 </span>            :         }
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :         node_tasks = strdup(tasks_per_node);</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :         if (NULL == node_tasks) {</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :             free(regexp);</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     304 </span>            :         }
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         cpus_per_task = 1;</span>
+<span class="lineNum">     306 </span>            :     } else {
+<span class="lineNum">     307 </span>            :         /* get the number of process slots we were assigned on each node */
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         tasks_per_node = getenv(&quot;SLURM_TASKS_PER_NODE&quot;);</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :         if (NULL == tasks_per_node) {</span>
+<span class="lineNum">     310 </span>            :             /* couldn't find any version - abort */
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;slurm-env-var-not-found&quot;, 1,</span>
+<span class="lineNum">     312 </span>            :                            &quot;SLURM_TASKS_PER_NODE&quot;);
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :             free(regexp);</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :             return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     315 </span>            :         }
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         node_tasks = strdup(tasks_per_node);</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         if (NULL == node_tasks) {</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :             free(regexp);</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     321 </span>            :         }
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            :         /* get the number of CPUs per task that the user provided to slurm */
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :         tmp = getenv(&quot;SLURM_CPUS_PER_TASK&quot;);</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :         if(NULL != tmp) {</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :             cpus_per_task = atoi(tmp);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :             if(0 &gt;= cpus_per_task) {</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :                 opal_output(0, &quot;ras:slurm:allocate: Got bad value from SLURM_CPUS_PER_TASK. &quot;</span>
+<span class="lineNum">     329 </span>            :                             &quot;Variable was: %s\n&quot;, tmp);
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ORTE_ERROR);</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :                 free(node_tasks);</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :                 free(regexp);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :                 return ORTE_ERROR;</span>
+<span class="lineNum">     334 </span>            :             }
+<span class="lineNum">     335 </span>            :         } else {
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :             cpus_per_task = 1;</span>
+<span class="lineNum">     337 </span>            :         }
+<span class="lineNum">     338 </span>            :     }
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     ret = orte_ras_slurm_discover(regexp, node_tasks, nodes);</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     free(regexp);</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     free(node_tasks);</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != ret) {</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((1, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     345 </span>            :                              &quot;%s ras:slurm:allocate: discover failed!&quot;,
+<span class="lineNum">     346 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :         return ret;</span>
+<span class="lineNum">     348 </span>            :     }
+<span class="lineNum">     349 </span>            :     /* record the number of allocated nodes */
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     orte_num_allocated_nodes = opal_list_get_size(nodes);</span>
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span>            :     /* All done */
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     355 </span>            :                          &quot;%s ras:slurm:allocate: success&quot;,
+<span class="lineNum">     356 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="358"><span class="lineNum">     358 </span>            : }</a>
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 : static void deallocate(orte_job_t *jdata,</span>
+<span class="lineNum">     361 </span>            :                        orte_app_context_t *app)
+<span class="lineNum">     362 </span>            : {
+<a name="363"><span class="lineNum">     363 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 : static int orte_ras_slurm_finalize(void)</span>
+<span class="lineNum">     366 </span>            : {
+<span class="lineNum">     367 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     if (mca_ras_slurm_component.dyn_alloc_enabled) {</span>
+<span class="lineNum">     370 </span>            :         /* delete the recv event */
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         opal_event_del(&amp;recv_ev);</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :         while (NULL != (item = opal_list_remove_first(&amp;jobs))) {</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(item);</span>
+<span class="lineNum">     374 </span>            :         }
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;jobs);</span>
+<span class="lineNum">     376 </span>            :         /* close the socket */
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :         shutdown(socket_fd, 2);</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :         close(socket_fd);</span>
+<span class="lineNum">     379 </span>            :     }
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     381 </span>            : }
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span>            : /**
+<span class="lineNum">     385 </span>            :  * Discover the available resources.
+<span class="lineNum">     386 </span>            :  *
+<span class="lineNum">     387 </span>            :  * In order to fully support slurm, we need to be able to handle
+<span class="lineNum">     388 </span>            :  * node regexp/task_per_node strings such as:
+<span class="lineNum">     389 </span>            :  * foo,bar    5,3
+<span class="lineNum">     390 </span>            :  * foo        5
+<span class="lineNum">     391 </span>            :  * foo[2-10,12,99-105],bar,foobar[3-11] 2(x10),5,100(x16)
+<span class="lineNum">     392 </span>            :  *
+<span class="lineNum">     393 </span>            :  * @param *regexp A node regular expression from SLURM (i.e. SLURM_NODELIST)
+<span class="lineNum">     394 </span>            :  * @param *tasks_per_node A tasks per node expression from SLURM
+<span class="lineNum">     395 </span>            :  *                        (i.e. SLURM_TASKS_PER_NODE)
+<span class="lineNum">     396 </span>            :  * @param *nodelist A list which has already been constucted to return
+<a name="397"><span class="lineNum">     397 </span>            :  *                  the found nodes in</a>
+<span class="lineNum">     398 </span>            :  */
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 : static int orte_ras_slurm_discover(char *regexp, char *tasks_per_node,</span>
+<span class="lineNum">     400 </span>            :                                    opal_list_t* nodelist)
+<span class="lineNum">     401 </span>            : {
+<span class="lineNum">     402 </span>            :     int i, j, len, ret, count, reps, num_nodes;
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     char *base, **names = NULL;</span>
+<span class="lineNum">     404 </span>            :     char *begptr, *endptr, *orig;
+<span class="lineNum">     405 </span>            :     int *slots;
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :     bool found_range = false;</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :     bool more_to_come = false;</span>
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :     orig = base = strdup(regexp);</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     if (NULL == base) {</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     413 </span>            :     }
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     416 </span>            :                          &quot;%s ras:slurm:allocate:discover: checking nodelist: %s&quot;,
+<span class="lineNum">     417 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     418 </span>            :                          regexp));
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span>            :     do {
+<span class="lineNum">     421 </span>            :         /* Find the base */
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :         len = strlen(base);</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt;= len; ++i) {</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :             if (base[i] == '[') {</span>
+<span class="lineNum">     425 </span>            :                 /* we found a range. this gets dealt with below */
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :                 base[i] = '\0';</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :                 found_range = true;</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     429 </span>            :             }
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :             if (base[i] == ',') {</span>
+<span class="lineNum">     431 </span>            :                 /* we found a singleton node, and there are more to come */
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :                 base[i] = '\0';</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :                 found_range = false;</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :                 more_to_come = true;</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     436 </span>            :             }
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :             if (base[i] == '\0') {</span>
+<span class="lineNum">     438 </span>            :                 /* we found a singleton node */
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :                 found_range = false;</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :                 more_to_come = false;</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     442 </span>            :             }
+<span class="lineNum">     443 </span>            :         }
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :         if(i == 0) {</span>
+<span class="lineNum">     445 </span>            :             /* we found a special character at the beginning of the string */
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;slurm-env-var-bad-value&quot;,</span>
+<span class="lineNum">     447 </span>            :                            1, regexp, tasks_per_node, &quot;SLURM_NODELIST&quot;);
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :             free(orig);</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :             return ORTE_ERR_BAD_PARAM;</span>
+<span class="lineNum">     451 </span>            :         }
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :         if (found_range) {</span>
+<span class="lineNum">     454 </span>            :             /* If we found a range, now find the end of the range */
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :             for (j = i; j &lt; len; ++j) {</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :                 if (base[j] == ']') {</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                     base[j] = '\0';</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     459 </span>            :                 }
+<span class="lineNum">     460 </span>            :             }
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :             if (j &gt;= len) {</span>
+<span class="lineNum">     462 </span>            :                 /* we didn't find the end of the range */
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;slurm-env-var-bad-value&quot;,</span>
+<span class="lineNum">     464 </span>            :                                1, regexp, tasks_per_node, &quot;SLURM_NODELIST&quot;);
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :                 free(orig);</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_BAD_PARAM;</span>
+<span class="lineNum">     468 </span>            :             }
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :             ret = orte_ras_slurm_parse_ranges(base, base + i + 1, &amp;names);</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :             if(ORTE_SUCCESS != ret) {</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;slurm-env-var-bad-value&quot;,</span>
+<span class="lineNum">     473 </span>            :                                1, regexp, tasks_per_node, &quot;SLURM_NODELIST&quot;);
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :                 free(orig);</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     477 </span>            :             }
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :             if(base[j + 1] == ',') {</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :                 more_to_come = true;</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :                 base = &amp;base[j + 2];</span>
+<span class="lineNum">     481 </span>            :             } else {
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :                 more_to_come = false;</span>
+<span class="lineNum">     483 </span>            :             }
+<span class="lineNum">     484 </span>            :         } else {
+<span class="lineNum">     485 </span>            :             /* If we didn't find a range, just add the node */
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((1, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     488 </span>            :                                  &quot;%s ras:slurm:allocate:discover: found node %s&quot;,
+<span class="lineNum">     489 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     490 </span>            :                                  base));
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :             if(ORTE_SUCCESS != (ret = opal_argv_append_nosize(&amp;names, base))) {</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :                 free(orig);</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     496 </span>            :             }
+<span class="lineNum">     497 </span>            :             /* set base equal to the (possible) next base to look at */
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :             base = &amp;base[i + 1];</span>
+<span class="lineNum">     499 </span>            :         }
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     } while(more_to_come);</span>
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     free(orig);</span>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :     num_nodes = opal_argv_count(names);</span>
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span>            :     /* Find the number of slots per node */
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     slots = malloc(sizeof(int) * num_nodes);</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :     if (NULL == slots) {</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     512 </span>            :     }
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     memset(slots, 0, sizeof(int) * num_nodes);</span>
+<span class="lineNum">     514 </span>            : 
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :     orig = begptr = strdup(tasks_per_node);</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     if (NULL == begptr) {</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :         free(slots);</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     520 </span>            :     }
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     j = 0;</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     while (begptr) {</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :         count = strtol(begptr, &amp;endptr, 10);</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :         if ((endptr[0] == '(') &amp;&amp; (endptr[1] == 'x')) {</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :             reps = strtol((endptr+2), &amp;endptr, 10);</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :             if (endptr[0] == ')') {</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :                 endptr++;</span>
+<span class="lineNum">     529 </span>            :             }
+<span class="lineNum">     530 </span>            :         } else {
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :             reps = 1;</span>
+<span class="lineNum">     532 </span>            :         }
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span>            :         /**
+<span class="lineNum">     535 </span>            :          * TBP: it seems like it would be an error to have more slot
+<span class="lineNum">     536 </span>            :          * descriptions than nodes. Turns out that this valid, and SLURM will
+<span class="lineNum">     537 </span>            :          * return such a thing. For instance, if I did:
+<span class="lineNum">     538 </span>            :          * srun -A -N 30 -w odin001
+<span class="lineNum">     539 </span>            :          * I would get SLURM_NODELIST=odin001 SLURM_TASKS_PER_NODE=4(x30)
+<span class="lineNum">     540 </span>            :          * That is, I am allocated 30 nodes, but since I only requested
+<span class="lineNum">     541 </span>            :          * one specific node, that's what is in the nodelist.
+<span class="lineNum">     542 </span>            :          * I'm not sure this is what users would expect, but I think it is
+<span class="lineNum">     543 </span>            :          * more of a SLURM issue than a orte issue, since SLURM is OK with it,
+<span class="lineNum">     544 </span>            :          * I'm ok with it
+<span class="lineNum">     545 </span>            :          */
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; reps &amp;&amp; j &lt; num_nodes; i++) {</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :             slots[j++] = count;</span>
+<span class="lineNum">     548 </span>            :         }
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :         if (*endptr == ',') {</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :             begptr = endptr + 1;</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :         } else if (*endptr == '\0' || j &gt;= num_nodes) {</span>
+<span class="lineNum">     553 </span>            :             break;
+<span class="lineNum">     554 </span>            :         } else {
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;slurm-env-var-bad-value&quot;, 1,</span>
+<span class="lineNum">     556 </span>            :                            regexp, tasks_per_node, &quot;SLURM_TASKS_PER_NODE&quot;);
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :             free(slots);</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :             free(orig);</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :             return ORTE_ERR_BAD_PARAM;</span>
+<span class="lineNum">     561 </span>            :         }
+<span class="lineNum">     562 </span>            :     }
+<span class="lineNum">     563 </span>            : 
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :     free(orig);</span>
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span>            :     /* Convert the argv of node names to a list of node_t's */
+<span class="lineNum">     567 </span>            : 
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     for (i = 0; NULL != names &amp;&amp; NULL != names[i]; ++i) {</span>
+<span class="lineNum">     569 </span>            :         orte_node_t *node;
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((1, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     572 </span>            :                              &quot;%s ras:slurm:allocate:discover: adding node %s (%d slot%s)&quot;,
+<span class="lineNum">     573 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     574 </span>            :                              names[i], slots[i], (1 == slots[i]) ? &quot;&quot; : &quot;s&quot;));
+<span class="lineNum">     575 </span>            : 
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :         node = OBJ_NEW(orte_node_t);</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :         if (NULL == node) {</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :             free(slots);</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     581 </span>            :         }
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :         node-&gt;name = strdup(names[i]);</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :         node-&gt;state = ORTE_NODE_STATE_UP;</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :         node-&gt;slots_inuse = 0;</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :         node-&gt;slots_max = 0;</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :         node-&gt;slots = slots[i];</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :         opal_list_append(nodelist, &amp;node-&gt;super);</span>
+<span class="lineNum">     588 </span>            :     }
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :     free(slots);</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :     opal_argv_free(names);</span>
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span>            :     /* All done */
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     594 </span>            : }
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span>            : 
+<span class="lineNum">     597 </span>            : /*
+<span class="lineNum">     598 </span>            :  * Parse one or more ranges in a set
+<span class="lineNum">     599 </span>            :  *
+<span class="lineNum">     600 </span>            :  * @param base     The base text of the node name
+<span class="lineNum">     601 </span>            :  * @param *ranges  A pointer to a range. This can contain multiple ranges
+<span class="lineNum">     602 </span>            :  *                 (i.e. &quot;1-3,10&quot; or &quot;5&quot; or &quot;9,0100-0130,250&quot;)
+<a name="603"><span class="lineNum">     603 </span>            :  * @param ***names An argv array to add the newly discovered nodes to</a>
+<span class="lineNum">     604 </span>            :  */
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 : static int orte_ras_slurm_parse_ranges(char *base, char *ranges, char ***names)</span>
+<span class="lineNum">     606 </span>            : {
+<span class="lineNum">     607 </span>            :     int i, len, ret;
+<span class="lineNum">     608 </span>            :     char *start, *orig;
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span>            :     /* Look for commas, the separator between ranges */
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :     len = strlen(ranges);</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :     for (orig = start = ranges, i = 0; i &lt; len; ++i) {</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :         if (',' == ranges[i]) {</span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :             ranges[i] = '\0';</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :             ret = orte_ras_slurm_parse_range(base, start, names);</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :             if (ORTE_SUCCESS != ret) {</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     620 </span>            :             }
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :             start = ranges + i + 1;</span>
+<span class="lineNum">     622 </span>            :         }
+<span class="lineNum">     623 </span>            :     }
+<span class="lineNum">     624 </span>            : 
+<span class="lineNum">     625 </span>            :     /* Pick up the last range, if it exists */
+<span class="lineNum">     626 </span>            : 
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :     if (start &lt; orig + len) {</span>
+<span class="lineNum">     628 </span>            : 
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((1, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     630 </span>            :                              &quot;%s ras:slurm:allocate:discover: parse range %s (2)&quot;,
+<span class="lineNum">     631 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     632 </span>            :                              start));
+<span class="lineNum">     633 </span>            : 
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :         ret = orte_ras_slurm_parse_range(base, start, names);</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != ret) {</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :             return ret;</span>
+<span class="lineNum">     638 </span>            :         }
+<span class="lineNum">     639 </span>            :     }
+<span class="lineNum">     640 </span>            : 
+<span class="lineNum">     641 </span>            :     /* All done */
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     643 </span>            : }
+<span class="lineNum">     644 </span>            : 
+<span class="lineNum">     645 </span>            : 
+<span class="lineNum">     646 </span>            : /*
+<span class="lineNum">     647 </span>            :  * Parse a single range in a set and add the full names of the nodes
+<span class="lineNum">     648 </span>            :  * found to the names argv
+<span class="lineNum">     649 </span>            :  *
+<span class="lineNum">     650 </span>            :  * @param base     The base text of the node name
+<span class="lineNum">     651 </span>            :  * @param *ranges  A pointer to a single range. (i.e. &quot;1-3&quot; or &quot;5&quot;)
+<a name="652"><span class="lineNum">     652 </span>            :  * @param ***names An argv array to add the newly discovered nodes to</a>
+<span class="lineNum">     653 </span>            :  */
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 : static int orte_ras_slurm_parse_range(char *base, char *range, char ***names)</span>
+<span class="lineNum">     655 </span>            : {
+<span class="lineNum">     656 </span>            :     char *str, temp1[BUFSIZ];
+<span class="lineNum">     657 </span>            :     size_t i, j, start, end;
+<span class="lineNum">     658 </span>            :     size_t base_len, len, num_len;
+<span class="lineNum">     659 </span>            :     size_t num_str_len;
+<span class="lineNum">     660 </span>            :     bool found;
+<span class="lineNum">     661 </span>            :     int ret;
+<span class="lineNum">     662 </span>            : 
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :     len = strlen(range);</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :     base_len = strlen(base);</span>
+<span class="lineNum">     665 </span>            :     /* Silence compiler warnings; start and end are always assigned
+<span class="lineNum">     666 </span>            :        properly, below */
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :     start = end = 0;</span>
+<span class="lineNum">     668 </span>            : 
+<span class="lineNum">     669 </span>            :     /* Look for the beginning of the first number */
+<span class="lineNum">     670 </span>            : 
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :     for (found = false, i = 0; i &lt; len; ++i) {</span>
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :         if (isdigit((int) range[i])) {</span>
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :             if (!found) {</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :                 start = atoi(range + i);</span>
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :                 found = true;</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     677 </span>            :             }
+<span class="lineNum">     678 </span>            :         }
+<span class="lineNum">     679 </span>            :     }
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :     if (!found) {</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :         return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     683 </span>            :     }
+<span class="lineNum">     684 </span>            : 
+<span class="lineNum">     685 </span>            :     /* Look for the end of the first number */
+<span class="lineNum">     686 </span>            : 
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :     for (found = false, num_str_len = 0; i &lt; len; ++i, ++num_str_len) {</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :         if (!isdigit((int) range[i])) {</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     690 </span>            :         }
+<span class="lineNum">     691 </span>            :     }
+<span class="lineNum">     692 </span>            : 
+<span class="lineNum">     693 </span>            :     /* Was there no range, just a single number? */
+<span class="lineNum">     694 </span>            : 
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :     if (i &gt;= len) {</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :         end = start;</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :         found = true;</span>
+<span class="lineNum">     698 </span>            :     }
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span>            :     /* Nope, there was a range.  Look for the beginning of the second
+<span class="lineNum">     701 </span>            :        number */
+<span class="lineNum">     702 </span>            : 
+<span class="lineNum">     703 </span>            :     else {
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :         for (; i &lt; len; ++i) {</span>
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :             if (isdigit((int) range[i])) {</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :                 end = atoi(range + i);</span>
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :                 found = true;</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     709 </span>            :             }
+<span class="lineNum">     710 </span>            :         }
+<span class="lineNum">     711 </span>            :     }
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :     if (!found) {</span>
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :         return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     715 </span>            :     }
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span>            :     /* Make strings for all values in the range */
+<span class="lineNum">     718 </span>            : 
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :     len = base_len + num_str_len + 32;</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :     str = malloc(len);</span>
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :     if (NULL == str) {</span>
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     724 </span>            :     }
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :     strcpy(str, base);</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :     for (i = start; i &lt;= end; ++i) {</span>
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :         str[base_len] = '\0';</span>
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :         snprintf(temp1, BUFSIZ - 1, &quot;%lu&quot;, (long) i);</span>
+<span class="lineNum">     729 </span>            : 
+<span class="lineNum">     730 </span>            :         /* Do we need zero pading? */
+<span class="lineNum">     731 </span>            : 
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :         if ((num_len = strlen(temp1)) &lt; num_str_len) {</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :             for (j = base_len; j &lt; base_len + (num_str_len - num_len); ++j) {</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :                 str[j] = '0';</span>
+<span class="lineNum">     735 </span>            :             }
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :             str[j] = '\0';</span>
+<span class="lineNum">     737 </span>            :         }
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :         strcat(str, temp1);</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :         ret = opal_argv_append_nosize(names, str);</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :         if(ORTE_SUCCESS != ret) {</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ret);</span>
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :             free(str);</span>
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :             return ret;</span>
+<span class="lineNum">     744 </span>            :         }
+<span class="lineNum">     745 </span>            :     }
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :     free(str);</span>
+<span class="lineNum">     747 </span>            : 
+<span class="lineNum">     748 </span>            :     /* All done */
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="750"><span class="lineNum">     750 </span>            : }</a>
+<span class="lineNum">     751 </span>            : 
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 : static void timeout(int fd, short args, void *cbdata)</span>
+<span class="lineNum">     753 </span>            : {
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :     local_jobtracker_t *jtrk = (local_jobtracker_t*)cbdata;</span>
+<span class="lineNum">     755 </span>            :     orte_job_t *jdata;
+<span class="lineNum">     756 </span>            : 
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :     orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;slurm-dyn-alloc-timeout&quot;, true);</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     759 </span>            :                         &quot;%s Timed out on dynamic allocation&quot;,
+<span class="lineNum">     760 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     761 </span>            :     /* indicate that we failed to receive an allocation */
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :     jdata = orte_get_job_data_object(jtrk-&gt;jobid);</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :     ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_ALLOC_FAILED);</span>
+<a name="764"><span class="lineNum">     764 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     765 </span>            : 
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 : static void recv_data(int fd, short args, void *cbdata)</span>
+<span class="lineNum">     767 </span>            : {
+<span class="lineNum">     768 </span>            :     bool found;
+<span class="lineNum">     769 </span>            :     int i, rc;
+<span class="lineNum">     770 </span>            :     orte_node_t *nd, *nd2;
+<span class="lineNum">     771 </span>            :     opal_list_t nds, ndtmp;
+<span class="lineNum">     772 </span>            :     opal_list_item_t *item, *itm;
+<span class="lineNum">     773 </span>            :     char recv_msg[8192];
+<span class="lineNum">     774 </span>            :     int nbytes, idx, sjob;
+<span class="lineNum">     775 </span>            :     char **alloc, *nodelist, *tpn;
+<span class="lineNum">     776 </span>            :     local_jobtracker_t *ptr, *jtrk;
+<span class="lineNum">     777 </span>            :     local_apptracker_t *aptrk;
+<span class="lineNum">     778 </span>            :     orte_app_context_t *app;
+<span class="lineNum">     779 </span>            :     orte_jobid_t jobid;
+<span class="lineNum">     780 </span>            :     orte_job_t *jdata;
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :     char **dash_host = NULL;</span>
+<span class="lineNum">     782 </span>            : 
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     784 </span>            :                         &quot;%s ras:slurm: dynamic allocation - data recvd&quot;,
+<span class="lineNum">     785 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     786 </span>            : 
+<span class="lineNum">     787 </span>            :     /* read the data from the socket and put it in the
+<span class="lineNum">     788 </span>            :      * nodes field of op
+<span class="lineNum">     789 </span>            :      */
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :     memset(recv_msg, 0, sizeof(recv_msg));</span>
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :     nbytes = read(fd, recv_msg, sizeof(recv_msg) - 1);</span>
+<span class="lineNum">     792 </span>            : 
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     794 </span>            :                         &quot;%s ras:slurm: dynamic allocation msg: %s&quot;,
+<span class="lineNum">     795 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), recv_msg);
+<span class="lineNum">     796 </span>            : 
+<span class="lineNum">     797 </span>            :     /* check if we got something */
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :     if (0 == nbytes || 0 == strlen(recv_msg) || strstr(recv_msg, &quot;failure&quot;) != NULL) {</span>
+<span class="lineNum">     799 </span>            :         /* show an error here - basically, a &quot;nothing was available&quot;
+<span class="lineNum">     800 </span>            :          * message
+<span class="lineNum">     801 </span>            :          */
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :         orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;slurm-dyn-alloc-failed&quot;, true,</span>
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :                        (0 == strlen(recv_msg)) ? &quot;NO MSG&quot; : recv_msg);</span>
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :         ORTE_ACTIVATE_JOB_STATE(NULL, ORTE_JOB_STATE_ALLOC_FAILED);</span>
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     806 </span>            :     }
+<span class="lineNum">     807 </span>            : 
+<span class="lineNum">     808 </span>            :     /* break the message into its component parts, separated by colons */
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :     alloc = opal_argv_split(recv_msg, ':');</span>
+<span class="lineNum">     810 </span>            : 
+<span class="lineNum">     811 </span>            :     /* the first section contains the ORTE jobid for this allocation */
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :     tpn = strchr(alloc[0], '=');</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :     orte_util_convert_string_to_jobid(&amp;jobid, tpn+1);</span>
+<span class="lineNum">     814 </span>            :     /* get the corresponding job object */
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :     jdata = orte_get_job_data_object(jobid);</span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :     jtrk = NULL;</span>
+<span class="lineNum">     817 </span>            :     /* find the associated tracking object */
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :     for (item = opal_list_get_first(&amp;jobs);</span>
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :          item != opal_list_get_end(&amp;jobs);</span>
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :          item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :         ptr = (local_jobtracker_t*)item;</span>
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :         if (ptr-&gt;jobid == jobid) {</span>
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :             jtrk = ptr;</span>
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     825 </span>            :         }
+<span class="lineNum">     826 </span>            :     }
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :     if (NULL == jtrk) {</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :         orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;slurm-dyn-alloc-failed&quot;, true, &quot;NO JOB TRACKER&quot;);</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :         ORTE_ACTIVATE_JOB_STATE(NULL, ORTE_JOB_STATE_ALLOC_FAILED);</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :         opal_argv_free(alloc);</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     832 </span>            :     }
+<span class="lineNum">     833 </span>            : 
+<span class="lineNum">     834 </span>            :     /* stop the timeout event */
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :     opal_event_del(&amp;jtrk-&gt;timeout_ev);</span>
+<span class="lineNum">     836 </span>            : 
+<span class="lineNum">     837 </span>            :     /* cycle across all the remaining parts - each is the allocation for
+<span class="lineNum">     838 </span>            :      * an app in this job
+<span class="lineNum">     839 </span>            :      */
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;nds, opal_list_t);</span>
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;ndtmp, opal_list_t);</span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :     idx = -1;</span>
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :     sjob = -1;</span>
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :     nodelist = NULL;</span>
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :     tpn = NULL;</span>
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :     for (i=1; NULL != alloc[i]; i++) {</span>
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != parse_alloc_msg(alloc[i], &amp;idx, &amp;sjob, &amp;nodelist, &amp;tpn)) {</span>
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;slurm-dyn-alloc-failed&quot;, true, jtrk-&gt;cmd);</span>
+<span class="lineNum">     849 </span><span class="lineNoCov">          0 :             ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_ALLOC_FAILED);</span>
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :             opal_argv_free(alloc);</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :             if (NULL != nodelist) {</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :                 free(nodelist);</span>
+<span class="lineNum">     853 </span>            :             }
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :             if (NULL != tpn) {</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :                 free(tpn);</span>
+<span class="lineNum">     856 </span>            :             }
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     858 </span>            :         }
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :         if (idx &lt; 0) {</span>
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;slurm-dyn-alloc-failed&quot;, true, jtrk-&gt;cmd);</span>
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :             ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_ALLOC_FAILED);</span>
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :             opal_argv_free(alloc);</span>
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :             free(nodelist);</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :             free(tpn);</span>
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     866 </span>            :         }
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :         if (NULL == (app = (orte_app_context_t*)opal_pointer_array_get_item(jdata-&gt;apps, idx))) {</span>
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;slurm-dyn-alloc-failed&quot;, true, jtrk-&gt;cmd);</span>
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :             ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_ALLOC_FAILED);</span>
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :             opal_argv_free(alloc);</span>
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :             free(nodelist);</span>
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :             free(tpn);</span>
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     874 </span>            :         }
+<span class="lineNum">     875 </span>            :         /* release the current dash_host as that contained the *desired* allocation */
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :         orte_remove_attribute(&amp;app-&gt;attributes, ORTE_APP_DASH_HOST);</span>
+<span class="lineNum">     877 </span>            :         /* track the Slurm jobid */
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :         if (NULL == (aptrk = (local_apptracker_t*)opal_pointer_array_get_item(&amp;jtrk-&gt;apps, idx))) {</span>
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :             aptrk = OBJ_NEW(local_apptracker_t);</span>
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :             opal_pointer_array_set_item(&amp;jtrk-&gt;apps, idx, aptrk);</span>
+<span class="lineNum">     881 </span>            :         }
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :         aptrk-&gt;sjob = sjob;</span>
+<span class="lineNum">     883 </span>            :         /* since the nodelist/tpn may contain regular expressions, parse them */
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = orte_ras_slurm_discover(nodelist, tpn, &amp;ndtmp))) {</span>
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :             ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_ALLOC_FAILED);</span>
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :             opal_argv_free(alloc);</span>
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :             free(nodelist);</span>
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :             free(tpn);</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     891 </span>            :         }
+<span class="lineNum">     892 </span>            :         /* transfer the discovered nodes to our node list, and construct
+<span class="lineNum">     893 </span>            :          * the new dash_host entry to match what was allocated
+<span class="lineNum">     894 </span>            :          */
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :         while (NULL != (item = opal_list_remove_first(&amp;ndtmp))) {</span>
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :             nd = (orte_node_t*)item;</span>
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :             opal_argv_append_nosize(&amp;dash_host, nd-&gt;name);</span>
+<span class="lineNum">     898 </span>            :             /* check for duplicates */
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :             found = false;</span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :             for (itm = opal_list_get_first(&amp;nds);</span>
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :                  itm != opal_list_get_end(&amp;nds);</span>
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :                  itm = opal_list_get_next(itm)) {</span>
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :                 nd2 = (orte_node_t*)itm;</span>
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :                 if (0 == strcmp(nd-&gt;name, nd2-&gt;name)) {</span>
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :                     found = true;</span>
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :                     nd2-&gt;slots += nd-&gt;slots;</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :                     OBJ_RELEASE(item);</span>
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     909 </span>            :                 }
+<span class="lineNum">     910 </span>            :             }
+<span class="lineNum">     911 </span><span class="lineNoCov">          0 :             if (!found) {</span>
+<span class="lineNum">     912 </span>            :                 /* append the new node to our list */
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :                 opal_list_append(&amp;nds, item);</span>
+<span class="lineNum">     914 </span>            :             }
+<span class="lineNum">     915 </span>            :         }
+<span class="lineNum">     916 </span>            :         /* cleanup */
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :         free(nodelist);</span>
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :         free(tpn);</span>
+<span class="lineNum">     919 </span>            :     }
+<span class="lineNum">     920 </span>            :     /* cleanup */
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :     opal_argv_free(alloc);</span>
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;ndtmp);</span>
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :     if (NULL != dash_host) {</span>
+<span class="lineNum">     924 </span><span class="lineNoCov">          0 :         tpn = opal_argv_join(dash_host, ',');</span>
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :         orte_set_attribute(&amp;app-&gt;attributes, ORTE_APP_DASH_HOST, ORTE_ATTR_LOCAL, (void*)tpn, OPAL_STRING);</span>
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :         opal_argv_free(dash_host);</span>
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :         free(tpn);</span>
+<span class="lineNum">     928 </span>            :     }
+<span class="lineNum">     929 </span>            : 
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :     if (opal_list_is_empty(&amp;nds)) {</span>
+<span class="lineNum">     931 </span>            :         /* if we get here, then we were able to contact slurm,
+<span class="lineNum">     932 </span>            :          * which means we are in an actively managed cluster.
+<span class="lineNum">     933 </span>            :          * However, slurm indicated that nothing is currently
+<span class="lineNum">     934 </span>            :          * available that meets our requirements. This is a fatal
+<span class="lineNum">     935 </span>            :          * situation - we do NOT have the option of running on
+<span class="lineNum">     936 </span>            :          * user-specified hosts as the cluster is managed.
+<span class="lineNum">     937 </span>            :          */
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;nds);</span>
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :         orte_show_help(&quot;help-ras-base.txt&quot;, &quot;ras-base:no-allocation&quot;, true);</span>
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :         ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);</span>
+<span class="lineNum">     941 </span>            :     }
+<span class="lineNum">     942 </span>            : 
+<span class="lineNum">     943 </span>            :     /* store the found nodes */
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = orte_ras_base_node_insert(&amp;nds, jdata))) {</span>
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;nds);</span>
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :         ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);</span>
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     949 </span>            :     }
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;nds);</span>
+<span class="lineNum">     951 </span>            : 
+<span class="lineNum">     952 </span>            :     /* default to no-oversubscribe-allowed for managed systems */
+<span class="lineNum">     953 </span><span class="lineNoCov">          0 :     if (!(ORTE_MAPPING_SUBSCRIBE_GIVEN &amp; ORTE_GET_MAPPING_DIRECTIVE(orte_rmaps_base.mapping))) {</span>
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :         ORTE_SET_MAPPING_DIRECTIVE(orte_rmaps_base.mapping, ORTE_MAPPING_NO_OVERSUBSCRIBE);</span>
+<span class="lineNum">     955 </span>            :     }
+<span class="lineNum">     956 </span>            :     /* flag that the allocation is managed */
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :     orte_managed_allocation = true;</span>
+<span class="lineNum">     958 </span>            :     /* move the job along */
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :     ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_ALLOCATION_COMPLETE);</span>
+<span class="lineNum">     960 </span>            :     /* all done */
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     962 </span>            : }
+<span class="lineNum">     963 </span>            : 
+<span class="lineNum">     964 </span>            : /* we cannot use the RML to communicate with SLURM as it doesn't
+<span class="lineNum">     965 </span>            :  * understand our internal protocol, so we have to do a bare-bones
+<a name="966"><span class="lineNum">     966 </span>            :  * exchange based on sockets</a>
+<span class="lineNum">     967 </span>            :  */
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 : static int dyn_allocate(orte_job_t *jdata)</span>
+<span class="lineNum">     969 </span>            : {
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :     char *cmd_str, **cmd=NULL, *tmp, *jstring;</span>
+<span class="lineNum">     971 </span>            :     char *node_list;
+<span class="lineNum">     972 </span>            :     orte_app_context_t *app;
+<span class="lineNum">     973 </span>            :     int i;
+<span class="lineNum">     974 </span>            :     struct timeval tv;
+<span class="lineNum">     975 </span>            :     local_jobtracker_t *jtrk;
+<span class="lineNum">     976 </span>            :     int64_t i64, *i64ptr;
+<span class="lineNum">     977 </span>            : 
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :     if (NULL == mca_ras_slurm_component.config_file) {</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;Cannot perform dynamic allocation as no Slurm configuration file provided&quot;);</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :         return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     981 </span>            :     }
+<span class="lineNum">     982 </span>            : 
+<span class="lineNum">     983 </span>            :     /* track this request */
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :     jtrk = OBJ_NEW(local_jobtracker_t);</span>
+<span class="lineNum">     985 </span><span class="lineNoCov">          0 :     jtrk-&gt;jobid = jdata-&gt;jobid;</span>
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :     opal_list_append(&amp;jobs, &amp;jtrk-&gt;super);</span>
+<span class="lineNum">     987 </span>            : 
+<span class="lineNum">     988 </span>            :     /* construct the command - note that the jdata structure contains
+<span class="lineNum">     989 </span>            :      * a field for the minimum number of nodes required for the job.
+<span class="lineNum">     990 </span>            :      * The node list can be constructed from the union of all the nodes
+<span class="lineNum">     991 </span>            :      * contained in the dash_host field of the app_contexts. So you'll
+<span class="lineNum">     992 </span>            :      * need to do a little work to build the command. We don't currently
+<span class="lineNum">     993 </span>            :      * have a field in the jdata structure for &quot;mandatory&quot; vs &quot;optional&quot;
+<span class="lineNum">     994 </span>            :      * allocations, so we'll have to add that someday. Likewise, you may
+<span class="lineNum">     995 </span>            :      * want to provide a param to adjust the timeout value
+<span class="lineNum">     996 </span>            :      */
+<span class="lineNum">     997 </span>            :     /* construct the cmd string */
+<span class="lineNum">     998 </span><span class="lineNoCov">          0 :     opal_argv_append_nosize(&amp;cmd, &quot;allocate&quot;);</span>
+<span class="lineNum">     999 </span>            :     /* add the jobid */
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :     orte_util_convert_jobid_to_string(&amp;jstring, jdata-&gt;jobid);</span>
+<span class="lineNum">    1001 </span><span class="lineNoCov">          0 :     asprintf(&amp;tmp, &quot;jobid=%s&quot;, jstring);</span>
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :     opal_argv_append_nosize(&amp;cmd, tmp);</span>
+<span class="lineNum">    1003 </span><span class="lineNoCov">          0 :     free(tmp);</span>
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :     free(jstring);</span>
+<span class="lineNum">    1005 </span>            :     /* if we want the allocation for all apps in one shot,
+<span class="lineNum">    1006 </span>            :      * then tell slurm
+<span class="lineNum">    1007 </span>            :      *
+<span class="lineNum">    1008 </span>            :      * RHC: we don't currently have the ability to handle
+<span class="lineNum">    1009 </span>            :      * rolling allocations in the rest of the code base
+<span class="lineNum">    1010 </span>            :      */
+<span class="lineNum">    1011 </span>            : #if 0
+<span class="lineNum">    1012 </span>            :     if (!mca_ras_slurm_component.rolling_alloc) {
+<span class="lineNum">    1013 </span>            :         opal_argv_append_nosize(&amp;cmd, &quot;return=all&quot;);
+<span class="lineNum">    1014 </span>            :     }
+<span class="lineNum">    1015 </span>            : #else
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :     opal_argv_append_nosize(&amp;cmd, &quot;return=all&quot;);</span>
+<span class="lineNum">    1017 </span>            : #endif
+<span class="lineNum">    1018 </span>            : 
+<span class="lineNum">    1019 </span>            :     /* pass the timeout */
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :     asprintf(&amp;tmp, &quot;timeout=%d&quot;, mca_ras_slurm_component.timeout);</span>
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :     opal_argv_append_nosize(&amp;cmd, tmp);</span>
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :     free(tmp);</span>
+<span class="lineNum">    1023 </span>            : 
+<span class="lineNum">    1024 </span>            :     /* for each app, add its allocation request info */
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :     i64ptr = &amp;i64;</span>
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; jdata-&gt;apps-&gt;size; i++) {</span>
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :         if (NULL == (app = (orte_app_context_t*)opal_pointer_array_get_item(jdata-&gt;apps, i))) {</span>
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">    1029 </span>            :         }
+<span class="lineNum">    1030 </span>            :         /* add the app id, preceded by a colon separator */
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :         asprintf(&amp;tmp, &quot;: app=%d&quot;, (int)app-&gt;idx);</span>
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :         opal_argv_append_nosize(&amp;cmd, tmp);</span>
+<span class="lineNum">    1033 </span><span class="lineNoCov">          0 :         free(tmp);</span>
+<span class="lineNum">    1034 </span>            :         /* add the number of process &quot;slots&quot; we need */
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :         asprintf(&amp;tmp, &quot;np=%d&quot;, app-&gt;num_procs);</span>
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :         opal_argv_append_nosize(&amp;cmd, tmp);</span>
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :         free(tmp);</span>
+<span class="lineNum">    1038 </span>            :         /* if we were given a minimum number of nodes, pass it along */
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :         if (orte_get_attribute(&amp;app-&gt;attributes, ORTE_APP_MIN_NODES, (void**)&amp;i64ptr, OPAL_INT64)) {</span>
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :             asprintf(&amp;tmp, &quot;N=%ld&quot;, (long int)i64);</span>
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :             opal_argv_append_nosize(&amp;cmd, tmp);</span>
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :             free(tmp);</span>
+<span class="lineNum">    1043 </span>            :         }
+<span class="lineNum">    1044 </span>            :         /* add the list of nodes, if one was given, ensuring
+<span class="lineNum">    1045 </span>            :          * that each node only appears once
+<span class="lineNum">    1046 </span>            :          */
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :         node_list =  get_node_list(app);</span>
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :         if (NULL != node_list) {</span>
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :             asprintf(&amp;tmp, &quot;node_list=%s&quot;, node_list);</span>
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :             opal_argv_append_nosize(&amp;cmd, tmp);</span>
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :             free(node_list);</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :             free(tmp);</span>
+<span class="lineNum">    1053 </span>            :         }
+<span class="lineNum">    1054 </span>            :         /* add the mandatory/optional flag */
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :         if (orte_get_attribute(&amp;app-&gt;attributes, ORTE_APP_MANDATORY, NULL, OPAL_BOOL)) {</span>
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :             opal_argv_append_nosize(&amp;cmd, &quot;flag=mandatory&quot;);</span>
+<span class="lineNum">    1057 </span>            :         } else {
+<span class="lineNum">    1058 </span><span class="lineNoCov">          0 :             opal_argv_append_nosize(&amp;cmd, &quot;flag=optional&quot;);</span>
+<span class="lineNum">    1059 </span>            :         }
+<span class="lineNum">    1060 </span>            :     }
+<span class="lineNum">    1061 </span>            : 
+<span class="lineNum">    1062 </span>            :     /* assemble it into the final cmd to be sent */
+<span class="lineNum">    1063 </span><span class="lineNoCov">          0 :     cmd_str = opal_argv_join(cmd, ' ');</span>
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :     opal_argv_free(cmd);</span>
+<span class="lineNum">    1065 </span>            : 
+<span class="lineNum">    1066 </span>            :     /* start a timer - if the response to our request doesn't appear
+<span class="lineNum">    1067 </span>            :      * in the defined time, then we will error out as Slurm isn't
+<span class="lineNum">    1068 </span>            :      * responding to us
+<span class="lineNum">    1069 </span>            :      */
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :     opal_event_evtimer_set(orte_event_base, &amp;jtrk-&gt;timeout_ev, timeout, jtrk);</span>
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :     tv.tv_sec = mca_ras_slurm_component.timeout * 2;</span>
+<span class="lineNum">    1072 </span><span class="lineNoCov">          0 :     tv.tv_usec = 0;</span>
+<span class="lineNum">    1073 </span><span class="lineNoCov">          0 :     opal_event_evtimer_add(&amp;jtrk-&gt;timeout_ev, &amp;tv);</span>
+<span class="lineNum">    1074 </span>            : 
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">    1076 </span>            :                         &quot;%s slurm:dynalloc cmd_str = %s&quot;,
+<span class="lineNum">    1077 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">    1078 </span>            :                         cmd_str);
+<span class="lineNum">    1079 </span>            : 
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :     if (send(socket_fd, cmd_str, strlen(cmd_str)+1, 0) &lt; 0) {</span>
+<span class="lineNum">    1081 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_COMM_FAILURE);</span>
+<span class="lineNum">    1082 </span>            :     }
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :     free(cmd_str);</span>
+<span class="lineNum">    1084 </span>            : 
+<span class="lineNum">    1085 </span>            :     /* we cannot wait here for a response as we
+<span class="lineNum">    1086 </span>            :      * are already in an event. So return a value
+<span class="lineNum">    1087 </span>            :      * that indicates we are waiting for an
+<span class="lineNum">    1088 </span>            :      * allocation so the base functions know
+<span class="lineNum">    1089 </span>            :      * that they shouldn't progress the job
+<span class="lineNum">    1090 </span>            :      */
+<span class="lineNum">    1091 </span><span class="lineNoCov">          0 :     return ORTE_ERR_ALLOCATION_PENDING;</span>
+<a name="1092"><span class="lineNum">    1092 </span>            : }</a>
+<span class="lineNum">    1093 </span>            : 
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 : static int parse_alloc_msg(char *msg, int *idx, int *sjob,</span>
+<span class="lineNum">    1095 </span>            :                            char **nodelist, char **tpn)
+<span class="lineNum">    1096 </span>            : {
+<span class="lineNum">    1097 </span>            :     char *tmp;
+<span class="lineNum">    1098 </span>            :     char *p_str;
+<span class="lineNum">    1099 </span>            :     char *pos;
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :     int found=0;</span>
+<span class="lineNum">    1101 </span>            : 
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :     if (msg == NULL || strlen(msg) == 0) {</span>
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :         return ORTE_ERR_BAD_PARAM;</span>
+<span class="lineNum">    1104 </span>            :     }
+<span class="lineNum">    1105 </span>            : 
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :     tmp = strdup(msg);</span>
+<span class="lineNum">    1107 </span><span class="lineNoCov">          0 :     p_str = strtok(tmp, &quot; &quot;);</span>
+<span class="lineNum">    1108 </span><span class="lineNoCov">          0 :     while (p_str) {</span>
+<span class="lineNum">    1109 </span><span class="lineNoCov">          0 :         if (NULL != strstr(p_str, &quot;slurm_jobid&quot;)) {</span>
+<span class="lineNum">    1110 </span><span class="lineNoCov">          0 :             pos = strchr(p_str, '=');</span>
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 :             *sjob = strtol(pos+1, NULL, 10);</span>
+<span class="lineNum">    1112 </span><span class="lineNoCov">          0 :             found++;</span>
+<span class="lineNum">    1113 </span><span class="lineNoCov">          0 :         } else if (NULL != strstr(p_str, &quot;allocated_node_list&quot;)) {</span>
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :             pos = strchr(p_str, '=');</span>
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :             *nodelist = strdup(pos+1);</span>
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :             found++;</span>
+<span class="lineNum">    1117 </span><span class="lineNoCov">          0 :         } else if (NULL != strstr(p_str, &quot;tasks_per_node&quot;)) {</span>
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :             pos = strchr(p_str, '=');</span>
+<span class="lineNum">    1119 </span><span class="lineNoCov">          0 :             *tpn = strdup(pos+1);</span>
+<span class="lineNum">    1120 </span><span class="lineNoCov">          0 :             found++;</span>
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :         } else if (NULL != strstr(p_str, &quot;app&quot;)) {</span>
+<span class="lineNum">    1122 </span><span class="lineNoCov">          0 :             pos = strchr(p_str, '=');</span>
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :             *idx = strtol(pos+1, NULL, 10);</span>
+<span class="lineNum">    1124 </span><span class="lineNoCov">          0 :             found++;</span>
+<span class="lineNum">    1125 </span>            :         }
+<span class="lineNum">    1126 </span><span class="lineNoCov">          0 :         p_str = strtok(NULL, &quot; &quot;);</span>
+<span class="lineNum">    1127 </span>            :     }
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :     free(tmp);</span>
+<span class="lineNum">    1129 </span>            : 
+<span class="lineNum">    1130 </span><span class="lineNoCov">          0 :     if (4 != found) {</span>
+<span class="lineNum">    1131 </span><span class="lineNoCov">          0 :         return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">    1132 </span>            :     }
+<span class="lineNum">    1133 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="1134"><span class="lineNum">    1134 </span>            : }</a>
+<span class="lineNum">    1135 </span>            : 
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 : static char* get_node_list(orte_app_context_t *app)</span>
+<span class="lineNum">    1137 </span>            : {
+<span class="lineNum">    1138 </span>            :     int j;
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :     char **total_host = NULL;</span>
+<span class="lineNum">    1140 </span>            :     char *nodes;
+<span class="lineNum">    1141 </span>            :     char **dash_host, *dh;
+<span class="lineNum">    1142 </span>            : 
+<span class="lineNum">    1143 </span><span class="lineNoCov">          0 :     if (!orte_get_attribute(&amp;app-&gt;attributes, ORTE_APP_DASH_HOST, (void**)&amp;dh, OPAL_STRING)) {</span>
+<span class="lineNum">    1144 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">    1145 </span>            :     }
+<span class="lineNum">    1146 </span><span class="lineNoCov">          0 :     dash_host = opal_argv_split(dh, ',');</span>
+<span class="lineNum">    1147 </span><span class="lineNoCov">          0 :     free(dh);</span>
+<span class="lineNum">    1148 </span><span class="lineNoCov">          0 :     for (j=0; NULL != dash_host[j]; j++) {</span>
+<span class="lineNum">    1149 </span><span class="lineNoCov">          0 :         opal_argv_append_unique_nosize(&amp;total_host, dash_host[j], false);</span>
+<span class="lineNum">    1150 </span>            :     }
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 :     opal_argv_free(dash_host);</span>
+<span class="lineNum">    1152 </span><span class="lineNoCov">          0 :     if (NULL == total_host) {</span>
+<span class="lineNum">    1153 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">    1154 </span>            :     }
+<span class="lineNum">    1155 </span>            : 
+<span class="lineNum">    1156 </span><span class="lineNoCov">          0 :     nodes = opal_argv_join(total_host, ',');</span>
+<span class="lineNum">    1157 </span><span class="lineNoCov">          0 :     opal_argv_free(total_host);</span>
+<span class="lineNum">    1158 </span><span class="lineNoCov">          0 :     return nodes;</span>
+<a name="1159"><span class="lineNum">    1159 </span>            : }</a>
+<span class="lineNum">    1160 </span>            : 
+<span class="lineNum">    1161 </span><span class="lineNoCov">          0 : static int read_ip_port(char *filename, char **ip, uint16_t *port)</span>
+<span class="lineNum">    1162 </span>            : {
+<span class="lineNum">    1163 </span>            :     FILE *fp;
+<span class="lineNum">    1164 </span>            :     char line[ORTE_SLURM_DYN_MAX_SIZE];
+<span class="lineNum">    1165 </span>            :     char *pos;
+<span class="lineNum">    1166 </span><span class="lineNoCov">          0 :     bool found_port = false;</span>
+<span class="lineNum">    1167 </span><span class="lineNoCov">          0 :     bool found_ip = false;</span>
+<span class="lineNum">    1168 </span>            : 
+<span class="lineNum">    1169 </span><span class="lineNoCov">          0 :     if (NULL == (fp = fopen(filename, &quot;r&quot;))) {</span>
+<span class="lineNum">    1170 </span><span class="lineNoCov">          0 :         orte_show_help(&quot;help-ras-slurm.txt&quot;, &quot;config-file-not-found&quot;, true, filename);</span>
+<span class="lineNum">    1171 </span><span class="lineNoCov">          0 :         return ORTE_ERR_SILENT;</span>
+<span class="lineNum">    1172 </span>            :     }
+<span class="lineNum">    1173 </span>            : 
+<span class="lineNum">    1174 </span><span class="lineNoCov">          0 :     memset(line, 0, ORTE_SLURM_DYN_MAX_SIZE);</span>
+<span class="lineNum">    1175 </span><span class="lineNoCov">          0 :     while (NULL != fgets(line, ORTE_SLURM_DYN_MAX_SIZE, fp) &amp;&amp;</span>
+<span class="lineNum">    1176 </span><span class="lineNoCov">          0 :                  (!found_ip || !found_port)) {</span>
+<span class="lineNum">    1177 </span><span class="lineNoCov">          0 :         if (0 == strlen(line)) {</span>
+<span class="lineNum">    1178 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">    1179 </span>            :         }
+<span class="lineNum">    1180 </span><span class="lineNoCov">          0 :         line[strlen(line)-1] = '\0';</span>
+<span class="lineNum">    1181 </span><span class="lineNoCov">          0 :         if (0 == strncmp(line, &quot;JobSubmitDynAllocPort&quot;, strlen(&quot;JobSubmitDynAllocPort&quot;))) {</span>
+<span class="lineNum">    1182 </span><span class="lineNoCov">          0 :             pos = strstr(line, &quot;=&quot;) + 1;</span>
+<span class="lineNum">    1183 </span><span class="lineNoCov">          0 :             *port = strtol(pos, NULL, 10);</span>
+<span class="lineNum">    1184 </span><span class="lineNoCov">          0 :             found_port = true;</span>
+<span class="lineNum">    1185 </span><span class="lineNoCov">          0 :         } else if (0 == strncmp(line, &quot;ControlMachine&quot;, strlen(&quot;ControlMachine&quot;))) {</span>
+<span class="lineNum">    1186 </span><span class="lineNoCov">          0 :             pos = strstr(line, &quot;=&quot;) + 1;</span>
+<span class="lineNum">    1187 </span><span class="lineNoCov">          0 :             *ip = strdup(pos);</span>
+<span class="lineNum">    1188 </span><span class="lineNoCov">          0 :             found_ip = true;</span>
+<span class="lineNum">    1189 </span>            :         }
+<span class="lineNum">    1190 </span><span class="lineNoCov">          0 :         memset(line, 0, ORTE_SLURM_DYN_MAX_SIZE);</span>
+<span class="lineNum">    1191 </span>            :     }
+<span class="lineNum">    1192 </span>            : 
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :     fclose(fp);</span>
+<span class="lineNum">    1194 </span><span class="lineNoCov">          0 :     if (!found_ip) {</span>
+<span class="lineNum">    1195 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;The IP address or name of the Slurm control machine was not provided&quot;);</span>
+<span class="lineNum">    1196 </span><span class="lineNoCov">          0 :         return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">    1197 </span>            :     }
+<span class="lineNum">    1198 </span><span class="lineNoCov">          0 :     if (!found_port) {</span>
+<span class="lineNum">    1199 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;The IP port of the Slurm dynamic allocation service was not provided&quot;);</span>
+<span class="lineNum">    1200 </span><span class="lineNoCov">          0 :         return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">    1201 </span>            :     }
+<span class="lineNum">    1202 </span>            : 
+<span class="lineNum">    1203 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">    1204 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

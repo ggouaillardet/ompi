@@ -1,0 +1,1009 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/oob/tcp/oob_tcp_listener.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/oob/tcp</a> - oob_tcp_listener.c<span style="font-size: 80%;"> (source / <a href="oob_tcp_listener.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">67</td>
+            <td class="headerCovTableEntry">256</td>
+            <td class="headerCovTableEntryLo">26.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryLo">57.1 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2010 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2011 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2006-2013 Los Alamos National Security, LLC.
+<span class="lineNum">      13 </span>            :  *                         All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2009-2015 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2011      Oak Ridge National Labs.  All rights reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2013-2014 Intel, Inc.  All rights reserved.
+<span class="lineNum">      17 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      18 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      19 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      22 </span>            :  *
+<span class="lineNum">      23 </span>            :  * $HEADER$
+<span class="lineNum">      24 </span>            :  *
+<span class="lineNum">      25 </span>            :  * In windows, many of the socket functions return an EWOULDBLOCK
+<span class="lineNum">      26 </span>            :  * instead of things like EAGAIN, EINPROGRESS, etc. It has been
+<span class="lineNum">      27 </span>            :  * verified that this will not conflict with other error codes that
+<span class="lineNum">      28 </span>            :  * are returned by these functions under UNIX/Linux environments
+<span class="lineNum">      29 </span>            :  */
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;orte/types.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;opal/types.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      36 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      37 </span>            : #endif
+<span class="lineNum">      38 </span>            : #ifdef HAVE_SYS_TYPES_H
+<span class="lineNum">      39 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      40 </span>            : #endif
+<span class="lineNum">      41 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      42 </span>            : #ifdef HAVE_NETINET_IN_H
+<span class="lineNum">      43 </span>            : #include &lt;netinet/in.h&gt;
+<span class="lineNum">      44 </span>            : #endif
+<span class="lineNum">      45 </span>            : #ifdef HAVE_ARPA_INET_H
+<span class="lineNum">      46 </span>            : #include &lt;arpa/inet.h&gt;
+<span class="lineNum">      47 </span>            : #endif
+<span class="lineNum">      48 </span>            : #ifdef HAVE_NETDB_H
+<span class="lineNum">      49 </span>            : #include &lt;netdb.h&gt;
+<span class="lineNum">      50 </span>            : #endif
+<span class="lineNum">      51 </span>            : #include &lt;ctype.h&gt;
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : #include &quot;opal/util/show_help.h&quot;
+<span class="lineNum">      54 </span>            : #include &quot;opal/util/error.h&quot;
+<span class="lineNum">      55 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;opal/opal_socket_errno.h&quot;
+<span class="lineNum">      57 </span>            : #include &quot;opal/util/if.h&quot;
+<span class="lineNum">      58 </span>            : #include &quot;opal/util/net.h&quot;
+<span class="lineNum">      59 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      60 </span>            : #include &quot;opal/util/fd.h&quot;
+<span class="lineNum">      61 </span>            : #include &quot;opal/class/opal_hash_table.h&quot;
+<span class="lineNum">      62 </span>            : #include &quot;opal/class/opal_list.h&quot;
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      65 </span>            : #include &quot;orte/mca/ess/ess.h&quot;
+<span class="lineNum">      66 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      67 </span>            : #include &quot;orte/util/parse_options.h&quot;
+<span class="lineNum">      68 </span>            : #include &quot;orte/util/show_help.h&quot;
+<span class="lineNum">      69 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : #include &quot;orte/mca/oob/tcp/oob_tcp.h&quot;
+<span class="lineNum">      72 </span>            : #include &quot;orte/mca/oob/tcp/oob_tcp_component.h&quot;
+<span class="lineNum">      73 </span>            : #include &quot;orte/mca/oob/tcp/oob_tcp_peer.h&quot;
+<span class="lineNum">      74 </span>            : #include &quot;orte/mca/oob/tcp/oob_tcp_connection.h&quot;
+<span class="lineNum">      75 </span>            : #include &quot;orte/mca/oob/tcp/oob_tcp_listener.h&quot;
+<span class="lineNum">      76 </span>            : #include &quot;orte/mca/oob/tcp/oob_tcp_common.h&quot;
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : static void connection_event_handler(int incoming_sd, short flags, void* cbdata);
+<span class="lineNum">      79 </span>            : static void* listen_thread(opal_object_t *obj);
+<span class="lineNum">      80 </span>            : static int create_listen(void);
+<span class="lineNum">      81 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">      82 </span>            : static int create_listen6(void);
+<span class="lineNum">      83 </span>            : #endif
+<span class="lineNum">      84 </span>            : static void connection_handler(int sd, short flags, void* cbdata);
+<span class="lineNum">      85 </span>            : static void connection_event_handler(int sd, short flags, void* cbdata);
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : /*
+<span class="lineNum">      88 </span>            :  * Component initialization - create a module for each available
+<span class="lineNum">      89 </span>            :  * TCP interface and initialize the static resources associated
+<span class="lineNum">      90 </span>            :  * with that module.
+<span class="lineNum">      91 </span>            :  *
+<span class="lineNum">      92 </span>            :  * Also initializes the list of devices that will be used/supported by
+<span class="lineNum">      93 </span>            :  * the module, using the if_include and if_exclude variables.  This is
+<span class="lineNum">      94 </span>            :  * the only place that this sorting should occur -- all other places
+<span class="lineNum">      95 </span>            :  * should use the tcp_avaiable_devices list.  This is a change from
+<a name="96"><span class="lineNum">      96 </span>            :  * previous versions of this component.</a>
+<span class="lineNum">      97 </span>            :  */
+<span class="lineNum">      98 </span><span class="lineCov">          2 : int orte_oob_tcp_start_listening(void)</span>
+<span class="lineNum">      99 </span>            : {
+<span class="lineNum">     100 </span>            :     int rc;
+<span class="lineNum">     101 </span>            :     mca_oob_tcp_listener_t *listener;
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            :     /* if we don't have any TCP interfaces, we shouldn't be here */
+<span class="lineNum">     104 </span><span class="lineCov">          2 :     if (NULL == mca_oob_tcp_component.ipv4conns</span>
+<span class="lineNum">     105 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     106 </span>            :         &amp;&amp; NULL == mca_oob_tcp_component.ipv6conns
+<span class="lineNum">     107 </span>            : #endif
+<span class="lineNum">     108 </span>            :         ) {
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :         return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     111 </span>            :     }
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            :     /* create listen socket(s) for incoming connection attempts */
+<span class="lineNum">     114 </span><span class="lineCov">          2 :     if (ORTE_SUCCESS != (rc = create_listen())) {</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     117 </span>            :     }
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     120 </span>            :     /* create listen socket(s) for incoming connection attempts */
+<span class="lineNum">     121 </span>            :     if (ORTE_SUCCESS != (rc = create_listen6())) {
+<span class="lineNum">     122 </span>            :         ORTE_ERROR_LOG(rc);
+<span class="lineNum">     123 </span>            :         return rc;
+<span class="lineNum">     124 </span>            :     }
+<span class="lineNum">     125 </span>            : #endif
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            :     /* if I am the HNP, start a listening thread so we can
+<span class="lineNum">     128 </span>            :      * harvest connection requests as rapidly as possible
+<span class="lineNum">     129 </span>            :      */
+<span class="lineNum">     130 </span><span class="lineCov">          2 :     if (ORTE_PROC_IS_HNP) {</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         if (0 &gt; pipe(mca_oob_tcp_component.stop_thread)) {</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_OUT_OF_RESOURCE);</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :             return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     134 </span>            :         }
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            :         /* Make sure the pipe FDs are set to close-on-exec so that
+<span class="lineNum">     137 </span>            :            they don't leak into children */
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :         if (opal_fd_set_cloexec(mca_oob_tcp_component.stop_thread[0]) != OPAL_SUCCESS ||</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :             opal_fd_set_cloexec(mca_oob_tcp_component.stop_thread[1]) != OPAL_SUCCESS) {</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :             close(mca_oob_tcp_component.stop_thread[0]);</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :             close(mca_oob_tcp_component.stop_thread[1]);</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_IN_ERRNO);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :             return ORTE_ERR_IN_ERRNO;</span>
+<span class="lineNum">     144 </span>            :         }
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         mca_oob_tcp_component.listen_thread_active = true;</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         mca_oob_tcp_component.listen_thread.t_run = listen_thread;</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         mca_oob_tcp_component.listen_thread.t_arg = NULL;</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_thread_start(&amp;mca_oob_tcp_component.listen_thread))) {</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;%s Unable to start listen thread&quot;, ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));</span>
+<span class="lineNum">     152 </span>            :         }
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     154 </span>            :     }
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            :     /* otherwise, setup to listen via the event lib */
+<span class="lineNum">     157 </span><span class="lineCov">          4 :     OPAL_LIST_FOREACH(listener, &amp;mca_oob_tcp_component.listeners, mca_oob_tcp_listener_t) {</span>
+<span class="lineNum">     158 </span><span class="lineCov">          2 :         listener-&gt;ev_active = true;</span>
+<span class="lineNum">     159 </span><span class="lineCov">          2 :         opal_event_set(orte_event_base, &amp;listener-&gt;event,</span>
+<span class="lineNum">     160 </span>            :                        listener-&gt;sd,
+<span class="lineNum">     161 </span>            :                        OPAL_EV_READ|OPAL_EV_PERSIST,
+<span class="lineNum">     162 </span>            :                        connection_event_handler,
+<span class="lineNum">     163 </span>            :                        0);
+<span class="lineNum">     164 </span><span class="lineCov">          2 :         opal_event_set_priority(&amp;listener-&gt;event, ORTE_MSG_PRI);</span>
+<span class="lineNum">     165 </span><span class="lineCov">          2 :         opal_event_add(&amp;listener-&gt;event, 0);</span>
+<span class="lineNum">     166 </span>            :     }
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineCov">          2 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     169 </span>            : }
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            : /*
+<span class="lineNum">     172 </span>            :  * Create an IPv4 listen socket and bind to all interfaces.
+<span class="lineNum">     173 </span>            :  *
+<span class="lineNum">     174 </span>            :  * At one time, this also registered a callback with the event library
+<span class="lineNum">     175 </span>            :  * for when connections were received on the listen socket.  This is
+<span class="lineNum">     176 </span>            :  * no longer the case -- the caller must register any events required.
+<span class="lineNum">     177 </span>            :  *
+<a name="178"><span class="lineNum">     178 </span>            :  * Called by both the threaded and event based listen modes.</a>
+<span class="lineNum">     179 </span>            :  */
+<span class="lineNum">     180 </span><span class="lineCov">          2 : static int create_listen(void)</span>
+<span class="lineNum">     181 </span>            : {
+<span class="lineNum">     182 </span>            :     int flags, i;
+<span class="lineNum">     183 </span><span class="lineCov">          2 :     uint16_t port=0;</span>
+<span class="lineNum">     184 </span>            :     struct sockaddr_storage inaddr;
+<span class="lineNum">     185 </span>            :     opal_socklen_t addrlen;
+<span class="lineNum">     186 </span><span class="lineCov">          2 :     char **ports=NULL;</span>
+<span class="lineNum">     187 </span><span class="lineCov">          2 :     int sd = -1;</span>
+<span class="lineNum">     188 </span>            :     char *tconn;
+<span class="lineNum">     189 </span>            :     mca_oob_tcp_listener_t *conn;
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            :     /* If an explicit range of ports was given, find the first open
+<span class="lineNum">     192 </span>            :      * port in the range.  Otherwise, tcp_port_min will be 0, which
+<span class="lineNum">     193 </span>            :      * means &quot;pick any port&quot;
+<span class="lineNum">     194 </span>            :      */
+<span class="lineNum">     195 </span><span class="lineCov">          2 :     if (ORTE_PROC_IS_DAEMON || ORTE_PROC_IS_AGGREGATOR) {</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :         if (NULL != mca_oob_tcp_component.tcp_static_ports) {</span>
+<span class="lineNum">     197 </span>            :             /* if static ports were provided, take the
+<span class="lineNum">     198 </span>            :              * first entry in the list
+<span class="lineNum">     199 </span>            :              */
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :             opal_argv_append_nosize(&amp;ports, mca_oob_tcp_component.tcp_static_ports[0]);</span>
+<span class="lineNum">     201 </span>            :             /* flag that we are using static ports */
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :             orte_static_ports = true;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :         } else if (NULL != mca_oob_tcp_component.tcp_dyn_ports) {</span>
+<span class="lineNum">     204 </span>            :             /* take the entire range */
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :             ports = opal_argv_copy(mca_oob_tcp_component.tcp_dyn_ports);</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :             orte_static_ports = false;</span>
+<span class="lineNum">     207 </span>            :         } else {
+<span class="lineNum">     208 </span>            :             /* flag the system to dynamically take any available port */
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :             opal_argv_append_nosize(&amp;ports, &quot;0&quot;);</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :             orte_static_ports = false;</span>
+<span class="lineNum">     211 </span>            :         }
+<span class="lineNum">     212 </span><span class="lineCov">          2 :     } else if (ORTE_PROC_IS_HNP || ORTE_PROC_IS_SCHEDULER) {</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :         if (NULL != mca_oob_tcp_component.tcp_static_ports) {</span>
+<span class="lineNum">     214 </span>            :             /* if static ports were provided, take the
+<span class="lineNum">     215 </span>            :              * first entry in the list
+<span class="lineNum">     216 </span>            :              */
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :             opal_argv_append_nosize(&amp;ports, mca_oob_tcp_component.tcp_static_ports[0]);</span>
+<span class="lineNum">     218 </span>            :             /* flag that we are using static ports */
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :             orte_static_ports = true;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         } else if (NULL != mca_oob_tcp_component.tcp_dyn_ports) {</span>
+<span class="lineNum">     221 </span>            :             /* take the entire range */
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :             ports = opal_argv_copy(mca_oob_tcp_component.tcp_dyn_ports);</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :             orte_static_ports = false;</span>
+<span class="lineNum">     224 </span>            :         } else {
+<span class="lineNum">     225 </span>            :             /* flag the system to dynamically take any available port */
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :             opal_argv_append_nosize(&amp;ports, &quot;0&quot;);</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :             orte_static_ports = false;</span>
+<span class="lineNum">     228 </span>            :         }
+<span class="lineNum">     229 </span><span class="lineCov">          2 :     } else if (ORTE_PROC_IS_MPI) {</span>
+<span class="lineNum">     230 </span><span class="lineCov">          2 :         if (NULL != mca_oob_tcp_component.tcp_static_ports) {</span>
+<span class="lineNum">     231 </span>            :             /* if static ports were provided, an mpi proc takes its
+<span class="lineNum">     232 </span>            :              * node_local_rank entry in the list IF it has that info
+<span class="lineNum">     233 </span>            :              * AND enough ports were provided - otherwise, we &quot;pick any port&quot;
+<span class="lineNum">     234 </span>            :              */
+<span class="lineNum">     235 </span>            :             orte_node_rank_t nrank;
+<span class="lineNum">     236 </span>            :             /* do I know my node_local_rank yet? */
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :             if (ORTE_NODE_RANK_INVALID != (nrank = orte_process_info.my_node_rank) &amp;&amp;</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :                 (nrank+1) &lt; opal_argv_count(mca_oob_tcp_component.tcp_static_ports)) {</span>
+<span class="lineNum">     239 </span>            :                 /* any daemon takes the first entry, so we start with the second */
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :                 opal_argv_append_nosize(&amp;ports, mca_oob_tcp_component.tcp_static_ports[nrank+1]);</span>
+<span class="lineNum">     241 </span>            :                 /* flag that we are using static ports */
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :                 orte_static_ports = true;</span>
+<span class="lineNum">     243 </span>            :             } else {
+<span class="lineNum">     244 </span>            :                 /* flag the system to dynamically take any available port */
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :                 opal_argv_append_nosize(&amp;ports, &quot;0&quot;);</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :                 orte_static_ports = false;</span>
+<span class="lineNum">     247 </span>            :             }
+<span class="lineNum">     248 </span><span class="lineCov">          2 :         } else if (NULL != mca_oob_tcp_component.tcp_dyn_ports) {</span>
+<span class="lineNum">     249 </span>            :             /* take the entire range */
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :             ports = opal_argv_copy(mca_oob_tcp_component.tcp_dyn_ports);</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :             orte_static_ports = false;</span>
+<span class="lineNum">     252 </span>            :         } else {
+<span class="lineNum">     253 </span>            :             /* flag the system to dynamically take any available port */
+<span class="lineNum">     254 </span><span class="lineCov">          2 :             opal_argv_append_nosize(&amp;ports, &quot;0&quot;);</span>
+<span class="lineNum">     255 </span><span class="lineCov">          2 :             orte_static_ports = false;</span>
+<span class="lineNum">     256 </span>            :         }
+<span class="lineNum">     257 </span>            :     } else {
+<span class="lineNum">     258 </span>            :         /* if we are a tool, then we must let the
+<span class="lineNum">     259 </span>            :          * system pick any port
+<span class="lineNum">     260 </span>            :          */
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         opal_argv_append_nosize(&amp;ports, &quot;0&quot;);</span>
+<span class="lineNum">     262 </span>            :         /* if static ports were specified, flag it
+<span class="lineNum">     263 </span>            :          * so the HNP does the right thing
+<span class="lineNum">     264 </span>            :          */
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         if (NULL != mca_oob_tcp_component.tcp_static_ports) {</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :             orte_static_ports = true;</span>
+<span class="lineNum">     267 </span>            :         } else {
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :             orte_static_ports = false;</span>
+<span class="lineNum">     269 </span>            :         }
+<span class="lineNum">     270 </span>            :     }
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            :     /* bozo check - this should be impossible, but... */
+<span class="lineNum">     273 </span><span class="lineCov">          2 :     if (NULL == ports) {</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         return ORTE_ERROR;</span>
+<span class="lineNum">     275 </span>            :     }
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            :     /* get the address info for this interface */
+<span class="lineNum">     278 </span><span class="lineCov">          2 :     ((struct sockaddr_in*) &amp;inaddr)-&gt;sin_family = AF_INET;</span>
+<span class="lineNum">     279 </span><span class="lineCov">          2 :     ((struct sockaddr_in*) &amp;inaddr)-&gt;sin_addr.s_addr = INADDR_ANY;</span>
+<span class="lineNum">     280 </span><span class="lineCov">          2 :     addrlen = sizeof(struct sockaddr_in);</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span>            :     /* loop across all the specified ports, establishing a socket
+<span class="lineNum">     283 </span>            :      * for each one - note that application procs will ONLY have
+<span class="lineNum">     284 </span>            :      * one socket, but that orterun and daemons will have multiple
+<span class="lineNum">     285 </span>            :      * sockets to support more flexible wireup protocols
+<span class="lineNum">     286 </span>            :      */
+<span class="lineNum">     287 </span><span class="lineCov">          2 :     for (i=0; i &lt; opal_argv_count(ports); i++) {</span>
+<span class="lineNum">     288 </span><span class="lineCov">          2 :         opal_output_verbose(5, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     289 </span>            :                             &quot;%s attempting to bind to IPv4 port %s&quot;,
+<span class="lineNum">     290 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     291 </span><span class="lineCov">          2 :                             ports[i]);</span>
+<span class="lineNum">     292 </span>            :         /* get the port number */
+<span class="lineNum">     293 </span><span class="lineCov">          2 :         port = strtol(ports[i], NULL, 10);</span>
+<span class="lineNum">     294 </span>            :         /* convert it to network-byte-order */
+<span class="lineNum">     295 </span><span class="lineCov">          2 :         port = htons(port);</span>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span><span class="lineCov">          2 :         ((struct sockaddr_in*) &amp;inaddr)-&gt;sin_port = port;</span>
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span>            :         /* create a listen socket for incoming connections on this port */
+<span class="lineNum">     300 </span><span class="lineCov">          2 :         sd = socket(AF_INET, SOCK_STREAM, 0);</span>
+<span class="lineNum">     301 </span><span class="lineCov">          2 :         if (sd &lt; 0) {</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :             if (EAFNOSUPPORT != opal_socket_errno) {</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :                 opal_output(0,&quot;mca_oob_tcp_component_init: socket() failed: %s (%d)&quot;,</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :                             strerror(opal_socket_errno), opal_socket_errno);</span>
+<span class="lineNum">     305 </span>            :             }
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :             opal_argv_free(ports);</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :             return ORTE_ERR_IN_ERRNO;</span>
+<span class="lineNum">     308 </span>            :         }
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            :         /* Enable/disable reusing ports */
+<span class="lineNum">     311 </span><span class="lineCov">          2 :         if (orte_static_ports) {</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :             flags = 1;</span>
+<span class="lineNum">     313 </span>            :         } else {
+<span class="lineNum">     314 </span><span class="lineCov">          2 :             flags = 0;</span>
+<span class="lineNum">     315 </span>            :         }
+<span class="lineNum">     316 </span><span class="lineCov">          2 :         if (setsockopt (sd, SOL_SOCKET, SO_REUSEADDR, (const char *)&amp;flags, sizeof(flags)) &lt; 0) {</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;mca_oob_tcp_create_listen: unable to set the &quot;</span>
+<span class="lineNum">     318 </span>            :                         &quot;SO_REUSEADDR option (%s:%d)\n&quot;,
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :                         strerror(opal_socket_errno), opal_socket_errno);</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :             opal_argv_free(ports);</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :             return ORTE_ERROR;</span>
+<span class="lineNum">     323 </span>            :         }
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            :         /* Set the socket to close-on-exec so that no children inherit
+<span class="lineNum">     326 </span>            :            this FD */
+<span class="lineNum">     327 </span><span class="lineCov">          2 :         if (opal_fd_set_cloexec(sd) != OPAL_SUCCESS) {</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;mca_oob_tcp_create_listen: unable to set the &quot;</span>
+<span class="lineNum">     329 </span>            :                         &quot;listening socket to CLOEXEC (%s:%d)\n&quot;,
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :                         strerror(opal_socket_errno), opal_socket_errno);</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :             opal_argv_free(ports);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :             return ORTE_ERROR;</span>
+<span class="lineNum">     334 </span>            :         }
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span><span class="lineCov">          2 :         if (bind(sd, (struct sockaddr*)&amp;inaddr, addrlen) &lt; 0) {</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :             if( (EADDRINUSE == opal_socket_errno) || (EADDRNOTAVAIL == opal_socket_errno) ) {</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     339 </span>            :             }
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;%s bind() failed for port %d: %s (%d)&quot;,</span>
+<span class="lineNum">     341 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :                         (int)ntohs(port),</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :                         strerror(opal_socket_errno),</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :                         opal_socket_errno );</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :             opal_argv_free(ports);</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :             return ORTE_ERROR;</span>
+<span class="lineNum">     348 </span>            :         }
+<span class="lineNum">     349 </span>            :         /* resolve assigned port */
+<span class="lineNum">     350 </span><span class="lineCov">          2 :         if (getsockname(sd, (struct sockaddr*)&amp;inaddr, &amp;addrlen) &lt; 0) {</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;mca_oob_tcp_create_listen: getsockname(): %s (%d)&quot;,</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :                         strerror(opal_socket_errno), opal_socket_errno);</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :             opal_argv_free(ports);</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :             return ORTE_ERROR;</span>
+<span class="lineNum">     356 </span>            :         }
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            :         /* setup listen backlog to maximum allowed by kernel */
+<span class="lineNum">     359 </span><span class="lineCov">          2 :         if (listen(sd, SOMAXCONN) &lt; 0) {</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;mca_oob_tcp_component_init: listen(): %s (%d)&quot;,</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :                         strerror(opal_socket_errno), opal_socket_errno);</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :             opal_argv_free(ports);</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :             return ORTE_ERROR;</span>
+<span class="lineNum">     365 </span>            :         }
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span>            :         /* set socket up to be non-blocking, otherwise accept could block */
+<span class="lineNum">     368 </span><span class="lineCov">          2 :         if ((flags = fcntl(sd, F_GETFL, 0)) &lt; 0) {</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;mca_oob_tcp_component_init: fcntl(F_GETFL) failed: %s (%d)&quot;,</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :                         strerror(opal_socket_errno), opal_socket_errno);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :             opal_argv_free(ports);</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :             return ORTE_ERROR;</span>
+<span class="lineNum">     374 </span>            :         }
+<span class="lineNum">     375 </span><span class="lineCov">          2 :         flags |= O_NONBLOCK;</span>
+<span class="lineNum">     376 </span><span class="lineCov">          2 :         if (fcntl(sd, F_SETFL, flags) &lt; 0) {</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;mca_oob_tcp_component_init: fcntl(F_SETFL) failed: %s (%d)&quot;,</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                         strerror(opal_socket_errno), opal_socket_errno);</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :             opal_argv_free(ports);</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :             return ORTE_ERROR;</span>
+<span class="lineNum">     382 </span>            :         }
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span>            :         /* add this port to our connections */
+<span class="lineNum">     385 </span><span class="lineCov">          2 :         conn = OBJ_NEW(mca_oob_tcp_listener_t);</span>
+<span class="lineNum">     386 </span><span class="lineCov">          2 :         conn-&gt;sd = sd;</span>
+<span class="lineNum">     387 </span><span class="lineCov">          2 :         opal_list_append(&amp;mca_oob_tcp_component.listeners, &amp;conn-&gt;item);</span>
+<span class="lineNum">     388 </span>            :         /* and to our ports */
+<span class="lineNum">     389 </span><span class="lineCov">          2 :         asprintf(&amp;tconn, &quot;%d&quot;, ntohs(((struct sockaddr_in*) &amp;inaddr)-&gt;sin_port));</span>
+<span class="lineNum">     390 </span><span class="lineCov">          2 :         opal_argv_append_nosize(&amp;mca_oob_tcp_component.ipv4ports, tconn);</span>
+<span class="lineNum">     391 </span><span class="lineCov">          2 :         free(tconn);</span>
+<span class="lineNum">     392 </span><span class="lineCov">          2 :         if (OOB_TCP_DEBUG_CONNECT &lt;= opal_output_get_verbosity(orte_oob_base_framework.framework_output)) {</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :             port = ntohs(((struct sockaddr_in*) &amp;inaddr)-&gt;sin_port);</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;%s assigned IPv4 port %d&quot;,</span>
+<span class="lineNum">     395 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), port);
+<span class="lineNum">     396 </span>            :         }
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span><span class="lineCov">          2 :         if (!ORTE_PROC_IS_HNP) {</span>
+<span class="lineNum">     399 </span>            :             /* only the HNP binds to multiple ports */
+<span class="lineNum">     400 </span><span class="lineCov">          2 :             break;</span>
+<span class="lineNum">     401 </span>            :         }
+<span class="lineNum">     402 </span>            :     }
+<span class="lineNum">     403 </span>            :     /* done with this, so release it */
+<span class="lineNum">     404 </span><span class="lineCov">          2 :     opal_argv_free(ports);</span>
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineCov">          2 :     if (0 == opal_list_get_size(&amp;mca_oob_tcp_component.listeners)) {</span>
+<span class="lineNum">     407 </span>            :         /* cleanup */
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :         if (0 &lt;= sd) {</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     410 </span>            :         }
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         return ORTE_ERR_SOCKET_NOT_AVAILABLE;</span>
+<span class="lineNum">     412 </span>            :     }
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineCov">          2 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     415 </span>            : }
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">     418 </span>            : /*
+<span class="lineNum">     419 </span>            :  * Create an IPv6 listen socket and bind to all interfaces.
+<span class="lineNum">     420 </span>            :  *
+<span class="lineNum">     421 </span>            :  * At one time, this also registered a callback with the event library
+<span class="lineNum">     422 </span>            :  * for when connections were received on the listen socket.  This is
+<span class="lineNum">     423 </span>            :  * no longer the case -- the caller must register any events required.
+<span class="lineNum">     424 </span>            :  *
+<span class="lineNum">     425 </span>            :  * Called by both the threaded and event based listen modes.
+<span class="lineNum">     426 </span>            :  */
+<span class="lineNum">     427 </span>            : static int create_listen6(void)
+<span class="lineNum">     428 </span>            : {
+<span class="lineNum">     429 </span>            :     int flags, i;
+<span class="lineNum">     430 </span>            :     uint16_t port=0;
+<span class="lineNum">     431 </span>            :     struct sockaddr_storage inaddr;
+<span class="lineNum">     432 </span>            :     opal_socklen_t addrlen;
+<span class="lineNum">     433 </span>            :     char **ports=NULL;
+<span class="lineNum">     434 </span>            :     int sd;
+<span class="lineNum">     435 </span>            :     char *tconn;
+<span class="lineNum">     436 </span>            :     mca_oob_tcp_listener_t *conn;
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span>            :     /* If an explicit range of ports was given, find the first open
+<span class="lineNum">     439 </span>            :      * port in the range.  Otherwise, tcp_port_min will be 0, which
+<span class="lineNum">     440 </span>            :      * means &quot;pick any port&quot;
+<span class="lineNum">     441 </span>            :      */
+<span class="lineNum">     442 </span>            :     if (ORTE_PROC_IS_DAEMON) {
+<span class="lineNum">     443 </span>            :         if (NULL != mca_oob_tcp_component.tcp6_static_ports) {
+<span class="lineNum">     444 </span>            :             /* if static ports were provided, take the
+<span class="lineNum">     445 </span>            :              * first entry in the list
+<span class="lineNum">     446 </span>            :              */
+<span class="lineNum">     447 </span>            :             opal_argv_append_nosize(&amp;ports, mca_oob_tcp_component.tcp6_static_ports[0]);
+<span class="lineNum">     448 </span>            :             /* flag that we are using static ports */
+<span class="lineNum">     449 </span>            :             orte_static_ports = true;
+<span class="lineNum">     450 </span>            :         } else if (NULL != mca_oob_tcp_component.tcp6_dyn_ports) {
+<span class="lineNum">     451 </span>            :             /* take the entire range */
+<span class="lineNum">     452 </span>            :             ports = opal_argv_copy(mca_oob_tcp_component.tcp6_dyn_ports);
+<span class="lineNum">     453 </span>            :             orte_static_ports = false;
+<span class="lineNum">     454 </span>            :         } else {
+<span class="lineNum">     455 </span>            :             /* flag the system to dynamically take any available port */
+<span class="lineNum">     456 </span>            :             opal_argv_append_nosize(&amp;ports, &quot;0&quot;);
+<span class="lineNum">     457 </span>            :             orte_static_ports = false;
+<span class="lineNum">     458 </span>            :         }
+<span class="lineNum">     459 </span>            :     } else if (ORTE_PROC_IS_HNP) {
+<span class="lineNum">     460 </span>            :         if (NULL != mca_oob_tcp_component.tcp6_static_ports) {
+<span class="lineNum">     461 </span>            :             /* if static ports were provided, take the
+<span class="lineNum">     462 </span>            :              * first entry in the list
+<span class="lineNum">     463 </span>            :              */
+<span class="lineNum">     464 </span>            :             opal_argv_append_nosize(&amp;ports, mca_oob_tcp_component.tcp6_static_ports[0]);
+<span class="lineNum">     465 </span>            :             /* flag that we are using static ports */
+<span class="lineNum">     466 </span>            :             orte_static_ports = true;
+<span class="lineNum">     467 </span>            :         } else if (NULL != mca_oob_tcp_component.tcp6_dyn_ports) {
+<span class="lineNum">     468 </span>            :             /* take the entire range */
+<span class="lineNum">     469 </span>            :             ports = opal_argv_copy(mca_oob_tcp_component.tcp6_dyn_ports);
+<span class="lineNum">     470 </span>            :             orte_static_ports = false;
+<span class="lineNum">     471 </span>            :         } else {
+<span class="lineNum">     472 </span>            :             /* flag the system to dynamically take any available port */
+<span class="lineNum">     473 </span>            :             opal_argv_append_nosize(&amp;ports, &quot;0&quot;);
+<span class="lineNum">     474 </span>            :             orte_static_ports = false;
+<span class="lineNum">     475 </span>            :         }
+<span class="lineNum">     476 </span>            :     } else if (ORTE_PROC_IS_MPI) {
+<span class="lineNum">     477 </span>            :         if (NULL != mca_oob_tcp_component.tcp6_static_ports) {
+<span class="lineNum">     478 </span>            :             /* if static ports were provided, an mpi proc takes its
+<span class="lineNum">     479 </span>            :              * node_local_rank entry in the list IF it has that info
+<span class="lineNum">     480 </span>            :              * AND enough ports were provided - otherwise, we &quot;pick any port&quot;
+<span class="lineNum">     481 </span>            :              */
+<span class="lineNum">     482 </span>            :             orte_node_rank_t nrank;
+<span class="lineNum">     483 </span>            :             /* do I know my node_local_rank yet? */
+<span class="lineNum">     484 </span>            :             if (ORTE_NODE_RANK_INVALID != (nrank = orte_process_info.my_node_rank) &amp;&amp;
+<span class="lineNum">     485 </span>            :                 (nrank+1) &lt; opal_argv_count(mca_oob_tcp_component.tcp6_static_ports)) {
+<span class="lineNum">     486 </span>            :                 /* any daemon takes the first entry, so we start with the second */
+<span class="lineNum">     487 </span>            :                 opal_argv_append_nosize(&amp;ports, mca_oob_tcp_component.tcp6_static_ports[nrank+1]);
+<span class="lineNum">     488 </span>            :                 /* flag that we are using static ports */
+<span class="lineNum">     489 </span>            :                 orte_static_ports = true;
+<span class="lineNum">     490 </span>            :             } else {
+<span class="lineNum">     491 </span>            :                 /* flag the system to dynamically take any available port */
+<span class="lineNum">     492 </span>            :                 opal_argv_append_nosize(&amp;ports, &quot;0&quot;);
+<span class="lineNum">     493 </span>            :                 orte_static_ports = false;
+<span class="lineNum">     494 </span>            :             }
+<span class="lineNum">     495 </span>            :         } else if (NULL != mca_oob_tcp_component.tcp6_dyn_ports) {
+<span class="lineNum">     496 </span>            :             /* take the entire range */
+<span class="lineNum">     497 </span>            :             ports = opal_argv_copy(mca_oob_tcp_component.tcp6_dyn_ports);
+<span class="lineNum">     498 </span>            :             orte_static_ports = false;
+<span class="lineNum">     499 </span>            :         } else {
+<span class="lineNum">     500 </span>            :             /* flag the system to dynamically take any available port */
+<span class="lineNum">     501 </span>            :             opal_argv_append_nosize(&amp;ports, &quot;0&quot;);
+<span class="lineNum">     502 </span>            :             orte_static_ports = false;
+<span class="lineNum">     503 </span>            :         }
+<span class="lineNum">     504 </span>            :     } else {
+<span class="lineNum">     505 </span>            :         /* if we are a tool, then we must let the
+<span class="lineNum">     506 </span>            :          * system pick any port
+<span class="lineNum">     507 </span>            :          */
+<span class="lineNum">     508 </span>            :         opal_argv_append_nosize(&amp;ports, &quot;0&quot;);
+<span class="lineNum">     509 </span>            :         /* if static ports were specified, flag it
+<span class="lineNum">     510 </span>            :          * so the HNP does the right thing
+<span class="lineNum">     511 </span>            :          */
+<span class="lineNum">     512 </span>            :         if (NULL != mca_oob_tcp_component.tcp6_static_ports) {
+<span class="lineNum">     513 </span>            :             orte_static_ports = true;
+<span class="lineNum">     514 </span>            :         } else {
+<span class="lineNum">     515 </span>            :             orte_static_ports = false;
+<span class="lineNum">     516 </span>            :         }
+<span class="lineNum">     517 </span>            :     }
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span>            :     /* bozo check - this should be impossible, but... */
+<span class="lineNum">     520 </span>            :     if (NULL == ports) {
+<span class="lineNum">     521 </span>            :         return ORTE_ERROR;
+<span class="lineNum">     522 </span>            :     }
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span>            :     /* get the address info for this interface */
+<span class="lineNum">     525 </span>            :     ((struct sockaddr_in6*) &amp;inaddr)-&gt;sin6_family = AF_INET6;
+<span class="lineNum">     526 </span>            :     ((struct sockaddr_in6*) &amp;inaddr)-&gt;sin6_addr = in6addr_any;
+<span class="lineNum">     527 </span>            :     addrlen = sizeof(struct sockaddr_in6);
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span>            :     /* loop across all the specified ports, establishing a socket
+<span class="lineNum">     530 </span>            :      * for each one - note that application procs will ONLY have
+<span class="lineNum">     531 </span>            :      * one socket, but that orterun and daemons will have multiple
+<span class="lineNum">     532 </span>            :      * sockets to support more flexible wireup protocols
+<span class="lineNum">     533 </span>            :      */
+<span class="lineNum">     534 </span>            :     for (i=0; i &lt; opal_argv_count(ports); i++) {
+<span class="lineNum">     535 </span>            :         opal_output_verbose(5, orte_oob_base_framework.framework_output,
+<span class="lineNum">     536 </span>            :                             &quot;%s attempting to bind to IPv6 port %s&quot;,
+<span class="lineNum">     537 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     538 </span>            :                             ports[i]);
+<span class="lineNum">     539 </span>            :         /* get the port number */
+<span class="lineNum">     540 </span>            :         port = strtol(ports[i], NULL, 10);
+<span class="lineNum">     541 </span>            :         /* convert it to network-byte-order */
+<span class="lineNum">     542 </span>            :         port = htons(port);
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span>            :         ((struct sockaddr_in6*) &amp;inaddr)-&gt;sin6_port = port;
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            :         /* create a listen socket for incoming connections on this port */
+<span class="lineNum">     547 </span>            :         sd = socket(AF_INET6, SOCK_STREAM, 0);
+<span class="lineNum">     548 </span>            :         if (sd &lt; 0) {
+<span class="lineNum">     549 </span>            :             if (EAFNOSUPPORT != opal_socket_errno) {
+<span class="lineNum">     550 </span>            :                 opal_output(0,&quot;mca_oob_tcp_component_init: socket() failed: %s (%d)&quot;,
+<span class="lineNum">     551 </span>            :                             strerror(opal_socket_errno), opal_socket_errno);
+<span class="lineNum">     552 </span>            :             }
+<span class="lineNum">     553 </span>            :             return ORTE_ERR_IN_ERRNO;
+<span class="lineNum">     554 </span>            :         }
+<span class="lineNum">     555 </span>            :         /* Set the socket to close-on-exec so that no children inherit
+<span class="lineNum">     556 </span>            :            this FD */
+<span class="lineNum">     557 </span>            :         if (opal_fd_set_cloexec(sd) != OPAL_SUCCESS) {
+<span class="lineNum">     558 </span>            :             opal_output(0, &quot;mca_oob_tcp_create_listen6: unable to set the &quot;
+<span class="lineNum">     559 </span>            :                         &quot;listening socket to CLOEXEC (%s:%d)\n&quot;,
+<span class="lineNum">     560 </span>            :                         strerror(opal_socket_errno), opal_socket_errno);
+<span class="lineNum">     561 </span>            :             CLOSE_THE_SOCKET(sd);
+<span class="lineNum">     562 </span>            :             opal_argv_free(ports);
+<span class="lineNum">     563 </span>            :             return ORTE_ERROR;
+<span class="lineNum">     564 </span>            :         }
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span>            :         /* Enable/disable reusing ports */
+<span class="lineNum">     567 </span>            :         if (orte_static_ports) {
+<span class="lineNum">     568 </span>            :             flags = 1;
+<span class="lineNum">     569 </span>            :         } else {
+<span class="lineNum">     570 </span>            :             flags = 0;
+<span class="lineNum">     571 </span>            :         }
+<span class="lineNum">     572 </span>            :         if (setsockopt (sd, SOL_SOCKET, SO_REUSEADDR, (const char *)&amp;flags, sizeof(flags)) &lt; 0) {
+<span class="lineNum">     573 </span>            :             opal_output(0, &quot;mca_oob_tcp_create_listen: unable to set the &quot;
+<span class="lineNum">     574 </span>            :                         &quot;SO_REUSEADDR option (%s:%d)\n&quot;,
+<span class="lineNum">     575 </span>            :                         strerror(opal_socket_errno), opal_socket_errno);
+<span class="lineNum">     576 </span>            :             CLOSE_THE_SOCKET(sd);
+<span class="lineNum">     577 </span>            :             opal_argv_free(ports);
+<span class="lineNum">     578 </span>            :             return ORTE_ERROR;
+<span class="lineNum">     579 </span>            :         }
+<span class="lineNum">     580 </span>            : 
+<span class="lineNum">     581 </span>            :         if (bind(sd, (struct sockaddr*)&amp;inaddr, addrlen) &lt; 0) {
+<span class="lineNum">     582 </span>            :             if( (EADDRINUSE == opal_socket_errno) || (EADDRNOTAVAIL == opal_socket_errno) ) {
+<span class="lineNum">     583 </span>            :                 continue;
+<span class="lineNum">     584 </span>            :             }
+<span class="lineNum">     585 </span>            :             opal_output(0, &quot;%s bind() failed for port %d: %s (%d)&quot;,
+<span class="lineNum">     586 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     587 </span>            :                         (int)ntohs(port),
+<span class="lineNum">     588 </span>            :                         strerror(opal_socket_errno),
+<span class="lineNum">     589 </span>            :                         opal_socket_errno );
+<span class="lineNum">     590 </span>            :             CLOSE_THE_SOCKET(sd);
+<span class="lineNum">     591 </span>            :             opal_argv_free(ports);
+<span class="lineNum">     592 </span>            :             return ORTE_ERROR;
+<span class="lineNum">     593 </span>            :         }
+<span class="lineNum">     594 </span>            :         /* resolve assigned port */
+<span class="lineNum">     595 </span>            :         if (getsockname(sd, (struct sockaddr*)&amp;inaddr, &amp;addrlen) &lt; 0) {
+<span class="lineNum">     596 </span>            :             opal_output(0, &quot;mca_oob_tcp_create_listen: getsockname(): %s (%d)&quot;,
+<span class="lineNum">     597 </span>            :                         strerror(opal_socket_errno), opal_socket_errno);
+<span class="lineNum">     598 </span>            :             CLOSE_THE_SOCKET(sd);
+<span class="lineNum">     599 </span>            :             return ORTE_ERROR;
+<span class="lineNum">     600 </span>            :         }
+<span class="lineNum">     601 </span>            : 
+<span class="lineNum">     602 </span>            :         /* setup listen backlog to maximum allowed by kernel */
+<span class="lineNum">     603 </span>            :         if (listen(sd, SOMAXCONN) &lt; 0) {
+<span class="lineNum">     604 </span>            :             opal_output(0, &quot;mca_oob_tcp_component_init: listen(): %s (%d)&quot;,
+<span class="lineNum">     605 </span>            :                         strerror(opal_socket_errno), opal_socket_errno);
+<span class="lineNum">     606 </span>            :             return ORTE_ERROR;
+<span class="lineNum">     607 </span>            :         }
+<span class="lineNum">     608 </span>            : 
+<span class="lineNum">     609 </span>            :         /* set socket up to be non-blocking, otherwise accept could block */
+<span class="lineNum">     610 </span>            :         if ((flags = fcntl(sd, F_GETFL, 0)) &lt; 0) {
+<span class="lineNum">     611 </span>            :             opal_output(0, &quot;mca_oob_tcp_component_init: fcntl(F_GETFL) failed: %s (%d)&quot;,
+<span class="lineNum">     612 </span>            :                         strerror(opal_socket_errno), opal_socket_errno);
+<span class="lineNum">     613 </span>            :             return ORTE_ERROR;
+<span class="lineNum">     614 </span>            :         }
+<span class="lineNum">     615 </span>            :         flags |= O_NONBLOCK;
+<span class="lineNum">     616 </span>            :         if (fcntl(sd, F_SETFL, flags) &lt; 0) {
+<span class="lineNum">     617 </span>            :             opal_output(0, &quot;mca_oob_tcp_component_init: fcntl(F_SETFL) failed: %s (%d)&quot;,
+<span class="lineNum">     618 </span>            :                         strerror(opal_socket_errno), opal_socket_errno);
+<span class="lineNum">     619 </span>            :             return ORTE_ERROR;
+<span class="lineNum">     620 </span>            :         }
+<span class="lineNum">     621 </span>            : 
+<span class="lineNum">     622 </span>            :         /* add this port to our connections */
+<span class="lineNum">     623 </span>            :         conn = OBJ_NEW(mca_oob_tcp_listener_t);
+<span class="lineNum">     624 </span>            :         conn-&gt;sd = sd;
+<span class="lineNum">     625 </span>            :         opal_list_append(&amp;mca_oob_tcp_component.listeners, &amp;conn-&gt;item);
+<span class="lineNum">     626 </span>            :         /* and to our ports */
+<span class="lineNum">     627 </span>            :         asprintf(&amp;tconn, &quot;%d&quot;, ntohs(((struct sockaddr_in6*) &amp;inaddr)-&gt;sin6_port));
+<span class="lineNum">     628 </span>            :         opal_argv_append_nosize(&amp;mca_oob_tcp_component.ipv6ports, tconn);
+<span class="lineNum">     629 </span>            :         free(tconn);
+<span class="lineNum">     630 </span>            :         if (OOB_TCP_DEBUG_CONNECT &lt;= opal_output_get_verbosity(orte_oob_base_framework.framework_output)) {
+<span class="lineNum">     631 </span>            :             opal_output(0, &quot;%s assigned IPv6 port %d&quot;,
+<span class="lineNum">     632 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     633 </span>            :                         (int)ntohs(((struct sockaddr_in6*) &amp;inaddr)-&gt;sin6_port));
+<span class="lineNum">     634 </span>            :         }
+<span class="lineNum">     635 </span>            : 
+<span class="lineNum">     636 </span>            :         if (!ORTE_PROC_IS_HNP) {
+<span class="lineNum">     637 </span>            :             /* only the HNP binds to multiple ports */
+<span class="lineNum">     638 </span>            :             break;
+<span class="lineNum">     639 </span>            :         }
+<span class="lineNum">     640 </span>            :     }
+<span class="lineNum">     641 </span>            :     if (0 == opal_list_get_size(&amp;mca_oob_tcp_component.listeners)) {
+<span class="lineNum">     642 </span>            :         /* cleanup */
+<span class="lineNum">     643 </span>            :         CLOSE_THE_SOCKET(sd);
+<span class="lineNum">     644 </span>            :         opal_argv_free(ports);
+<span class="lineNum">     645 </span>            :         return ORTE_ERR_SOCKET_NOT_AVAILABLE;
+<span class="lineNum">     646 </span>            :     }
+<span class="lineNum">     647 </span>            : 
+<span class="lineNum">     648 </span>            :     /* done with this, so release it */
+<span class="lineNum">     649 </span>            :     opal_argv_free(ports);
+<span class="lineNum">     650 </span>            : 
+<span class="lineNum">     651 </span>            :     return ORTE_SUCCESS;
+<span class="lineNum">     652 </span>            : }
+<span class="lineNum">     653 </span>            : #endif
+<span class="lineNum">     654 </span>            : 
+<span class="lineNum">     655 </span>            : /*
+<span class="lineNum">     656 </span>            :  * The listen thread created when listen_mode is threaded.  Accepts
+<span class="lineNum">     657 </span>            :  * incoming connections and places them in a queue for further
+<span class="lineNum">     658 </span>            :  * processing
+<span class="lineNum">     659 </span>            :  *
+<a name="660"><span class="lineNum">     660 </span>            :  * Runs until mca_oob_tcp_compnent.shutdown is set to true.</a>
+<span class="lineNum">     661 </span>            :  */
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 : static void* listen_thread(opal_object_t *obj)</span>
+<span class="lineNum">     663 </span>            : {
+<span class="lineNum">     664 </span>            :     int rc, max, accepted_connections, sd;
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :     opal_socklen_t addrlen = sizeof(struct sockaddr_storage);</span>
+<span class="lineNum">     666 </span>            :     mca_oob_tcp_pending_connection_t *pending_connection;
+<span class="lineNum">     667 </span>            :     struct timeval timeout;
+<span class="lineNum">     668 </span>            :     fd_set readfds;
+<span class="lineNum">     669 </span>            :     mca_oob_tcp_listener_t *listener;
+<span class="lineNum">     670 </span>            : 
+<span class="lineNum">     671 </span>            :     /* only execute during the initial VM startup stage - once
+<span class="lineNum">     672 </span>            :      * all the initial daemons have reported in, we will revert
+<span class="lineNum">     673 </span>            :      * to the event method for handling any further connections
+<span class="lineNum">     674 </span>            :      * so as to minimize overhead
+<span class="lineNum">     675 </span>            :      */
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :     while (mca_oob_tcp_component.listen_thread_active) {</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :         FD_ZERO(&amp;readfds);</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :         max = -1;</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :         OPAL_LIST_FOREACH(listener, &amp;mca_oob_tcp_component.listeners, mca_oob_tcp_listener_t) {</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :             FD_SET(listener-&gt;sd, &amp;readfds);</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :             max = (listener-&gt;sd &gt; max) ? listener-&gt;sd : max;</span>
+<span class="lineNum">     682 </span>            :         }
+<span class="lineNum">     683 </span>            :         /* add the stop_thread fd */
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :         FD_SET(mca_oob_tcp_component.stop_thread[0], &amp;readfds);</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :         max = (mca_oob_tcp_component.stop_thread[0] &gt; max) ? mca_oob_tcp_component.stop_thread[0] : max;</span>
+<span class="lineNum">     686 </span>            : 
+<span class="lineNum">     687 </span>            :         /* set timeout interval */
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :         timeout.tv_sec = mca_oob_tcp_component.listen_thread_tv.tv_sec;</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :         timeout.tv_usec = mca_oob_tcp_component.listen_thread_tv.tv_usec;</span>
+<span class="lineNum">     690 </span>            : 
+<span class="lineNum">     691 </span>            :         /* Block in a select to avoid hammering the cpu.  If a connection
+<span class="lineNum">     692 </span>            :          * comes in, we'll get woken up right away.
+<span class="lineNum">     693 </span>            :          */
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :         rc = select(max + 1, &amp;readfds, NULL, NULL, &amp;timeout);</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :         if (!mca_oob_tcp_component.listen_thread_active) {</span>
+<span class="lineNum">     696 </span>            :             /* we've been asked to terminate */
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :             close(mca_oob_tcp_component.stop_thread[0]);</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :             close(mca_oob_tcp_component.stop_thread[1]);</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :             return NULL;</span>
+<span class="lineNum">     700 </span>            :         }
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :         if (rc &lt; 0) {</span>
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :             if (EAGAIN != opal_socket_errno &amp;&amp; EINTR != opal_socket_errno) {</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :                 perror(&quot;select&quot;);</span>
+<span class="lineNum">     704 </span>            :             }
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     706 </span>            :         }
+<span class="lineNum">     707 </span>            : 
+<span class="lineNum">     708 </span>            :         /* Spin accepting connections until all active listen sockets
+<span class="lineNum">     709 </span>            :          * do not have any incoming connections, pushing each connection
+<span class="lineNum">     710 </span>            :          * onto the event queue for processing
+<span class="lineNum">     711 </span>            :          */
+<span class="lineNum">     712 </span>            :         do {
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :             accepted_connections = 0;</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :             OPAL_LIST_FOREACH(listener, &amp;mca_oob_tcp_component.listeners, mca_oob_tcp_listener_t) {</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :                 sd = listener-&gt;sd;</span>
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span>            :                 /* according to the man pages, select replaces the given descriptor
+<span class="lineNum">     718 </span>            :                  * set with a subset consisting of those descriptors that are ready
+<span class="lineNum">     719 </span>            :                  * for the specified operation - in this case, a read. So we need to
+<span class="lineNum">     720 </span>            :                  * first check to see if this file descriptor is included in the
+<span class="lineNum">     721 </span>            :                  * returned subset
+<span class="lineNum">     722 </span>            :                  */
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :                 if (0 == FD_ISSET(sd, &amp;readfds)) {</span>
+<span class="lineNum">     724 </span>            :                     /* this descriptor is not included */
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     726 </span>            :                 }
+<span class="lineNum">     727 </span>            : 
+<span class="lineNum">     728 </span>            :                 /* this descriptor is ready to be read, which means a connection
+<span class="lineNum">     729 </span>            :                  * request has been received - so harvest it. All we want to do
+<span class="lineNum">     730 </span>            :                  * here is accept the connection and push the info onto the event
+<span class="lineNum">     731 </span>            :                  * library for subsequent processing - we don't want to actually
+<span class="lineNum">     732 </span>            :                  * process the connection here as it takes too long, and so the
+<span class="lineNum">     733 </span>            :                  * OS might start rejecting connections due to timeout.
+<span class="lineNum">     734 </span>            :                  */
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :                 pending_connection = OBJ_NEW(mca_oob_tcp_pending_connection_t);</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :                 opal_event_set(orte_event_base, &amp;pending_connection-&gt;ev, -1,</span>
+<span class="lineNum">     737 </span>            :                                OPAL_EV_WRITE, connection_handler, pending_connection);
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :                 opal_event_set_priority(&amp;pending_connection-&gt;ev, ORTE_MSG_PRI);</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :                 pending_connection-&gt;fd = accept(sd,</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :                                                 (struct sockaddr*)&amp;(pending_connection-&gt;addr),</span>
+<span class="lineNum">     741 </span>            :                                                 &amp;addrlen);
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :                 if (pending_connection-&gt;fd &lt; 0) {</span>
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :                     OBJ_RELEASE(pending_connection);</span>
+<span class="lineNum">     744 </span>            : 
+<span class="lineNum">     745 </span>            :                     /* Non-fatal errors */
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :                     if (EAGAIN == opal_socket_errno ||</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :                         EWOULDBLOCK == opal_socket_errno) {</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     749 </span>            :                     }
+<span class="lineNum">     750 </span>            : 
+<span class="lineNum">     751 </span>            :                     /* If we run out of file descriptors, log an extra
+<span class="lineNum">     752 </span>            :                        warning (so that the user can know to fix this
+<span class="lineNum">     753 </span>            :                        problem) and abandon all hope. */
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :                     else if (EMFILE == opal_socket_errno) {</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :                         CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :                         ORTE_ERROR_LOG(ORTE_ERR_SYS_LIMITS_SOCKETS);</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :                         orte_show_help(&quot;help-oob-tcp.txt&quot;,</span>
+<span class="lineNum">     758 </span>            :                                        &quot;accept failed&quot;,
+<span class="lineNum">     759 </span>            :                                        true,
+<span class="lineNum">     760 </span>            :                                        opal_process_info.nodename,
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :                                        opal_socket_errno,</span>
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :                                        strerror(opal_socket_errno),</span>
+<span class="lineNum">     763 </span>            :                                        &quot;Out of file descriptors&quot;);
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :                         goto done;</span>
+<span class="lineNum">     765 </span>            :                     }
+<span class="lineNum">     766 </span>            : 
+<span class="lineNum">     767 </span>            :                     /* For all other cases, close the socket, print a
+<span class="lineNum">     768 </span>            :                        warning but try to continue */
+<span class="lineNum">     769 </span>            :                     else {
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :                         CLOSE_THE_SOCKET(sd);</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :                         orte_show_help(&quot;help-oob-tcp.txt&quot;,</span>
+<span class="lineNum">     772 </span>            :                                        &quot;accept failed&quot;,
+<span class="lineNum">     773 </span>            :                                        true,
+<span class="lineNum">     774 </span>            :                                        opal_process_info.nodename,
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :                                        opal_socket_errno,</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :                                        strerror(opal_socket_errno),</span>
+<span class="lineNum">     777 </span>            :                                        &quot;Unknown cause; job will try to continue&quot;);
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     779 </span>            :                     }
+<span class="lineNum">     780 </span>            :                 }
+<span class="lineNum">     781 </span>            : 
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :                 opal_output_verbose(OOB_TCP_DEBUG_CONNECT, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     783 </span>            :                                     &quot;%s mca_oob_tcp_listen_thread: new connection: &quot;
+<span class="lineNum">     784 </span>            :                                     &quot;(%d, %d) %s:%d\n&quot;,
+<span class="lineNum">     785 </span>            :                                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :                                     pending_connection-&gt;fd, opal_socket_errno,</span>
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :                                     opal_net_get_hostname((struct sockaddr*) &amp;pending_connection-&gt;addr),</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :                                     opal_net_get_port((struct sockaddr*) &amp;pending_connection-&gt;addr));</span>
+<span class="lineNum">     789 </span>            :                 /* activate the event */
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :                 opal_event_active(&amp;pending_connection-&gt;ev, OPAL_EV_WRITE, 1);</span>
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :                 accepted_connections++;</span>
+<span class="lineNum">     792 </span>            :             }
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :         } while (accepted_connections &gt; 0);</span>
+<span class="lineNum">     794 </span>            :     }
+<span class="lineNum">     795 </span>            : 
+<span class="lineNum">     796 </span>            :  done:
+<span class="lineNum">     797 </span>            : #if 0
+<span class="lineNum">     798 </span>            :     /* once we complete the initial launch, the &quot;flood&quot; of connections
+<span class="lineNum">     799 </span>            :      * will end - only connection requests from local procs, connect/accept
+<span class="lineNum">     800 </span>            :      * operations across mpirun instances, or the occasional tool will need
+<span class="lineNum">     801 </span>            :      * to be serviced. As these are relatively small events, we can easily
+<span class="lineNum">     802 </span>            :      * handle them in the context of the event library and no longer require
+<span class="lineNum">     803 </span>            :      * a separate connection harvesting thread. So switch over to the event
+<span class="lineNum">     804 </span>            :      * lib handler now
+<span class="lineNum">     805 </span>            :      */
+<span class="lineNum">     806 </span>            :     opal_output_verbose(OOB_TCP_DEBUG_CONNECT, orte_oob_base_framework.framework_output,
+<span class="lineNum">     807 </span>            :                         &quot;%s mca_oob_tcp_listen_thread: switching to event lib&quot;,
+<span class="lineNum">     808 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME));
+<span class="lineNum">     809 </span>            :     /* setup to listen via event library */
+<span class="lineNum">     810 </span>            :     OPAL_LIST_FOREACH(listener, &amp;mca_oob_tcp_component.listeners, mca_oob_tcp_listener_t) {
+<span class="lineNum">     811 </span>            :         opal_event_set(orte_event_base, listener-&gt;event,
+<span class="lineNum">     812 </span>            :                    listener-&gt;sd,
+<span class="lineNum">     813 </span>            :                    OPAL_EV_READ|OPAL_EV_PERSIST,
+<span class="lineNum">     814 </span>            :                    connection_event_handler,
+<span class="lineNum">     815 </span>            :                    0);
+<span class="lineNum">     816 </span>            :         opal_event_set_priority(listener-&gt;event, ORTE_MSG_PRI);
+<span class="lineNum">     817 </span>            :         opal_event_add(listener-&gt;event, 0);
+<span class="lineNum">     818 </span>            :     }
+<span class="lineNum">     819 </span>            : #endif
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     821 </span>            : }
+<span class="lineNum">     822 </span>            : 
+<span class="lineNum">     823 </span>            : /*
+<a name="824"><span class="lineNum">     824 </span>            :  * Handler for accepting connections from the listen thread</a>
+<span class="lineNum">     825 </span>            :  */
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 : static void connection_handler(int sd, short flags, void* cbdata)</span>
+<span class="lineNum">     827 </span>            : {
+<span class="lineNum">     828 </span>            :     mca_oob_tcp_pending_connection_t *new_connection;
+<span class="lineNum">     829 </span>            : 
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :     new_connection = (mca_oob_tcp_pending_connection_t*)cbdata;</span>
+<span class="lineNum">     831 </span>            : 
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :     opal_output_verbose(4, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     833 </span>            :                         &quot;%s connection_handler: working connection &quot;
+<span class="lineNum">     834 </span>            :                         &quot;(%d, %d) %s:%d\n&quot;,
+<span class="lineNum">     835 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :                         new_connection-&gt;fd, opal_socket_errno,</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :                         opal_net_get_hostname((struct sockaddr*) &amp;new_connection-&gt;addr),</span>
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :                         opal_net_get_port((struct sockaddr*) &amp;new_connection-&gt;addr));</span>
+<span class="lineNum">     839 </span>            : 
+<span class="lineNum">     840 </span>            :     /* process the connection */
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :     mca_oob_tcp_module.api.accept_connection(new_connection-&gt;fd,</span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :                                              (struct sockaddr*) &amp;(new_connection-&gt;addr));</span>
+<span class="lineNum">     843 </span>            :     /* cleanup */
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(new_connection);</span>
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     846 </span>            : 
+<span class="lineNum">     847 </span>            : /*
+<a name="848"><span class="lineNum">     848 </span>            :  * Handler for accepting connections from the event library</a>
+<span class="lineNum">     849 </span>            :  */
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 : static void connection_event_handler(int incoming_sd, short flags, void* cbdata)</span>
+<span class="lineNum">     851 </span>            : {
+<span class="lineNum">     852 </span>            :     struct sockaddr addr;
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :     opal_socklen_t addrlen = sizeof(struct sockaddr);</span>
+<span class="lineNum">     854 </span>            :     int sd;
+<span class="lineNum">     855 </span>            : 
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :     sd = accept(incoming_sd, (struct sockaddr*)&amp;addr, &amp;addrlen);</span>
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :     opal_output_verbose(OOB_TCP_DEBUG_CONNECT, orte_oob_base_framework.framework_output,</span>
+<span class="lineNum">     858 </span>            :                         &quot;%s connection_event_handler: working connection &quot;
+<span class="lineNum">     859 </span>            :                         &quot;(%d, %d) %s:%d\n&quot;,
+<span class="lineNum">     860 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :                         sd, opal_socket_errno,</span>
+<span class="lineNum">     862 </span>            :                         opal_net_get_hostname((struct sockaddr*) &amp;addr),
+<span class="lineNum">     863 </span>            :                         opal_net_get_port((struct sockaddr*) &amp;addr));
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :     if (sd &lt; 0) {</span>
+<span class="lineNum">     865 </span>            :         /* Non-fatal errors */
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :         if (EINTR == opal_socket_errno ||</span>
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :             EAGAIN == opal_socket_errno ||</span>
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :             EWOULDBLOCK == opal_socket_errno) {</span>
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     870 </span>            :         }
+<span class="lineNum">     871 </span>            : 
+<span class="lineNum">     872 </span>            :         /* If we run out of file descriptors, log an extra warning (so
+<span class="lineNum">     873 </span>            :            that the user can know to fix this problem) and abandon all
+<span class="lineNum">     874 </span>            :            hope. */
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :         else if (EMFILE == opal_socket_errno) {</span>
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(incoming_sd);</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_SYS_LIMITS_SOCKETS);</span>
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-oob-tcp.txt&quot;,</span>
+<span class="lineNum">     879 </span>            :                            &quot;accept failed&quot;,
+<span class="lineNum">     880 </span>            :                            true,
+<span class="lineNum">     881 </span>            :                            opal_process_info.nodename,
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :                            opal_socket_errno,</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :                            strerror(opal_socket_errno),</span>
+<span class="lineNum">     884 </span>            :                            &quot;Out of file descriptors&quot;);
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :             orte_errmgr.abort(ORTE_ERROR_DEFAULT_EXIT_CODE, NULL);</span>
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     887 </span>            :         }
+<span class="lineNum">     888 </span>            : 
+<span class="lineNum">     889 </span>            :         /* For all other cases, close the socket, print a warning but
+<span class="lineNum">     890 </span>            :            try to continue */
+<span class="lineNum">     891 </span>            :         else {
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :             CLOSE_THE_SOCKET(incoming_sd);</span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-oob-tcp.txt&quot;,</span>
+<span class="lineNum">     894 </span>            :                            &quot;accept failed&quot;,
+<span class="lineNum">     895 </span>            :                            true,
+<span class="lineNum">     896 </span>            :                            opal_process_info.nodename,
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :                            opal_socket_errno,</span>
+<span class="lineNum">     898 </span><span class="lineNoCov">          0 :                            strerror(opal_socket_errno),</span>
+<span class="lineNum">     899 </span>            :                            &quot;Unknown cause; job will try to continue&quot;);
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     901 </span>            :         }
+<span class="lineNum">     902 </span>            :     }
+<span class="lineNum">     903 </span>            : 
+<span class="lineNum">     904 </span>            :     /* process the connection */
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :     mca_oob_tcp_module.api.accept_connection(sd, &amp;addr);</span>
+<span class="lineNum">     906 </span>            : }
+<a name="907"><span class="lineNum">     907 </span>            : </a>
+<span class="lineNum">     908 </span>            : 
+<span class="lineNum">     909 </span><span class="lineCov">          2 : static void tcp_ev_cons(mca_oob_tcp_listener_t* event)</span>
+<span class="lineNum">     910 </span>            : {
+<span class="lineNum">     911 </span><span class="lineCov">          2 :     event-&gt;ev_active = false;</span>
+<a name="912"><span class="lineNum">     912 </span><span class="lineCov">          2 :     event-&gt;sd = -1;</span></a>
+<span class="lineNum">     913 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     914 </span><span class="lineCov">          2 : static void tcp_ev_des(mca_oob_tcp_listener_t* event)</span>
+<span class="lineNum">     915 </span>            : {
+<span class="lineNum">     916 </span><span class="lineCov">          2 :     if (event-&gt;ev_active) {</span>
+<span class="lineNum">     917 </span><span class="lineCov">          2 :         opal_event_del(&amp;event-&gt;event);</span>
+<span class="lineNum">     918 </span>            :     }
+<span class="lineNum">     919 </span><span class="lineCov">          2 :     event-&gt;ev_active = false;</span>
+<span class="lineNum">     920 </span><span class="lineCov">          2 :     if (0 &lt;= event-&gt;sd) {</span>
+<span class="lineNum">     921 </span><span class="lineCov">          2 :         CLOSE_THE_SOCKET(event-&gt;sd);</span>
+<span class="lineNum">     922 </span><span class="lineCov">          2 :         event-&gt;sd = -1;</span>
+<span class="lineNum">     923 </span>            :     }
+<span class="lineNum">     924 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     925 </span>            : 
+<span class="lineNum">     926 </span>            : OBJ_CLASS_INSTANCE(mca_oob_tcp_listener_t,
+<span class="lineNum">     927 </span>            :                    opal_list_item_t,
+<span class="lineNum">     928 </span>            :                    tcp_ev_cons, tcp_ev_des);
+<span class="lineNum">     929 </span>            : 
+<span class="lineNum">     930 </span>            : OBJ_CLASS_INSTANCE(mca_oob_tcp_pending_connection_t,
+<span class="lineNum">     931 </span>            :                    opal_object_t,
+<span class="lineNum">     932 </span>            :                    NULL,
+<span class="lineNum">     933 </span>            :                    NULL);
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

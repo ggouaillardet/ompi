@@ -1,0 +1,265 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/event/libevent2022/libevent/evthread_pthread.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../index.html">top level</a> - <a href="index.html">opal/mca/event/libevent2022/libevent</a> - evthread_pthread.c<span style="font-size: 80%;"> (source / <a href="evthread_pthread.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">42</td>
+            <td class="headerCovTableEntry">73</td>
+            <td class="headerCovTableEntryLo">57.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryMed">80.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright 2009-2012 Niels Provos and Nick Mathewson
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * Redistribution and use in source and binary forms, with or without
+<span class="lineNum">       5 </span>            :  * modification, are permitted provided that the following conditions
+<span class="lineNum">       6 </span>            :  * are met:
+<span class="lineNum">       7 </span>            :  * 1. Redistributions of source code must retain the above copyright
+<span class="lineNum">       8 </span>            :  *    notice, this list of conditions and the following disclaimer.
+<span class="lineNum">       9 </span>            :  * 2. Redistributions in binary form must reproduce the above copyright
+<span class="lineNum">      10 </span>            :  *    notice, this list of conditions and the following disclaimer in the
+<span class="lineNum">      11 </span>            :  *    documentation and/or other materials provided with the distribution.
+<span class="lineNum">      12 </span>            :  * 3. The name of the author may not be used to endorse or promote products
+<span class="lineNum">      13 </span>            :  *    derived from this software without specific prior written permission.
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+<span class="lineNum">      16 </span>            :  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+<span class="lineNum">      17 </span>            :  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+<span class="lineNum">      18 </span>            :  * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+<span class="lineNum">      19 </span>            :  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+<span class="lineNum">      20 </span>            :  * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+<span class="lineNum">      21 </span>            :  * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+<span class="lineNum">      22 </span>            :  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+<span class="lineNum">      23 </span>            :  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+<span class="lineNum">      24 </span>            :  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+<span class="lineNum">      25 </span>            :  */
+<span class="lineNum">      26 </span>            : #include &quot;event2/event-config.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : /* With glibc we need to define this to get PTHREAD_MUTEX_RECURSIVE. */
+<span class="lineNum">      29 </span>            : #define _GNU_SOURCE
+<span class="lineNum">      30 </span>            : #include &lt;pthread.h&gt;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : struct event_base;
+<span class="lineNum">      33 </span>            : #include &quot;event2/thread.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      37 </span>            : #include &quot;mm-internal.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;evthread-internal.h&quot;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : static pthread_mutexattr_t attr_recursive;
+<a name="41"><span class="lineNum">      41 </span>            : </a>
+<span class="lineNum">      42 </span>            : static void *
+<span class="lineNum">      43 </span><span class="lineCov">         10 : evthread_posix_lock_alloc(unsigned locktype)</span>
+<span class="lineNum">      44 </span>            : {
+<span class="lineNum">      45 </span><span class="lineCov">         10 :         pthread_mutexattr_t *attr = NULL;</span>
+<span class="lineNum">      46 </span><span class="lineCov">         10 :         pthread_mutex_t *lock = mm_malloc(sizeof(pthread_mutex_t));</span>
+<span class="lineNum">      47 </span><span class="lineCov">         10 :         if (!lock)</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :                 return NULL;</span>
+<span class="lineNum">      49 </span><span class="lineCov">         10 :         if (locktype &amp; EVTHREAD_LOCKTYPE_RECURSIVE)</span>
+<span class="lineNum">      50 </span><span class="lineCov">          4 :                 attr = &amp;attr_recursive;</span>
+<span class="lineNum">      51 </span><span class="lineCov">         10 :         if (pthread_mutex_init(lock, attr)) {</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :                 mm_free(lock);</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :                 return NULL;</span>
+<span class="lineNum">      54 </span>            :         }
+<span class="lineNum">      55 </span><span class="lineCov">         10 :         return lock;</span>
+<span class="lineNum">      56 </span>            : }
+<a name="57"><span class="lineNum">      57 </span>            : </a>
+<span class="lineNum">      58 </span>            : static void
+<span class="lineNum">      59 </span><span class="lineCov">          2 : evthread_posix_lock_free(void *_lock, unsigned locktype)</span>
+<span class="lineNum">      60 </span>            : {
+<span class="lineNum">      61 </span><span class="lineCov">          2 :         pthread_mutex_t *lock = _lock;</span>
+<span class="lineNum">      62 </span><span class="lineCov">          2 :         pthread_mutex_destroy(lock);</span>
+<span class="lineNum">      63 </span><span class="lineCov">          2 :         mm_free(lock);</span>
+<span class="lineNum">      64 </span><span class="lineCov">          2 : }</span>
+<a name="65"><span class="lineNum">      65 </span>            : </a>
+<span class="lineNum">      66 </span>            : static int
+<span class="lineNum">      67 </span><span class="lineCov">        324 : evthread_posix_lock(unsigned mode, void *_lock)</span>
+<span class="lineNum">      68 </span>            : {
+<span class="lineNum">      69 </span><span class="lineCov">        324 :         pthread_mutex_t *lock = _lock;</span>
+<span class="lineNum">      70 </span><span class="lineCov">        324 :         if (mode &amp; EVTHREAD_TRY)</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :                 return pthread_mutex_trylock(lock);</span>
+<span class="lineNum">      72 </span>            :         else
+<span class="lineNum">      73 </span><span class="lineCov">        324 :                 return pthread_mutex_lock(lock);</span>
+<span class="lineNum">      74 </span>            : }
+<a name="75"><span class="lineNum">      75 </span>            : </a>
+<span class="lineNum">      76 </span>            : static int
+<span class="lineNum">      77 </span><span class="lineCov">        324 : evthread_posix_unlock(unsigned mode, void *_lock)</span>
+<span class="lineNum">      78 </span>            : {
+<span class="lineNum">      79 </span><span class="lineCov">        324 :         pthread_mutex_t *lock = _lock;</span>
+<span class="lineNum">      80 </span><span class="lineCov">        324 :         return pthread_mutex_unlock(lock);</span>
+<span class="lineNum">      81 </span>            : }
+<a name="82"><span class="lineNum">      82 </span>            : </a>
+<span class="lineNum">      83 </span>            : static unsigned long
+<span class="lineNum">      84 </span><span class="lineCov">        191 : evthread_posix_get_id(void)</span>
+<span class="lineNum">      85 </span>            : {
+<span class="lineNum">      86 </span>            :         union {
+<span class="lineNum">      87 </span>            :                 pthread_t thr;
+<span class="lineNum">      88 </span>            : #if _EVENT_SIZEOF_PTHREAD_T &gt; _EVENT_SIZEOF_LONG
+<span class="lineNum">      89 </span>            :                 ev_uint64_t id;
+<span class="lineNum">      90 </span>            : #else
+<span class="lineNum">      91 </span>            :                 unsigned long id;
+<span class="lineNum">      92 </span>            : #endif
+<span class="lineNum">      93 </span>            :         } r;
+<span class="lineNum">      94 </span>            : #if _EVENT_SIZEOF_PTHREAD_T &lt; _EVENT_SIZEOF_LONG
+<span class="lineNum">      95 </span>            :         memset(&amp;r, 0, sizeof(r));
+<span class="lineNum">      96 </span>            : #endif
+<span class="lineNum">      97 </span><span class="lineCov">        191 :         r.thr = pthread_self();</span>
+<span class="lineNum">      98 </span><span class="lineCov">        191 :         return (unsigned long)r.id;</span>
+<span class="lineNum">      99 </span>            : }
+<a name="100"><span class="lineNum">     100 </span>            : </a>
+<span class="lineNum">     101 </span>            : static void *
+<span class="lineNum">     102 </span><span class="lineCov">          4 : evthread_posix_cond_alloc(unsigned condflags)</span>
+<span class="lineNum">     103 </span>            : {
+<span class="lineNum">     104 </span><span class="lineCov">          4 :         pthread_cond_t *cond = mm_malloc(sizeof(pthread_cond_t));</span>
+<span class="lineNum">     105 </span><span class="lineCov">          4 :         if (!cond)</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :                 return NULL;</span>
+<span class="lineNum">     107 </span><span class="lineCov">          4 :         if (pthread_cond_init(cond, NULL)) {</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :                 mm_free(cond);</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :                 return NULL;</span>
+<span class="lineNum">     110 </span>            :         }
+<span class="lineNum">     111 </span><span class="lineCov">          4 :         return cond;</span>
+<span class="lineNum">     112 </span>            : }
+<a name="113"><span class="lineNum">     113 </span>            : </a>
+<span class="lineNum">     114 </span>            : static void
+<span class="lineNum">     115 </span><span class="lineCov">          2 : evthread_posix_cond_free(void *_cond)</span>
+<span class="lineNum">     116 </span>            : {
+<span class="lineNum">     117 </span><span class="lineCov">          2 :         pthread_cond_t *cond = _cond;</span>
+<span class="lineNum">     118 </span><span class="lineCov">          2 :         pthread_cond_destroy(cond);</span>
+<span class="lineNum">     119 </span><span class="lineCov">          2 :         mm_free(cond);</span>
+<span class="lineNum">     120 </span><span class="lineCov">          2 : }</span>
+<a name="121"><span class="lineNum">     121 </span>            : </a>
+<span class="lineNum">     122 </span>            : static int
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 : evthread_posix_cond_signal(void *_cond, int broadcast)</span>
+<span class="lineNum">     124 </span>            : {
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         pthread_cond_t *cond = _cond;</span>
+<span class="lineNum">     126 </span>            :         int r;
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :         if (broadcast)</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :                 r = pthread_cond_broadcast(cond);</span>
+<span class="lineNum">     129 </span>            :         else
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :                 r = pthread_cond_signal(cond);</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         return r ? -1 : 0;</span>
+<span class="lineNum">     132 </span>            : }
+<a name="133"><span class="lineNum">     133 </span>            : </a>
+<span class="lineNum">     134 </span>            : static int
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 : evthread_posix_cond_wait(void *_cond, void *_lock, const struct timeval *tv)</span>
+<span class="lineNum">     136 </span>            : {
+<span class="lineNum">     137 </span>            :         int r;
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :         pthread_cond_t *cond = _cond;</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :         pthread_mutex_t *lock = _lock;</span>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         if (tv) {</span>
+<span class="lineNum">     142 </span>            :                 struct timeval now, abstime;
+<span class="lineNum">     143 </span>            :                 struct timespec ts;
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :                 evutil_gettimeofday(&amp;now, NULL);</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :                 evutil_timeradd(&amp;now, tv, &amp;abstime);</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :                 ts.tv_sec = abstime.tv_sec;</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :                 ts.tv_nsec = abstime.tv_usec*1000;</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :                 r = pthread_cond_timedwait(cond, lock, &amp;ts);</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :                 if (r == ETIMEDOUT)</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :                         return 1;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :                 else if (r)</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :                         return -1;</span>
+<span class="lineNum">     153 </span>            :                 else
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :                         return 0;</span>
+<span class="lineNum">     155 </span>            :         } else {
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :                 r = pthread_cond_wait(cond, lock);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :                 return r ? -1 : 0;</span>
+<span class="lineNum">     158 </span>            :         }
+<span class="lineNum">     159 </span>            : }
+<a name="160"><span class="lineNum">     160 </span>            : </a>
+<span class="lineNum">     161 </span>            : int
+<span class="lineNum">     162 </span><span class="lineCov">          2 : evthread_use_pthreads(void)</span>
+<span class="lineNum">     163 </span>            : {
+<span class="lineNum">     164 </span><span class="lineCov">          2 :         struct evthread_lock_callbacks cbs = {</span>
+<span class="lineNum">     165 </span>            :                 EVTHREAD_LOCK_API_VERSION,
+<span class="lineNum">     166 </span>            :                 EVTHREAD_LOCKTYPE_RECURSIVE,
+<span class="lineNum">     167 </span>            :                 evthread_posix_lock_alloc,
+<span class="lineNum">     168 </span>            :                 evthread_posix_lock_free,
+<span class="lineNum">     169 </span>            :                 evthread_posix_lock,
+<span class="lineNum">     170 </span>            :                 evthread_posix_unlock
+<span class="lineNum">     171 </span>            :         };
+<span class="lineNum">     172 </span><span class="lineCov">          2 :         struct evthread_condition_callbacks cond_cbs = {</span>
+<span class="lineNum">     173 </span>            :                 EVTHREAD_CONDITION_API_VERSION,
+<span class="lineNum">     174 </span>            :                 evthread_posix_cond_alloc,
+<span class="lineNum">     175 </span>            :                 evthread_posix_cond_free,
+<span class="lineNum">     176 </span>            :                 evthread_posix_cond_signal,
+<span class="lineNum">     177 </span>            :                 evthread_posix_cond_wait
+<span class="lineNum">     178 </span>            :         };
+<span class="lineNum">     179 </span>            :         /* Set ourselves up to get recursive locks. */
+<span class="lineNum">     180 </span><span class="lineCov">          2 :         if (pthread_mutexattr_init(&amp;attr_recursive))</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :                 return -1;</span>
+<span class="lineNum">     182 </span><span class="lineCov">          2 :         if (pthread_mutexattr_settype(&amp;attr_recursive, PTHREAD_MUTEX_RECURSIVE))</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :                 return -1;</span>
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span><span class="lineCov">          2 :         evthread_set_lock_callbacks(&amp;cbs);</span>
+<span class="lineNum">     186 </span><span class="lineCov">          2 :         evthread_set_condition_callbacks(&amp;cond_cbs);</span>
+<span class="lineNum">     187 </span><span class="lineCov">          2 :         evthread_set_id_callback(evthread_posix_get_id);</span>
+<span class="lineNum">     188 </span><span class="lineCov">          2 :         return 0;</span>
+<span class="lineNum">     189 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

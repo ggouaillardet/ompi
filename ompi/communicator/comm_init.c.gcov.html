@@ -1,0 +1,527 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - ompi/communicator/comm_init.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">ompi/communicator</a> - comm_init.c<span style="font-size: 80%;"> (source / <a href="comm_init.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">137</td>
+            <td class="headerCovTableEntry">165</td>
+            <td class="headerCovTableEntryMed">83.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryLo">66.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2013 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2006-2010 University of Houston. All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2007-2012 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2009      Sun Microsystems, Inc. All rights reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2012-2014 Los Alamos National Security, LLC.
+<span class="lineNum">      17 </span>            :  *                         All rights reserved.
+<span class="lineNum">      18 </span>            :  * Copyright (c) 2011-2013 Inria.  All rights reserved.
+<span class="lineNum">      19 </span>            :  * Copyright (c) 2011-2013 Universite Bordeaux 1
+<span class="lineNum">      20 </span>            :  *                         All rights reserved.
+<span class="lineNum">      21 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      22 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      23 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      24 </span>            :  *
+<span class="lineNum">      25 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      26 </span>            :  *
+<span class="lineNum">      27 </span>            :  * $HEADER$
+<span class="lineNum">      28 </span>            :  */
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #include &quot;opal/util/bit_ops.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;ompi/constants.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;ompi/mca/pml/pml.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;ompi/mca/coll/base/base.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;ompi/mca/topo/base/base.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;ompi/runtime/params.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;ompi/communicator/communicator.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;ompi/attribute/attribute.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;ompi/mca/dpm/dpm.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;ompi/memchecker.h&quot;
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : /*
+<span class="lineNum">      46 </span>            : ** Table for Fortran &lt;-&gt; C communicator handle conversion
+<span class="lineNum">      47 </span>            : ** Also used by P2P code to lookup communicator based
+<span class="lineNum">      48 </span>            : ** on cid.
+<span class="lineNum">      49 </span>            : **
+<span class="lineNum">      50 </span>            : */
+<span class="lineNum">      51 </span>            : opal_pointer_array_t ompi_mpi_communicators = {{0}};
+<span class="lineNum">      52 </span>            : opal_pointer_array_t ompi_comm_f_to_c_table = {{0}};
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : ompi_predefined_communicator_t  ompi_mpi_comm_world = {{{0}}};
+<span class="lineNum">      55 </span>            : ompi_predefined_communicator_t  ompi_mpi_comm_self = {{{0}}};
+<span class="lineNum">      56 </span>            : ompi_predefined_communicator_t  ompi_mpi_comm_null = {{{0}}};
+<span class="lineNum">      57 </span>            : ompi_communicator_t  *ompi_mpi_comm_parent = NULL;
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : ompi_predefined_communicator_t *ompi_mpi_comm_world_addr =
+<span class="lineNum">      60 </span>            :     &amp;ompi_mpi_comm_world;
+<span class="lineNum">      61 </span>            : ompi_predefined_communicator_t *ompi_mpi_comm_self_addr =
+<span class="lineNum">      62 </span>            :     &amp;ompi_mpi_comm_self;
+<span class="lineNum">      63 </span>            : ompi_predefined_communicator_t *ompi_mpi_comm_null_addr =
+<span class="lineNum">      64 </span>            :     &amp;ompi_mpi_comm_null;
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : static void ompi_comm_construct(ompi_communicator_t* comm);
+<span class="lineNum">      67 </span>            : static void ompi_comm_destruct(ompi_communicator_t* comm);
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : OBJ_CLASS_INSTANCE(ompi_communicator_t, opal_object_t,
+<span class="lineNum">      70 </span>            :                    ompi_comm_construct,
+<span class="lineNum">      71 </span>            :                    ompi_comm_destruct);
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : /* This is the counter for the number of communicators, which contain
+<span class="lineNum">      74 </span>            :    process with more than one jobid. This counter is a usefull
+<span class="lineNum">      75 </span>            :    shortcut for finalize and abort. */
+<span class="lineNum">      76 </span>            : int ompi_comm_num_dyncomm=0;
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : /*
+<span class="lineNum">      79 </span>            :  * Initialize comm world/self/null/parent.
+<span class="lineNum">      80 </span>            :  */
+<span class="lineNum">      81 </span><span class="lineCov">          2 : int ompi_comm_init(void)</span>
+<span class="lineNum">      82 </span>            : {
+<span class="lineNum">      83 </span>            :     ompi_group_t *group;
+<span class="lineNum">      84 </span>            :     size_t size;
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            :     /* Setup communicator array */
+<span class="lineNum">      87 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;ompi_mpi_communicators, opal_pointer_array_t);</span>
+<span class="lineNum">      88 </span><span class="lineCov">          2 :     if( OPAL_SUCCESS != opal_pointer_array_init(&amp;ompi_mpi_communicators, 0,</span>
+<span class="lineNum">      89 </span>            :                                                 OMPI_FORTRAN_HANDLE_MAX, 64) ) {
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :         return OMPI_ERROR;</span>
+<span class="lineNum">      91 </span>            :     }
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            :     /* Setup f to c table (we can no longer use the cid as the fortran handle) */
+<span class="lineNum">      94 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;ompi_comm_f_to_c_table, opal_pointer_array_t);</span>
+<span class="lineNum">      95 </span><span class="lineCov">          2 :     if( OPAL_SUCCESS != opal_pointer_array_init(&amp;ompi_comm_f_to_c_table, 0,</span>
+<span class="lineNum">      96 </span>            :                                                 OMPI_FORTRAN_HANDLE_MAX, 64) ) {
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :         return OMPI_ERROR;</span>
+<span class="lineNum">      98 </span>            :     }
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            :     /* Setup MPI_COMM_WORLD */
+<span class="lineNum">     101 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;ompi_mpi_comm_world, ompi_communicator_t);</span>
+<span class="lineNum">     102 </span><span class="lineCov">          2 :     assert(ompi_mpi_comm_world.comm.c_f_to_c_index == 0);</span>
+<span class="lineNum">     103 </span><span class="lineCov">          2 :     group = OBJ_NEW(ompi_group_t);</span>
+<span class="lineNum">     104 </span><span class="lineCov">          2 :     group-&gt;grp_proc_pointers = ompi_proc_world(&amp;size);</span>
+<span class="lineNum">     105 </span><span class="lineCov">          2 :     group-&gt;grp_proc_count    = (int)size;</span>
+<span class="lineNum">     106 </span><span class="lineCov">          2 :     OMPI_GROUP_SET_INTRINSIC (group);</span>
+<span class="lineNum">     107 </span><span class="lineCov">          2 :     OMPI_GROUP_SET_DENSE (group);</span>
+<span class="lineNum">     108 </span><span class="lineCov">          2 :     ompi_set_group_rank(group, ompi_proc_local());</span>
+<span class="lineNum">     109 </span><span class="lineCov">          2 :     ompi_group_increment_proc_count (group);</span>
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span><span class="lineCov">          2 :     ompi_mpi_comm_world.comm.c_contextid    = 0;</span>
+<span class="lineNum">     112 </span><span class="lineCov">          2 :     ompi_mpi_comm_world.comm.c_id_start_index = 4;</span>
+<span class="lineNum">     113 </span><span class="lineCov">          2 :     ompi_mpi_comm_world.comm.c_id_available = 4;</span>
+<span class="lineNum">     114 </span><span class="lineCov">          2 :     ompi_mpi_comm_world.comm.c_my_rank      = group-&gt;grp_my_rank;</span>
+<span class="lineNum">     115 </span><span class="lineCov">          2 :     ompi_mpi_comm_world.comm.c_local_group  = group;</span>
+<span class="lineNum">     116 </span><span class="lineCov">          2 :     ompi_mpi_comm_world.comm.c_remote_group = group;</span>
+<span class="lineNum">     117 </span><span class="lineCov">          4 :     OBJ_RETAIN(ompi_mpi_comm_world.comm.c_remote_group);</span>
+<span class="lineNum">     118 </span><span class="lineCov">          2 :     ompi_mpi_comm_world.comm.c_cube_dim     = opal_cube_dim((int)size);</span>
+<span class="lineNum">     119 </span><span class="lineCov">          2 :     ompi_mpi_comm_world.comm.error_handler  = &amp;ompi_mpi_errors_are_fatal.eh;</span>
+<span class="lineNum">     120 </span><span class="lineCov">          4 :     OBJ_RETAIN( &amp;ompi_mpi_errors_are_fatal.eh );</span>
+<span class="lineNum">     121 </span><span class="lineCov">          2 :     OMPI_COMM_SET_PML_ADDED(&amp;ompi_mpi_comm_world.comm);</span>
+<span class="lineNum">     122 </span><span class="lineCov">          2 :     opal_pointer_array_set_item (&amp;ompi_mpi_communicators, 0, &amp;ompi_mpi_comm_world);</span>
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            :     MEMCHECKER (memset (ompi_mpi_comm_world.comm.c_name, 0, MPI_MAX_OBJECT_NAME));
+<span class="lineNum">     125 </span><span class="lineCov">          2 :     strncpy (ompi_mpi_comm_world.comm.c_name, &quot;MPI_COMM_WORLD&quot;,</span>
+<span class="lineNum">     126 </span>            :              strlen(&quot;MPI_COMM_WORLD&quot;)+1 );
+<span class="lineNum">     127 </span><span class="lineCov">          2 :     ompi_mpi_comm_world.comm.c_flags |= OMPI_COMM_NAMEISSET;</span>
+<span class="lineNum">     128 </span><span class="lineCov">          2 :     ompi_mpi_comm_world.comm.c_flags |= OMPI_COMM_INTRINSIC;</span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            :     /* We have to create a hash (although it is legal to leave this
+<span class="lineNum">     131 </span>            :        filed NULL -- the attribute accessor functions will intepret
+<span class="lineNum">     132 </span>            :        this as &quot;there are no attributes cached on this object&quot;)
+<span class="lineNum">     133 </span>            :        because MPI_COMM_WORLD has some predefined attributes. */
+<span class="lineNum">     134 </span><span class="lineCov">          2 :     ompi_attr_hash_init(&amp;ompi_mpi_comm_world.comm.c_keyhash);</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            :     /* Setup MPI_COMM_SELF */
+<span class="lineNum">     137 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;ompi_mpi_comm_self, ompi_communicator_t);</span>
+<span class="lineNum">     138 </span><span class="lineCov">          2 :     assert(ompi_mpi_comm_self.comm.c_f_to_c_index == 1);</span>
+<span class="lineNum">     139 </span><span class="lineCov">          2 :     group = OBJ_NEW(ompi_group_t);</span>
+<span class="lineNum">     140 </span><span class="lineCov">          2 :     group-&gt;grp_proc_pointers = ompi_proc_self(&amp;size);</span>
+<span class="lineNum">     141 </span><span class="lineCov">          2 :     group-&gt;grp_my_rank       = 0;</span>
+<span class="lineNum">     142 </span><span class="lineCov">          2 :     group-&gt;grp_proc_count    = (int)size;</span>
+<span class="lineNum">     143 </span><span class="lineCov">          2 :     OMPI_GROUP_SET_INTRINSIC (group);</span>
+<span class="lineNum">     144 </span><span class="lineCov">          2 :     OMPI_GROUP_SET_DENSE (group);</span>
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineCov">          2 :     ompi_mpi_comm_self.comm.c_contextid    = 1;</span>
+<span class="lineNum">     147 </span><span class="lineCov">          2 :     ompi_mpi_comm_self.comm.c_id_start_index = 20;</span>
+<span class="lineNum">     148 </span><span class="lineCov">          2 :     ompi_mpi_comm_self.comm.c_id_available = 20;</span>
+<span class="lineNum">     149 </span><span class="lineCov">          2 :     ompi_mpi_comm_self.comm.c_my_rank      = group-&gt;grp_my_rank;</span>
+<span class="lineNum">     150 </span><span class="lineCov">          2 :     ompi_mpi_comm_self.comm.c_local_group  = group;</span>
+<span class="lineNum">     151 </span><span class="lineCov">          2 :     ompi_mpi_comm_self.comm.c_remote_group = group;</span>
+<span class="lineNum">     152 </span><span class="lineCov">          4 :     OBJ_RETAIN(ompi_mpi_comm_self.comm.c_remote_group);</span>
+<span class="lineNum">     153 </span><span class="lineCov">          2 :     ompi_mpi_comm_self.comm.error_handler  = &amp;ompi_mpi_errors_are_fatal.eh;</span>
+<span class="lineNum">     154 </span><span class="lineCov">          4 :     OBJ_RETAIN( &amp;ompi_mpi_errors_are_fatal.eh );</span>
+<span class="lineNum">     155 </span><span class="lineCov">          2 :     OMPI_COMM_SET_PML_ADDED(&amp;ompi_mpi_comm_self.comm);</span>
+<span class="lineNum">     156 </span><span class="lineCov">          2 :     opal_pointer_array_set_item (&amp;ompi_mpi_communicators, 1, &amp;ompi_mpi_comm_self);</span>
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            :     MEMCHECKER (memset (ompi_mpi_comm_self.comm.c_name, 0, MPI_MAX_OBJECT_NAME));
+<span class="lineNum">     159 </span><span class="lineCov">          2 :     strncpy(ompi_mpi_comm_self.comm.c_name,&quot;MPI_COMM_SELF&quot;,strlen(&quot;MPI_COMM_SELF&quot;)+1);</span>
+<span class="lineNum">     160 </span><span class="lineCov">          2 :     ompi_mpi_comm_self.comm.c_flags |= OMPI_COMM_NAMEISSET;</span>
+<span class="lineNum">     161 </span><span class="lineCov">          2 :     ompi_mpi_comm_self.comm.c_flags |= OMPI_COMM_INTRINSIC;</span>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            :     /* We can set MPI_COMM_SELF's keyhash to NULL because it has no
+<span class="lineNum">     164 </span>            :        predefined attributes.  If a user defines an attribute on
+<span class="lineNum">     165 </span>            :        MPI_COMM_SELF, the keyhash will automatically be created. */
+<span class="lineNum">     166 </span><span class="lineCov">          2 :     ompi_mpi_comm_self.comm.c_keyhash = NULL;</span>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            :     /* Setup MPI_COMM_NULL */
+<span class="lineNum">     169 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;ompi_mpi_comm_null, ompi_communicator_t);</span>
+<span class="lineNum">     170 </span><span class="lineCov">          2 :     assert(ompi_mpi_comm_null.comm.c_f_to_c_index == 2);</span>
+<span class="lineNum">     171 </span><span class="lineCov">          2 :     ompi_mpi_comm_null.comm.c_local_group  = &amp;ompi_mpi_group_null.group;</span>
+<span class="lineNum">     172 </span><span class="lineCov">          2 :     ompi_mpi_comm_null.comm.c_remote_group = &amp;ompi_mpi_group_null.group;</span>
+<span class="lineNum">     173 </span><span class="lineCov">          4 :     OBJ_RETAIN(&amp;ompi_mpi_group_null.group);</span>
+<span class="lineNum">     174 </span><span class="lineCov">          4 :     OBJ_RETAIN(&amp;ompi_mpi_group_null.group);</span>
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineCov">          2 :     ompi_mpi_comm_null.comm.c_contextid    = 2;</span>
+<span class="lineNum">     177 </span><span class="lineCov">          2 :     ompi_mpi_comm_null.comm.c_my_rank      = MPI_PROC_NULL;</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineCov">          2 :     ompi_mpi_comm_null.comm.error_handler  = &amp;ompi_mpi_errors_are_fatal.eh;</span>
+<span class="lineNum">     180 </span><span class="lineCov">          4 :     OBJ_RETAIN( &amp;ompi_mpi_errors_are_fatal.eh );</span>
+<span class="lineNum">     181 </span><span class="lineCov">          2 :     opal_pointer_array_set_item (&amp;ompi_mpi_communicators, 2, &amp;ompi_mpi_comm_null);</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            :     MEMCHECKER (memset (ompi_mpi_comm_null.comm.c_name, 0, MPI_MAX_OBJECT_NAME));
+<span class="lineNum">     184 </span><span class="lineCov">          2 :     strncpy(ompi_mpi_comm_null.comm.c_name,&quot;MPI_COMM_NULL&quot;,strlen(&quot;MPI_COMM_NULL&quot;)+1);</span>
+<span class="lineNum">     185 </span><span class="lineCov">          2 :     ompi_mpi_comm_null.comm.c_flags |= OMPI_COMM_NAMEISSET;</span>
+<span class="lineNum">     186 </span><span class="lineCov">          2 :     ompi_mpi_comm_null.comm.c_flags |= OMPI_COMM_INTRINSIC;</span>
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span>            :     /* Initialize the parent communicator to MPI_COMM_NULL */
+<span class="lineNum">     189 </span><span class="lineCov">          2 :     ompi_mpi_comm_parent = &amp;ompi_mpi_comm_null.comm;</span>
+<span class="lineNum">     190 </span><span class="lineCov">          4 :     OBJ_RETAIN(&amp;ompi_mpi_comm_null);</span>
+<span class="lineNum">     191 </span><span class="lineCov">          4 :     OBJ_RETAIN(&amp;ompi_mpi_group_null.group);</span>
+<span class="lineNum">     192 </span><span class="lineCov">          4 :     OBJ_RETAIN(&amp;ompi_mpi_errors_are_fatal.eh);</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :     /* initialize the comm_reg stuff for multi-threaded comm_cid
+<span class="lineNum">     195 </span>            :        allocation */
+<span class="lineNum">     196 </span><span class="lineCov">          2 :     ompi_comm_reg_init();</span>
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            :     /* initialize communicator requests (for ompi_comm_idup) */
+<span class="lineNum">     199 </span><span class="lineCov">          2 :     ompi_comm_request_init ();</span>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineCov">          2 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     202 </span>            : }
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 : ompi_communicator_t *ompi_comm_allocate ( int local_size, int remote_size )</span>
+<span class="lineNum">     206 </span>            : {
+<span class="lineNum">     207 </span>            :     ompi_communicator_t *new_comm;
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            :     /* create new communicator element */
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :     new_comm = OBJ_NEW(ompi_communicator_t);</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :     new_comm-&gt;c_local_group = ompi_group_allocate ( local_size );</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     if ( 0 &lt; remote_size ) {</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :         new_comm-&gt;c_remote_group = ompi_group_allocate (remote_size);</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         new_comm-&gt;c_flags |= OMPI_COMM_INTER;</span>
+<span class="lineNum">     215 </span>            :     } else {
+<span class="lineNum">     216 </span>            :         /*
+<span class="lineNum">     217 </span>            :          * simplifies some operations (e.g. p2p), if
+<span class="lineNum">     218 </span>            :          * we can always use the remote group
+<span class="lineNum">     219 </span>            :          */
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         new_comm-&gt;c_remote_group = new_comm-&gt;c_local_group;</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         OBJ_RETAIN(new_comm-&gt;c_remote_group);</span>
+<span class="lineNum">     222 </span>            :     }
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            :     /* fill in the inscribing hyper-cube dimensions */
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :     new_comm-&gt;c_cube_dim = opal_cube_dim(local_size);</span>
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     return new_comm;</span>
+<span class="lineNum">     228 </span>            : }
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineCov">          2 : int ompi_comm_finalize(void)</span>
+<span class="lineNum">     231 </span>            : {
+<span class="lineNum">     232 </span>            :     int max, i;
+<span class="lineNum">     233 </span>            :     ompi_communicator_t *comm;
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span>            :     /* Shut down MPI_COMM_SELF */
+<span class="lineNum">     236 </span><span class="lineCov">          2 :     OBJ_DESTRUCT( &amp;ompi_mpi_comm_self );</span>
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span>            :     /* disconnect all dynamic communicators */
+<span class="lineNum">     239 </span><span class="lineCov">          2 :     ompi_dpm.dyn_finalize();</span>
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span>            :     /* Free the attributes on comm world. This is not done in the
+<span class="lineNum">     242 </span>            :      * destructor as we delete attributes in ompi_comm_free (which
+<span class="lineNum">     243 </span>            :      * is not called for comm world) */
+<span class="lineNum">     244 </span><span class="lineCov">          2 :     if (NULL != ompi_mpi_comm_world.comm.c_keyhash) {</span>
+<span class="lineNum">     245 </span>            :         /* Ignore errors when deleting attributes on comm_world */
+<span class="lineNum">     246 </span><span class="lineCov">          2 :         (void) ompi_attr_delete_all(COMM_ATTR, &amp;ompi_mpi_comm_world.comm, ompi_mpi_comm_world.comm.c_keyhash);</span>
+<span class="lineNum">     247 </span><span class="lineCov">          4 :         OBJ_RELEASE(ompi_mpi_comm_world.comm.c_keyhash);</span>
+<span class="lineNum">     248 </span>            :     }
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span>            :     /* Shut down MPI_COMM_WORLD */
+<span class="lineNum">     251 </span><span class="lineCov">          2 :     OBJ_DESTRUCT( &amp;ompi_mpi_comm_world );</span>
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            :     /* Shut down the parent communicator, if it exists */
+<span class="lineNum">     254 </span><span class="lineCov">          2 :     if( ompi_mpi_comm_parent != &amp;ompi_mpi_comm_null.comm ) {</span>
+<span class="lineNum">     255 </span>            :         /* Note that we pass ompi_mpi_comm_parent here
+<span class="lineNum">     256 </span>            :            (vs. &amp;ompi_mpi_comm_parent) because it is of type
+<span class="lineNum">     257 </span>            :            (ompi_communicator_t*), *NOT* (ompi_communicator_t).  This
+<span class="lineNum">     258 </span>            :            is because a parent communicator is created dynamically
+<span class="lineNum">     259 </span>            :            during init, and we just set this pointer to it.  Hence, we
+<span class="lineNum">     260 </span>            :            just pass in the pointer here. */
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT (ompi_mpi_comm_parent);</span>
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span>            :         /* Please note, that the we did increase the reference count
+<span class="lineNum">     264 </span>            :            for ompi_mpi_comm_null, ompi_mpi_group_null, and
+<span class="lineNum">     265 </span>            :            ompi_mpi_errors_are_fatal in ompi_comm_init because of
+<span class="lineNum">     266 </span>            :            ompi_mpi_comm_parent.  In case a
+<span class="lineNum">     267 </span>            :            parent communicator is really created, the ref. counters
+<span class="lineNum">     268 </span>            :            for these objects are decreased again by one. However, in a
+<span class="lineNum">     269 </span>            :            static scenario, we should ideally decrease the ref. counter
+<span class="lineNum">     270 </span>            :            for these objects by one here. The problem just is, that
+<span class="lineNum">     271 </span>            :            if the app had a parent_comm, and this has been freed/disconnected,
+<span class="lineNum">     272 </span>            :            ompi_comm_parent points again to ompi_comm_null, the reference count
+<span class="lineNum">     273 </span>            :            for these objects has not been increased again.
+<span class="lineNum">     274 </span>            :            So the point is, if ompi_mpi_comm_parent == &amp;ompi_mpi_comm_null
+<span class="lineNum">     275 </span>            :            we do not know whether we have to decrease the ref count for
+<span class="lineNum">     276 </span>            :            those three objects or not. Since this is a constant, non-increasing
+<span class="lineNum">     277 </span>            :            amount of memory, we stick with the current solution for now,
+<span class="lineNum">     278 </span>            :            namely don't do anything.
+<span class="lineNum">     279 </span>            :         */
+<span class="lineNum">     280 </span>            :     }
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span>            :     /* Shut down MPI_COMM_NULL */
+<span class="lineNum">     283 </span><span class="lineCov">          2 :     OBJ_DESTRUCT( &amp;ompi_mpi_comm_null );</span>
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            :     /* Check whether we have some communicators left */
+<span class="lineNum">     286 </span><span class="lineCov">          2 :     max = opal_pointer_array_get_size(&amp;ompi_mpi_communicators);</span>
+<span class="lineNum">     287 </span><span class="lineCov">        124 :     for ( i=3; i&lt;max; i++ ) {</span>
+<span class="lineNum">     288 </span><span class="lineCov">        122 :         comm = (ompi_communicator_t *)opal_pointer_array_get_item(&amp;ompi_mpi_communicators, i);</span>
+<span class="lineNum">     289 </span><span class="lineCov">        122 :         if ( NULL != comm ) {</span>
+<span class="lineNum">     290 </span>            :             /* Communicator has not been freed before finalize */
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(comm);</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :             comm=(ompi_communicator_t *)opal_pointer_array_get_item(&amp;ompi_mpi_communicators, i);</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :             if ( NULL != comm ) {</span>
+<span class="lineNum">     294 </span>            :                 /* Still here ? */
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :                 if ( !OMPI_COMM_IS_EXTRA_RETAIN(comm)) {</span>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            :                     /* For communicator that have been marked as &quot;extra retain&quot;, we do not further
+<span class="lineNum">     298 </span>            :                      * enforce to decrease the reference counter once more. These &quot;extra retain&quot;
+<span class="lineNum">     299 </span>            :                      * communicators created e.g. by the hierarch or inter module did increase
+<span class="lineNum">     300 </span>            :                      * the reference count by one more than other communicators, on order to
+<span class="lineNum">     301 </span>            :                      * allow for deallocation with the parent communicator. Note, that
+<span class="lineNum">     302 </span>            :                      * this only occurs if the cid of the local_comm is lower than of its
+<span class="lineNum">     303 </span>            :                      * parent communicator. Read the comment in comm_activate for
+<span class="lineNum">     304 </span>            :                      * a full explanation.
+<span class="lineNum">     305 </span>            :                      */
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :                     if ( ompi_debug_show_handle_leaks &amp;&amp; !(OMPI_COMM_IS_FREED(comm)) ){</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :                         opal_output(0,&quot;WARNING: MPI_Comm still allocated in MPI_Finalize\n&quot;);</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :                         ompi_comm_dump ( comm);</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :                         OBJ_RELEASE(comm);</span>
+<span class="lineNum">     310 </span>            :                     }
+<span class="lineNum">     311 </span>            :                 }
+<span class="lineNum">     312 </span>            :             }
+<span class="lineNum">     313 </span>            :         }
+<span class="lineNum">     314 </span>            :     }
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span><span class="lineCov">          2 :     OBJ_DESTRUCT (&amp;ompi_mpi_communicators);</span>
+<span class="lineNum">     318 </span><span class="lineCov">          2 :     OBJ_DESTRUCT (&amp;ompi_comm_f_to_c_table);</span>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            :     /* finalize the comm_reg stuff */
+<span class="lineNum">     321 </span><span class="lineCov">          2 :     ompi_comm_reg_finalize();</span>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            :     /* finalize communicator requests */
+<span class="lineNum">     324 </span><span class="lineCov">          2 :     ompi_comm_request_fini ();</span>
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span><span class="lineCov">          2 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     327 </span>            : }
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span>            : /*
+<a name="330"><span class="lineNum">     330 </span>            :  * For linking only. To be checked.</a>
+<span class="lineNum">     331 </span>            :  */
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 : int ompi_comm_link_function(void)</span>
+<span class="lineNum">     333 </span>            : {
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     335 </span>            : }
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            : /********************************************************************************/
+<span class="lineNum">     338 </span>            : /********************************************************************************/
+<span class="lineNum">     339 </span>            : /********************************************************************************/
+<a name="340"><span class="lineNum">     340 </span>            : /* static functions */</a>
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span><span class="lineCov">          6 : static void ompi_comm_construct(ompi_communicator_t* comm)</span>
+<span class="lineNum">     343 </span>            : {
+<span class="lineNum">     344 </span><span class="lineCov">          6 :     comm-&gt;c_f_to_c_index = opal_pointer_array_add(&amp;ompi_comm_f_to_c_table, comm);</span>
+<span class="lineNum">     345 </span><span class="lineCov">          6 :     comm-&gt;c_name[0]      = '\0';</span>
+<span class="lineNum">     346 </span><span class="lineCov">          6 :     comm-&gt;c_contextid    = MPI_UNDEFINED;</span>
+<span class="lineNum">     347 </span><span class="lineCov">          6 :     comm-&gt;c_id_available = MPI_UNDEFINED;</span>
+<span class="lineNum">     348 </span><span class="lineCov">          6 :     comm-&gt;c_id_start_index = MPI_UNDEFINED;</span>
+<span class="lineNum">     349 </span><span class="lineCov">          6 :     comm-&gt;c_flags        = 0;</span>
+<span class="lineNum">     350 </span><span class="lineCov">          6 :     comm-&gt;c_my_rank      = 0;</span>
+<span class="lineNum">     351 </span><span class="lineCov">          6 :     comm-&gt;c_cube_dim     = 0;</span>
+<span class="lineNum">     352 </span><span class="lineCov">          6 :     comm-&gt;c_local_group  = NULL;</span>
+<span class="lineNum">     353 </span><span class="lineCov">          6 :     comm-&gt;c_remote_group = NULL;</span>
+<span class="lineNum">     354 </span><span class="lineCov">          6 :     comm-&gt;error_handler  = NULL;</span>
+<span class="lineNum">     355 </span><span class="lineCov">          6 :     comm-&gt;c_pml_comm     = NULL;</span>
+<span class="lineNum">     356 </span><span class="lineCov">          6 :     comm-&gt;c_topo         = NULL;</span>
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            :     /* A keyhash will be created if/when an attribute is cached on
+<span class="lineNum">     359 </span>            :        this communicator */
+<span class="lineNum">     360 </span><span class="lineCov">          6 :     comm-&gt;c_keyhash      = NULL;</span>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span><span class="lineCov">          6 :     comm-&gt;errhandler_type  = OMPI_ERRHANDLER_TYPE_COMM;</span>
+<span class="lineNum">     363 </span>            : #ifdef OMPI_WANT_PERUSE
+<span class="lineNum">     364 </span><span class="lineCov">          6 :     comm-&gt;c_peruse_handles = NULL;</span>
+<span class="lineNum">     365 </span>            : #endif
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span>            :     /* Need to zero out the collectives module because we sometimes
+<span class="lineNum">     368 </span>            :        call coll_unselect without a matching call to coll_select, and
+<span class="lineNum">     369 </span>            :        we need an easy way for the coll base code to realize we've
+<span class="lineNum">     370 </span>            :        done this. */
+<span class="lineNum">     371 </span><span class="lineCov">          6 :     memset(&amp;comm-&gt;c_coll, 0, sizeof(mca_coll_base_comm_coll_t));</span>
+<span class="lineNum">     372 </span><span class="lineCov">          6 : }</span>
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span><span class="lineCov">          6 : static void ompi_comm_destruct(ompi_communicator_t* comm)</span>
+<span class="lineNum">     375 </span>            : {
+<span class="lineNum">     376 </span>            :     /* Note that the attributes were already released on this
+<span class="lineNum">     377 </span>            :        communicator in ompi_comm_free() (i.e., from MPI_COMM_FREE /
+<span class="lineNum">     378 </span>            :        MPI_COMM_DISCONNECT).  See the lengthy comment in
+<span class="lineNum">     379 </span>            :        communicator/comm.c in ompi_comm_free() for the reasons why. */
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            :     /* Release the collective module */
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineCov">          6 :     if ( MPI_COMM_NULL != comm ) {</span>
+<span class="lineNum">     384 </span><span class="lineCov">          4 :         mca_coll_base_comm_unselect(comm);</span>
+<span class="lineNum">     385 </span>            :     }
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span>            :     /* Tell the PML that this communicator is done.
+<span class="lineNum">     388 </span>            :        MCA_PML_CALL(add_comm()) was called explicitly in
+<span class="lineNum">     389 </span>            :        ompi_comm_init() when setting up COMM_WORLD and COMM_SELF; it's
+<span class="lineNum">     390 </span>            :        called in ompi_comm_set() for all others.  This means that all
+<span class="lineNum">     391 </span>            :        communicators must be destroyed before the PML shuts down.
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span>            :        Also -- do not invoke the pml_del_comm if the corresponding
+<span class="lineNum">     394 </span>            :        pml_add_comm was never invoked.  This can happen in an error
+<span class="lineNum">     395 </span>            :        situation where, for example, attributes do not copy properly
+<span class="lineNum">     396 </span>            :        from one communicator to another and we end up destroying the
+<span class="lineNum">     397 </span>            :        new communication while propagating the error up the stack.  We
+<span class="lineNum">     398 </span>            :        want to make it all the way up the stack to invoke the MPI
+<span class="lineNum">     399 </span>            :        exception, not cause a seg fault in pml_del_comm because it was
+<span class="lineNum">     400 </span>            :        never pml_add_com'ed. */
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span><span class="lineCov">          6 :     if ( MPI_COMM_NULL != comm &amp;&amp; OMPI_COMM_IS_PML_ADDED(comm) ) {</span>
+<span class="lineNum">     403 </span><span class="lineCov">          4 :         MCA_PML_CALL(del_comm (comm));</span>
+<span class="lineNum">     404 </span>            :     }
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            :     /* Release topology module */
+<span class="lineNum">     407 </span><span class="lineCov">          6 :     if (NULL != comm-&gt;c_topo) {</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(comm-&gt;c_topo);</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :         comm-&gt;c_topo = NULL;</span>
+<span class="lineNum">     410 </span>            :     }
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span><span class="lineCov">          6 :     if (NULL != comm-&gt;c_local_group) {</span>
+<span class="lineNum">     413 </span><span class="lineCov">          6 :         ompi_group_decrement_proc_count (comm-&gt;c_local_group);</span>
+<span class="lineNum">     414 </span><span class="lineCov">         12 :         OBJ_RELEASE ( comm-&gt;c_local_group );</span>
+<span class="lineNum">     415 </span><span class="lineCov">          6 :         comm-&gt;c_local_group = NULL;</span>
+<span class="lineNum">     416 </span><span class="lineCov">          6 :         if ( OMPI_COMM_IS_INTRA(comm) ) {</span>
+<span class="lineNum">     417 </span>            :             /* We have to decrement the ref count on the remote group
+<span class="lineNum">     418 </span>            :                even if it is identical to the local one in case of
+<span class="lineNum">     419 </span>            :                intra-comm */
+<span class="lineNum">     420 </span><span class="lineCov">         12 :             OBJ_RELEASE ( comm-&gt;c_remote_group );</span>
+<span class="lineNum">     421 </span><span class="lineCov">          6 :             comm-&gt;c_remote_group = NULL;</span>
+<span class="lineNum">     422 </span>            :         }
+<span class="lineNum">     423 </span>            :     }
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineCov">          6 :     if (NULL != comm-&gt;c_remote_group) {</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         ompi_group_decrement_proc_count (comm-&gt;c_remote_group);</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :         OBJ_RELEASE ( comm-&gt;c_remote_group );</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :         comm-&gt;c_remote_group = NULL;</span>
+<span class="lineNum">     429 </span>            :     }
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span><span class="lineCov">          6 :     if (NULL != comm-&gt;error_handler) {</span>
+<span class="lineNum">     432 </span><span class="lineCov">         12 :         OBJ_RELEASE ( comm-&gt;error_handler );</span>
+<span class="lineNum">     433 </span><span class="lineCov">          6 :         comm-&gt;error_handler = NULL;</span>
+<span class="lineNum">     434 </span>            :     }
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span>            :     /* mark this cid as available */
+<span class="lineNum">     437 </span><span class="lineCov">         12 :     if ( MPI_UNDEFINED != (int)comm-&gt;c_contextid &amp;&amp;</span>
+<span class="lineNum">     438 </span><span class="lineCov">          6 :          NULL != opal_pointer_array_get_item(&amp;ompi_mpi_communicators,</span>
+<span class="lineNum">     439 </span><span class="lineCov">          6 :                                              comm-&gt;c_contextid)) {</span>
+<span class="lineNum">     440 </span><span class="lineCov">          6 :         opal_pointer_array_set_item ( &amp;ompi_mpi_communicators,</span>
+<span class="lineNum">     441 </span><span class="lineCov">          6 :                                       comm-&gt;c_contextid, NULL);</span>
+<span class="lineNum">     442 </span>            :     }
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span>            :     /* reset the ompi_comm_f_to_c_table entry */
+<span class="lineNum">     445 </span><span class="lineCov">         12 :     if ( MPI_UNDEFINED != comm-&gt;c_f_to_c_index &amp;&amp;</span>
+<span class="lineNum">     446 </span><span class="lineCov">          6 :          NULL != opal_pointer_array_get_item(&amp;ompi_comm_f_to_c_table,</span>
+<span class="lineNum">     447 </span>            :                                              comm-&gt;c_f_to_c_index)) {
+<span class="lineNum">     448 </span><span class="lineCov">          6 :         opal_pointer_array_set_item ( &amp;ompi_comm_f_to_c_table,</span>
+<span class="lineNum">     449 </span>            :                                       comm-&gt;c_f_to_c_index, NULL);
+<span class="lineNum">     450 </span>            :     }
+<span class="lineNum">     451 </span><span class="lineCov">          6 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

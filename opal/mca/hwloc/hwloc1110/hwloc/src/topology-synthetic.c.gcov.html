@@ -1,0 +1,1174 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/hwloc/hwloc1110/hwloc/src/topology-synthetic.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">opal/mca/hwloc/hwloc1110/hwloc/src</a> - topology-synthetic.c<span style="font-size: 80%;"> (source / <a href="topology-synthetic.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">642</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright © 2009 CNRS
+<span class="lineNum">       3 </span>            :  * Copyright © 2009-2015 Inria.  All rights reserved.
+<span class="lineNum">       4 </span>            :  * Copyright © 2009-2010 Université Bordeaux
+<span class="lineNum">       5 </span>            :  * Copyright © 2009-2011 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * See COPYING in top-level directory.
+<span class="lineNum">       7 </span>            :  */
+<span class="lineNum">       8 </span>            : 
+<span class="lineNum">       9 </span>            : #include &lt;private/autogen/config.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;hwloc.h&gt;
+<span class="lineNum">      11 </span>            : #include &lt;private/private.h&gt;
+<span class="lineNum">      12 </span>            : #include &lt;private/misc.h&gt;
+<span class="lineNum">      13 </span>            : #include &lt;private/debug.h&gt;
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : #include &lt;limits.h&gt;
+<span class="lineNum">      16 </span>            : #include &lt;assert.h&gt;
+<span class="lineNum">      17 </span>            : #ifdef HAVE_STRINGS_H
+<span class="lineNum">      18 </span>            : #include &lt;strings.h&gt;
+<span class="lineNum">      19 </span>            : #endif
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : struct hwloc_synthetic_level_data_s {
+<span class="lineNum">      22 </span>            :   unsigned arity;
+<span class="lineNum">      23 </span>            :   unsigned long totalwidth;
+<span class="lineNum">      24 </span>            :   hwloc_obj_type_t type;
+<span class="lineNum">      25 </span>            :   unsigned depth; /* For caches/groups */
+<span class="lineNum">      26 </span>            :   hwloc_obj_cache_type_t cachetype; /* For caches */
+<span class="lineNum">      27 </span>            :   hwloc_uint64_t memorysize; /* For caches/memory */
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            :   /* the indexes= attribute before parsing */
+<span class="lineNum">      30 </span>            :   const char *index_string;
+<span class="lineNum">      31 </span>            :   unsigned long index_string_length;
+<span class="lineNum">      32 </span>            :   /* the array of explicit indexes after parsing */
+<span class="lineNum">      33 </span>            :   unsigned *index_array;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            :   /* used while filling the topology */
+<span class="lineNum">      36 </span>            :   unsigned next_os_index; /* id of the next object for that level */
+<span class="lineNum">      37 </span>            : };
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : struct hwloc_synthetic_backend_data_s {
+<span class="lineNum">      40 </span>            :   /* synthetic backend parameters */
+<span class="lineNum">      41 </span>            :   char *string;
+<span class="lineNum">      42 </span>            : #define HWLOC_SYNTHETIC_MAX_DEPTH 128
+<span class="lineNum">      43 </span>            :   struct hwloc_synthetic_level_data_s level[HWLOC_SYNTHETIC_MAX_DEPTH];
+<span class="lineNum">      44 </span>            : };
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : struct hwloc_synthetic_intlv_loop_s {
+<span class="lineNum">      47 </span>            :   unsigned step;
+<span class="lineNum">      48 </span>            :   unsigned nb;
+<span class="lineNum">      49 </span>            :   unsigned level_depth;
+<span class="lineNum">      50 </span>            : };
+<a name="51"><span class="lineNum">      51 </span>            : </a>
+<span class="lineNum">      52 </span>            : static void
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 : hwloc_synthetic_process_level_indexes(struct hwloc_synthetic_backend_data_s *data,</span>
+<span class="lineNum">      54 </span>            :                                       unsigned curleveldepth,
+<span class="lineNum">      55 </span>            :                                       int verbose)
+<span class="lineNum">      56 </span>            : {
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :   struct hwloc_synthetic_level_data_s *curlevel = &amp;data-&gt;level[curleveldepth];</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :   unsigned long total = curlevel-&gt;totalwidth;</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :   const char *attr = curlevel-&gt;index_string;</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :   unsigned long length = curlevel-&gt;index_string_length;</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :   unsigned *array = NULL;</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :   struct hwloc_synthetic_intlv_loop_s * loops = NULL;</span>
+<span class="lineNum">      63 </span>            :   unsigned long i;
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :   if (!attr)</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :   array = calloc(total, sizeof(*array));</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :   if (!array) {</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     if (verbose)</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Failed to allocate synthetic index array of size %lu\n&quot;, total);</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     goto out;</span>
+<span class="lineNum">      73 </span>            :   }
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :   i = strspn(attr, &quot;0123456789,&quot;);</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :   if (i == length) {</span>
+<span class="lineNum">      77 </span>            :     /* explicit array of indexes */
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     for(i=0; i&lt;total; i++) {</span>
+<span class="lineNum">      80 </span>            :       const char *next;
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :       unsigned idx = strtoul(attr, (char **) &amp;next, 10);</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :       if (next == attr) {</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :         if (verbose)</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :           fprintf(stderr, &quot;Failed to read synthetic index #%lu at '%s'\n&quot;, i, attr);</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :         goto out_with_array;</span>
+<span class="lineNum">      86 </span>            :       }
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :       array[i] = idx;</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :       if (i != total-1) {</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :         if (*next != ',') {</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :           if (verbose)</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :             fprintf(stderr, &quot;Missing comma after synthetic index #%lu at '%s'\n&quot;, i, attr);</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :           goto out_with_array;</span>
+<span class="lineNum">      94 </span>            :         }
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         attr = next+1;</span>
+<span class="lineNum">      96 </span>            :       } else {
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :         attr = next;</span>
+<span class="lineNum">      98 </span>            :       }
+<span class="lineNum">      99 </span>            :     }
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     curlevel-&gt;index_array = array;</span>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :   } else {
+<span class="lineNum">     103 </span>            :     /* interleaving */
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     unsigned nr_loops = 1, cur_loop;</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     unsigned minstep = total;</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     unsigned long nbs = 1;</span>
+<span class="lineNum">     107 </span>            :     unsigned j, mul;
+<span class="lineNum">     108 </span>            :     const char *tmp;
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     tmp = attr;</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     while (tmp) {</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :       tmp = strchr(tmp, ':');</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :       if (!tmp || tmp &gt;= attr+length)</span>
+<span class="lineNum">     114 </span>            :         break;
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :       nr_loops++;</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :       tmp++;</span>
+<span class="lineNum">     117 </span>            :     }
+<span class="lineNum">     118 </span>            :     /* nr_loops colon-separated fields, but we may need one more at the end */
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     loops = malloc((nr_loops+1)*sizeof(*loops));</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     if (!loops) {</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :       if (verbose)</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;Failed to allocate synthetic index interleave loop array of size %u\n&quot;, nr_loops);</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :       goto out_with_array;</span>
+<span class="lineNum">     124 </span>            :     }
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     if (*attr &gt;= '0' &amp;&amp; *attr &lt;= '9') {</span>
+<span class="lineNum">     127 </span>            :       /* interleaving as x*y:z*t:... */
+<span class="lineNum">     128 </span>            :       unsigned step, nb;
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :       tmp = attr;</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :       cur_loop = 0;</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :       while (tmp) {</span>
+<span class="lineNum">     133 </span>            :         char *tmp2, *tmp3;
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :         step = (unsigned) strtol(tmp, &amp;tmp2, 0);</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :         if (tmp2 == tmp || *tmp2 != '*') {</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :           if (verbose)</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :             fprintf(stderr, &quot;Failed to read synthetic index interleaving loop '%s' without number before '*'\n&quot;, tmp);</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :           goto out_with_loops;</span>
+<span class="lineNum">     139 </span>            :         }
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :         if (!step) {</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :           if (verbose)</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :             fprintf(stderr, &quot;Invalid interleaving loop with step 0 at '%s'\n&quot;, tmp);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :           goto out_with_loops;</span>
+<span class="lineNum">     144 </span>            :         }
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         tmp2++;</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         nb = (unsigned) strtol(tmp2, &amp;tmp3, 0);</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         if (tmp3 == tmp2 || (*tmp3 &amp;&amp; *tmp3 != ':' &amp;&amp; *tmp3 != ')' &amp;&amp; *tmp3 != ' ')) {</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :           if (verbose)</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :             fprintf(stderr, &quot;Failed to read synthetic index interleaving loop '%s' without number between '*' and ':'\n&quot;, tmp);</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :           goto out_with_loops;</span>
+<span class="lineNum">     151 </span>            :         }
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         if (!nb) {</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :           if (verbose)</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :             fprintf(stderr, &quot;Invalid interleaving loop with number 0 at '%s'\n&quot;, tmp2);</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :           goto out_with_loops;</span>
+<span class="lineNum">     156 </span>            :         }
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :         loops[cur_loop].step = step;</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :         loops[cur_loop].nb = nb;</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :         if (step &lt; minstep)</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :           minstep = step;</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :         nbs *= nb;</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :         cur_loop++;</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :         if (*tmp3 == ')' || *tmp3 == ' ')</span>
+<span class="lineNum">     164 </span>            :           break;
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :         tmp = (const char*) (tmp3+1);</span>
+<span class="lineNum">     166 </span>            :       }
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            :     } else {
+<span class="lineNum">     169 </span>            :       /* interleaving as type1:type2:... */
+<span class="lineNum">     170 </span>            :       hwloc_obj_type_t type;
+<span class="lineNum">     171 </span>            :       hwloc_obj_cache_type_t cachetypeattr;
+<span class="lineNum">     172 </span>            :       int depthattr;
+<span class="lineNum">     173 </span>            :       int err;
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            :       /* find level depths for each interleaving loop */
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :       tmp = attr;</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :       cur_loop = 0;</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :       while (tmp) {</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         err = hwloc_obj_type_sscanf(tmp, &amp;type, &amp;depthattr, &amp;cachetypeattr, sizeof(cachetypeattr));</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :         if (err &lt; 0) {</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :           if (verbose)</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :             fprintf(stderr, &quot;Failed to read synthetic index interleaving loop type '%s'\n&quot;, tmp);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :           goto out_with_loops;</span>
+<span class="lineNum">     184 </span>            :         }
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :         if (type == HWLOC_OBJ_MISC || type == HWLOC_OBJ_BRIDGE || type == HWLOC_OBJ_PCI_DEVICE || type == HWLOC_OBJ_OS_DEVICE) {</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :           if (verbose)</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :             fprintf(stderr, &quot;Misc object type disallowed in synthetic index interleaving loop type '%s'\n&quot;, tmp);</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :           goto out_with_loops;</span>
+<span class="lineNum">     189 </span>            :         }
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :         for(i=0; i&lt;curleveldepth; i++) {</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :           if (type != data-&gt;level[i].type)</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :           if ((type == HWLOC_OBJ_GROUP || type == HWLOC_OBJ_CACHE)</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :               &amp;&amp; depthattr != -1</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :               &amp;&amp; (unsigned) depthattr != data-&gt;level[i].depth)</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :           if (type == HWLOC_OBJ_CACHE</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :               &amp;&amp; cachetypeattr != (hwloc_obj_cache_type_t) -1</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :               &amp;&amp; cachetypeattr != data-&gt;level[i].cachetype)</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :           loops[cur_loop].level_depth = i;</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :           break;</span>
+<span class="lineNum">     203 </span>            :         }
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :         if (i == curleveldepth) {</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :           if (verbose)</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :             fprintf(stderr, &quot;Failed to find level for synthetic index interleaving loop type '%s' above '%s'\n&quot;,</span>
+<span class="lineNum">     207 </span>            :                     tmp, hwloc_obj_type_string(curlevel-&gt;type));
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :           goto out_with_loops;</span>
+<span class="lineNum">     209 </span>            :         }
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :         tmp = strchr(tmp, ':');</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :         if (!tmp || tmp &gt; attr+length)</span>
+<span class="lineNum">     212 </span>            :           break;
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :         tmp++;</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         cur_loop++;</span>
+<span class="lineNum">     215 </span>            :       }
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            :       /* compute actual loop step/nb */
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :       for(cur_loop=0; cur_loop&lt;nr_loops; cur_loop++) {</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         unsigned mydepth = loops[cur_loop].level_depth;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         unsigned prevdepth = 0;</span>
+<span class="lineNum">     221 </span>            :         unsigned step, nb;
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         for(i=0; i&lt;nr_loops; i++) {</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :           if (loops[i].level_depth == mydepth &amp;&amp; i != cur_loop) {</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :             if (verbose)</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :               fprintf(stderr, &quot;Invalid duplicate interleaving loop type in synthetic index '%s'\n&quot;, attr);</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :             goto out_with_loops;</span>
+<span class="lineNum">     227 </span>            :           }
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :           if (loops[i].level_depth &lt; mydepth</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :               &amp;&amp; loops[i].level_depth &gt; prevdepth)</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :             prevdepth = loops[i].level_depth;</span>
+<span class="lineNum">     231 </span>            :         }
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         step = curlevel-&gt;totalwidth / data-&gt;level[mydepth].totalwidth; /* number of objects below us */</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         nb = data-&gt;level[mydepth].totalwidth / data-&gt;level[prevdepth].totalwidth; /* number of us within parent */</span>
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         loops[cur_loop].step = step;</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :         loops[cur_loop].nb = nb;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         assert(nb);</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         assert(step);</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         if (step &lt; minstep)</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :           minstep = step;</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         nbs *= nb;</span>
+<span class="lineNum">     242 </span>            :       }
+<span class="lineNum">     243 </span>            :     }
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     assert(nbs);</span>
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     if (nbs != total) {</span>
+<span class="lineNum">     247 </span>            :       /* one loop of total/nbs steps is missing, add it if it's just the smallest one */
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :       if (minstep == total/nbs) {</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :         loops[nr_loops].step = 1;</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         loops[nr_loops].nb = total/nbs;</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :         nr_loops++;</span>
+<span class="lineNum">     252 </span>            :       } else {
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         if (verbose)</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :           fprintf(stderr, &quot;Invalid index interleaving total width %lu instead of %lu\n&quot;, nbs, total);</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :         goto out_with_loops;</span>
+<span class="lineNum">     256 </span>            :       }
+<span class="lineNum">     257 </span>            :     }
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            :     /* generate the array of indexes */
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     mul = 1;</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     for(i=0; i&lt;nr_loops; i++) {</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :       unsigned step = loops[i].step;</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :       unsigned nb = loops[i].nb;</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :       for(j=0; j&lt;total; j++)</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         array[j] += ((j / step) % nb) * mul;</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :       mul *= nb;</span>
+<span class="lineNum">     267 </span>            :     }
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span>            :     /* check that we have the right values (cannot pass total, cannot give duplicate 0) */
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     for(j=0; j&lt;total; j++) {</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :       if (array[j] &gt;= total) {</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :         if (verbose)</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :           fprintf(stderr, &quot;Invalid index interleaving generates out-of-range index %u\n&quot;, array[j]);</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         goto out_with_loops;</span>
+<span class="lineNum">     275 </span>            :       }
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :       if (!array[j] &amp;&amp; j) {</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :         if (verbose)</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :           fprintf(stderr, &quot;Invalid index interleaving generates duplicate index values\n&quot;);</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :         goto out_with_loops;</span>
+<span class="lineNum">     280 </span>            :       }
+<span class="lineNum">     281 </span>            :     }
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     free(loops);</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     curlevel-&gt;index_array = array;</span>
+<span class="lineNum">     285 </span>            :   }
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :   return;</span>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span>            :  out_with_loops:
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :   free(loops);</span>
+<span class="lineNum">     291 </span>            :  out_with_array:
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :   free(array);</span>
+<span class="lineNum">     293 </span>            :  out:
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :   return;</span>
+<span class="lineNum">     295 </span>            : }
+<a name="296"><span class="lineNum">     296 </span>            : </a>
+<span class="lineNum">     297 </span>            : static hwloc_uint64_t
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 : hwloc_synthetic_parse_memory_attr(const char *attr, const char **endp)</span>
+<span class="lineNum">     299 </span>            : {
+<span class="lineNum">     300 </span>            :   const char *endptr;
+<span class="lineNum">     301 </span>            :   hwloc_uint64_t size;
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :   size = strtoull(attr, (char **) &amp;endptr, 0);</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :   if (!hwloc_strncasecmp(endptr, &quot;TB&quot;, 2)) {</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     size &lt;&lt;= 40;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :     endptr += 2;</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :   } else if (!hwloc_strncasecmp(endptr, &quot;GB&quot;, 2)) {</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     size &lt;&lt;= 30;</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     endptr += 2;</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :   } else if (!hwloc_strncasecmp(endptr, &quot;MB&quot;, 2)) {</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :     size &lt;&lt;= 20;</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     endptr += 2;</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :   } else if (!hwloc_strncasecmp(endptr, &quot;kB&quot;, 2)) {</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     size &lt;&lt;= 10;</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     endptr += 2;</span>
+<span class="lineNum">     315 </span>            :   }
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :   *endp = endptr;</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :   return size;</span>
+<span class="lineNum">     318 </span>            : }
+<a name="319"><span class="lineNum">     319 </span>            : </a>
+<span class="lineNum">     320 </span>            : static int
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 : hwloc_synthetic_parse_level_attrs(const char *attrs, const char **next_posp,</span>
+<span class="lineNum">     322 </span>            :                                   struct hwloc_synthetic_level_data_s *curlevel,
+<span class="lineNum">     323 </span>            :                                   int verbose)
+<span class="lineNum">     324 </span>            : {
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :   hwloc_obj_type_t type = curlevel-&gt;type;</span>
+<span class="lineNum">     326 </span>            :   const char *next_pos;
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :   hwloc_uint64_t memorysize = 0;</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :   const char *index_string = NULL;</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :   unsigned long index_string_length = 0;</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :   next_pos = (const char *) strchr(attrs, ')');</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :   if (!next_pos) {</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     if (verbose)</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Missing attribute closing bracket in synthetic string doesn't have a number of objects at '%s'\n&quot;, attrs);</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :     errno = EINVAL;</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     337 </span>            :   }
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :   while (')' != *attrs) {</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     if (HWLOC_OBJ_CACHE == type &amp;&amp; !strncmp(&quot;size=&quot;, attrs, 5)) {</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :       memorysize = hwloc_synthetic_parse_memory_attr(attrs+5, &amp;attrs);</span>
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :     } else if (HWLOC_OBJ_CACHE != type &amp;&amp; !strncmp(&quot;memory=&quot;, attrs, 7)) {</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :       memorysize = hwloc_synthetic_parse_memory_attr(attrs+7, &amp;attrs);</span>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     } else if (!strncmp(&quot;indexes=&quot;, attrs, 8)) {</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :       index_string = attrs+8;</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :       attrs += 8;</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :       index_string_length = strcspn(attrs, &quot; )&quot;);</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :       attrs += index_string_length;</span>
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span>            :     } else {
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :       if (verbose)</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;Unknown attribute at '%s'\n&quot;, attrs);</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :       errno = EINVAL;</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     357 </span>            :     }
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     if (' ' == *attrs)</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :       attrs++;</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     else if (')' != *attrs) {</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :       if (verbose)</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;Missing parameter separator at '%s'\n&quot;, attrs);</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :       errno = EINVAL;</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     366 </span>            :     }
+<span class="lineNum">     367 </span>            :   }
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :   curlevel-&gt;memorysize = memorysize;</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :   curlevel-&gt;index_string = index_string;</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :   curlevel-&gt;index_string_length = index_string_length;</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :   *next_posp = next_pos+1;</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     374 </span>            : }
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            : /* Read from description a series of integers describing a symmetrical
+<span class="lineNum">     377 </span>            :    topology and update the hwloc_synthetic_backend_data_s accordingly.  On
+<a name="378"><span class="lineNum">     378 </span>            :    success, return zero.  */</a>
+<span class="lineNum">     379 </span>            : static int
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 : hwloc_backend_synthetic_init(struct hwloc_synthetic_backend_data_s *data,</span>
+<span class="lineNum">     381 </span>            :                              const char *description)
+<span class="lineNum">     382 </span>            : {
+<span class="lineNum">     383 </span>            :   const char *pos, *next_pos;
+<span class="lineNum">     384 </span>            :   unsigned long item, count;
+<span class="lineNum">     385 </span>            :   unsigned i;
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :   int cache_depth = 0, group_depth = 0;</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :   int nb_machine_levels = 0, nb_node_levels = 0;</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :   int nb_pu_levels = 0;</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :   int verbose = 0;</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :   const char *env = getenv(&quot;HWLOC_SYNTHETIC_VERBOSE&quot;);</span>
+<span class="lineNum">     391 </span>            :   int err;
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :   unsigned long totalarity = 1;</span>
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :   if (env)</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :     verbose = atoi(env);</span>
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span>            :   /* default values before we add root attributes */
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :   data-&gt;level[0].totalwidth = 1;</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :   data-&gt;level[0].type = HWLOC_OBJ_MACHINE;</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :   data-&gt;level[0].index_string = NULL;</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :   data-&gt;level[0].index_array = NULL;</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :   data-&gt;level[0].memorysize = 0;</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :   if (*description == '(') {</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     err = hwloc_synthetic_parse_level_attrs(description+1, &amp;description, &amp;data-&gt;level[0], verbose);</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     if (err &lt; 0)</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :       return err;</span>
+<span class="lineNum">     407 </span>            :   }
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :   for (pos = description, count = 1; *pos; pos = next_pos) {</span>
+<span class="lineNum">     410 </span>            : #define HWLOC_OBJ_TYPE_UNKNOWN ((hwloc_obj_type_t) -1)
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :     hwloc_obj_type_t type = HWLOC_OBJ_TYPE_UNKNOWN;</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :     int typedepth = -1;</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     hwloc_obj_cache_type_t cachetype = (hwloc_obj_cache_type_t) -1;</span>
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span>            :     /* initialize parent arity to 0 so that the levels are not infinite */
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :     data-&gt;level[count-1].arity = 0;</span>
+<span class="lineNum">     417 </span>            : 
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :     while (*pos == ' ')</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :       pos++;</span>
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     if (!*pos)</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     if (*pos &lt; '0' || *pos &gt; '9') {</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :       if (hwloc_obj_type_sscanf(pos, &amp;type, &amp;typedepth, &amp;cachetype, sizeof(cachetype)) &lt; 0) {</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         if (verbose)</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :           fprintf(stderr, &quot;Synthetic string with unknown object type at '%s'\n&quot;, pos);</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :         errno = EINVAL;</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">     430 </span>            :       }
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :       if (type == HWLOC_OBJ_MISC || type == HWLOC_OBJ_BRIDGE || type == HWLOC_OBJ_PCI_DEVICE || type == HWLOC_OBJ_OS_DEVICE) {</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :         if (verbose)</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :           fprintf(stderr, &quot;Synthetic string with disallowed object type at '%s'\n&quot;, pos);</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         errno = EINVAL;</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">     436 </span>            :       }
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :       next_pos = strchr(pos, ':');</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :       if (!next_pos) {</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :         if (verbose)</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :           fprintf(stderr,&quot;Synthetic string doesn't have a `:' after object type at '%s'\n&quot;, pos);</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :         errno = EINVAL;</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">     444 </span>            :       }
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :       pos = next_pos + 1;</span>
+<span class="lineNum">     446 </span>            :     }
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :     data-&gt;level[count].type = type;</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     data-&gt;level[count].depth = (unsigned) typedepth;</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :     data-&gt;level[count].cachetype = cachetype;</span>
+<span class="lineNum">     450 </span>            : 
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :     item = strtoul(pos, (char **)&amp;next_pos, 0);</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     if (next_pos == pos) {</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :       if (verbose)</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :         fprintf(stderr,&quot;Synthetic string doesn't have a number of objects at '%s'\n&quot;, pos);</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :       errno = EINVAL;</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :       goto error;</span>
+<span class="lineNum">     457 </span>            :     }
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :     data-&gt;level[count-1].arity = (unsigned)item;</span>
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     totalarity *= item;</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     data-&gt;level[count].totalwidth = totalarity;</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     data-&gt;level[count].index_string = NULL;</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :     data-&gt;level[count].index_array = NULL;</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :     data-&gt;level[count].memorysize = 0;</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :     if (*next_pos == '(') {</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :       err = hwloc_synthetic_parse_level_attrs(next_pos+1, &amp;next_pos, &amp;data-&gt;level[count], verbose);</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :       if (err &lt; 0)</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :         goto error;</span>
+<span class="lineNum">     469 </span>            :     }
+<span class="lineNum">     470 </span>            : 
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :     if (count + 1 &gt;= HWLOC_SYNTHETIC_MAX_DEPTH) {</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :       if (verbose)</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :         fprintf(stderr,&quot;Too many synthetic levels, max %d\n&quot;, HWLOC_SYNTHETIC_MAX_DEPTH);</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :       errno = EINVAL;</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :       goto error;</span>
+<span class="lineNum">     476 </span>            :     }
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     if (item &gt; UINT_MAX) {</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :       if (verbose)</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :         fprintf(stderr,&quot;Too big arity, max %u\n&quot;, UINT_MAX);</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :       errno = EINVAL;</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :       goto error;</span>
+<span class="lineNum">     482 </span>            :     }
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     count++;</span>
+<span class="lineNum">     485 </span>            :   }
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :   if (count &lt;= 0) {</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     if (verbose)</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Synthetic string doesn't contain any object\n&quot;);</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :     errno = EINVAL;</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     goto error;</span>
+<span class="lineNum">     492 </span>            :   }
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :   for(i=count-1; i&gt;0; i--) {</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     struct hwloc_synthetic_level_data_s *curlevel = &amp;data-&gt;level[i];</span>
+<span class="lineNum">     496 </span>            :     hwloc_obj_type_t type;
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     type = curlevel-&gt;type;</span>
+<span class="lineNum">     499 </span>            : 
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     if (type == HWLOC_OBJ_TYPE_UNKNOWN) {</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :       if (i == count-1)</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :         type = HWLOC_OBJ_PU;</span>
+<span class="lineNum">     503 </span>            :       else {
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :         switch (data-&gt;level[i+1].type) {</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :         case HWLOC_OBJ_PU: type = HWLOC_OBJ_CORE; break;</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :         case HWLOC_OBJ_CORE: type = HWLOC_OBJ_CACHE; break;</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :         case HWLOC_OBJ_CACHE: type = HWLOC_OBJ_PACKAGE; break;</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :         case HWLOC_OBJ_PACKAGE: type = HWLOC_OBJ_NUMANODE; break;</span>
+<span class="lineNum">     509 </span>            :         case HWLOC_OBJ_NUMANODE:
+<span class="lineNum">     510 </span>            :         case HWLOC_OBJ_MACHINE:
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :         case HWLOC_OBJ_GROUP: type = HWLOC_OBJ_GROUP; break;</span>
+<span class="lineNum">     512 </span>            :         default:
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :           assert(0);</span>
+<span class="lineNum">     514 </span>            :         }
+<span class="lineNum">     515 </span>            :       }
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :       curlevel-&gt;type = type;</span>
+<span class="lineNum">     517 </span>            :     }
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :     switch (type) {</span>
+<span class="lineNum">     519 </span>            :       case HWLOC_OBJ_PU:
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :         nb_pu_levels++;</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     522 </span>            :       case HWLOC_OBJ_CACHE:
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :         cache_depth++;</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     525 </span>            :       case HWLOC_OBJ_GROUP:
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :         group_depth++;</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     528 </span>            :       case HWLOC_OBJ_NUMANODE:
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :         nb_node_levels++;</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     531 </span>            :       case HWLOC_OBJ_MACHINE:
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :         nb_machine_levels++;</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     534 </span>            :       default:
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     536 </span>            :     }
+<span class="lineNum">     537 </span>            :   }
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :   if (!nb_pu_levels) {</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :     if (verbose)</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Synthetic string missing ending number of PUs\n&quot;);</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :     errno = EINVAL;</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     544 </span>            :   }
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :   if (nb_pu_levels &gt; 1) {</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :     if (verbose)</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Synthetic string can not have several PU levels\n&quot;);</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     errno = EINVAL;</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     550 </span>            :   }
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :   if (nb_node_levels &gt; 1) {</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     if (verbose)</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Synthetic string can not have several NUMA node levels\n&quot;);</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :     errno = EINVAL;</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     556 </span>            :   }
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :   if (nb_machine_levels &gt; 1) {</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :     if (verbose)</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Synthetic string can not have several machine levels\n&quot;);</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :     errno = EINVAL;</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     562 </span>            :   }
+<span class="lineNum">     563 </span>            : 
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :   if (nb_machine_levels)</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :     data-&gt;level[0].type = HWLOC_OBJ_SYSTEM;</span>
+<span class="lineNum">     566 </span>            :   else {
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     data-&gt;level[0].type = HWLOC_OBJ_MACHINE;</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     nb_machine_levels++;</span>
+<span class="lineNum">     569 </span>            :   }
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :   if (cache_depth == 1)</span>
+<span class="lineNum">     572 </span>            :     /* if there is a single cache level, make it L2 */
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :     cache_depth = 2;</span>
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :   for (i=0; i&lt;count; i++) {</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :     struct hwloc_synthetic_level_data_s *curlevel = &amp;data-&gt;level[i];</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :     hwloc_obj_type_t type = curlevel-&gt;type;</span>
+<span class="lineNum">     578 </span>            : 
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :     if (type == HWLOC_OBJ_GROUP) {</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :       if (curlevel-&gt;depth == (unsigned)-1)</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :         curlevel-&gt;depth = group_depth--;</span>
+<span class="lineNum">     582 </span>            : 
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :     } else if (type == HWLOC_OBJ_CACHE) {</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :       if (curlevel-&gt;depth == (unsigned)-1)</span>
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :         curlevel-&gt;depth = cache_depth--;</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :       if (curlevel-&gt;cachetype == (hwloc_obj_cache_type_t) -1)</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :         curlevel-&gt;cachetype = curlevel-&gt;depth == 1 ? HWLOC_OBJ_CACHE_DATA : HWLOC_OBJ_CACHE_UNIFIED;</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :       if (!curlevel-&gt;memorysize) {</span>
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :         if (1 == curlevel-&gt;depth)</span>
+<span class="lineNum">     590 </span>            :           /* 32Kb in L1 */
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :           curlevel-&gt;memorysize = 32*1024;</span>
+<span class="lineNum">     592 </span>            :         else
+<span class="lineNum">     593 </span>            :           /* *4 at each level, starting from 1MB for L2, unified */
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :           curlevel-&gt;memorysize = 256*1024 &lt;&lt; (2*curlevel-&gt;depth);</span>
+<span class="lineNum">     595 </span>            :       }
+<span class="lineNum">     596 </span>            : 
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :     } else if (type == HWLOC_OBJ_NUMANODE &amp;&amp; !curlevel-&gt;memorysize) {</span>
+<span class="lineNum">     598 </span>            :       /* 1GB in memory nodes. */
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :       curlevel-&gt;memorysize = 1024*1024*1024;</span>
+<span class="lineNum">     600 </span>            :     }
+<span class="lineNum">     601 </span>            : 
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :     hwloc_synthetic_process_level_indexes(data, i, verbose);</span>
+<span class="lineNum">     603 </span>            :   }
+<span class="lineNum">     604 </span>            : 
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :   data-&gt;string = strdup(description);</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :   data-&gt;level[count-1].arity = 0;</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     608 </span>            : 
+<span class="lineNum">     609 </span>            :  error:
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :   for(i=0; i&lt;HWLOC_SYNTHETIC_MAX_DEPTH; i++) {</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :     struct hwloc_synthetic_level_data_s *curlevel = &amp;data-&gt;level[i];</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :     free(curlevel-&gt;index_array);</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :     if (!curlevel-&gt;arity)</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     615 </span>            :   }
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :   return -1;</span>
+<span class="lineNum">     617 </span>            : }
+<a name="618"><span class="lineNum">     618 </span>            : </a>
+<span class="lineNum">     619 </span>            : static void
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 : hwloc_synthetic__post_look_hooks(struct hwloc_synthetic_level_data_s *curlevel,</span>
+<span class="lineNum">     621 </span>            :                                  hwloc_obj_t obj)
+<span class="lineNum">     622 </span>            : {
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :   switch (obj-&gt;type) {</span>
+<span class="lineNum">     624 </span>            :   case HWLOC_OBJ_GROUP:
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :     obj-&gt;attr-&gt;group.depth = curlevel-&gt;depth;</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     627 </span>            :   case HWLOC_OBJ_SYSTEM:
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     629 </span>            :   case HWLOC_OBJ_MACHINE:
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     631 </span>            :   case HWLOC_OBJ_NUMANODE:
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     633 </span>            :   case HWLOC_OBJ_PACKAGE:
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     635 </span>            :   case HWLOC_OBJ_CACHE:
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :     obj-&gt;attr-&gt;cache.depth = curlevel-&gt;depth;</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :     obj-&gt;attr-&gt;cache.linesize = 64;</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :     obj-&gt;attr-&gt;cache.type = curlevel-&gt;cachetype;</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :     obj-&gt;attr-&gt;cache.size = curlevel-&gt;memorysize;</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     641 </span>            :   case HWLOC_OBJ_CORE:
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     643 </span>            :   case HWLOC_OBJ_PU:
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     645 </span>            :   case HWLOC_OBJ_BRIDGE:
+<span class="lineNum">     646 </span>            :   case HWLOC_OBJ_PCI_DEVICE:
+<span class="lineNum">     647 </span>            :   case HWLOC_OBJ_OS_DEVICE:
+<span class="lineNum">     648 </span>            :   case HWLOC_OBJ_MISC:
+<span class="lineNum">     649 </span>            :   case HWLOC_OBJ_TYPE_MAX:
+<span class="lineNum">     650 </span>            :     /* Should never happen */
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :     assert(0);</span>
+<span class="lineNum">     652 </span>            :     break;
+<span class="lineNum">     653 </span>            :   }
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :   if (curlevel-&gt;memorysize &amp;&amp; HWLOC_OBJ_CACHE != obj-&gt;type) {</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :     obj-&gt;memory.local_memory = curlevel-&gt;memorysize;</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :     obj-&gt;memory.page_types_len = 1;</span>
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :     obj-&gt;memory.page_types = malloc(sizeof(*obj-&gt;memory.page_types));</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :     memset(obj-&gt;memory.page_types, 0, sizeof(*obj-&gt;memory.page_types));</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :     obj-&gt;memory.page_types[0].size = 4096;</span>
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :     obj-&gt;memory.page_types[0].count = curlevel-&gt;memorysize / 4096;</span>
+<span class="lineNum">     661 </span>            :   }
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     663 </span>            : 
+<span class="lineNum">     664 </span>            : /*
+<span class="lineNum">     665 </span>            :  * Recursively build objects whose cpu start at first_cpu
+<span class="lineNum">     666 </span>            :  * - level gives where to look in the type, arity and id arrays
+<span class="lineNum">     667 </span>            :  * - the id array is used as a variable to get unique IDs for a given level.
+<span class="lineNum">     668 </span>            :  * - generated memory should be added to *memory_kB.
+<span class="lineNum">     669 </span>            :  * - generated cpus should be added to parent_cpuset.
+<span class="lineNum">     670 </span>            :  * - next cpu number to be used should be returned.
+<a name="671"><span class="lineNum">     671 </span>            :  */</a>
+<span class="lineNum">     672 </span>            : static void
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 : hwloc__look_synthetic(struct hwloc_topology *topology,</span>
+<span class="lineNum">     674 </span>            :                       struct hwloc_synthetic_backend_data_s *data,
+<span class="lineNum">     675 </span>            :                       int level,
+<span class="lineNum">     676 </span>            :                       hwloc_bitmap_t parent_cpuset)
+<span class="lineNum">     677 </span>            : {
+<span class="lineNum">     678 </span>            :   hwloc_obj_t obj;
+<span class="lineNum">     679 </span>            :   unsigned i;
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :   struct hwloc_synthetic_level_data_s *curlevel = &amp;data-&gt;level[level];</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :   hwloc_obj_type_t type = curlevel-&gt;type;</span>
+<span class="lineNum">     682 </span>            :   unsigned os_index;
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span>            :   /* pre-hooks */
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :   switch (type) {</span>
+<span class="lineNum">     686 </span>            :     case HWLOC_OBJ_GROUP:
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     688 </span>            :     case HWLOC_OBJ_MACHINE:
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     690 </span>            :     case HWLOC_OBJ_NUMANODE:
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     692 </span>            :     case HWLOC_OBJ_PACKAGE:
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     694 </span>            :     case HWLOC_OBJ_CACHE:
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     696 </span>            :     case HWLOC_OBJ_CORE:
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     698 </span>            :     case HWLOC_OBJ_PU:
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     700 </span>            :     case HWLOC_OBJ_SYSTEM:
+<span class="lineNum">     701 </span>            :     case HWLOC_OBJ_BRIDGE:
+<span class="lineNum">     702 </span>            :     case HWLOC_OBJ_PCI_DEVICE:
+<span class="lineNum">     703 </span>            :     case HWLOC_OBJ_OS_DEVICE:
+<span class="lineNum">     704 </span>            :     case HWLOC_OBJ_MISC:
+<span class="lineNum">     705 </span>            :     case HWLOC_OBJ_TYPE_MAX:
+<span class="lineNum">     706 </span>            :       /* Should never happen */
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :       assert(0);</span>
+<span class="lineNum">     708 </span>            :       break;
+<span class="lineNum">     709 </span>            :   }
+<span class="lineNum">     710 </span>            : 
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :   os_index = curlevel-&gt;next_os_index++;</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :   if (curlevel-&gt;index_array)</span>
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :     os_index = curlevel-&gt;index_array[os_index];</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :   obj = hwloc_alloc_setup_object(type, os_index);</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :   obj-&gt;cpuset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :   if (!curlevel-&gt;arity) {</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :     hwloc_bitmap_set(obj-&gt;cpuset, os_index);</span>
+<span class="lineNum">     719 </span>            :   } else {
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; curlevel-&gt;arity; i++)</span>
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :       hwloc__look_synthetic(topology, data, level + 1, obj-&gt;cpuset);</span>
+<span class="lineNum">     722 </span>            :   }
+<span class="lineNum">     723 </span>            : 
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :   if (type == HWLOC_OBJ_NUMANODE) {</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :     obj-&gt;nodeset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :     hwloc_bitmap_set(obj-&gt;nodeset, os_index);</span>
+<span class="lineNum">     727 </span>            :   }
+<span class="lineNum">     728 </span>            : 
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :   hwloc_bitmap_or(parent_cpuset, parent_cpuset, obj-&gt;cpuset);</span>
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :   hwloc_synthetic__post_look_hooks(curlevel, obj);</span>
+<span class="lineNum">     732 </span>            : 
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :   hwloc_insert_object_by_cpuset(topology, obj);</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 : }</span>
+<a name="735"><span class="lineNum">     735 </span>            : </a>
+<span class="lineNum">     736 </span>            : static int
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 : hwloc_look_synthetic(struct hwloc_backend *backend)</span>
+<span class="lineNum">     738 </span>            : {
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :   struct hwloc_topology *topology = backend-&gt;topology;</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :   struct hwloc_synthetic_backend_data_s *data = backend-&gt;private_data;</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :   hwloc_bitmap_t cpuset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">     742 </span>            :   unsigned i;
+<span class="lineNum">     743 </span>            : 
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :   assert(!topology-&gt;levels[0][0]-&gt;cpuset);</span>
+<span class="lineNum">     745 </span>            : 
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :   hwloc_alloc_obj_cpusets(topology-&gt;levels[0][0]);</span>
+<span class="lineNum">     747 </span>            : 
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :   topology-&gt;support.discovery-&gt;pu = 1;</span>
+<span class="lineNum">     749 </span>            : 
+<span class="lineNum">     750 </span>            :   /* start with os_index 0 for each level */
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :   for (i = 0; data-&gt;level[i].arity &gt; 0; i++)</span>
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :     data-&gt;level[i].next_os_index = 0;</span>
+<span class="lineNum">     753 </span>            :   /* ... including the last one */
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :   data-&gt;level[i].next_os_index = 0;</span>
+<span class="lineNum">     755 </span>            : 
+<span class="lineNum">     756 </span>            :   /* update first level type according to the synthetic type array */
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :   topology-&gt;levels[0][0]-&gt;type = data-&gt;level[0].type;</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :   hwloc_synthetic__post_look_hooks(&amp;data-&gt;level[0], topology-&gt;levels[0][0]);</span>
+<span class="lineNum">     759 </span>            : 
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :   for (i = 0; i &lt; data-&gt;level[0].arity; i++)</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :     hwloc__look_synthetic(topology, data, 1, cpuset);</span>
+<span class="lineNum">     762 </span>            : 
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :   hwloc_bitmap_free(cpuset);</span>
+<span class="lineNum">     764 </span>            : 
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :   hwloc_obj_add_info(topology-&gt;levels[0][0], &quot;Backend&quot;, &quot;Synthetic&quot;);</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :   hwloc_obj_add_info(topology-&gt;levels[0][0], &quot;SyntheticDescription&quot;, data-&gt;string);</span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :   return 1;</span>
+<span class="lineNum">     768 </span>            : }
+<a name="769"><span class="lineNum">     769 </span>            : </a>
+<span class="lineNum">     770 </span>            : static void
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 : hwloc_synthetic_backend_disable(struct hwloc_backend *backend)</span>
+<span class="lineNum">     772 </span>            : {
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :   struct hwloc_synthetic_backend_data_s *data = backend-&gt;private_data;</span>
+<span class="lineNum">     774 </span>            :   unsigned i;
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :   for(i=0; i&lt;HWLOC_SYNTHETIC_MAX_DEPTH; i++) {</span>
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :     struct hwloc_synthetic_level_data_s *curlevel = &amp;data-&gt;level[i];</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :     free(curlevel-&gt;index_array);</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :     if (!curlevel-&gt;arity)</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     780 </span>            :   }
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :   free(data-&gt;string);</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :   free(data);</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 : }</span>
+<a name="784"><span class="lineNum">     784 </span>            : </a>
+<span class="lineNum">     785 </span>            : static struct hwloc_backend *
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 : hwloc_synthetic_component_instantiate(struct hwloc_disc_component *component,</span>
+<span class="lineNum">     787 </span>            :                                       const void *_data1,
+<span class="lineNum">     788 </span>            :                                       const void *_data2 __hwloc_attribute_unused,
+<span class="lineNum">     789 </span>            :                                       const void *_data3 __hwloc_attribute_unused)
+<span class="lineNum">     790 </span>            : {
+<span class="lineNum">     791 </span>            :   struct hwloc_backend *backend;
+<span class="lineNum">     792 </span>            :   struct hwloc_synthetic_backend_data_s *data;
+<span class="lineNum">     793 </span>            :   int err;
+<span class="lineNum">     794 </span>            : 
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :   if (!_data1) {</span>
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :     errno = EINVAL;</span>
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :     goto out;</span>
+<span class="lineNum">     798 </span>            :   }
+<span class="lineNum">     799 </span>            : 
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :   backend = hwloc_backend_alloc(component);</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :   if (!backend)</span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :     goto out;</span>
+<span class="lineNum">     803 </span>            : 
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :   data = malloc(sizeof(*data));</span>
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :   if (!data) {</span>
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :     errno = ENOMEM;</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :     goto out_with_backend;</span>
+<span class="lineNum">     808 </span>            :   }
+<span class="lineNum">     809 </span>            : 
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :   err = hwloc_backend_synthetic_init(data, (const char *) _data1);</span>
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :   if (err &lt; 0)</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :     goto out_with_data;</span>
+<span class="lineNum">     813 </span>            : 
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :   backend-&gt;private_data = data;</span>
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :   backend-&gt;discover = hwloc_look_synthetic;</span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :   backend-&gt;disable = hwloc_synthetic_backend_disable;</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :   backend-&gt;is_thissystem = 0;</span>
+<span class="lineNum">     818 </span>            : 
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :   return backend;</span>
+<span class="lineNum">     820 </span>            : 
+<span class="lineNum">     821 </span>            :  out_with_data:
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :   free(data);</span>
+<span class="lineNum">     823 </span>            :  out_with_backend:
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :   free(backend);</span>
+<span class="lineNum">     825 </span>            :  out:
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :   return NULL;</span>
+<span class="lineNum">     827 </span>            : }
+<span class="lineNum">     828 </span>            : 
+<span class="lineNum">     829 </span>            : static struct hwloc_disc_component hwloc_synthetic_disc_component = {
+<span class="lineNum">     830 </span>            :   HWLOC_DISC_COMPONENT_TYPE_GLOBAL,
+<span class="lineNum">     831 </span>            :   &quot;synthetic&quot;,
+<span class="lineNum">     832 </span>            :   ~0,
+<span class="lineNum">     833 </span>            :   hwloc_synthetic_component_instantiate,
+<span class="lineNum">     834 </span>            :   30,
+<span class="lineNum">     835 </span>            :   NULL
+<span class="lineNum">     836 </span>            : };
+<span class="lineNum">     837 </span>            : 
+<span class="lineNum">     838 </span>            : const struct hwloc_component hwloc_synthetic_component = {
+<span class="lineNum">     839 </span>            :   HWLOC_COMPONENT_ABI,
+<span class="lineNum">     840 </span>            :   NULL, NULL,
+<span class="lineNum">     841 </span>            :   HWLOC_COMPONENT_TYPE_DISC,
+<span class="lineNum">     842 </span>            :   0,
+<span class="lineNum">     843 </span>            :   &amp;hwloc_synthetic_disc_component
+<a name="844"><span class="lineNum">     844 </span>            : };</a>
+<span class="lineNum">     845 </span>            : 
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 : static int hwloc_topology_export_synthetic_indexes(struct hwloc_topology * topology,</span>
+<span class="lineNum">     847 </span>            :                                                    hwloc_obj_t obj,
+<span class="lineNum">     848 </span>            :                                                    char *buffer, size_t buflen)
+<span class="lineNum">     849 </span>            : {
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :   unsigned depth = obj-&gt;depth;</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :   unsigned total = topology-&gt;level_nbobjects[depth];</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :   unsigned step = 1;</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :   unsigned nr_loops = 0;</span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :   struct hwloc_synthetic_intlv_loop_s *loops = NULL;</span>
+<span class="lineNum">     855 </span>            :   hwloc_obj_t cur;
+<span class="lineNum">     856 </span>            :   unsigned i, j;
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :   ssize_t tmplen = buflen;</span>
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :   char *tmp = buffer;</span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :   int res, ret = 0;</span>
+<span class="lineNum">     860 </span>            : 
+<span class="lineNum">     861 </span>            :   /* must start with 0 */
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :   if (obj-&gt;os_index)</span>
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :     goto exportall;</span>
+<span class="lineNum">     864 </span>            : 
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :   while (step != total) {</span>
+<span class="lineNum">     866 </span>            :     /* must be a divider of the total */
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :     if (total % step)</span>
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :       goto exportall;</span>
+<span class="lineNum">     869 </span>            : 
+<span class="lineNum">     870 </span>            :     /* look for os_index == step */
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :     for(i=1; i&lt;total; i++)</span>
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :       if (topology-&gt;levels[depth][i]-&gt;os_index == step)</span>
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :     if (i == total)</span>
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :       goto exportall;</span>
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :     for(j=2; j&lt;total/i; j++)</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :       if (topology-&gt;levels[depth][i*j]-&gt;os_index != step*j)</span>
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     879 </span>            : 
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :     nr_loops++;</span>
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :     loops = realloc(loops, nr_loops*sizeof(*loops));</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :     if (!loops)</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :       goto exportall;</span>
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :     loops[nr_loops-1].step = i;</span>
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :     loops[nr_loops-1].nb = j;</span>
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :     step *= j;</span>
+<span class="lineNum">     887 </span>            :   }
+<span class="lineNum">     888 </span>            : 
+<span class="lineNum">     889 </span>            :   /* check this interleaving */
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :   for(i=0; i&lt;total; i++) {</span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :     unsigned ind = 0;</span>
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :     unsigned mul = 1;</span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :     for(j=0; j&lt;nr_loops; j++) {</span>
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :       ind += (i / loops[j].step) % loops[j].nb * mul;</span>
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :       mul *= loops[j].nb;</span>
+<span class="lineNum">     896 </span>            :     }
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :     if (topology-&gt;levels[depth][i]-&gt;os_index != ind)</span>
+<span class="lineNum">     898 </span><span class="lineNoCov">          0 :       goto exportall;</span>
+<span class="lineNum">     899 </span>            :   }
+<span class="lineNum">     900 </span>            : 
+<span class="lineNum">     901 </span>            :   /* success, print it */
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :   for(j=0; j&lt;nr_loops; j++) {</span>
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :     res = hwloc_snprintf(tmp, tmplen, &quot;%u*%u%s&quot;, loops[j].step, loops[j].nb,</span>
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :                          j == nr_loops-1 ? &quot;)&quot; : &quot;:&quot;);</span>
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :     if (res &lt; 0) {</span>
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :       free(loops);</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     908 </span>            :     }
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :     ret += res;</span>
+<span class="lineNum">     910 </span><span class="lineNoCov">          0 :     if (res &gt;= tmplen)</span>
+<span class="lineNum">     911 </span><span class="lineNoCov">          0 :       res = tmplen&gt;0 ? tmplen - 1 : 0;</span>
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :     tmp += res;</span>
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :     tmplen -= res;</span>
+<span class="lineNum">     914 </span>            :   }
+<span class="lineNum">     915 </span>            : 
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :   if (loops)</span>
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :     free(loops);</span>
+<span class="lineNum">     918 </span>            : 
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :   return ret;</span>
+<span class="lineNum">     920 </span>            : 
+<span class="lineNum">     921 </span>            :  exportall:
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :   if (loops)</span>
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :     free(loops);</span>
+<span class="lineNum">     924 </span>            : 
+<span class="lineNum">     925 </span>            :   /* dump all indexes */
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :   cur = obj;</span>
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :   while (cur) {</span>
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :     res = snprintf(tmp, tmplen, &quot;%u%s&quot;, cur-&gt;os_index,</span>
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :                    cur-&gt;next_cousin ? &quot;,&quot; : &quot;)&quot;);</span>
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :     if (res &lt; 0)</span>
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :     ret += res;</span>
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :     if (res &gt;= tmplen)</span>
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :       res = tmplen&gt;0 ? tmplen - 1 : 0;</span>
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :     tmp += res;</span>
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :     tmplen -= res;</span>
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :     cur = cur-&gt;next_cousin;</span>
+<span class="lineNum">     938 </span>            :   }
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :   return ret;</span>
+<a name="940"><span class="lineNum">     940 </span>            : }</a>
+<span class="lineNum">     941 </span>            : 
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 : static int hwloc_topology_export_synthetic_obj_attr(struct hwloc_topology * topology,</span>
+<span class="lineNum">     943 </span>            :                                                     hwloc_obj_t obj,
+<span class="lineNum">     944 </span>            :                                                     char *buffer, size_t buflen)
+<span class="lineNum">     945 </span>            : {
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :   const char * separator = &quot; &quot;;</span>
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :   const char * prefix = &quot;(&quot;;</span>
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :   char cachesize[64] = &quot;&quot;;</span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :   char memsize[64] = &quot;&quot;;</span>
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :   int needindexes = 0;</span>
+<span class="lineNum">     951 </span>            : 
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :   if (HWLOC_OBJ_CACHE == obj-&gt;type &amp;&amp; obj-&gt;attr-&gt;cache.size) {</span>
+<span class="lineNum">     953 </span><span class="lineNoCov">          0 :     snprintf(cachesize, sizeof(cachesize), &quot;%ssize=%llu&quot;,</span>
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :              prefix, (unsigned long long) obj-&gt;attr-&gt;cache.size);</span>
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :     prefix = separator;</span>
+<span class="lineNum">     956 </span>            :   }
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :   if (obj-&gt;memory.local_memory) {</span>
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :     snprintf(memsize, sizeof(memsize), &quot;%smemory=%llu&quot;,</span>
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :              prefix, (unsigned long long) obj-&gt;memory.local_memory);</span>
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :     prefix = separator;</span>
+<span class="lineNum">     961 </span>            :   }
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :   if (obj-&gt;type == HWLOC_OBJ_PU || obj-&gt;type == HWLOC_OBJ_NUMANODE) {</span>
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :     hwloc_obj_t cur = obj;</span>
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :     while (cur) {</span>
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :       if (cur-&gt;os_index != cur-&gt;logical_index) {</span>
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :         needindexes = 1;</span>
+<span class="lineNum">     967 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     968 </span>            :       }
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :       cur = cur-&gt;next_cousin;</span>
+<span class="lineNum">     970 </span>            :     }
+<span class="lineNum">     971 </span>            :   }
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :   if (*cachesize || *memsize || needindexes) {</span>
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :     ssize_t tmplen = buflen;</span>
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :     char *tmp = buffer;</span>
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :     int res, ret = 0;</span>
+<span class="lineNum">     976 </span>            : 
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :     res = hwloc_snprintf(tmp, tmplen, &quot;%s%s%s&quot;, cachesize, memsize, needindexes ? &quot;&quot; : &quot;)&quot;);</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :     if (res &lt; 0)</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :     ret += res;</span>
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :     if (res &gt;= tmplen)</span>
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :       res = tmplen&gt;0 ? tmplen - 1 : 0;</span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :     tmp += res;</span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :     tmplen -= res;</span>
+<span class="lineNum">     985 </span>            : 
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :     if (needindexes) {</span>
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :       res = snprintf(tmp, tmplen, &quot;%sindexes=&quot;, prefix);</span>
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :       if (res &lt; 0)</span>
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 :       ret += res;</span>
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :       if (res &gt;= tmplen)</span>
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :         res = tmplen&gt;0 ? tmplen - 1 : 0;</span>
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :       tmp += res;</span>
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :       tmplen -= res;</span>
+<span class="lineNum">     995 </span>            : 
+<span class="lineNum">     996 </span><span class="lineNoCov">          0 :       res = hwloc_topology_export_synthetic_indexes(topology, obj, tmp, tmplen);</span>
+<span class="lineNum">     997 </span><span class="lineNoCov">          0 :       if (res &lt; 0)</span>
+<span class="lineNum">     998 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     999 </span><span class="lineNoCov">          0 :       ret += res;</span>
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :       if (res &gt;= tmplen)</span>
+<span class="lineNum">    1001 </span><span class="lineNoCov">          0 :         res = tmplen&gt;0 ? tmplen - 1 : 0;</span>
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :       tmp += res;</span>
+<span class="lineNum">    1003 </span><span class="lineNoCov">          0 :       tmplen -= res;</span>
+<span class="lineNum">    1004 </span>            :     }
+<span class="lineNum">    1005 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">    1006 </span>            :   } else {
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">    1008 </span>            :   }
+<span class="lineNum">    1009 </span>            : }
+<a name="1010"><span class="lineNum">    1010 </span>            : </a>
+<span class="lineNum">    1011 </span>            : int
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 : hwloc_topology_export_synthetic(struct hwloc_topology * topology,</span>
+<span class="lineNum">    1013 </span>            :                                 char *buffer, size_t buflen,
+<span class="lineNum">    1014 </span>            :                                 unsigned long flags)
+<span class="lineNum">    1015 </span>            : {
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :   hwloc_obj_t obj = hwloc_get_root_obj(topology);</span>
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :   ssize_t tmplen = buflen;</span>
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :   char *tmp = buffer;</span>
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :   int res, ret = 0;</span>
+<span class="lineNum">    1020 </span>            :    int arity;
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :   const char * separator = &quot; &quot;;</span>
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :   const char * prefix = &quot;&quot;;</span>
+<span class="lineNum">    1023 </span>            : 
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :   if (flags &amp; ~(HWLOC_TOPOLOGY_EXPORT_SYNTHETIC_FLAG_NO_EXTENDED_TYPES|HWLOC_TOPOLOGY_EXPORT_SYNTHETIC_FLAG_NO_ATTRS)) {</span>
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :     errno = EINVAL;</span>
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">    1027 </span>            :   }
+<span class="lineNum">    1028 </span>            : 
+<span class="lineNum">    1029 </span>            :   /* TODO: add a flag to ignore symmetric_subtree and I/Os.
+<span class="lineNum">    1030 </span>            :    * just assume things are symmetric with the left branches of the tree.
+<span class="lineNum">    1031 </span>            :    * but the number of objects per level may be wrong, what to do with OS index array in this case?
+<span class="lineNum">    1032 </span>            :    * only allow ignoring symmetric_subtree if the level width remains OK?
+<span class="lineNum">    1033 </span>            :    */
+<span class="lineNum">    1034 </span>            : 
+<span class="lineNum">    1035 </span>            :   /* TODO: add a root object by default, with a prefix such as tree=
+<span class="lineNum">    1036 </span>            :    * so that we can backward-compatibly recognize whether there's a root or not.
+<span class="lineNum">    1037 </span>            :    * and add a flag to disable it.
+<span class="lineNum">    1038 </span>            :    */
+<span class="lineNum">    1039 </span>            : 
+<span class="lineNum">    1040 </span>            :   /* TODO: flag to force all indexes, not only for PU and NUMA? */
+<span class="lineNum">    1041 </span>            : 
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :   if (!obj-&gt;symmetric_subtree) {</span>
+<span class="lineNum">    1043 </span><span class="lineNoCov">          0 :     errno = EINVAL;</span>
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">    1045 </span>            :   }
+<span class="lineNum">    1046 </span>            : 
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :   if (!(flags &amp; HWLOC_TOPOLOGY_EXPORT_SYNTHETIC_FLAG_NO_ATTRS)) {</span>
+<span class="lineNum">    1048 </span>            :     /* root attributes */
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :     res = hwloc_topology_export_synthetic_obj_attr(topology, obj, tmp, tmplen);</span>
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :     if (res &lt; 0)</span>
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :     ret += res;</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :     if (ret &gt; 0)</span>
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :       prefix = separator;</span>
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :     if (res &gt;= tmplen)</span>
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :       res = tmplen&gt;0 ? tmplen - 1 : 0;</span>
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :     tmp += res;</span>
+<span class="lineNum">    1058 </span><span class="lineNoCov">          0 :     tmplen -= res;</span>
+<span class="lineNum">    1059 </span>            :   }
+<span class="lineNum">    1060 </span>            : 
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :   arity = obj-&gt;arity;</span>
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 :   while (arity) {</span>
+<span class="lineNum">    1063 </span>            :     /* for each level */
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :     obj = obj-&gt;first_child;</span>
+<span class="lineNum">    1065 </span><span class="lineNoCov">          0 :     if (flags &amp; HWLOC_TOPOLOGY_EXPORT_SYNTHETIC_FLAG_NO_EXTENDED_TYPES) {</span>
+<span class="lineNum">    1066 </span><span class="lineNoCov">          0 :       res = hwloc_snprintf(tmp, tmplen, &quot;%s%s:%u&quot;, prefix, hwloc_obj_type_string(obj-&gt;type), arity);</span>
+<span class="lineNum">    1067 </span>            :     } else {
+<span class="lineNum">    1068 </span>            :       char types[64];
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :       hwloc_obj_type_snprintf(types, sizeof(types), obj, 1);</span>
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :       res = hwloc_snprintf(tmp, tmplen, &quot;%s%s:%u&quot;, prefix, types, arity);</span>
+<span class="lineNum">    1071 </span>            :     }
+<span class="lineNum">    1072 </span><span class="lineNoCov">          0 :     if (res &lt; 0)</span>
+<span class="lineNum">    1073 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :     ret += res;</span>
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :     if (res &gt;= tmplen)</span>
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :       res = tmplen&gt;0 ? tmplen - 1 : 0;</span>
+<span class="lineNum">    1077 </span><span class="lineNoCov">          0 :     tmp += res;</span>
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :     tmplen -= res;</span>
+<span class="lineNum">    1079 </span>            : 
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :     if (!(flags &amp; HWLOC_TOPOLOGY_EXPORT_SYNTHETIC_FLAG_NO_ATTRS)) {</span>
+<span class="lineNum">    1081 </span>            :       /* obj attributes */
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :       res = hwloc_topology_export_synthetic_obj_attr(topology, obj, tmp, tmplen);</span>
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :       if (res &lt; 0)</span>
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">    1085 </span><span class="lineNoCov">          0 :       ret += res;</span>
+<span class="lineNum">    1086 </span><span class="lineNoCov">          0 :       if (res &gt;= tmplen)</span>
+<span class="lineNum">    1087 </span><span class="lineNoCov">          0 :         res = tmplen&gt;0 ? tmplen - 1 : 0;</span>
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :       tmp += res;</span>
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :       tmplen -= res;</span>
+<span class="lineNum">    1090 </span>            :     }
+<span class="lineNum">    1091 </span>            : 
+<span class="lineNum">    1092 </span>            :     /* next level */
+<span class="lineNum">    1093 </span><span class="lineNoCov">          0 :     prefix = separator;</span>
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :     arity = obj-&gt;arity;</span>
+<span class="lineNum">    1095 </span>            :   }
+<span class="lineNum">    1096 </span>            : 
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :   return ret;</span>
+<span class="lineNum">    1098 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

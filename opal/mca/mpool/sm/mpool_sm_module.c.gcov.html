@@ -1,0 +1,297 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/mpool/sm/mpool_sm_module.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/mpool/sm</a> - mpool_sm_module.c<span style="font-size: 80%;"> (source / <a href="mpool_sm_module.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">38</td>
+            <td class="headerCovTableEntry">54</td>
+            <td class="headerCovTableEntryLo">70.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryLo">57.1 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2011 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2005 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2009-2012 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2011-2012 Los Alamos National Security, LLC.
+<span class="lineNum">      14 </span>            :  *                         All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2011-2014 NVIDIA Corporation.  All rights reserved.
+<span class="lineNum">      16 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * $HEADER$
+<span class="lineNum">      21 </span>            :  */
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      24 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      25 </span>            : #include &quot;opal/mca/mpool/sm/mpool_sm.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;opal/mca/common/sm/common_sm.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;opal/mca/common/cuda/common_cuda.h&quot;
+<span class="lineNum">      28 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      29 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      30 </span>            : #endif
+<span class="lineNum">      31 </span>            : #include &quot;opal/mca/hwloc/base/base.h&quot;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #if OPAL_ENABLE_FT_CR    == 1
+<span class="lineNum">      34 </span>            : #include &quot;orte/mca/sstore/sstore.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;opal/mca/mpool/base/base.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;ompi/runtime/ompi_cr.h&quot; /* TODO */
+<span class="lineNum">      37 </span>            : #endif
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : static void sm_module_finalize(mca_mpool_base_module_t* module);
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : /*
+<a name="42"><span class="lineNum">      42 </span>            :  *  Initializes the mpool module.</a>
+<span class="lineNum">      43 </span>            :  */
+<span class="lineNum">      44 </span><span class="lineCov">          2 : void mca_mpool_sm_module_init(mca_mpool_sm_module_t* mpool)</span>
+<span class="lineNum">      45 </span>            : {
+<span class="lineNum">      46 </span><span class="lineCov">          2 :     mpool-&gt;super.mpool_component = &amp;mca_mpool_sm_component.super;</span>
+<span class="lineNum">      47 </span><span class="lineCov">          2 :     mpool-&gt;super.mpool_base = mca_mpool_sm_base;</span>
+<span class="lineNum">      48 </span><span class="lineCov">          2 :     mpool-&gt;super.mpool_alloc = mca_mpool_sm_alloc;</span>
+<span class="lineNum">      49 </span><span class="lineCov">          2 :     mpool-&gt;super.mpool_realloc = mca_mpool_sm_realloc;</span>
+<span class="lineNum">      50 </span><span class="lineCov">          2 :     mpool-&gt;super.mpool_free = mca_mpool_sm_free;</span>
+<span class="lineNum">      51 </span><span class="lineCov">          2 :     mpool-&gt;super.mpool_find = NULL;</span>
+<span class="lineNum">      52 </span><span class="lineCov">          2 :     mpool-&gt;super.mpool_register = NULL;</span>
+<span class="lineNum">      53 </span><span class="lineCov">          2 :     mpool-&gt;super.mpool_deregister = NULL;</span>
+<span class="lineNum">      54 </span><span class="lineCov">          2 :     mpool-&gt;super.mpool_release_memory = NULL;</span>
+<span class="lineNum">      55 </span><span class="lineCov">          2 :     mpool-&gt;super.mpool_finalize = sm_module_finalize;</span>
+<span class="lineNum">      56 </span><span class="lineCov">          2 :     mpool-&gt;super.mpool_ft_event = mca_mpool_sm_ft_event;</span>
+<span class="lineNum">      57 </span><span class="lineCov">          2 :     mpool-&gt;super.flags = 0;</span>
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span><span class="lineCov">          2 :     mpool-&gt;sm_size = 0;</span>
+<span class="lineNum">      60 </span><span class="lineCov">          2 :     mpool-&gt;sm_allocator = NULL;</span>
+<span class="lineNum">      61 </span><span class="lineCov">          2 :     mpool-&gt;sm_mmap = NULL;</span>
+<span class="lineNum">      62 </span><span class="lineCov">          2 :     mpool-&gt;sm_common_module = NULL;</span>
+<span class="lineNum">      63 </span><span class="lineCov">          2 :     mpool-&gt;mem_node = -1;</span>
+<span class="lineNum">      64 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : /*
+<a name="67"><span class="lineNum">      67 </span>            :  * base address of shared memory mapping</a>
+<span class="lineNum">      68 </span>            :  */
+<span class="lineNum">      69 </span><span class="lineCov">          2 : void* mca_mpool_sm_base(mca_mpool_base_module_t* mpool)</span>
+<span class="lineNum">      70 </span>            : {
+<span class="lineNum">      71 </span><span class="lineCov">          2 :     mca_mpool_sm_module_t *sm_mpool = (mca_mpool_sm_module_t*) mpool;</span>
+<span class="lineNum">      72 </span><span class="lineCov">          4 :     return (NULL != sm_mpool-&gt;sm_common_module) ?</span>
+<span class="lineNum">      73 </span><span class="lineCov">          2 :         sm_mpool-&gt;sm_common_module-&gt;module_seg_addr : NULL;</span>
+<span class="lineNum">      74 </span>            : }
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            : /**
+<a name="77"><span class="lineNum">      77 </span>            :   * allocate function</a>
+<span class="lineNum">      78 </span>            :   */
+<span class="lineNum">      79 </span><span class="lineCov">         10 : void* mca_mpool_sm_alloc(</span>
+<span class="lineNum">      80 </span>            :     mca_mpool_base_module_t* mpool,
+<span class="lineNum">      81 </span>            :     size_t size,
+<span class="lineNum">      82 </span>            :     size_t align,
+<span class="lineNum">      83 </span>            :     uint32_t flags,
+<span class="lineNum">      84 </span>            :     mca_mpool_base_registration_t** registration)
+<span class="lineNum">      85 </span>            : {
+<span class="lineNum">      86 </span><span class="lineCov">         10 :     mca_mpool_sm_module_t* mpool_sm = (mca_mpool_sm_module_t*)mpool;</span>
+<span class="lineNum">      87 </span>            :     opal_hwloc_base_memory_segment_t mseg;
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span><span class="lineCov">         10 :     mseg.mbs_start_addr =</span>
+<span class="lineNum">      90 </span><span class="lineCov">         10 :         mpool_sm-&gt;sm_allocator-&gt;alc_alloc(mpool_sm-&gt;sm_allocator, size, align, registration);</span>
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span><span class="lineCov">         10 :     if(mpool_sm-&gt;mem_node &gt;= 0) {</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :         mseg.mbs_len = size;</span>
+<span class="lineNum">      94 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         opal_hwloc_base_membind(&amp;mseg, 1, mpool_sm-&gt;mem_node);</span>
+<span class="lineNum">      96 </span>            : #endif
+<span class="lineNum">      97 </span>            :     }
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span><span class="lineCov">         10 :     return mseg.mbs_start_addr;</span>
+<span class="lineNum">     100 </span>            : }
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            : /**
+<a name="103"><span class="lineNum">     103 </span>            :   * realloc function</a>
+<span class="lineNum">     104 </span>            :   */
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 : void* mca_mpool_sm_realloc(</span>
+<span class="lineNum">     106 </span>            :     mca_mpool_base_module_t* mpool,
+<span class="lineNum">     107 </span>            :     void* addr,
+<span class="lineNum">     108 </span>            :     size_t size,
+<span class="lineNum">     109 </span>            :     mca_mpool_base_registration_t** registration)
+<span class="lineNum">     110 </span>            : {
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     mca_mpool_sm_module_t* mpool_sm = (mca_mpool_sm_module_t*)mpool;</span>
+<span class="lineNum">     112 </span>            :     opal_hwloc_base_memory_segment_t mseg;
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     mseg.mbs_start_addr =</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :         mpool_sm-&gt;sm_allocator-&gt;alc_realloc(mpool_sm-&gt;sm_allocator, addr, size,</span>
+<span class="lineNum">     116 </span>            :                                             registration);
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     if(mpool_sm-&gt;mem_node &gt;= 0) {</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :         mseg.mbs_len = size;</span>
+<span class="lineNum">     119 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :         opal_hwloc_base_membind(&amp;mseg, 1, mpool_sm-&gt;mem_node);</span>
+<span class="lineNum">     121 </span>            : #endif
+<span class="lineNum">     122 </span>            :     }
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     return mseg.mbs_start_addr;</span>
+<span class="lineNum">     125 </span>            : }
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            : /**
+<a name="128"><span class="lineNum">     128 </span>            :   * free function</a>
+<span class="lineNum">     129 </span>            :   */
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 : void mca_mpool_sm_free(mca_mpool_base_module_t* mpool, void * addr,</span>
+<span class="lineNum">     131 </span>            :                        mca_mpool_base_registration_t* registration)
+<span class="lineNum">     132 </span>            : {
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     mca_mpool_sm_module_t* mpool_sm = (mca_mpool_sm_module_t*)mpool;</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     mpool_sm-&gt;sm_allocator-&gt;alc_free(mpool_sm-&gt;sm_allocator, addr);</span>
+<a name="135"><span class="lineNum">     135 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span><span class="lineCov">          2 : static void sm_module_finalize(mca_mpool_base_module_t* module)</span>
+<span class="lineNum">     138 </span>            : {
+<span class="lineNum">     139 </span><span class="lineCov">          2 :     mca_mpool_sm_module_t *sm_module = (mca_mpool_sm_module_t*) module;</span>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineCov">          2 :     if (NULL != sm_module-&gt;sm_common_module) {</span>
+<span class="lineNum">     142 </span><span class="lineCov">          2 :         if (OPAL_SUCCESS ==</span>
+<span class="lineNum">     143 </span><span class="lineCov">          2 :             mca_common_sm_fini(sm_module-&gt;sm_common_module)) {</span>
+<span class="lineNum">     144 </span>            : #if OPAL_ENABLE_FT_CR == 1
+<span class="lineNum">     145 </span>            :             /* Only unlink the file if we are *not* restarting.  If we
+<span class="lineNum">     146 </span>            :                are restarting the file will be unlinked at a later
+<span class="lineNum">     147 </span>            :                time. */
+<span class="lineNum">     148 </span>            :             if (OPAL_CR_STATUS_RESTART_PRE  != opal_cr_checkpointing_state &amp;&amp;
+<span class="lineNum">     149 </span>            :                 OPAL_CR_STATUS_RESTART_POST != opal_cr_checkpointing_state ) {
+<span class="lineNum">     150 </span>            :                 unlink(sm_module-&gt;sm_common_module-&gt;shmem_ds.seg_name);
+<span class="lineNum">     151 </span>            :             }
+<span class="lineNum">     152 </span>            : #else
+<span class="lineNum">     153 </span><span class="lineCov">          2 :             unlink(sm_module-&gt;sm_common_module-&gt;shmem_ds.seg_name);</span>
+<span class="lineNum">     154 </span>            : #endif
+<span class="lineNum">     155 </span>            :         }
+<span class="lineNum">     156 </span><span class="lineCov">          4 :         OBJ_RELEASE(sm_module-&gt;sm_common_module);</span>
+<span class="lineNum">     157 </span><span class="lineCov">          2 :         sm_module-&gt;sm_common_module = NULL;</span>
+<span class="lineNum">     158 </span>            :     }
+<span class="lineNum">     159 </span><span class="lineCov">          2 : }</span>
+<a name="160"><span class="lineNum">     160 </span>            : </a>
+<span class="lineNum">     161 </span>            : #if OPAL_ENABLE_FT_CR    == 0
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 : int mca_mpool_sm_ft_event(int state) {</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     164 </span>            : }
+<span class="lineNum">     165 </span>            : #else
+<span class="lineNum">     166 </span>            : int mca_mpool_sm_ft_event(int state) {
+<span class="lineNum">     167 </span>            :     mca_mpool_base_module_t *self_module = NULL;
+<span class="lineNum">     168 </span>            :     mca_mpool_sm_module_t   *self_sm_module = NULL;
+<span class="lineNum">     169 </span>            :     char * file_name = NULL;
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            :     if(OPAL_CRS_CHECKPOINT == state) {
+<span class="lineNum">     172 </span>            :         /* Record the shared memory filename */
+<span class="lineNum">     173 </span>            :         asprintf( &amp;file_name, &quot;%s&quot;OPAL_PATH_SEP&quot;shared_mem_pool.%s&quot;,
+<span class="lineNum">     174 </span>            :                   opal_process_info.job_session_dir,
+<span class="lineNum">     175 </span>            :                   opal_proc_local_get()-&gt;proc_hostname );
+<span class="lineNum">     176 </span>            :         /* Disabled to get FT code compiled again
+<span class="lineNum">     177 </span>            :          * TODO: FIXIT soon
+<span class="lineNum">     178 </span>            :         orte_sstore.set_attr(orte_sstore_handle_current, SSTORE_METADATA_LOCAL_TOUCH, file_name);
+<span class="lineNum">     179 </span>            :          */
+<span class="lineNum">     180 </span>            :         free(file_name);
+<span class="lineNum">     181 </span>            :         file_name = NULL;
+<span class="lineNum">     182 </span>            :     }
+<span class="lineNum">     183 </span>            :     else if(OPAL_CRS_CONTINUE == state) {
+<span class="lineNum">     184 </span>            :         if (opal_cr_continue_like_restart) {
+<span class="lineNum">     185 </span>            :             /* Find the sm module */
+<span class="lineNum">     186 </span>            :             self_module = mca_mpool_base_module_lookup(&quot;sm&quot;);
+<span class="lineNum">     187 </span>            :             self_sm_module = (mca_mpool_sm_module_t*) self_module;
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span>            :             /* Mark the old sm file for eventual removal via CRS */
+<span class="lineNum">     190 </span>            :             if (NULL != self_sm_module-&gt;sm_common_module) {
+<span class="lineNum">     191 </span>            :                 opal_crs_base_cleanup_append(self_sm_module-&gt;sm_common_module-&gt;shmem_ds.seg_name, false);
+<span class="lineNum">     192 </span>            :             }
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :             /* Remove self from the list of all modules */
+<span class="lineNum">     195 </span>            :             mca_mpool_base_module_destroy(self_module);
+<span class="lineNum">     196 </span>            :         }
+<span class="lineNum">     197 </span>            :     }
+<span class="lineNum">     198 </span>            :     else if(OPAL_CRS_RESTART == state ||
+<span class="lineNum">     199 </span>            :             OPAL_CRS_RESTART_PRE == state) {
+<span class="lineNum">     200 </span>            :         /* Find the sm module */
+<span class="lineNum">     201 </span>            :         self_module = mca_mpool_base_module_lookup(&quot;sm&quot;);
+<span class="lineNum">     202 </span>            :         self_sm_module = (mca_mpool_sm_module_t*) self_module;
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            :         /* Mark the old sm file for eventual removal via CRS */
+<span class="lineNum">     205 </span>            :         if (NULL != self_sm_module-&gt;sm_common_module) {
+<span class="lineNum">     206 </span>            :             opal_crs_base_cleanup_append(self_sm_module-&gt;sm_common_module-&gt;shmem_ds.seg_name, false);
+<span class="lineNum">     207 </span>            :         }
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            :         /* Remove self from the list of all modules */
+<span class="lineNum">     210 </span>            :         mca_mpool_base_module_destroy(self_module);
+<span class="lineNum">     211 </span>            :     }
+<span class="lineNum">     212 </span>            :     else if(OPAL_CRS_TERM == state ) {
+<span class="lineNum">     213 </span>            :         ;
+<span class="lineNum">     214 </span>            :     }
+<span class="lineNum">     215 </span>            :     else {
+<span class="lineNum">     216 </span>            :         ;
+<span class="lineNum">     217 </span>            :     }
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            :     return OPAL_SUCCESS;
+<span class="lineNum">     220 </span>            : }
+<span class="lineNum">     221 </span>            : #endif /* OPAL_ENABLE_FT_CR */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

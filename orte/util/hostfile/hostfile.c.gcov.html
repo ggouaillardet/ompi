@@ -1,0 +1,1078 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/util/hostfile/hostfile.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="index.html">orte/util/hostfile</a> - hostfile.c<span style="font-size: 80%;"> (source / <a href="hostfile.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">441</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2008 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2007      Los Alamos National Security, LLC.  All rights
+<span class="lineNum">      13 </span>            :  *                         reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2011      Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2013-2014 Intel, Inc. All rights reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      17 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      18 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      21 </span>            :  *
+<span class="lineNum">      22 </span>            :  * $HEADER$
+<span class="lineNum">      23 </span>            :  */
+<span class="lineNum">      24 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;orte/constants.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      28 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      29 </span>            : #endif
+<span class="lineNum">      30 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;sys/stat.h&gt;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #include &quot;opal/class/opal_list.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;opal/mca/mca.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;opal/mca/base/base.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;opal/util/if.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;opal/mca/installdirs/installdirs.h&quot;
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : #include &quot;orte/util/show_help.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;orte/util/proc_info.h&quot;
+<span class="lineNum">      44 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      45 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;orte/mca/ras/base/base.h&quot;
+<span class="lineNum">      47 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : #include &quot;orte/util/hostfile/hostfile_lex.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;orte/util/hostfile/hostfile.h&quot;
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : 
+<a name="53"><span class="lineNum">      53 </span>            : static const char *cur_hostfile_name = NULL;</a>
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 : static void hostfile_parse_error(int token)</span>
+<span class="lineNum">      56 </span>            : {
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     switch (token) {</span>
+<span class="lineNum">      58 </span>            :     case ORTE_HOSTFILE_STRING:
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :         orte_show_help(&quot;help-hostfile.txt&quot;, &quot;parse_error_string&quot;,</span>
+<span class="lineNum">      60 </span>            :                        true,
+<span class="lineNum">      61 </span>            :                        cur_hostfile_name,
+<span class="lineNum">      62 </span>            :                        orte_util_hostfile_line,
+<span class="lineNum">      63 </span>            :                        token,
+<span class="lineNum">      64 </span>            :                        orte_util_hostfile_value.sval);
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">      66 </span>            :     case ORTE_HOSTFILE_IPV4:
+<span class="lineNum">      67 </span>            :     case ORTE_HOSTFILE_IPV6:
+<span class="lineNum">      68 </span>            :     case ORTE_HOSTFILE_INT:
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :         orte_show_help(&quot;help-hostfile.txt&quot;, &quot;parse_error_int&quot;,</span>
+<span class="lineNum">      70 </span>            :                        true,
+<span class="lineNum">      71 </span>            :                        cur_hostfile_name,
+<span class="lineNum">      72 </span>            :                        orte_util_hostfile_line,
+<span class="lineNum">      73 </span>            :                        token,
+<span class="lineNum">      74 </span>            :                        orte_util_hostfile_value.ival);
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">      76 </span>            :      default:
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :         orte_show_help(&quot;help-hostfile.txt&quot;, &quot;parse_error&quot;,</span>
+<span class="lineNum">      78 </span>            :                        true,
+<span class="lineNum">      79 </span>            :                        cur_hostfile_name,
+<span class="lineNum">      80 </span>            :                        orte_util_hostfile_line,
+<span class="lineNum">      81 </span>            :                        token );
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">      83 </span>            :     }
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            :  /**
+<a name="87"><span class="lineNum">      87 </span>            :   * Return the integer following an = (actually may only return positive ints)</a>
+<span class="lineNum">      88 </span>            :   */
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 : static int hostfile_parse_int(void)</span>
+<span class="lineNum">      90 </span>            : {
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     if (ORTE_HOSTFILE_EQUAL != orte_util_hostfile_lex())</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     if (ORTE_HOSTFILE_INT != orte_util_hostfile_lex())</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     return orte_util_hostfile_value.ival;</span>
+<span class="lineNum">      96 </span>            : }
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            : /**
+<a name="99"><span class="lineNum">      99 </span>            :  * Return the string following an = (option to a keyword)</a>
+<span class="lineNum">     100 </span>            :  */
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 : static char *hostfile_parse_string(void)</span>
+<span class="lineNum">     102 </span>            : {
+<span class="lineNum">     103 </span>            :     int rc;
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     if (ORTE_HOSTFILE_EQUAL != orte_util_hostfile_lex()){</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     106 </span>            :     }
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     rc = orte_util_hostfile_lex();</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :     if (ORTE_HOSTFILE_STRING != rc){</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     110 </span>            :     }
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     return strdup(orte_util_hostfile_value.sval);</span>
+<a name="112"><span class="lineNum">     112 </span>            : }</a>
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 : static orte_node_t* hostfile_lookup(opal_list_t* nodes, const char* name)</span>
+<span class="lineNum">     115 </span>            : {
+<span class="lineNum">     116 </span>            :     opal_list_item_t* item;
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     for(item =  opal_list_get_first(nodes);</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :         item != opal_list_get_end(nodes);</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :         item =  opal_list_get_next(item)) {</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :         orte_node_t* node = (orte_node_t*)item;</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         if (strcmp(node-&gt;name, name) == 0) {</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :             return node;</span>
+<span class="lineNum">     123 </span>            :         }
+<span class="lineNum">     124 </span>            :     }
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<a name="126"><span class="lineNum">     126 </span>            : }</a>
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 : static int hostfile_parse_line(int token, opal_list_t* updates,</span>
+<span class="lineNum">     129 </span>            :                                opal_list_t* exclude, bool keep_all)
+<span class="lineNum">     130 </span>            : {
+<span class="lineNum">     131 </span>            :     int rc;
+<span class="lineNum">     132 </span>            :     orte_node_t* node;
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     bool got_max = false;</span>
+<span class="lineNum">     134 </span>            :     char* value;
+<span class="lineNum">     135 </span>            :     char **argv;
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     char* node_name = NULL;</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     char* username = NULL;</span>
+<span class="lineNum">     138 </span>            :     int cnt;
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     int number_of_slots = 0;</span>
+<span class="lineNum">     140 </span>            :     char buff[64];
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     if (ORTE_HOSTFILE_STRING == token ||</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         ORTE_HOSTFILE_HOSTNAME == token ||</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         ORTE_HOSTFILE_INT == token ||</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         ORTE_HOSTFILE_IPV4 == token ||</span>
+<span class="lineNum">     146 </span>            :         ORTE_HOSTFILE_IPV6 == token) {
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         if(ORTE_HOSTFILE_INT == token) {</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :             snprintf(buff, 64, &quot;%d&quot;, orte_util_hostfile_value.ival);</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :             value = buff;</span>
+<span class="lineNum">     151 </span>            :         } else {
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :             value = orte_util_hostfile_value.sval;</span>
+<span class="lineNum">     153 </span>            :         }
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :         argv = opal_argv_split (value, '@');</span>
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         cnt = opal_argv_count (argv);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :         if (1 == cnt) {</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :             node_name = strdup(argv[0]);</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :         } else if (2 == cnt) {</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :             username = argv[0];</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :             node_name = strdup(argv[1]);</span>
+<span class="lineNum">     162 </span>            :         } else {
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;WARNING: Unhandled user@host-combination\n&quot;); /* XXX */</span>
+<span class="lineNum">     164 </span>            :         }
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :         opal_argv_free (argv);</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            :         /* if the first letter of the name is '^', then this is a node
+<span class="lineNum">     168 </span>            :          * to be excluded. Remove the ^ character so the nodename is
+<span class="lineNum">     169 </span>            :          * usable, and put it on the exclude list
+<span class="lineNum">     170 </span>            :          */
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :         if ('^' == node_name[0]) {</span>
+<span class="lineNum">     172 </span>            :             int i, len;
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :             len = strlen(node_name);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :             for (i=1; i &lt; len; i++) {</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :                 node_name[i-1] = node_name[i];</span>
+<span class="lineNum">     176 </span>            :             }
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :             node_name[len-1] = '\0';  /* truncate */</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((3, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     180 </span>            :                                  &quot;%s hostfile: node %s is being excluded&quot;,
+<span class="lineNum">     181 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), node_name));
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            :             /* see if this is another name for us */
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :             if (orte_ifislocal(node_name)) {</span>
+<span class="lineNum">     185 </span>            :                 /* Nodename has been allocated, that is for sure */
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :                 free (node_name);</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :                 node_name = strdup(orte_process_info.nodename);</span>
+<span class="lineNum">     188 </span>            :             }
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            :             /* Do we need to make a new node object?  First check to see
+<span class="lineNum">     191 </span>            :                if it's already in the exclude list */
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :             if (NULL == (node = hostfile_lookup(exclude, node_name))) {</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :                 node = OBJ_NEW(orte_node_t);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :                 node-&gt;name = node_name;</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :                 if (NULL != username) {</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :                     orte_set_attribute(&amp;node-&gt;attributes, ORTE_NODE_USERNAME, ORTE_ATTR_LOCAL, username, OPAL_STRING);</span>
+<span class="lineNum">     197 </span>            :                 }
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :                 opal_list_append(exclude, &amp;node-&gt;super);</span>
+<span class="lineNum">     199 </span>            :             } else {
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :                 free(node_name);</span>
+<span class="lineNum">     201 </span>            :             }
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :             return ORTE_SUCCESS;</span>
+<span class="lineNum">     203 </span>            :         }
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            :         /* this is not a node to be excluded, so we need to process it and
+<span class="lineNum">     206 </span>            :          * add it to the &quot;include&quot; list. See if this host is actually us.
+<span class="lineNum">     207 </span>            :          */
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         if (orte_ifislocal(node_name)) {</span>
+<span class="lineNum">     209 </span>            :             /* Nodename has been allocated, that is for sure */
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :             free (node_name);</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :             node_name = strdup(orte_process_info.nodename);</span>
+<span class="lineNum">     212 </span>            :         }
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((3, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     215 </span>            :                              &quot;%s hostfile: node %s is being included - keep all is %s&quot;,
+<span class="lineNum">     216 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), node_name,
+<span class="lineNum">     217 </span>            :                              keep_all ? &quot;TRUE&quot; : &quot;FALSE&quot;));
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            :         /* Do we need to make a new node object? */
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         if (keep_all || NULL == (node = hostfile_lookup(updates, node_name))) {</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :             node = OBJ_NEW(orte_node_t);</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :             node-&gt;name = node_name;</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :             node-&gt;slots = 1;</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :             if (NULL != username) {</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :                 orte_set_attribute(&amp;node-&gt;attributes, ORTE_NODE_USERNAME, ORTE_ATTR_LOCAL, username, OPAL_STRING);</span>
+<span class="lineNum">     226 </span>            :             }
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :             opal_list_append(updates, &amp;node-&gt;super);</span>
+<span class="lineNum">     228 </span>            :         } else {
+<span class="lineNum">     229 </span>            :             /* this node was already found once - add a slot and mark slots as &quot;given&quot; */
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :             node-&gt;slots++;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :             ORTE_FLAG_SET(node, ORTE_NODE_FLAG_SLOTS_GIVEN);</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :             free(node_name);</span>
+<span class="lineNum">     233 </span>            :         }
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     } else if (ORTE_HOSTFILE_RELATIVE == token) {</span>
+<span class="lineNum">     235 </span>            :         /* store this for later processing */
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :         node = OBJ_NEW(orte_node_t);</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         node-&gt;name = strdup(orte_util_hostfile_value.sval);</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         opal_list_append(updates, &amp;node-&gt;super);</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     } else if (ORTE_HOSTFILE_RANK == token) {</span>
+<span class="lineNum">     240 </span>            :         /* we can ignore the rank, but we need to extract the node name. we
+<span class="lineNum">     241 </span>            :          * first need to shift over to the other side of the equal sign as
+<span class="lineNum">     242 </span>            :          * this is where the node name will be
+<span class="lineNum">     243 </span>            :          */
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :         while (!orte_util_hostfile_done &amp;&amp;</span>
+<span class="lineNum">     245 </span>            :                ORTE_HOSTFILE_EQUAL != token) {
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :             token = orte_util_hostfile_lex();</span>
+<span class="lineNum">     247 </span>            :         }
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :         if (orte_util_hostfile_done) {</span>
+<span class="lineNum">     249 </span>            :             /* bad syntax somewhere */
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :             return ORTE_ERROR;</span>
+<span class="lineNum">     251 </span>            :         }
+<span class="lineNum">     252 </span>            :         /* next position should be the node name */
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         token = orte_util_hostfile_lex();</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         if(ORTE_HOSTFILE_INT == token) {</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :             snprintf(buff, 64, &quot;%d&quot;, orte_util_hostfile_value.ival);</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :             value = buff;</span>
+<span class="lineNum">     257 </span>            :         } else {
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :             value = orte_util_hostfile_value.sval;</span>
+<span class="lineNum">     259 </span>            :         }
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         argv = opal_argv_split (value, '@');</span>
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         cnt = opal_argv_count (argv);</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :         if (1 == cnt) {</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :             node_name = strdup(argv[0]);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         } else if (2 == cnt) {</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :             username = argv[0];</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :             node_name = strdup(argv[1]);</span>
+<span class="lineNum">     269 </span>            :         } else {
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :             opal_output(0, &quot;WARNING: Unhandled user@host-combination\n&quot;); /* XXX */</span>
+<span class="lineNum">     271 </span>            :         }
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :         opal_argv_free (argv);</span>
+<span class="lineNum">     273 </span>            :         /* Do we need to make a new node object? */
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         if (NULL == (node = hostfile_lookup(updates, node_name))) {</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :             node = OBJ_NEW(orte_node_t);</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :             node-&gt;name = node_name;</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :             node-&gt;slots = 1;</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :             if (NULL != username) {</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :                 orte_set_attribute(&amp;node-&gt;attributes, ORTE_NODE_USERNAME, ORTE_ATTR_LOCAL, username, OPAL_STRING);</span>
+<span class="lineNum">     280 </span>            :             }
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :             opal_list_append(updates, &amp;node-&gt;super);</span>
+<span class="lineNum">     282 </span>            :         } else {
+<span class="lineNum">     283 </span>            :             /* add a slot */
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :             node-&gt;slots++;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :             free(node_name);</span>
+<span class="lineNum">     286 </span>            :         }
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT_VERBOSE((1, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     288 </span>            :                              &quot;%s hostfile: node %s slots %d&quot;,
+<span class="lineNum">     289 </span>            :                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), node-&gt;name, node-&gt;slots));
+<span class="lineNum">     290 </span>            :         /* mark the slots as &quot;given&quot; since we take them as being the
+<span class="lineNum">     291 </span>            :          * number specified via the rankfile
+<span class="lineNum">     292 </span>            :          */
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :         ORTE_FLAG_SET(node, ORTE_NODE_FLAG_SLOTS_GIVEN);</span>
+<span class="lineNum">     294 </span>            :         /* skip to end of line */
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :         while (!orte_util_hostfile_done &amp;&amp;</span>
+<span class="lineNum">     296 </span>            :                ORTE_HOSTFILE_NEWLINE != token) {
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :             token = orte_util_hostfile_lex();</span>
+<span class="lineNum">     298 </span>            :         }
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     300 </span>            :     } else {
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :         hostfile_parse_error(token);</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :         return ORTE_ERROR;</span>
+<span class="lineNum">     303 </span>            :     }
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     free(username);</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     while (!orte_util_hostfile_done) {</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :         token = orte_util_hostfile_lex();</span>
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :         switch (token) {</span>
+<span class="lineNum">     310 </span>            :         case ORTE_HOSTFILE_DONE:
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :             goto done;</span>
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            :         case ORTE_HOSTFILE_NEWLINE:
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :             goto done;</span>
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            :         case ORTE_HOSTFILE_USERNAME:
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :             username = hostfile_parse_string();</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :             if (NULL != username) {</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :                 orte_set_attribute(&amp;node-&gt;attributes, ORTE_NODE_USERNAME, ORTE_ATTR_LOCAL, username, OPAL_STRING);</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :                 free(username);</span>
+<span class="lineNum">     321 </span>            :             }
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            :         case ORTE_HOSTFILE_COUNT:
+<span class="lineNum">     325 </span>            :         case ORTE_HOSTFILE_CPU:
+<span class="lineNum">     326 </span>            :         case ORTE_HOSTFILE_SLOTS:
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :             rc = hostfile_parse_int();</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :             if (rc &lt; 0) {</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-hostfile.txt&quot;, &quot;slots&quot;,</span>
+<span class="lineNum">     330 </span>            :                                true,
+<span class="lineNum">     331 </span>            :                                cur_hostfile_name, rc);
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(updates, &amp;node-&gt;super);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(node);</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :                 return ORTE_ERROR;</span>
+<span class="lineNum">     335 </span>            :             }
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :             if (ORTE_FLAG_TEST(node, ORTE_NODE_FLAG_SLOTS_GIVEN)) {</span>
+<span class="lineNum">     337 </span>            :                 /* multiple definitions were given for the
+<span class="lineNum">     338 </span>            :                  * slot count - this is not allowed
+<span class="lineNum">     339 </span>            :                  */
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-hostfile.txt&quot;, &quot;slots-given&quot;,</span>
+<span class="lineNum">     341 </span>            :                                true,
+<span class="lineNum">     342 </span>            :                                cur_hostfile_name, node-&gt;name);
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(updates, &amp;node-&gt;super);</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(node);</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :                 return ORTE_ERROR;</span>
+<span class="lineNum">     346 </span>            :             }
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :             node-&gt;slots = rc;</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :             ORTE_FLAG_SET(node, ORTE_NODE_FLAG_SLOTS_GIVEN);</span>
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span>            :             /* Ensure that slots_max &gt;= slots */
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :             if (node-&gt;slots_max != 0 &amp;&amp; node-&gt;slots_max &lt; node-&gt;slots) {</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :                 node-&gt;slots_max = node-&gt;slots;</span>
+<span class="lineNum">     353 </span>            :             }
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span>            :         case ORTE_HOSTFILE_SLOTS_MAX:
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :             rc = hostfile_parse_int();</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :             if (rc &lt; 0) {</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-hostfile.txt&quot;, &quot;max_slots&quot;,</span>
+<span class="lineNum">     360 </span>            :                                true,
+<span class="lineNum">     361 </span>            :                                cur_hostfile_name, ((size_t) rc));
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(updates, &amp;node-&gt;super);</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(node);</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :                 return ORTE_ERROR;</span>
+<span class="lineNum">     365 </span>            :             }
+<span class="lineNum">     366 </span>            :             /* Only take this update if it puts us &gt;= node_slots */
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :             if (rc &gt;= node-&gt;slots) {</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :                 if (node-&gt;slots_max != rc) {</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :                     node-&gt;slots_max = rc;</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :                     got_max = true;</span>
+<span class="lineNum">     371 </span>            :                 }
+<span class="lineNum">     372 </span>            :             } else {
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-hostfile.txt&quot;, &quot;max_slots_lt&quot;,</span>
+<span class="lineNum">     374 </span>            :                                true,
+<span class="lineNum">     375 </span>            :                                cur_hostfile_name, node-&gt;slots, rc);
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(updates, &amp;node-&gt;super);</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(node);</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :                 return ORTE_ERROR;</span>
+<span class="lineNum">     380 </span>            :             }
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span>            :         case ORTE_HOSTFILE_STRING:
+<span class="lineNum">     384 </span>            :         case ORTE_HOSTFILE_INT:
+<span class="lineNum">     385 </span>            :             /* just ignore it */
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span>            :         default:
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :             hostfile_parse_error(token);</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :             opal_list_remove_item(updates, &amp;node-&gt;super);</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(node);</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :             return ORTE_ERROR;</span>
+<span class="lineNum">     393 </span>            :         }
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :         if (number_of_slots &gt; node-&gt;slots) {</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :             opal_list_remove_item(updates, &amp;node-&gt;super);</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(node);</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :             return ORTE_ERROR;</span>
+<span class="lineNum">     399 </span>            :         }
+<span class="lineNum">     400 </span>            :     }
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span>            :  done:
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     if (got_max &amp;&amp; !ORTE_FLAG_TEST(node, ORTE_NODE_FLAG_SLOTS_GIVEN)) {</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         node-&gt;slots = node-&gt;slots_max;</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         ORTE_FLAG_SET(node, ORTE_NODE_FLAG_SLOTS_GIVEN);</span>
+<span class="lineNum">     406 </span>            :     }
+<span class="lineNum">     407 </span>            : 
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     409 </span>            : }
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span>            : /**
+<span class="lineNum">     413 </span>            :  * Parse the specified file into a node list.
+<a name="414"><span class="lineNum">     414 </span>            :  */</a>
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 : static int hostfile_parse(const char *hostfile, opal_list_t* updates,</span>
+<span class="lineNum">     417 </span>            :                           opal_list_t* exclude, bool keep_all)
+<span class="lineNum">     418 </span>            : {
+<span class="lineNum">     419 </span>            :     int token;
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :     int rc = ORTE_SUCCESS;</span>
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     cur_hostfile_name = hostfile;</span>
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     orte_util_hostfile_done = false;</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     orte_util_hostfile_in = fopen(hostfile, &quot;r&quot;);</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     if (NULL == orte_util_hostfile_in) {</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :         if (NULL == orte_default_hostfile ||</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :             0 != strcmp(orte_default_hostfile, hostfile)) {</span>
+<span class="lineNum">     430 </span>            :             /* not the default hostfile, so not finding it
+<span class="lineNum">     431 </span>            :              * is an error
+<span class="lineNum">     432 </span>            :              */
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-hostfile.txt&quot;, &quot;no-hostfile&quot;, true, hostfile);</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :             rc = ORTE_ERR_SILENT;</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :             goto unlock;</span>
+<span class="lineNum">     436 </span>            :         }
+<span class="lineNum">     437 </span>            :         /* if this is the default hostfile and it was given,
+<span class="lineNum">     438 </span>            :          * then it's an error
+<span class="lineNum">     439 </span>            :          */
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :         if (orte_default_hostfile_given) {</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-hostfile.txt&quot;, &quot;no-hostfile&quot;, true, hostfile);</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :             rc = ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :             goto unlock;</span>
+<span class="lineNum">     444 </span>            :         }
+<span class="lineNum">     445 </span>            :         /* otherwise, not finding it is okay */
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :         rc = ORTE_SUCCESS;</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :         goto unlock;</span>
+<span class="lineNum">     448 </span>            :     }
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     while (!orte_util_hostfile_done) {</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :         token = orte_util_hostfile_lex();</span>
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :         switch (token) {</span>
+<span class="lineNum">     454 </span>            :         case ORTE_HOSTFILE_DONE:
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :             orte_util_hostfile_done = true;</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span>            :         case ORTE_HOSTFILE_NEWLINE:
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span>            :         /*
+<span class="lineNum">     462 </span>            :          * This looks odd, since we have several forms of host-definitions:
+<span class="lineNum">     463 </span>            :          *   hostname              just plain as it is, being a ORTE_HOSTFILE_STRING
+<span class="lineNum">     464 </span>            :          *   IP4s and user@IPv4s
+<span class="lineNum">     465 </span>            :          *   hostname.domain and user@hostname.domain
+<span class="lineNum">     466 </span>            :          */
+<span class="lineNum">     467 </span>            :         case ORTE_HOSTFILE_STRING:
+<span class="lineNum">     468 </span>            :         case ORTE_HOSTFILE_INT:
+<span class="lineNum">     469 </span>            :         case ORTE_HOSTFILE_HOSTNAME:
+<span class="lineNum">     470 </span>            :         case ORTE_HOSTFILE_IPV4:
+<span class="lineNum">     471 </span>            :         case ORTE_HOSTFILE_IPV6:
+<span class="lineNum">     472 </span>            :         case ORTE_HOSTFILE_RELATIVE:
+<span class="lineNum">     473 </span>            :         case ORTE_HOSTFILE_RANK:
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :             rc = hostfile_parse_line(token, updates, exclude, keep_all);</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :             if (ORTE_SUCCESS != rc) {</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :                 goto unlock;</span>
+<span class="lineNum">     477 </span>            :             }
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span>            :         default:
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :             hostfile_parse_error(token);</span>
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :             goto unlock;</span>
+<span class="lineNum">     483 </span>            :         }
+<span class="lineNum">     484 </span>            :     }
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :     fclose(orte_util_hostfile_in);</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     orte_util_hostfile_in = NULL;</span>
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span>            : unlock:
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :     cur_hostfile_name = NULL;</span>
+<span class="lineNum">     490 </span>            : 
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     492 </span>            : }
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span>            : /**
+<span class="lineNum">     496 </span>            :  * Parse the provided hostfile and add the nodes to the list.
+<a name="497"><span class="lineNum">     497 </span>            :  */</a>
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 : int orte_util_add_hostfile_nodes(opal_list_t *nodes,</span>
+<span class="lineNum">     500 </span>            :                                  char *hostfile)
+<span class="lineNum">     501 </span>            : {
+<span class="lineNum">     502 </span>            :     opal_list_t exclude, adds;
+<span class="lineNum">     503 </span>            :     opal_list_item_t *item, *itm;
+<span class="lineNum">     504 </span>            :     int rc;
+<span class="lineNum">     505 </span>            :     orte_node_t *nd, *node;
+<span class="lineNum">     506 </span>            :     bool found;
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     509 </span>            :                          &quot;%s hostfile: checking hostfile %s for nodes&quot;,
+<span class="lineNum">     510 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), hostfile));
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;exclude, opal_list_t);</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;adds, opal_list_t);</span>
+<span class="lineNum">     514 </span>            : 
+<span class="lineNum">     515 </span>            :     /* parse the hostfile and add any new contents to the list */
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = hostfile_parse(hostfile, &amp;adds, &amp;exclude, false))) {</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :         goto cleanup;</span>
+<span class="lineNum">     518 </span>            :     }
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span>            :     /* check for any relative node directives */
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     for (item = opal_list_get_first(&amp;adds);</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :          item != opal_list_get_end(&amp;adds);</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :          item = opal_list_get_next(item)) {</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :         node=(orte_node_t*)item;</span>
+<span class="lineNum">     525 </span>            : 
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :         if ('+' == node-&gt;name[0]) {</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-hostfile.txt&quot;, &quot;hostfile:relative-syntax&quot;,</span>
+<span class="lineNum">     528 </span>            :                            true, node-&gt;name);
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :             rc = ORTE_ERR_SILENT;</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :             goto cleanup;</span>
+<span class="lineNum">     531 </span>            :         }
+<span class="lineNum">     532 </span>            :     }
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span>            :     /* remove from the list of nodes those that are in the exclude list */
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :     while (NULL != (item = opal_list_remove_first(&amp;exclude))) {</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :         nd = (orte_node_t*)item;</span>
+<span class="lineNum">     537 </span>            :         /* check for matches on nodes */
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :         for (itm = opal_list_get_first(&amp;adds);</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :              itm != opal_list_get_end(&amp;adds);</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :              itm = opal_list_get_next(itm)) {</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :             node = (orte_node_t*)itm;</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :             if (0 == strcmp(nd-&gt;name, node-&gt;name)) {</span>
+<span class="lineNum">     543 </span>            :                 /* match - remove it */
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;adds, itm);</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(itm);</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     547 </span>            :             }
+<span class="lineNum">     548 </span>            :         }
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item);</span>
+<span class="lineNum">     550 </span>            :     }
+<span class="lineNum">     551 </span>            : 
+<span class="lineNum">     552 </span>            :     /* transfer across all unique nodes */
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :     while (NULL != (item = opal_list_remove_first(&amp;adds))) {</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :         nd = (orte_node_t*)item;</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :         found = false;</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :         for (itm = opal_list_get_first(nodes);</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :              itm != opal_list_get_end(nodes);</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :              itm = opal_list_get_next(itm)) {</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :             node = (orte_node_t*)itm;</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :             if (0 == strcmp(nd-&gt;name, node-&gt;name)) {</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :                 found = true;</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     563 </span>            :             }
+<span class="lineNum">     564 </span>            :         }
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :         if (!found) {</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :             opal_list_append(nodes, &amp;nd-&gt;super);</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((1, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     568 </span>            :                                  &quot;%s hostfile: adding node %s slots %d&quot;,
+<span class="lineNum">     569 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), nd-&gt;name, nd-&gt;slots));
+<span class="lineNum">     570 </span>            :         } else {
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(item);</span>
+<span class="lineNum">     572 </span>            :         }
+<span class="lineNum">     573 </span>            :     }
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span>            : cleanup:
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :     OPAL_LIST_DESTRUCT(&amp;exclude);</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :     OPAL_LIST_DESTRUCT(&amp;adds);</span>
+<span class="lineNum">     578 </span>            : 
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     580 </span>            : }
+<span class="lineNum">     581 </span>            : 
+<span class="lineNum">     582 </span>            : /* Parse the provided hostfile and filter the nodes that are
+<span class="lineNum">     583 </span>            :  * on the input list, removing those that
+<a name="584"><span class="lineNum">     584 </span>            :  * are not found in the hostfile</a>
+<span class="lineNum">     585 </span>            :  */
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 : int orte_util_filter_hostfile_nodes(opal_list_t *nodes,</span>
+<span class="lineNum">     587 </span>            :                                     char *hostfile,
+<span class="lineNum">     588 </span>            :                                     bool remove)
+<span class="lineNum">     589 </span>            : {
+<span class="lineNum">     590 </span>            :     opal_list_t newnodes, exclude;
+<span class="lineNum">     591 </span>            :     opal_list_item_t *item1, *item2, *next, *item3;
+<span class="lineNum">     592 </span>            :     orte_node_t *node_from_list, *node_from_file, *node_from_pool, *node3;
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :     int rc = ORTE_SUCCESS;</span>
+<span class="lineNum">     594 </span>            :     char *cptr;
+<span class="lineNum">     595 </span>            :     int num_empty, nodeidx;
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :     bool want_all_empty = false;</span>
+<span class="lineNum">     597 </span>            :     opal_list_t keep;
+<span class="lineNum">     598 </span>            :     bool found;
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     601 </span>            :                         &quot;%s hostfile: filtering nodes through hostfile %s&quot;,
+<span class="lineNum">     602 </span>            :                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), hostfile));
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span>            :     /* parse the hostfile and create local list of findings */
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;newnodes, opal_list_t);</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;exclude, opal_list_t);</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = hostfile_parse(hostfile, &amp;newnodes, &amp;exclude, false))) {</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;newnodes);</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;exclude);</span>
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     611 </span>            :     }
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span>            :     /* if the hostfile was empty, then treat it as a no-op filter */
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :     if (0 == opal_list_get_size(&amp;newnodes)) {</span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;newnodes);</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;exclude);</span>
+<span class="lineNum">     617 </span>            :         /* indicate that the hostfile was empty */
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :         return ORTE_ERR_TAKE_NEXT_OPTION;</span>
+<span class="lineNum">     619 </span>            :     }
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span>            :     /* remove from the list of newnodes those that are in the exclude list
+<span class="lineNum">     622 </span>            :      * since we could have added duplicate names above due to the */
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :     while (NULL != (item1 = opal_list_remove_first(&amp;exclude))) {</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :         node_from_file = (orte_node_t*)item1;</span>
+<span class="lineNum">     625 </span>            :         /* check for matches on nodes */
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :         for (item2 = opal_list_get_first(&amp;newnodes);</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :              item2 != opal_list_get_end(&amp;newnodes);</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :              item2 = opal_list_get_next(item2)) {</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :             orte_node_t *node = (orte_node_t*)item2;</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :             if (0 == strcmp(node_from_file-&gt;name, node-&gt;name)) {</span>
+<span class="lineNum">     631 </span>            :                 /* match - remove it */
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :                 opal_output(0, &quot;HOST %s ON EXCLUDE LIST - REMOVING&quot;, node-&gt;name);</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;newnodes, item2);</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(item2);</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     636 </span>            :             }
+<span class="lineNum">     637 </span>            :         }
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item1);</span>
+<span class="lineNum">     639 </span>            :     }
+<span class="lineNum">     640 </span>            : 
+<span class="lineNum">     641 </span>            :     /* now check our nodes and keep or mark those that match. We can
+<span class="lineNum">     642 </span>            :      * destruct our hostfile list as we go since this won't be needed
+<span class="lineNum">     643 </span>            :      */
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;keep, opal_list_t);</span>
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :     while (NULL != (item2 = opal_list_remove_first(&amp;newnodes))) {</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :         node_from_file = (orte_node_t*)item2;</span>
+<span class="lineNum">     647 </span>            : 
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :         next = opal_list_get_next(item2);</span>
+<span class="lineNum">     649 </span>            : 
+<span class="lineNum">     650 </span>            :         /* see if this is a relative node syntax */
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :         if ('+' == node_from_file-&gt;name[0]) {</span>
+<span class="lineNum">     652 </span>            :             /* see if we specified empty nodes */
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :             if ('e' == node_from_file-&gt;name[1] ||</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :                 'E' == node_from_file-&gt;name[1]) {</span>
+<span class="lineNum">     655 </span>            :                 /* request for empty nodes - do they want
+<span class="lineNum">     656 </span>            :                  * all of them?
+<span class="lineNum">     657 </span>            :                  */
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :                 if (NULL != (cptr = strchr(node_from_file-&gt;name, ':'))) {</span>
+<span class="lineNum">     659 </span>            :                     /* the colon indicates a specific # are requested */
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :                     cptr++; /* step past : */</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :                     num_empty = strtol(cptr, NULL, 10);</span>
+<span class="lineNum">     662 </span>            :                 } else {
+<span class="lineNum">     663 </span>            :                     /* want them all - set num_empty to max */
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :                     num_empty = INT_MAX;</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :                     want_all_empty = true;</span>
+<span class="lineNum">     666 </span>            :                 }
+<span class="lineNum">     667 </span>            :                 /* search the list of nodes provided to us and find those
+<span class="lineNum">     668 </span>            :                  * that are empty
+<span class="lineNum">     669 </span>            :                  */
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :                 item1 = opal_list_get_first(nodes);</span>
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :                 while (0 &lt; num_empty &amp;&amp; item1 != opal_list_get_end(nodes)) {</span>
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :                     node_from_list = (orte_node_t*)item1;</span>
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :                     next = opal_list_get_next(item1);  /* keep our place */</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :                     if (0 == node_from_list-&gt;slots_inuse) {</span>
+<span class="lineNum">     675 </span>            :                         /* check to see if this node is explicitly called
+<span class="lineNum">     676 </span>            :                          * out later - if so, don't use it here
+<span class="lineNum">     677 </span>            :                          */
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :                         for (item3 = opal_list_get_first(&amp;newnodes);</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :                              item3 != opal_list_get_end(&amp;newnodes);</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :                              item3 = opal_list_get_next(item3)) {</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :                             node3 = (orte_node_t*)item3;</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :                             if (0 == strcmp(node3-&gt;name, node_from_list-&gt;name)) {</span>
+<span class="lineNum">     683 </span>            :                                 /* match - don't use it */
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :                                 goto skipnode;</span>
+<span class="lineNum">     685 </span>            :                             }
+<span class="lineNum">     686 </span>            :                         }
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :                         if (remove) {</span>
+<span class="lineNum">     688 </span>            :                             /* remove item from list */
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :                             opal_list_remove_item(nodes, item1);</span>
+<span class="lineNum">     690 </span>            :                             /* xfer to keep list */
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :                             opal_list_append(&amp;keep, item1);</span>
+<span class="lineNum">     692 </span>            :                         } else {
+<span class="lineNum">     693 </span>            :                             /* mark as included */
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :                             ORTE_FLAG_SET(node_from_list, ORTE_NODE_FLAG_MAPPED);</span>
+<span class="lineNum">     695 </span>            :                         }
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :                         --num_empty;</span>
+<span class="lineNum">     697 </span>            :                     }
+<span class="lineNum">     698 </span>            :                 skipnode:
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :                     item1 = next;</span>
+<span class="lineNum">     700 </span>            :                 }
+<span class="lineNum">     701 </span>            :                 /* did they get everything they wanted? */
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :                 if (!want_all_empty &amp;&amp; 0 &lt; num_empty) {</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :                     orte_show_help(&quot;help-hostfile.txt&quot;, &quot;hostfile:not-enough-empty&quot;,</span>
+<span class="lineNum">     704 </span>            :                                    true, num_empty);
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :                     rc = ORTE_ERR_SILENT;</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :                     goto cleanup;</span>
+<span class="lineNum">     707 </span>            :                 }
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :             } else if ('n' == node_from_file-&gt;name[1] ||</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :                        'N' == node_from_file-&gt;name[1]) {</span>
+<span class="lineNum">     710 </span>            :                 /* they want a specific relative node #, so
+<span class="lineNum">     711 </span>            :                  * look it up on global pool
+<span class="lineNum">     712 </span>            :                  */
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :                 nodeidx = strtol(&amp;node_from_file-&gt;name[2], NULL, 10);</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :                 if (NULL == (node_from_pool = (orte_node_t*)opal_pointer_array_get_item(orte_node_pool, nodeidx))) {</span>
+<span class="lineNum">     715 </span>            :                     /* this is an error */
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :                     orte_show_help(&quot;help-hostfile.txt&quot;, &quot;hostfile:relative-node-not-found&quot;,</span>
+<span class="lineNum">     717 </span>            :                                    true, nodeidx, node_from_file-&gt;name);
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :                     rc = ORTE_ERR_SILENT;</span>
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :                     goto cleanup;</span>
+<span class="lineNum">     720 </span>            :                 }
+<span class="lineNum">     721 </span>            :                 /* search the list of nodes provided to us and find it */
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :                 for (item1 = opal_list_get_first(nodes);</span>
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :                      item1 != opal_list_get_end(nodes);</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :                      item1 = opal_list_get_next(nodes)) {</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :                     node_from_list = (orte_node_t*)item1;</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :                     if (0 == strcmp(node_from_list-&gt;name, node_from_pool-&gt;name)) {</span>
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :                         if (remove) {</span>
+<span class="lineNum">     728 </span>            :                             /* match - remove item from list */
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :                             opal_list_remove_item(nodes, item1);</span>
+<span class="lineNum">     730 </span>            :                             /* xfer to keep list */
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :                             opal_list_append(&amp;keep, item1);</span>
+<span class="lineNum">     732 </span>            :                         } else {
+<span class="lineNum">     733 </span>            :                             /* mark as included */
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :                             ORTE_FLAG_SET(node_from_list, ORTE_NODE_FLAG_MAPPED);</span>
+<span class="lineNum">     735 </span>            :                         }
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     737 </span>            :                     }
+<span class="lineNum">     738 </span>            :                 }
+<span class="lineNum">     739 </span>            :             } else {
+<span class="lineNum">     740 </span>            :                 /* invalid relative node syntax */
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-hostfile.txt&quot;, &quot;hostfile:invalid-relative-node-syntax&quot;,</span>
+<span class="lineNum">     742 </span>            :                                true, node_from_file-&gt;name);
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :                 rc = ORTE_ERR_SILENT;</span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :                 goto cleanup;</span>
+<span class="lineNum">     745 </span>            :             }
+<span class="lineNum">     746 </span>            :         } else {
+<span class="lineNum">     747 </span>            :             /* we are looking for a specific node on the list
+<span class="lineNum">     748 </span>            :              * search the provided list of nodes to see if this
+<span class="lineNum">     749 </span>            :              * one is found
+<span class="lineNum">     750 </span>            :              */
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :             found = false;</span>
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :             for (item1 = opal_list_get_first(nodes);</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :                  item1 != opal_list_get_end(nodes);</span>
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :                  item1 = opal_list_get_next(item1)) {</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :                 node_from_list = (orte_node_t*)item1;</span>
+<span class="lineNum">     756 </span>            :                 /* we have converted all aliases for ourself
+<span class="lineNum">     757 </span>            :                  * to our own detected nodename, so no need
+<span class="lineNum">     758 </span>            :                  * to check for interfaces again - a simple
+<span class="lineNum">     759 </span>            :                  * strcmp will suffice */
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :                 if (0 == strcmp(node_from_file-&gt;name, node_from_list-&gt;name)) {</span>
+<span class="lineNum">     761 </span>            :                     /* if the slot count here is less than the
+<span class="lineNum">     762 </span>            :                      * total slots avail on this node, set it
+<span class="lineNum">     763 </span>            :                      * to the specified count - this allows people
+<span class="lineNum">     764 </span>            :                      * to subdivide an allocation
+<span class="lineNum">     765 </span>            :                      */
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :                     if (node_from_file-&gt;slots &lt; node_from_list-&gt;slots) {</span>
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :                         node_from_list-&gt;slots = node_from_file-&gt;slots;</span>
+<span class="lineNum">     768 </span>            :                     }
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :                     if (remove) {</span>
+<span class="lineNum">     770 </span>            :                         /* remove the node from the list */
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :                         opal_list_remove_item(nodes, item1);</span>
+<span class="lineNum">     772 </span>            :                         /* xfer it to keep list */
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :                         opal_list_append(&amp;keep, item1);</span>
+<span class="lineNum">     774 </span>            :                     } else {
+<span class="lineNum">     775 </span>            :                         /* mark as included */
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :                         ORTE_FLAG_SET(node_from_list, ORTE_NODE_FLAG_MAPPED);</span>
+<span class="lineNum">     777 </span>            :                     }
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :                     found = true;</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     780 </span>            :                 }
+<span class="lineNum">     781 </span>            :             }
+<span class="lineNum">     782 </span>            :             /* if the host in the newnode list wasn't found,
+<span class="lineNum">     783 </span>            :              * then that is an error we need to report to the
+<span class="lineNum">     784 </span>            :              * user and abort
+<span class="lineNum">     785 </span>            :              */
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :             if (!found) {</span>
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-hostfile.txt&quot;, &quot;hostfile:extra-node-not-found&quot;,</span>
+<span class="lineNum">     788 </span>            :                                true, hostfile, node_from_file-&gt;name);
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :                 rc = ORTE_ERR_SILENT;</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :                 goto cleanup;</span>
+<span class="lineNum">     791 </span>            :             }
+<span class="lineNum">     792 </span>            :         }
+<span class="lineNum">     793 </span>            :         /* cleanup the newnode list */
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item2);</span>
+<span class="lineNum">     795 </span>            :     }
+<span class="lineNum">     796 </span>            : 
+<span class="lineNum">     797 </span>            :     /* if we still have entries on our hostfile list, then
+<span class="lineNum">     798 </span>            :      * there were requested hosts that were not in our allocation.
+<span class="lineNum">     799 </span>            :      * This is an error - report it to the user and return an error
+<span class="lineNum">     800 </span>            :      */
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :     if (0 != opal_list_get_size(&amp;newnodes)) {</span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :         orte_show_help(&quot;help-hostfile.txt&quot;, &quot;not-all-mapped-alloc&quot;,</span>
+<span class="lineNum">     803 </span>            :                        true, hostfile);
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :         while (NULL != (item1 = opal_list_remove_first(&amp;newnodes))) {</span>
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(item1);</span>
+<span class="lineNum">     806 </span>            :         }
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;newnodes);</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :         return ORTE_ERR_SILENT;</span>
+<span class="lineNum">     809 </span>            :     }
+<span class="lineNum">     810 </span>            : 
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :     if (!remove) {</span>
+<span class="lineNum">     812 </span>            :         /* all done */
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :         OBJ_DESTRUCT(&amp;newnodes);</span>
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     815 </span>            :     }
+<span class="lineNum">     816 </span>            : 
+<span class="lineNum">     817 </span>            :     /* clear the rest of the nodes list */
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :     while (NULL != (item1 = opal_list_remove_first(nodes))) {</span>
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item1);</span>
+<span class="lineNum">     820 </span>            :     }
+<span class="lineNum">     821 </span>            : 
+<span class="lineNum">     822 </span>            :     /* the nodes list has been cleared - rebuild it in order */
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :     while (NULL != (item1 = opal_list_remove_first(&amp;keep))) {</span>
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :         opal_list_append(nodes, item1);</span>
+<span class="lineNum">     825 </span>            :     }
+<span class="lineNum">     826 </span>            : 
+<span class="lineNum">     827 </span>            : cleanup:
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;newnodes);</span>
+<span class="lineNum">     829 </span>            : 
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :     return rc;</span>
+<a name="831"><span class="lineNum">     831 </span>            : }</a>
+<span class="lineNum">     832 </span>            : 
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 : int orte_util_get_ordered_host_list(opal_list_t *nodes,</span>
+<span class="lineNum">     834 </span>            :                                     char *hostfile)
+<span class="lineNum">     835 </span>            : {
+<span class="lineNum">     836 </span>            :     opal_list_t exclude;
+<span class="lineNum">     837 </span>            :     opal_list_item_t *item, *itm, *item2, *item1;
+<span class="lineNum">     838 </span>            :     char *cptr;
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :     int num_empty, i, nodeidx, startempty=0;</span>
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :     bool want_all_empty=false;</span>
+<span class="lineNum">     841 </span>            :     orte_node_t *node_from_pool, *newnode;
+<span class="lineNum">     842 </span>            :     int rc;
+<span class="lineNum">     843 </span>            : 
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((1, orte_ras_base_framework.framework_output,</span>
+<span class="lineNum">     845 </span>            :                          &quot;%s hostfile: creating ordered list of hosts from hostfile %s&quot;,
+<span class="lineNum">     846 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), hostfile));
+<span class="lineNum">     847 </span>            : 
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;exclude, opal_list_t);</span>
+<span class="lineNum">     849 </span>            : 
+<span class="lineNum">     850 </span>            :     /* parse the hostfile and add the contents to the list, keeping duplicates */
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = hostfile_parse(hostfile, nodes, &amp;exclude, true))) {</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :         goto cleanup;</span>
+<span class="lineNum">     853 </span>            :     }
+<span class="lineNum">     854 </span>            : 
+<span class="lineNum">     855 </span>            :     /* parse the nodes to process any relative node directives */
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :     item2 = opal_list_get_first(nodes);</span>
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :     while (item2 != opal_list_get_end(nodes)) {</span>
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :         orte_node_t *node=(orte_node_t*)item2;</span>
+<span class="lineNum">     859 </span>            : 
+<span class="lineNum">     860 </span>            :         /* save the next location in case this one gets removed */
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :         item1 = opal_list_get_next(item2);</span>
+<span class="lineNum">     862 </span>            : 
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :         if ('+' != node-&gt;name[0]) {</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :             item2 = item1;</span>
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     866 </span>            :         }
+<span class="lineNum">     867 </span>            : 
+<span class="lineNum">     868 </span>            :         /* see if we specified empty nodes */
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :         if ('e' == node-&gt;name[1] ||</span>
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :             'E' == node-&gt;name[1]) {</span>
+<span class="lineNum">     871 </span>            :             /* request for empty nodes - do they want
+<span class="lineNum">     872 </span>            :              * all of them?
+<span class="lineNum">     873 </span>            :              */
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :             if (NULL != (cptr = strchr(node-&gt;name, ':'))) {</span>
+<span class="lineNum">     875 </span>            :                 /* the colon indicates a specific # are requested */
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :                 cptr++; /* step past : */</span>
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :                 num_empty = strtol(cptr, NULL, 10);</span>
+<span class="lineNum">     878 </span>            :             } else {
+<span class="lineNum">     879 </span>            :                 /* want them all - set num_empty to max */
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :                 num_empty = INT_MAX;</span>
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :                 want_all_empty = true;</span>
+<span class="lineNum">     882 </span>            :             }
+<span class="lineNum">     883 </span>            :             /* insert empty nodes into newnodes list in place of the current item.
+<span class="lineNum">     884 </span>            :              * since item1 is the next item, we insert in front of it
+<span class="lineNum">     885 </span>            :              */
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :             if (!orte_hnp_is_allocated &amp;&amp; 0 == startempty) {</span>
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :                startempty = 1;</span>
+<span class="lineNum">     888 </span>            :             }
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :             for (i=startempty; 0 &lt; num_empty &amp;&amp; i &lt; orte_node_pool-&gt;size; i++) {</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :                 if (NULL == (node_from_pool = (orte_node_t*)opal_pointer_array_get_item(orte_node_pool, i))) {</span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     892 </span>            :                 }
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :                 if (0 == node_from_pool-&gt;slots_inuse) {</span>
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :                     newnode = OBJ_NEW(orte_node_t);</span>
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :                     newnode-&gt;name = strdup(node_from_pool-&gt;name);</span>
+<span class="lineNum">     896 </span>            :                     /* if the slot count here is less than the
+<span class="lineNum">     897 </span>            :                      * total slots avail on this node, set it
+<span class="lineNum">     898 </span>            :                      * to the specified count - this allows people
+<span class="lineNum">     899 </span>            :                      * to subdivide an allocation
+<span class="lineNum">     900 </span>            :                      */
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :                     if (node-&gt;slots &lt; node_from_pool-&gt;slots) {</span>
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :                         newnode-&gt;slots = node-&gt;slots;</span>
+<span class="lineNum">     903 </span>            :                     } else {
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :                         newnode-&gt;slots = node_from_pool-&gt;slots;</span>
+<span class="lineNum">     905 </span>            :                     }
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :                     opal_list_insert_pos(nodes, item1, &amp;newnode-&gt;super);</span>
+<span class="lineNum">     907 </span>            :                     /* track number added */
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :                     --num_empty;</span>
+<span class="lineNum">     909 </span>            :                 }
+<span class="lineNum">     910 </span>            :             }
+<span class="lineNum">     911 </span>            :             /* bookmark where we stopped in case they ask for more */
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :             startempty = i;</span>
+<span class="lineNum">     913 </span>            :             /* did they get everything they wanted? */
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :             if (!want_all_empty &amp;&amp; 0 &lt; num_empty) {</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-hostfile.txt&quot;, &quot;hostfile:not-enough-empty&quot;,</span>
+<span class="lineNum">     916 </span>            :                                true, num_empty);
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :                 rc = ORTE_ERR_SILENT;</span>
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :                 goto cleanup;</span>
+<span class="lineNum">     919 </span>            :             }
+<span class="lineNum">     920 </span>            :             /* since we have expanded the provided node, remove
+<span class="lineNum">     921 </span>            :              * it from list
+<span class="lineNum">     922 </span>            :              */
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :             opal_list_remove_item(nodes, item2);</span>
+<span class="lineNum">     924 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(item2);</span>
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :         } else if ('n' == node-&gt;name[1] ||</span>
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :                    'N' == node-&gt;name[1]) {</span>
+<span class="lineNum">     927 </span>            :             /* they want a specific relative node #, so
+<span class="lineNum">     928 </span>            :              * look it up on global pool
+<span class="lineNum">     929 </span>            :              */
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :             nodeidx = strtol(&amp;node-&gt;name[2], NULL, 10);</span>
+<span class="lineNum">     931 </span>            :             /* if the HNP is not allocated, then we need to
+<span class="lineNum">     932 </span>            :              * adjust the index as the node pool is offset
+<span class="lineNum">     933 </span>            :              * by one
+<span class="lineNum">     934 </span>            :              */
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :             if (!orte_hnp_is_allocated) {</span>
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :                 nodeidx++;</span>
+<span class="lineNum">     937 </span>            :             }
+<span class="lineNum">     938 </span>            :             /* see if that location is filled */
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :             if (NULL == (node_from_pool = (orte_node_t*)opal_pointer_array_get_item(orte_node_pool, nodeidx))) {</span>
+<span class="lineNum">     940 </span>            :                 /* this is an error */
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-hostfile.txt&quot;, &quot;hostfile:relative-node-not-found&quot;,</span>
+<span class="lineNum">     942 </span>            :                                true, nodeidx, node-&gt;name);
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :                 rc = ORTE_ERR_SILENT;</span>
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :                 goto cleanup;</span>
+<span class="lineNum">     945 </span>            :             }
+<span class="lineNum">     946 </span>            :             /* create the node object */
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :             newnode = OBJ_NEW(orte_node_t);</span>
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :             newnode-&gt;name = strdup(node_from_pool-&gt;name);</span>
+<span class="lineNum">     949 </span>            :             /* if the slot count here is less than the
+<span class="lineNum">     950 </span>            :              * total slots avail on this node, set it
+<span class="lineNum">     951 </span>            :              * to the specified count - this allows people
+<span class="lineNum">     952 </span>            :              * to subdivide an allocation
+<span class="lineNum">     953 </span>            :              */
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :             if (node-&gt;slots &lt; node_from_pool-&gt;slots) {</span>
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :                 newnode-&gt;slots = node-&gt;slots;</span>
+<span class="lineNum">     956 </span>            :             } else {
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :                 newnode-&gt;slots = node_from_pool-&gt;slots;</span>
+<span class="lineNum">     958 </span>            :             }
+<span class="lineNum">     959 </span>            :             /* insert it before item1 */
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :             opal_list_insert_pos(nodes, item1, &amp;newnode-&gt;super);</span>
+<span class="lineNum">     961 </span>            :             /* since we have expanded the provided node, remove
+<span class="lineNum">     962 </span>            :              * it from list
+<span class="lineNum">     963 </span>            :              */
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :             opal_list_remove_item(nodes, item2);</span>
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(item2);</span>
+<span class="lineNum">     966 </span>            :         } else {
+<span class="lineNum">     967 </span>            :             /* invalid relative node syntax */
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-hostfile.txt&quot;, &quot;hostfile:invalid-relative-node-syntax&quot;,</span>
+<span class="lineNum">     969 </span>            :                            true, node-&gt;name);
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :             rc = ORTE_ERR_SILENT;</span>
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :             goto cleanup;</span>
+<span class="lineNum">     972 </span>            :         }
+<span class="lineNum">     973 </span>            : 
+<span class="lineNum">     974 </span>            :         /* move to next */
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :         item2 = item1;</span>
+<span class="lineNum">     976 </span>            :     }
+<span class="lineNum">     977 </span>            : 
+<span class="lineNum">     978 </span>            :     /* remove from the list of nodes those that are in the exclude list */
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :     while(NULL != (item = opal_list_remove_first(&amp;exclude))) {</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :         orte_node_t *exnode = (orte_node_t*)item;</span>
+<span class="lineNum">     981 </span>            :         /* check for matches on nodes */
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :         for (itm = opal_list_get_first(nodes);</span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :              itm != opal_list_get_end(nodes);</span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :              itm = opal_list_get_next(itm)) {</span>
+<span class="lineNum">     985 </span><span class="lineNoCov">          0 :             orte_node_t *node=(orte_node_t*)itm;</span>
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :             if (0 == strcmp(exnode-&gt;name, node-&gt;name)) {</span>
+<span class="lineNum">     987 </span>            :                 /* match - remove it */
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(nodes, itm);</span>
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :                 OBJ_RELEASE(itm);</span>
+<span class="lineNum">     990 </span>            :                 /* have to cycle through the entire list as we could
+<span class="lineNum">     991 </span>            :                  * have duplicates
+<span class="lineNum">     992 </span>            :                  */
+<span class="lineNum">     993 </span>            :             }
+<span class="lineNum">     994 </span>            :         }
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item);</span>
+<span class="lineNum">     996 </span>            :     }
+<span class="lineNum">     997 </span>            : 
+<span class="lineNum">     998 </span>            : cleanup:
+<span class="lineNum">     999 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;exclude);</span>
+<span class="lineNum">    1000 </span>            : 
+<span class="lineNum">    1001 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">    1002 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

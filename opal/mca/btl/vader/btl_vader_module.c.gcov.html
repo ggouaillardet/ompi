@@ -1,0 +1,668 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/btl/vader/btl_vader_module.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/btl/vader</a> - btl_vader_module.c<span style="font-size: 80%;"> (source / <a href="btl_vader_module.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">109</td>
+            <td class="headerCovTableEntry">173</td>
+            <td class="headerCovTableEntryLo">63.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryMed">76.9 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2011 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2009 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2007 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2006-2007 Voltaire. All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2009      Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2010-2015 Los Alamos National Security, LLC. All rights
+<span class="lineNum">      16 </span>            :  *                         reserved.
+<span class="lineNum">      17 </span>            :  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+<span class="lineNum">      18 </span>            :  * Copyright (c) 2014-2015 Research Organization for Information Science
+<span class="lineNum">      19 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      20 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      21 </span>            :  *
+<span class="lineNum">      22 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      23 </span>            :  *
+<span class="lineNum">      24 </span>            :  * $HEADER$
+<span class="lineNum">      25 </span>            :  */
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &quot;btl_vader.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;btl_vader_endpoint.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;btl_vader_fifo.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;btl_vader_fbox.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;btl_vader_xpmem.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : static int vader_del_procs (struct mca_btl_base_module_t *btl,
+<span class="lineNum">      38 </span>            :                             size_t nprocs, struct opal_proc_t **procs,
+<span class="lineNum">      39 </span>            :                             struct mca_btl_base_endpoint_t **peers);
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : static int vader_register_error_cb (struct mca_btl_base_module_t* btl,
+<span class="lineNum">      42 </span>            :                                     mca_btl_base_module_error_cb_fn_t cbfunc);
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : static int vader_finalize (struct mca_btl_base_module_t* btl);
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : static int vader_free (struct mca_btl_base_module_t* btl, mca_btl_base_descriptor_t* des);
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : static struct mca_btl_base_descriptor_t *vader_prepare_src (
+<span class="lineNum">      49 </span>            :                                                             struct mca_btl_base_module_t *btl,
+<span class="lineNum">      50 </span>            :                                                             struct mca_btl_base_endpoint_t *endpoint,
+<span class="lineNum">      51 </span>            :                                                             struct opal_convertor_t *convertor,
+<span class="lineNum">      52 </span>            :                                                             uint8_t order,
+<span class="lineNum">      53 </span>            :                                                             size_t reserve,
+<span class="lineNum">      54 </span>            :                                                             size_t *size,
+<span class="lineNum">      55 </span>            :                                                             uint32_t flags
+<span class="lineNum">      56 </span>            :                                                             );
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : static int vader_add_procs(struct mca_btl_base_module_t* btl,
+<span class="lineNum">      59 </span>            :                            size_t nprocs, struct opal_proc_t **procs,
+<span class="lineNum">      60 </span>            :                            struct mca_btl_base_endpoint_t** peers,
+<span class="lineNum">      61 </span>            :                            struct opal_bitmap_t* reachability);
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : static int vader_ft_event (int state);
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : mca_btl_vader_t mca_btl_vader = {
+<span class="lineNum">      66 </span>            :     {
+<span class="lineNum">      67 </span>            :         &amp;mca_btl_vader_component.super,
+<span class="lineNum">      68 </span>            :         .btl_add_procs = vader_add_procs,
+<span class="lineNum">      69 </span>            :         .btl_del_procs = vader_del_procs,
+<span class="lineNum">      70 </span>            :         .btl_finalize = vader_finalize,
+<span class="lineNum">      71 </span>            :         .btl_alloc = mca_btl_vader_alloc,
+<span class="lineNum">      72 </span>            :         .btl_free = vader_free,
+<span class="lineNum">      73 </span>            :         .btl_prepare_src = vader_prepare_src,
+<span class="lineNum">      74 </span>            :         .btl_send = mca_btl_vader_send,
+<span class="lineNum">      75 </span>            :         .btl_sendi = mca_btl_vader_sendi,
+<span class="lineNum">      76 </span>            :         .btl_dump = mca_btl_base_dump,
+<span class="lineNum">      77 </span>            :         .btl_register_error = vader_register_error_cb,
+<span class="lineNum">      78 </span>            :         .btl_ft_event = vader_ft_event
+<span class="lineNum">      79 </span>            :     }
+<a name="80"><span class="lineNum">      80 </span>            : };</a>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span><span class="lineCov">          2 : static int vader_btl_first_time_init(mca_btl_vader_t *vader_btl, int n)</span>
+<span class="lineNum">      83 </span>            : {
+<span class="lineNum">      84 </span><span class="lineCov">          2 :     mca_btl_vader_component_t *component = &amp;mca_btl_vader_component;</span>
+<span class="lineNum">      85 </span>            :     int rc;
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            :     /* generate the endpoints */
+<span class="lineNum">      88 </span><span class="lineCov">          2 :     component-&gt;endpoints = (struct mca_btl_base_endpoint_t *) calloc (n + 1, sizeof (struct mca_btl_base_endpoint_t));</span>
+<span class="lineNum">      89 </span><span class="lineCov">          2 :     if (NULL == component-&gt;endpoints) {</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">      91 </span>            :     }
+<span class="lineNum">      92 </span><span class="lineCov">          2 :     component-&gt;endpoints[n].peer_smp_rank = -1;</span>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span><span class="lineCov">          2 :     component-&gt;fbox_in_endpoints = calloc (n + 1, sizeof (void *));</span>
+<span class="lineNum">      95 </span><span class="lineCov">          2 :     if (NULL == component-&gt;fbox_in_endpoints) {</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :         free(component-&gt;endpoints);</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">      98 </span>            :     }
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span><span class="lineCov">          2 :     component-&gt;segment_offset = MCA_BTL_VADER_FIFO_SIZE;</span>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :     /* initialize fragment descriptor free lists */
+<span class="lineNum">     103 </span>            :     /* initialize free list for small send and inline fragments */
+<span class="lineNum">     104 </span><span class="lineCov">          2 :     rc = opal_free_list_init (&amp;component-&gt;vader_frags_user,</span>
+<span class="lineNum">     105 </span>            :                               sizeof(mca_btl_vader_frag_t),
+<span class="lineNum">     106 </span>            :                               opal_cache_line_size, OBJ_CLASS(mca_btl_vader_frag_t),
+<span class="lineNum">     107 </span>            :                               0, opal_cache_line_size,
+<span class="lineNum">     108 </span>            :                               component-&gt;vader_free_list_num,
+<span class="lineNum">     109 </span>            :                               component-&gt;vader_free_list_max,
+<span class="lineNum">     110 </span>            :                               component-&gt;vader_free_list_inc,
+<span class="lineNum">     111 </span>            :                               NULL, 0, NULL, mca_btl_vader_frag_init,
+<span class="lineNum">     112 </span><span class="lineCov">          2 :                               (void *)(intptr_t) mca_btl_vader_component.max_inline_send);</span>
+<span class="lineNum">     113 </span><span class="lineCov">          2 :     if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     115 </span>            :     }
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            :     /* initialize free list for buffered send fragments */
+<span class="lineNum">     118 </span><span class="lineCov">          2 :     rc = opal_free_list_init (&amp;component-&gt;vader_frags_eager,</span>
+<span class="lineNum">     119 </span>            :                               sizeof (mca_btl_vader_frag_t),
+<span class="lineNum">     120 </span>            :                               opal_cache_line_size, OBJ_CLASS(mca_btl_vader_frag_t),
+<span class="lineNum">     121 </span>            :                               0, opal_cache_line_size,
+<span class="lineNum">     122 </span>            :                               component-&gt;vader_free_list_num,
+<span class="lineNum">     123 </span>            :                               component-&gt;vader_free_list_max,
+<span class="lineNum">     124 </span>            :                               component-&gt;vader_free_list_inc,
+<span class="lineNum">     125 </span>            :                               NULL, 0, NULL, mca_btl_vader_frag_init,
+<span class="lineNum">     126 </span><span class="lineCov">          2 :                               (void *)(intptr_t) mca_btl_vader.super.btl_eager_limit);</span>
+<span class="lineNum">     127 </span><span class="lineCov">          2 :     if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     129 </span>            :     }
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span><span class="lineCov">          2 :     if (MCA_BTL_VADER_XPMEM != mca_btl_vader_component.single_copy_mechanism) {</span>
+<span class="lineNum">     132 </span>            :         /* initialize free list for buffered send fragments */
+<span class="lineNum">     133 </span><span class="lineCov">          2 :         rc = opal_free_list_init (&amp;component-&gt;vader_frags_max_send,</span>
+<span class="lineNum">     134 </span>            :                                   sizeof (mca_btl_vader_frag_t),
+<span class="lineNum">     135 </span>            :                                   opal_cache_line_size, OBJ_CLASS(mca_btl_vader_frag_t),
+<span class="lineNum">     136 </span>            :                                   0, opal_cache_line_size,
+<span class="lineNum">     137 </span>            :                                   component-&gt;vader_free_list_num,
+<span class="lineNum">     138 </span>            :                                   component-&gt;vader_free_list_max,
+<span class="lineNum">     139 </span>            :                                   component-&gt;vader_free_list_inc,
+<span class="lineNum">     140 </span>            :                                   NULL, 0, NULL, mca_btl_vader_frag_init,
+<span class="lineNum">     141 </span><span class="lineCov">          2 :                                   (void *)(intptr_t) mca_btl_vader.super.btl_max_send_size);</span>
+<span class="lineNum">     142 </span><span class="lineCov">          2 :         if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     144 </span>            :         }
+<span class="lineNum">     145 </span>            :     }
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            :     /* set flag indicating btl has been inited */
+<span class="lineNum">     148 </span><span class="lineCov">          2 :     vader_btl-&gt;btl_inited = true;</span>
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     151 </span>            : }
+<a name="152"><span class="lineNum">     152 </span>            : </a>
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineCov">          4 : static int init_vader_endpoint (struct mca_btl_base_endpoint_t *ep, struct opal_proc_t *proc, int remote_rank) {</span>
+<span class="lineNum">     155 </span><span class="lineCov">          4 :     mca_btl_vader_component_t *component = &amp;mca_btl_vader_component;</span>
+<span class="lineNum">     156 </span>            :     union vader_modex_t *modex;
+<span class="lineNum">     157 </span>            :     size_t msg_size;
+<span class="lineNum">     158 </span>            :     int rc;
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineCov">          4 :     OBJ_CONSTRUCT(ep, mca_btl_vader_endpoint_t);</span>
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineCov">          4 :     ep-&gt;peer_smp_rank = remote_rank;</span>
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineCov">          4 :     if (remote_rank != MCA_BTL_VADER_LOCAL_RANK) {</span>
+<span class="lineNum">     165 </span><span class="lineCov">          4 :         OPAL_MODEX_RECV(rc, &amp;component-&gt;super.btl_version, proc, (void **) &amp;modex, &amp;msg_size);</span>
+<span class="lineNum">     166 </span><span class="lineCov">          2 :         if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     168 </span>            :         }
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span>            :         /* attatch to the remote segment */
+<span class="lineNum">     171 </span>            : #if OPAL_BTL_VADER_HAVE_XPMEM
+<span class="lineNum">     172 </span>            :         if (MCA_BTL_VADER_XPMEM == mca_btl_vader_component.single_copy_mechanism) {
+<span class="lineNum">     173 </span>            :             /* always use xpmem if it is available */
+<span class="lineNum">     174 </span>            :             ep-&gt;segment_data.xpmem.apid = xpmem_get (modex-&gt;xpmem.seg_id, XPMEM_RDWR, XPMEM_PERMIT_MODE, (void *) 0666);
+<span class="lineNum">     175 </span>            :             ep-&gt;segment_data.xpmem.rcache = mca_rcache_base_module_create(&quot;vma&quot;);
+<span class="lineNum">     176 </span>            :             (void) vader_get_registation (ep, modex-&gt;xpmem.segment_base, mca_btl_vader_component.segment_size,
+<span class="lineNum">     177 </span>            :                                           MCA_MPOOL_FLAGS_PERSIST, (void **) &amp;ep-&gt;segment_base);
+<span class="lineNum">     178 </span>            :         } else {
+<span class="lineNum">     179 </span>            : #endif
+<span class="lineNum">     180 </span>            :             /* store a copy of the segment information for detach */
+<span class="lineNum">     181 </span><span class="lineCov">          2 :             ep-&gt;segment_data.other.seg_ds = malloc (msg_size);</span>
+<span class="lineNum">     182 </span><span class="lineCov">          2 :             if (NULL == ep-&gt;segment_data.other.seg_ds) {</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :                 return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     184 </span>            :             }
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span><span class="lineCov">          2 :             memcpy (ep-&gt;segment_data.other.seg_ds, &amp;modex-&gt;seg_ds, msg_size);</span>
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span><span class="lineCov">          2 :             ep-&gt;segment_base = opal_shmem_segment_attach (ep-&gt;segment_data.other.seg_ds);</span>
+<span class="lineNum">     189 </span><span class="lineCov">          2 :             if (NULL == ep-&gt;segment_base) {</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                 return OPAL_ERROR;</span>
+<span class="lineNum">     191 </span>            :             }
+<span class="lineNum">     192 </span>            : #if OPAL_BTL_VADER_HAVE_XPMEM
+<span class="lineNum">     193 </span>            :         }
+<span class="lineNum">     194 </span>            : #endif
+<span class="lineNum">     195 </span><span class="lineCov">          2 :         OBJ_CONSTRUCT(&amp;ep-&gt;lock, opal_mutex_t);</span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineCov">          2 :         free (modex);</span>
+<span class="lineNum">     198 </span>            :     } else {
+<span class="lineNum">     199 </span>            :         /* set up the segment base so we can calculate a virtual to real for local pointers */
+<span class="lineNum">     200 </span><span class="lineCov">          2 :         ep-&gt;segment_base = component-&gt;my_segment;</span>
+<span class="lineNum">     201 </span>            :     }
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span><span class="lineCov">          4 :     ep-&gt;fifo = (struct vader_fifo_t *) ep-&gt;segment_base;</span>
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span><span class="lineCov">          4 :     return OPAL_SUCCESS;</span>
+<a name="206"><span class="lineNum">     206 </span>            : }</a>
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineCov">          6 : static int fini_vader_endpoint (struct mca_btl_base_endpoint_t *ep)</span>
+<span class="lineNum">     209 </span>            : {
+<span class="lineNum">     210 </span>            :     /* check if the endpoint is initialized. avoids a double-destruct */
+<span class="lineNum">     211 </span><span class="lineCov">          6 :     if (ep-&gt;fifo) {</span>
+<span class="lineNum">     212 </span><span class="lineCov">          4 :         OBJ_DESTRUCT(ep);</span>
+<span class="lineNum">     213 </span>            :     }
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineCov">          6 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     216 </span>            : }
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            : /**
+<span class="lineNum">     219 </span>            :  * PML-&gt;BTL notification of change in the process list.
+<span class="lineNum">     220 </span>            :  * PML-&gt;BTL Notification that a receive fragment has been matched.
+<span class="lineNum">     221 </span>            :  * Called for message that is send from process with the virtual
+<span class="lineNum">     222 </span>            :  * address of the shared memory segment being different than that of
+<span class="lineNum">     223 </span>            :  * the receiver.
+<span class="lineNum">     224 </span>            :  *
+<span class="lineNum">     225 </span>            :  * @param btl (IN)
+<span class="lineNum">     226 </span>            :  * @param proc (IN)
+<span class="lineNum">     227 </span>            :  * @param peer (OUT)
+<span class="lineNum">     228 </span>            :  * @return     OPAL_SUCCESS or error status on failure.
+<span class="lineNum">     229 </span>            :  *
+<a name="230"><span class="lineNum">     230 </span>            :  */</a>
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span><span class="lineCov">          2 : static int vader_add_procs (struct mca_btl_base_module_t* btl,</span>
+<span class="lineNum">     233 </span>            :                             size_t nprocs, struct opal_proc_t **procs,
+<span class="lineNum">     234 </span>            :                             struct mca_btl_base_endpoint_t **peers,
+<span class="lineNum">     235 </span>            :                             opal_bitmap_t *reachability)
+<span class="lineNum">     236 </span>            : {
+<span class="lineNum">     237 </span><span class="lineCov">          2 :     mca_btl_vader_component_t *component = &amp;mca_btl_vader_component;</span>
+<span class="lineNum">     238 </span><span class="lineCov">          2 :     mca_btl_vader_t *vader_btl = (mca_btl_vader_t *) btl;</span>
+<span class="lineNum">     239 </span>            :     const opal_proc_t *my_proc;
+<span class="lineNum">     240 </span><span class="lineCov">          2 :     int rc = OPAL_SUCCESS;</span>
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            :     /* initializion */
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span>            :     /* get pointer to my proc structure */
+<span class="lineNum">     245 </span><span class="lineCov">          2 :     if (NULL == (my_proc = opal_proc_local_get())) {</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     247 </span>            :     }
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            :     /* jump out if there's not someone we can talk to */
+<span class="lineNum">     250 </span><span class="lineCov">          2 :     if (1 &gt; MCA_BTL_VADER_NUM_LOCAL_PEERS) {</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :         return OPAL_SUCCESS;</span>
+<span class="lineNum">     252 </span>            :     }
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            :     /* make sure that my local rank has been defined */
+<span class="lineNum">     255 </span><span class="lineCov">          2 :     if (0 &gt; MCA_BTL_VADER_LOCAL_RANK) {</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         return OPAL_ERROR;</span>
+<span class="lineNum">     257 </span>            :     }
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span><span class="lineCov">          2 :     if (!vader_btl-&gt;btl_inited) {</span>
+<span class="lineNum">     260 </span><span class="lineCov">          2 :         rc = vader_btl_first_time_init (vader_btl, 1 + MCA_BTL_VADER_NUM_LOCAL_PEERS);</span>
+<span class="lineNum">     261 </span><span class="lineCov">          2 :         if (rc != OPAL_SUCCESS) {</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     263 </span>            :         }
+<span class="lineNum">     264 </span>            :     }
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span><span class="lineCov">          6 :     for (int32_t proc = 0, local_rank = 0 ; proc &lt; (int32_t) nprocs ; ++proc) {</span>
+<span class="lineNum">     267 </span>            :         /* check to see if this proc can be reached via shmem (i.e.,
+<span class="lineNum">     268 </span>            :            if they're on my local host and in my job) */
+<span class="lineNum">     269 </span><span class="lineCov">          8 :         if (procs[proc]-&gt;proc_name.jobid != my_proc-&gt;proc_name.jobid ||</span>
+<span class="lineNum">     270 </span><span class="lineCov">          8 :             !OPAL_PROC_ON_LOCAL_NODE(procs[proc]-&gt;proc_flags)) {</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :             peers[proc] = NULL;</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     273 </span>            :         }
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span><span class="lineCov">          4 :         if (my_proc != procs[proc]) {</span>
+<span class="lineNum">     276 </span>            :             /* add this proc to shared memory accessibility list */
+<span class="lineNum">     277 </span><span class="lineCov">          2 :             rc = opal_bitmap_set_bit (reachability, proc);</span>
+<span class="lineNum">     278 </span><span class="lineCov">          2 :             if(OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     280 </span>            :             }
+<span class="lineNum">     281 </span>            :         }
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            :         /* setup endpoint */
+<span class="lineNum">     284 </span><span class="lineCov">          4 :         peers[proc] = component-&gt;endpoints + local_rank;</span>
+<span class="lineNum">     285 </span><span class="lineCov">          4 :         rc = init_vader_endpoint (peers[proc], procs[proc], local_rank++);</span>
+<span class="lineNum">     286 </span><span class="lineCov">          4 :         if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     288 </span>            :         }
+<span class="lineNum">     289 </span>            :     }
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span><span class="lineCov">          2 :     return rc;</span>
+<span class="lineNum">     292 </span>            : }
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span>            : /**
+<span class="lineNum">     295 </span>            :  * PML-&gt;BTL notification of change in the process list.
+<span class="lineNum">     296 </span>            :  *
+<span class="lineNum">     297 </span>            :  * @param btl (IN)     BTL instance
+<span class="lineNum">     298 </span>            :  * @param proc (IN)    Peer process
+<span class="lineNum">     299 </span>            :  * @param peer (IN)    Peer addressing information.
+<span class="lineNum">     300 </span>            :  * @return             Status indicating if cleanup was successful
+<span class="lineNum">     301 </span>            :  *
+<a name="302"><span class="lineNum">     302 </span>            :  */</a>
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span><span class="lineCov">          2 : static int vader_del_procs(struct mca_btl_base_module_t *btl,</span>
+<span class="lineNum">     305 </span>            :                            size_t nprocs, struct opal_proc_t **procs,
+<span class="lineNum">     306 </span>            :                            struct mca_btl_base_endpoint_t **peers)
+<span class="lineNum">     307 </span>            : {
+<span class="lineNum">     308 </span><span class="lineCov">          4 :     for (size_t i = 0 ; i &lt; nprocs ; ++i) {</span>
+<span class="lineNum">     309 </span><span class="lineCov">          2 :         if (peers[i]) {</span>
+<span class="lineNum">     310 </span><span class="lineCov">          2 :             fini_vader_endpoint (peers[i]);</span>
+<span class="lineNum">     311 </span><span class="lineCov">          2 :             peers[i] = NULL;</span>
+<span class="lineNum">     312 </span>            :         }
+<span class="lineNum">     313 </span>            :     }
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     316 </span>            : }
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span>            : /**
+<span class="lineNum">     320 </span>            :  * MCA-&gt;BTL Clean up any resources held by BTL module
+<span class="lineNum">     321 </span>            :  * before the module is unloaded.
+<span class="lineNum">     322 </span>            :  *
+<span class="lineNum">     323 </span>            :  * @param btl (IN)   BTL module.
+<span class="lineNum">     324 </span>            :  *
+<span class="lineNum">     325 </span>            :  * Prior to unloading a BTL module, the MCA framework will call
+<span class="lineNum">     326 </span>            :  * the BTL finalize method of the module. Any resources held by
+<span class="lineNum">     327 </span>            :  * the BTL should be released and if required the memory corresponding
+<span class="lineNum">     328 </span>            :  * to the BTL module freed.
+<span class="lineNum">     329 </span>            :  *
+<a name="330"><span class="lineNum">     330 </span>            :  */</a>
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span><span class="lineCov">          2 : static int vader_finalize(struct mca_btl_base_module_t *btl)</span>
+<span class="lineNum">     333 </span>            : {
+<span class="lineNum">     334 </span><span class="lineCov">          2 :     mca_btl_vader_component_t *component = &amp;mca_btl_vader_component;</span>
+<span class="lineNum">     335 </span><span class="lineCov">          2 :     mca_btl_vader_t *vader_btl = (mca_btl_vader_t *) btl;</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineCov">          2 :     if (!vader_btl-&gt;btl_inited) {</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         return OPAL_SUCCESS;</span>
+<span class="lineNum">     339 </span>            :     }
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span><span class="lineCov">          6 :     for (int i = 0 ; i &lt; 1 + MCA_BTL_VADER_NUM_LOCAL_PEERS ; ++i) {</span>
+<span class="lineNum">     342 </span><span class="lineCov">          4 :         fini_vader_endpoint (component-&gt;endpoints + i);</span>
+<span class="lineNum">     343 </span>            :     }
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineCov">          2 :     free (component-&gt;endpoints);</span>
+<span class="lineNum">     346 </span><span class="lineCov">          2 :     component-&gt;endpoints = NULL;</span>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineCov">          2 :     vader_btl-&gt;btl_inited = false;</span>
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span><span class="lineCov">          2 :     free (component-&gt;fbox_in_endpoints);</span>
+<span class="lineNum">     351 </span><span class="lineCov">          2 :     component-&gt;fbox_in_endpoints = NULL;</span>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span><span class="lineCov">          2 :     if (MCA_BTL_VADER_XPMEM != mca_btl_vader_component.single_copy_mechanism) {</span>
+<span class="lineNum">     354 </span><span class="lineCov">          2 :         opal_shmem_unlink (&amp;mca_btl_vader_component.seg_ds);</span>
+<span class="lineNum">     355 </span><span class="lineCov">          2 :         opal_shmem_segment_detach (&amp;mca_btl_vader_component.seg_ds);</span>
+<span class="lineNum">     356 </span>            :     }
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     359 </span>            : }
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            : /**
+<span class="lineNum">     363 </span>            :  * Register a callback function that is called on error..
+<span class="lineNum">     364 </span>            :  *
+<span class="lineNum">     365 </span>            :  * @param btl (IN)     BTL module
+<span class="lineNum">     366 </span>            :  * @param cbfunc (IN)  function to call on error
+<a name="367"><span class="lineNum">     367 </span>            :  * @return             Status indicating if cleanup was successful</a>
+<span class="lineNum">     368 </span>            :  */
+<span class="lineNum">     369 </span><span class="lineCov">          2 : static int vader_register_error_cb(struct mca_btl_base_module_t* btl,</span>
+<span class="lineNum">     370 </span>            :                                    mca_btl_base_module_error_cb_fn_t cbfunc)
+<span class="lineNum">     371 </span>            : {
+<span class="lineNum">     372 </span><span class="lineCov">          2 :     ((mca_btl_vader_t *)btl)-&gt;error_cb = cbfunc;</span>
+<span class="lineNum">     373 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     374 </span>            : }
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            : /**
+<span class="lineNum">     377 </span>            :  * Allocate a segment.
+<span class="lineNum">     378 </span>            :  *
+<span class="lineNum">     379 </span>            :  * @param btl (IN)      BTL module
+<a name="380"><span class="lineNum">     380 </span>            :  * @param size (IN)     Request segment size.</a>
+<span class="lineNum">     381 </span>            :  */
+<span class="lineNum">     382 </span><span class="lineCov">          1 : mca_btl_base_descriptor_t *mca_btl_vader_alloc(struct mca_btl_base_module_t *btl,</span>
+<span class="lineNum">     383 </span>            :                                                struct mca_btl_base_endpoint_t *endpoint,
+<span class="lineNum">     384 </span>            :                                                uint8_t order, size_t size, uint32_t flags)
+<span class="lineNum">     385 </span>            : {
+<span class="lineNum">     386 </span><span class="lineCov">          1 :     mca_btl_vader_frag_t *frag = NULL;</span>
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span><span class="lineCov">          1 :     if (size &lt;= (size_t) mca_btl_vader_component.max_inline_send) {</span>
+<span class="lineNum">     389 </span><span class="lineCov">          1 :         (void) MCA_BTL_VADER_FRAG_ALLOC_USER(frag, endpoint);</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     } else if (size &lt;= mca_btl_vader.super.btl_eager_limit) {</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :         (void) MCA_BTL_VADER_FRAG_ALLOC_EAGER(frag, endpoint);</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :     } else if (MCA_BTL_VADER_XPMEM != mca_btl_vader_component.single_copy_mechanism &amp;&amp;</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :                size &lt;= mca_btl_vader.super.btl_max_send_size) {</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :         (void) MCA_BTL_VADER_FRAG_ALLOC_MAX(frag, endpoint);</span>
+<span class="lineNum">     395 </span>            :     }
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span><span class="lineCov">          1 :     if (OPAL_LIKELY(frag != NULL)) {</span>
+<span class="lineNum">     398 </span><span class="lineCov">          1 :         frag-&gt;segments[0].seg_len  = size;</span>
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span><span class="lineCov">          1 :         frag-&gt;base.des_flags   = flags;</span>
+<span class="lineNum">     401 </span><span class="lineCov">          1 :         frag-&gt;base.order       = order;</span>
+<span class="lineNum">     402 </span>            :     }
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineCov">          1 :     return (mca_btl_base_descriptor_t *) frag;</span>
+<span class="lineNum">     405 </span>            : }
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span>            : /**
+<span class="lineNum">     408 </span>            :  * Return a segment allocated by this BTL.
+<span class="lineNum">     409 </span>            :  *
+<span class="lineNum">     410 </span>            :  * @param btl (IN)      BTL module
+<a name="411"><span class="lineNum">     411 </span>            :  * @param segment (IN)  Allocated segment.</a>
+<span class="lineNum">     412 </span>            :  */
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 : static int vader_free (struct mca_btl_base_module_t *btl, mca_btl_base_descriptor_t *des)</span>
+<span class="lineNum">     414 </span>            : {
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :     MCA_BTL_VADER_FRAG_RETURN((mca_btl_vader_frag_t *) des);</span>
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     418 </span>            : }
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span>            : /**
+<span class="lineNum">     421 </span>            :  * Pack data
+<span class="lineNum">     422 </span>            :  *
+<a name="423"><span class="lineNum">     423 </span>            :  * @param btl (IN)      BTL module</a>
+<span class="lineNum">     424 </span>            :  */
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 : static struct mca_btl_base_descriptor_t *vader_prepare_src (struct mca_btl_base_module_t *btl,</span>
+<span class="lineNum">     426 </span>            :                                                             struct mca_btl_base_endpoint_t *endpoint,
+<span class="lineNum">     427 </span>            :                                                             struct opal_convertor_t *convertor,
+<span class="lineNum">     428 </span>            :                                                             uint8_t order, size_t reserve, size_t *size,
+<span class="lineNum">     429 </span>            :                                                             uint32_t flags)
+<span class="lineNum">     430 </span>            : {
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     const size_t total_size = reserve + *size;</span>
+<span class="lineNum">     432 </span>            :     mca_btl_vader_frag_t *frag;
+<span class="lineNum">     433 </span>            :     unsigned char *fbox;
+<span class="lineNum">     434 </span>            :     void *data_ptr;
+<span class="lineNum">     435 </span>            :     int rc;
+<span class="lineNum">     436 </span>            : 
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     opal_convertor_get_current_pointer (convertor, &amp;data_ptr);</span>
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span>            :     /* in place send fragment */
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :     if (OPAL_UNLIKELY(opal_convertor_need_buffers(convertor))) {</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :         uint32_t iov_count = 1;</span>
+<span class="lineNum">     442 </span>            :         struct iovec iov;
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span>            :         /* non-contiguous data requires the convertor */
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :         if (MCA_BTL_VADER_XPMEM != mca_btl_vader_component.single_copy_mechanism &amp;&amp;</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :             total_size &gt; mca_btl_vader.super.btl_eager_limit) {</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :             (void) MCA_BTL_VADER_FRAG_ALLOC_MAX(frag, endpoint);</span>
+<span class="lineNum">     448 </span>            :         } else
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :             (void) MCA_BTL_VADER_FRAG_ALLOC_EAGER(frag, endpoint);</span>
+<span class="lineNum">     450 </span>            : 
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :         if (OPAL_UNLIKELY(NULL == frag)) {</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :             return NULL;</span>
+<span class="lineNum">     453 </span>            :         }
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :         iov.iov_len = *size;</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :         iov.iov_base =</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :             (IOVBASE_TYPE *)(((uintptr_t)(frag-&gt;segments[0].seg_addr.pval)) +</span>
+<span class="lineNum">     458 </span>            :                              reserve);
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :         rc = opal_convertor_pack (convertor, &amp;iov, &amp;iov_count, size);</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :         if (OPAL_UNLIKELY(rc &lt; 0)) {</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :             MCA_BTL_VADER_FRAG_RETURN(frag);</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :             return NULL;</span>
+<span class="lineNum">     464 </span>            :         }
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :         frag-&gt;segments[0].seg_len = *size + reserve;</span>
+<span class="lineNum">     467 </span>            :     } else {
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :         if (MCA_BTL_VADER_XPMEM != mca_btl_vader_component.single_copy_mechanism) {</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :             if (OPAL_LIKELY(total_size &lt;= mca_btl_vader.super.btl_eager_limit)) {</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :                 (void) MCA_BTL_VADER_FRAG_ALLOC_EAGER(frag, endpoint);</span>
+<span class="lineNum">     471 </span>            :             } else {
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :                 (void) MCA_BTL_VADER_FRAG_ALLOC_MAX(frag, endpoint);</span>
+<span class="lineNum">     473 </span>            :             }
+<span class="lineNum">     474 </span>            :         } else
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :             (void) MCA_BTL_VADER_FRAG_ALLOC_USER(frag, endpoint);</span>
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :         if (OPAL_UNLIKELY(NULL == frag)) {</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :             return NULL;</span>
+<span class="lineNum">     479 </span>            :         }
+<span class="lineNum">     480 </span>            : 
+<span class="lineNum">     481 </span>            : #if OPAL_BTL_VADER_HAVE_XPMEM
+<span class="lineNum">     482 </span>            :         /* use xpmem to send this segment if it is above the max inline send size */
+<span class="lineNum">     483 </span>            :         if (OPAL_UNLIKELY(MCA_BTL_VADER_XPMEM == mca_btl_vader_component.single_copy_mechanism &amp;&amp;
+<span class="lineNum">     484 </span>            :                           total_size &gt; (size_t) mca_btl_vader_component.max_inline_send)) {
+<span class="lineNum">     485 </span>            :             /* single copy send */
+<span class="lineNum">     486 </span>            :             frag-&gt;hdr-&gt;flags = MCA_BTL_VADER_FLAG_SINGLE_COPY;
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span>            :             /* set up single copy io vector */
+<span class="lineNum">     489 </span>            :             frag-&gt;hdr-&gt;sc_iov.iov_base = data_ptr;
+<span class="lineNum">     490 </span>            :             frag-&gt;hdr-&gt;sc_iov.iov_len  = *size;
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span>            :             frag-&gt;segments[0].seg_len = reserve;
+<span class="lineNum">     493 </span>            :             frag-&gt;segments[1].seg_len = *size;
+<span class="lineNum">     494 </span>            :             frag-&gt;segments[1].seg_addr.pval = data_ptr;
+<span class="lineNum">     495 </span>            :             frag-&gt;base.des_segment_count = 2;
+<span class="lineNum">     496 </span>            :         } else {
+<span class="lineNum">     497 </span>            : #endif
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span>            :             /* inline send */
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :             if (OPAL_LIKELY(MCA_BTL_DES_FLAGS_BTL_OWNERSHIP &amp; flags)) {</span>
+<span class="lineNum">     501 </span>            :                 /* try to reserve a fast box for this transfer only if the
+<span class="lineNum">     502 </span>            :                  * fragment does not belong to the caller */
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :                 fbox = mca_btl_vader_reserve_fbox (endpoint, total_size);</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :                 if (OPAL_LIKELY(fbox)) {</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :                     frag-&gt;segments[0].seg_addr.pval = fbox;</span>
+<span class="lineNum">     506 </span>            :                 }
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :                 frag-&gt;fbox = fbox;</span>
+<span class="lineNum">     509 </span>            :             }
+<span class="lineNum">     510 </span>            : 
+<span class="lineNum">     511 </span>            :             /* NTH: the covertor adds some latency so we bypass it here */
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :             memcpy ((void *)((uintptr_t)frag-&gt;segments[0].seg_addr.pval + reserve), data_ptr, *size);</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :             frag-&gt;segments[0].seg_len = total_size;</span>
+<span class="lineNum">     514 </span>            : #if OPAL_BTL_VADER_HAVE_XPMEM
+<span class="lineNum">     515 </span>            :         }
+<span class="lineNum">     516 </span>            : #endif
+<span class="lineNum">     517 </span>            :     }
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     frag-&gt;base.order       = order;</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :     frag-&gt;base.des_flags   = flags;</span>
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     return &amp;frag-&gt;base;</span>
+<span class="lineNum">     523 </span>            : }
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span>            : /**
+<span class="lineNum">     526 </span>            :  * Fault Tolerance Event Notification Function
+<span class="lineNum">     527 </span>            :  * @param state Checkpoint Stae
+<a name="528"><span class="lineNum">     528 </span>            :  * @return OPAL_SUCCESS or failure status</a>
+<span class="lineNum">     529 </span>            :  */
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 : static int vader_ft_event (int state)</span>
+<span class="lineNum">     531 </span>            : {
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<a name="533"><span class="lineNum">     533 </span>            : }</a>
+<span class="lineNum">     534 </span>            : 
+<span class="lineNum">     535 </span><span class="lineCov">          4 : static void mca_btl_vader_endpoint_constructor (mca_btl_vader_endpoint_t *ep)</span>
+<span class="lineNum">     536 </span>            : {
+<span class="lineNum">     537 </span><span class="lineCov">          4 :     OBJ_CONSTRUCT(&amp;ep-&gt;pending_frags, opal_list_t);</span>
+<span class="lineNum">     538 </span><span class="lineCov">          4 :     ep-&gt;fifo = NULL;</span>
+<a name="539"><span class="lineNum">     539 </span><span class="lineCov">          4 : }</span></a>
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span><span class="lineCov">          4 : static void mca_btl_vader_endpoint_destructor (mca_btl_vader_endpoint_t *ep)</span>
+<span class="lineNum">     542 </span>            : {
+<span class="lineNum">     543 </span><span class="lineCov">          4 :     OBJ_DESTRUCT(&amp;ep-&gt;pending_frags);</span>
+<span class="lineNum">     544 </span>            : 
+<span class="lineNum">     545 </span>            : #if OPAL_BTL_VADER_HAVE_XPMEM
+<span class="lineNum">     546 </span>            :     if (MCA_BTL_VADER_XPMEM == mca_btl_vader_component.single_copy_mechanism) {
+<span class="lineNum">     547 </span>            :         if (ep-&gt;segment_data.xpmem.rcache) {
+<span class="lineNum">     548 </span>            :             /* clean out the registration cache */
+<span class="lineNum">     549 </span>            :             const int nregs = 100;
+<span class="lineNum">     550 </span>            :             mca_mpool_base_registration_t *regs[nregs];
+<span class="lineNum">     551 </span>            :             int reg_cnt;
+<span class="lineNum">     552 </span>            : 
+<span class="lineNum">     553 </span>            :             do {
+<span class="lineNum">     554 </span>            :                 reg_cnt = ep-&gt;segment_data.xpmem.rcache-&gt;rcache_find_all(ep-&gt;segment_data.xpmem.rcache, 0, (size_t)-1,
+<span class="lineNum">     555 </span>            :                                                                           regs, nregs);
+<span class="lineNum">     556 </span>            : 
+<span class="lineNum">     557 </span>            :                 for (int i = 0 ; i &lt; reg_cnt ; ++i) {
+<span class="lineNum">     558 </span>            :                     /* otherwise dereg will fail on assert */
+<span class="lineNum">     559 </span>            :                     regs[i]-&gt;ref_count = 0;
+<span class="lineNum">     560 </span>            :                     OBJ_RELEASE(regs[i]);
+<span class="lineNum">     561 </span>            :                 }
+<span class="lineNum">     562 </span>            :             } while (reg_cnt == nregs);
+<span class="lineNum">     563 </span>            : 
+<span class="lineNum">     564 </span>            :             ep-&gt;segment_data.xpmem.rcache = NULL;
+<span class="lineNum">     565 </span>            :         }
+<span class="lineNum">     566 </span>            : 
+<span class="lineNum">     567 </span>            :         if (ep-&gt;segment_base) {
+<span class="lineNum">     568 </span>            :             xpmem_release (ep-&gt;segment_data.xpmem.apid);
+<span class="lineNum">     569 </span>            :             ep-&gt;segment_data.xpmem.apid = 0;
+<span class="lineNum">     570 </span>            :         }
+<span class="lineNum">     571 </span>            :     } else
+<span class="lineNum">     572 </span>            : #endif
+<span class="lineNum">     573 </span><span class="lineCov">          4 :     if (ep-&gt;segment_data.other.seg_ds) {</span>
+<span class="lineNum">     574 </span>            :         opal_shmem_ds_t seg_ds;
+<span class="lineNum">     575 </span>            : 
+<span class="lineNum">     576 </span>            :         /* opal_shmem_segment_detach expects a opal_shmem_ds_t and will
+<span class="lineNum">     577 </span>            :          * stomp past the end of the seg_ds if it is too small (which
+<span class="lineNum">     578 </span>            :          * ep-&gt;seg_ds probably is) */
+<span class="lineNum">     579 </span><span class="lineCov">          2 :         memcpy (&amp;seg_ds, ep-&gt;segment_data.other.seg_ds, opal_shmem_sizeof_shmem_ds (ep-&gt;segment_data.other.seg_ds));</span>
+<span class="lineNum">     580 </span><span class="lineCov">          2 :         free (ep-&gt;segment_data.other.seg_ds);</span>
+<span class="lineNum">     581 </span><span class="lineCov">          2 :         ep-&gt;segment_data.other.seg_ds = NULL;</span>
+<span class="lineNum">     582 </span>            : 
+<span class="lineNum">     583 </span>            :         /* disconnect from the peer's segment */
+<span class="lineNum">     584 </span><span class="lineCov">          2 :         opal_shmem_segment_detach (&amp;seg_ds);</span>
+<span class="lineNum">     585 </span>            :     }
+<span class="lineNum">     586 </span>            : 
+<span class="lineNum">     587 </span><span class="lineCov">          4 :     ep-&gt;fbox_in.buffer = ep-&gt;fbox_out.buffer = NULL;</span>
+<span class="lineNum">     588 </span><span class="lineCov">          4 :     ep-&gt;segment_base = NULL;</span>
+<span class="lineNum">     589 </span><span class="lineCov">          4 :     ep-&gt;fifo = NULL;</span>
+<span class="lineNum">     590 </span><span class="lineCov">          4 : }</span>
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span>            : OBJ_CLASS_INSTANCE(mca_btl_vader_endpoint_t, opal_list_item_t, mca_btl_vader_endpoint_constructor, mca_btl_vader_endpoint_destructor);
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

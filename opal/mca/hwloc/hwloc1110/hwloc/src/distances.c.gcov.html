@@ -1,0 +1,1116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/hwloc/hwloc1110/hwloc/src/distances.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">opal/mca/hwloc/hwloc1110/hwloc/src</a> - distances.c<span style="font-size: 80%;"> (source / <a href="distances.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">44</td>
+            <td class="headerCovTableEntry">517</td>
+            <td class="headerCovTableEntryLo">8.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntryLo">36.4 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright © 2010-2015 Inria.  All rights reserved.
+<span class="lineNum">       3 </span>            :  * Copyright © 2011-2012 Université Bordeaux
+<span class="lineNum">       4 </span>            :  * Copyright © 2011 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * See COPYING in top-level directory.
+<span class="lineNum">       6 </span>            :  */
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : #include &lt;private/autogen/config.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;hwloc.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;private/private.h&gt;
+<span class="lineNum">      11 </span>            : #include &lt;private/debug.h&gt;
+<span class="lineNum">      12 </span>            : 
+<span class="lineNum">      13 </span>            : #include &lt;float.h&gt;
+<span class="lineNum">      14 </span>            : #include &lt;math.h&gt;
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /**************************
+<span class="lineNum">      17 </span>            :  * Main Init/Clear/Destroy
+<span class="lineNum">      18 </span>            :  */
+<a name="19"><span class="lineNum">      19 </span>            : </a>
+<span class="lineNum">      20 </span>            : /* called during topology init */
+<span class="lineNum">      21 </span><span class="lineCov">          2 : void hwloc_distances_init(struct hwloc_topology *topology)</span>
+<span class="lineNum">      22 </span>            : {
+<span class="lineNum">      23 </span><span class="lineCov">          2 :   topology-&gt;first_osdist = topology-&gt;last_osdist = NULL;</span>
+<span class="lineNum">      24 </span><span class="lineCov">          2 : }</span>
+<a name="25"><span class="lineNum">      25 </span>            : </a>
+<span class="lineNum">      26 </span>            : /* called during topology destroy */
+<span class="lineNum">      27 </span><span class="lineCov">          2 : void hwloc_distances_destroy(struct hwloc_topology * topology)</span>
+<span class="lineNum">      28 </span>            : {
+<span class="lineNum">      29 </span><span class="lineCov">          2 :   struct hwloc_os_distances_s *osdist, *next = topology-&gt;first_osdist;</span>
+<span class="lineNum">      30 </span><span class="lineCov">          4 :   while ((osdist = next) != NULL) {</span>
+<span class="lineNum">      31 </span><span class="lineNoCov">          0 :     next = osdist-&gt;next;</span>
+<span class="lineNum">      32 </span>            :     /* remove final distance matrics AND physically-ordered ones */
+<span class="lineNum">      33 </span><span class="lineNoCov">          0 :     free(osdist-&gt;indexes);</span>
+<span class="lineNum">      34 </span><span class="lineNoCov">          0 :     free(osdist-&gt;objs);</span>
+<span class="lineNum">      35 </span><span class="lineNoCov">          0 :     free(osdist-&gt;distances);</span>
+<span class="lineNum">      36 </span><span class="lineNoCov">          0 :     free(osdist);</span>
+<span class="lineNum">      37 </span>            :   }
+<span class="lineNum">      38 </span><span class="lineCov">          2 :   topology-&gt;first_osdist = topology-&gt;last_osdist = NULL;</span>
+<span class="lineNum">      39 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : /******************************************************
+<span class="lineNum">      42 </span>            :  * Inserting distances in the topology
+<span class="lineNum">      43 </span>            :  * from a backend, from the environment or by the user
+<span class="lineNum">      44 </span>            :  */
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : /* insert a distance matrix in the topology.
+<a name="47"><span class="lineNum">      47 </span>            :  * the caller gives us those pointers, we take care of freeing them later and so on.</a>
+<span class="lineNum">      48 </span>            :  */
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 : void hwloc_distances_set(hwloc_topology_t __hwloc_restrict topology, hwloc_obj_type_t type,</span>
+<span class="lineNum">      50 </span>            :                          unsigned nbobjs, unsigned *indexes, hwloc_obj_t *objs, float *distances,
+<span class="lineNum">      51 </span>            :                          int force)
+<span class="lineNum">      52 </span>            : {
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :   struct hwloc_os_distances_s *osdist, *next = topology-&gt;first_osdist;</span>
+<span class="lineNum">      54 </span>            :   /* look for existing distances for the same type */
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :   while ((osdist = next) != NULL) {</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     next = osdist-&gt;next;</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     if (osdist-&gt;type == type) {</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :       if (osdist-&gt;forced &amp;&amp; !force) {</span>
+<span class="lineNum">      59 </span>            :         /* there is a forced distance element, ignore the new non-forced one */
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :         free(indexes);</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :         free(objs);</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :         free(distances);</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :       } else if (force) {</span>
+<span class="lineNum">      65 </span>            :         /* we're forcing a new distance, remove the old ones */
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :         free(osdist-&gt;indexes);</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :         free(osdist-&gt;objs);</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :         free(osdist-&gt;distances);</span>
+<span class="lineNum">      69 </span>            :         /* remove current object */
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :         if (osdist-&gt;prev)</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :           osdist-&gt;prev-&gt;next = next;</span>
+<span class="lineNum">      72 </span>            :         else
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :           topology-&gt;first_osdist = next;</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :         if (next)</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :           next-&gt;prev = osdist-&gt;prev;</span>
+<span class="lineNum">      76 </span>            :         else
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :           topology-&gt;last_osdist = osdist-&gt;prev;</span>
+<span class="lineNum">      78 </span>            :         /* free current object */
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :         free(osdist);</span>
+<span class="lineNum">      80 </span>            :       }
+<span class="lineNum">      81 </span>            :     }
+<span class="lineNum">      82 </span>            :   }
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :   if (!nbobjs)</span>
+<span class="lineNum">      85 </span>            :     /* we're just clearing, return now */
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            :   /* create the new element */
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :   osdist = malloc(sizeof(struct hwloc_os_distances_s));</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :   osdist-&gt;nbobjs = nbobjs;</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :   osdist-&gt;indexes = indexes;</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :   osdist-&gt;objs = objs;</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :   osdist-&gt;distances = distances;</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :   osdist-&gt;forced = force;</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :   osdist-&gt;type = type;</span>
+<span class="lineNum">      96 </span>            :   /* insert it */
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :   osdist-&gt;next = NULL;</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :   osdist-&gt;prev = topology-&gt;last_osdist;</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :   if (topology-&gt;last_osdist)</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     topology-&gt;last_osdist-&gt;next = osdist;</span>
+<span class="lineNum">     101 </span>            :   else
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     topology-&gt;first_osdist = osdist;</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   topology-&gt;last_osdist = osdist;</span>
+<span class="lineNum">     104 </span>            : }
+<a name="105"><span class="lineNum">     105 </span>            : </a>
+<span class="lineNum">     106 </span>            : /* make sure a user-given distance matrix is sane */
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 : static int hwloc_distances__check_matrix(hwloc_topology_t __hwloc_restrict topology __hwloc_attribute_unused, hwloc_obj_type_t type __hwloc_attribute_unused,</span>
+<span class="lineNum">     108 </span>            :                                          unsigned nbobjs, unsigned *indexes, hwloc_obj_t *objs __hwloc_attribute_unused, float *distances __hwloc_attribute_unused)
+<span class="lineNum">     109 </span>            : {
+<span class="lineNum">     110 </span>            :   unsigned i,j;
+<span class="lineNum">     111 </span>            :   /* make sure we don't have the same index twice */
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :   for(i=0; i&lt;nbobjs; i++)</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     for(j=i+1; j&lt;nbobjs; j++)</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :       if (indexes[i] == indexes[j]) {</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :         errno = EINVAL;</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     117 </span>            :       }
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="119"><span class="lineNum">     119 </span>            : }</a>
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 : static void hwloc_distances__set_from_string(struct hwloc_topology *topology,</span>
+<span class="lineNum">     122 </span>            :                                              hwloc_obj_type_t type, const char *string)
+<span class="lineNum">     123 </span>            : {
+<span class="lineNum">     124 </span>            :   /* the string format is: &quot;index[0],...,index[N-1]:distance[0],...,distance[N*N-1]&quot;
+<span class="lineNum">     125 </span>            :    * or &quot;index[0],...,index[N-1]:X*Y&quot; or &quot;index[0],...,index[N-1]:X*Y*Z&quot;
+<span class="lineNum">     126 </span>            :    */
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :   const char *tmp = string, *next;</span>
+<span class="lineNum">     128 </span>            :   unsigned *indexes;
+<span class="lineNum">     129 </span>            :   float *distances;
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :   unsigned nbobjs = 0, i, j, x, y, z;</span>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   if (!strcmp(string, &quot;none&quot;)) {</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     hwloc_distances_set(topology, type, 0, NULL, NULL, NULL, 1 /* force */);</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     135 </span>            :   }
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :   if (sscanf(string, &quot;%u-%u:&quot;, &amp;i, &amp;j) == 2) {</span>
+<span class="lineNum">     138 </span>            :     /* range i-j */
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     nbobjs = j-i+1;</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     indexes = calloc(nbobjs, sizeof(unsigned));</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     distances = calloc(nbobjs*nbobjs, sizeof(float));</span>
+<span class="lineNum">     142 </span>            :     /* make sure the user didn't give a veeeeery large range */
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     if (!indexes || !distances) {</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :       free(indexes);</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :       free(distances);</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     147 </span>            :     }
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     for(j=0; j&lt;nbobjs; j++)</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :       indexes[j] = j+i;</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     tmp = strchr(string, ':') + 1;</span>
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span>            :   } else {
+<span class="lineNum">     153 </span>            :     /* explicit list of indexes, count them */
+<span class="lineNum">     154 </span>            :     while (1) {
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :       size_t size = strspn(tmp, &quot;0123456789&quot;);</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :       if (tmp[size] != ',') {</span>
+<span class="lineNum">     157 </span>            :         /* last element */
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :         tmp += size;</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :         nbobjs++;</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     161 </span>            :       }
+<span class="lineNum">     162 </span>            :       /* another index */
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :       tmp += size+1;</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :       nbobjs++;</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     if (*tmp != ':') {</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Ignoring %s distances from environment variable, missing colon\n&quot;,</span>
+<span class="lineNum">     169 </span>            :               hwloc_obj_type_string(type));
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     171 </span>            :     }
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     indexes = calloc(nbobjs, sizeof(unsigned));</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     distances = calloc(nbobjs*nbobjs, sizeof(float));</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     tmp = string;</span>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            :     /* parse indexes */
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :     for(i=0; i&lt;nbobjs; i++) {</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :       indexes[i] = strtoul(tmp, (char **) &amp;next, 0);</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :       tmp = next+1;</span>
+<span class="lineNum">     181 </span>            :     }
+<span class="lineNum">     182 </span>            :   }
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            :   /* parse distances */
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :   z=1; /* default if sscanf finds only 2 values below */</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :   if (sscanf(tmp, &quot;%u*%u*%u&quot;, &amp;x, &amp;y, &amp;z) &gt;= 2) {</span>
+<span class="lineNum">     188 </span>            :     /* generate the matrix to create x groups of y elements */
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     if (x*y*z != nbobjs) {</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Ignoring %s distances from environment variable, invalid grouping (%u*%u*%u=%u instead of %u)\n&quot;,</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :               hwloc_obj_type_string(type), x, y, z, x*y*z, nbobjs);</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :       free(indexes);</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :       free(distances);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     195 </span>            :     }
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :     for(i=0; i&lt;nbobjs; i++)</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :       for(j=0; j&lt;nbobjs; j++)</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :         if (i==j)</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :           distances[i*nbobjs+j] = 1;</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :         else if (i/z == j/z)</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :           distances[i*nbobjs+j] = 2;</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         else if (i/z/y == j/z/y)</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :           distances[i*nbobjs+j] = 4;</span>
+<span class="lineNum">     204 </span>            :         else
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :           distances[i*nbobjs+j] = 8;</span>
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            :   } else {
+<span class="lineNum">     208 </span>            :     /* parse a comma separated list of distances */
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     for(i=0; i&lt;nbobjs*nbobjs; i++) {</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :       distances[i] = (float) atof(tmp);</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :       next = strchr(tmp, ',');</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :       if (next) {</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :         tmp = next+1;</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :       } else if (i!=nbobjs*nbobjs-1) {</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;Ignoring %s distances from environment variable, not enough values (%u out of %u)\n&quot;,</span>
+<span class="lineNum">     216 </span>            :                 hwloc_obj_type_string(type), i+1, nbobjs*nbobjs);
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         free(indexes);</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         free(distances);</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     220 </span>            :       }
+<span class="lineNum">     221 </span>            :     }
+<span class="lineNum">     222 </span>            :   }
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   if (hwloc_distances__check_matrix(topology, type, nbobjs, indexes, NULL, distances) &lt; 0) {</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :     fprintf(stderr, &quot;Ignoring invalid %s distances from environment variable\n&quot;, hwloc_obj_type_string(type));</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :     free(indexes);</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     free(distances);</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     229 </span>            :   }
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   hwloc_distances_set(topology, type, nbobjs, indexes, NULL, distances, 1 /* force */);</span>
+<span class="lineNum">     232 </span>            : }
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            : /* take distances in the environment, store them as is in the topology.
+<a name="235"><span class="lineNum">     235 </span>            :  * we'll convert them into object later once the tree is filled</a>
+<span class="lineNum">     236 </span>            :  */
+<span class="lineNum">     237 </span><span class="lineCov">          2 : void hwloc_distances_set_from_env(struct hwloc_topology *topology)</span>
+<span class="lineNum">     238 </span>            : {
+<span class="lineNum">     239 </span>            :   hwloc_obj_type_t type;
+<span class="lineNum">     240 </span><span class="lineCov">         26 :   for(type = HWLOC_OBJ_SYSTEM; type &lt; HWLOC_OBJ_TYPE_MAX; type++) {</span>
+<span class="lineNum">     241 </span>            :     const char *env;
+<span class="lineNum">     242 </span>            :     char envname[64];
+<span class="lineNum">     243 </span><span class="lineCov">         24 :     snprintf(envname, sizeof(envname), &quot;HWLOC_%s_DISTANCES&quot;, hwloc_obj_type_string(type));</span>
+<span class="lineNum">     244 </span><span class="lineCov">         24 :     env = getenv(envname);</span>
+<span class="lineNum">     245 </span><span class="lineCov">         24 :     if (env) {</span>
+<span class="lineNum">     246 </span>            :       hwloc_localeswitch_declare;
+<span class="lineNum">     247 </span>            :       hwloc_localeswitch_init();
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :       hwloc_distances__set_from_string(topology, type, env);</span>
+<span class="lineNum">     249 </span>            :       hwloc_localeswitch_fini();
+<span class="lineNum">     250 </span>            :     }
+<span class="lineNum">     251 </span>            :   }
+<span class="lineNum">     252 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            : /* The actual set() function exported to the user
+<span class="lineNum">     255 </span>            :  *
+<span class="lineNum">     256 </span>            :  * take the given distance, store them as is in the topology.
+<a name="257"><span class="lineNum">     257 </span>            :  * we'll convert them into object later once the tree is filled.</a>
+<span class="lineNum">     258 </span>            :  */
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 : int hwloc_topology_set_distance_matrix(hwloc_topology_t __hwloc_restrict topology, hwloc_obj_type_t type,</span>
+<span class="lineNum">     260 </span>            :                                        unsigned nbobjs, unsigned *indexes, float *distances)
+<span class="lineNum">     261 </span>            : {
+<span class="lineNum">     262 </span>            :   unsigned *_indexes;
+<span class="lineNum">     263 </span>            :   float *_distances;
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   if (!nbobjs &amp;&amp; !indexes &amp;&amp; !distances) {</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     hwloc_distances_set(topology, type, 0, NULL, NULL, NULL, 1 /* force */);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     268 </span>            :   }
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :   if (!nbobjs || !indexes || !distances)</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :   if (hwloc_distances__check_matrix(topology, type, nbobjs, indexes, NULL, distances) &lt; 0)</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span>            :   /* copy the input arrays and give them to the topology */
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :   _indexes = malloc(nbobjs*sizeof(unsigned));</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :   memcpy(_indexes, indexes, nbobjs*sizeof(unsigned));</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :   _distances = malloc(nbobjs*nbobjs*sizeof(float));</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :   memcpy(_distances, distances, nbobjs*nbobjs*sizeof(float));</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :   hwloc_distances_set(topology, type, nbobjs, _indexes, NULL, _distances, 1 /* force */);</span>
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     284 </span>            : }
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span>            : /************************
+<span class="lineNum">     287 </span>            :  * Restricting distances
+<span class="lineNum">     288 </span>            :  */
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span>            : /* called when some objects have been removed because empty/ignored/cgroup/restrict,
+<a name="291"><span class="lineNum">     291 </span>            :  * we must rebuild the list of objects from indexes (in hwloc_distances_finalize_os())</a>
+<span class="lineNum">     292 </span>            :  */
+<span class="lineNum">     293 </span><span class="lineCov">          2 : void hwloc_distances_restrict_os(struct hwloc_topology *topology)</span>
+<span class="lineNum">     294 </span>            : {
+<span class="lineNum">     295 </span>            :   struct hwloc_os_distances_s * osdist;
+<span class="lineNum">     296 </span><span class="lineCov">          2 :   for(osdist = topology-&gt;first_osdist; osdist; osdist = osdist-&gt;next) {</span>
+<span class="lineNum">     297 </span>            :     /* remove the objs array, we'll rebuild it from the indexes
+<span class="lineNum">     298 </span>            :      * depending on remaining objects */
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :     free(osdist-&gt;objs);</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     osdist-&gt;objs = NULL;</span>
+<span class="lineNum">     301 </span>            :   }
+<span class="lineNum">     302 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            : /* cleanup everything we created from distances so that we may rebuild them
+<a name="306"><span class="lineNum">     306 </span>            :  * at the end of restrict()</a>
+<span class="lineNum">     307 </span>            :  */
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 : void hwloc_distances_restrict(struct hwloc_topology *topology, unsigned long flags)</span>
+<span class="lineNum">     309 </span>            : {
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :   if (flags &amp; HWLOC_RESTRICT_FLAG_ADAPT_DISTANCES) {</span>
+<span class="lineNum">     311 </span>            :     /* some objects may have been removed, clear objects arrays so that finalize_os rebuilds them properly */
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :     hwloc_distances_restrict_os(topology);</span>
+<span class="lineNum">     313 </span>            :   } else {
+<span class="lineNum">     314 </span>            :     /* if not adapting distances, drop everything */
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     hwloc_distances_destroy(topology);</span>
+<span class="lineNum">     316 </span>            :   }
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span>            : /**************************************************************
+<span class="lineNum">     320 </span>            :  * Convert user/env given array of indexes into actual objects
+<a name="321"><span class="lineNum">     321 </span>            :  */</a>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 : static hwloc_obj_t hwloc_find_obj_by_type_and_os_index(hwloc_obj_t root, hwloc_obj_type_t type, unsigned os_index)</span>
+<span class="lineNum">     324 </span>            : {
+<span class="lineNum">     325 </span>            :   hwloc_obj_t child;
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :   if (root-&gt;type == type &amp;&amp; root-&gt;os_index == os_index)</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     return root;</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :   child = root-&gt;first_child;</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :   while (child) {</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     hwloc_obj_t found = hwloc_find_obj_by_type_and_os_index(child, type, os_index);</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     if (found)</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :       return found;</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     child = child-&gt;next_sibling;</span>
+<span class="lineNum">     334 </span>            :   }
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :   return NULL;</span>
+<span class="lineNum">     336 </span>            : }
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span>            : /* convert distance indexes that were previously stored in the topology
+<span class="lineNum">     339 </span>            :  * into actual objects if not done already.
+<span class="lineNum">     340 </span>            :  * it's already done when distances come from backends (this function should not be called then).
+<span class="lineNum">     341 </span>            :  * it's not done when distances come from the user.
+<span class="lineNum">     342 </span>            :  *
+<span class="lineNum">     343 </span>            :  * returns -1 if the matrix was invalid
+<a name="344"><span class="lineNum">     344 </span>            :  */</a>
+<span class="lineNum">     345 </span>            : static int
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 : hwloc_distances__finalize_os(struct hwloc_topology *topology, struct hwloc_os_distances_s *osdist)</span>
+<span class="lineNum">     347 </span>            : {
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :   unsigned nbobjs = osdist-&gt;nbobjs;</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :   unsigned *indexes = osdist-&gt;indexes;</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :   float *distances = osdist-&gt;distances;</span>
+<span class="lineNum">     351 </span>            :   unsigned i, j;
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :   hwloc_obj_type_t type = osdist-&gt;type;</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :   hwloc_obj_t *objs = calloc(nbobjs, sizeof(hwloc_obj_t));</span>
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :   assert(!osdist-&gt;objs);</span>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            :   /* traverse the topology and look for the relevant objects */
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :   for(i=0; i&lt;nbobjs; i++) {</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     hwloc_obj_t obj = hwloc_find_obj_by_type_and_os_index(topology-&gt;levels[0][0], type, indexes[i]);</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     if (!obj) {</span>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            :       /* shift the matrix */
+<span class="lineNum">     363 </span>            : #define OLDPOS(i,j) (distances+(i)*nbobjs+(j))
+<span class="lineNum">     364 </span>            : #define NEWPOS(i,j) (distances+(i)*(nbobjs-1)+(j))
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :       if (i&gt;0) {</span>
+<span class="lineNum">     366 </span>            :         /** no need to move beginning of 0th line */
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :         for(j=0; j&lt;i-1; j++)</span>
+<span class="lineNum">     368 </span>            :           /** move end of jth line + beginning of (j+1)th line */
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :           memmove(NEWPOS(j,i), OLDPOS(j,i+1), (nbobjs-1)*sizeof(*distances));</span>
+<span class="lineNum">     370 </span>            :         /** move end of (i-1)th line */
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         memmove(NEWPOS(i-1,i), OLDPOS(i-1,i+1), (nbobjs-i-1)*sizeof(*distances));</span>
+<span class="lineNum">     372 </span>            :       }
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :       if (i&lt;nbobjs-1) {</span>
+<span class="lineNum">     374 </span>            :         /** move beginning of (i+1)th line */
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :         memmove(NEWPOS(i,0), OLDPOS(i+1,0), i*sizeof(*distances));</span>
+<span class="lineNum">     376 </span>            :         /** move end of jth line + beginning of (j+1)th line */
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :         for(j=i; j&lt;nbobjs-2; j++)</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :           memmove(NEWPOS(j,i), OLDPOS(j+1,i+1), (nbobjs-1)*sizeof(*distances));</span>
+<span class="lineNum">     379 </span>            :         /** move end of (nbobjs-2)th line */
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :         memmove(NEWPOS(nbobjs-2,i), OLDPOS(nbobjs-1,i+1), (nbobjs-i-1)*sizeof(*distances));</span>
+<span class="lineNum">     381 </span>            :       }
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span>            :       /* shift the indexes array */
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :       memmove(indexes+i, indexes+i+1, (nbobjs-i-1)*sizeof(*indexes));</span>
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span>            :       /* update counters */
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :       nbobjs--;</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :       i--;</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     390 </span>            :     }
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :     objs[i] = obj;</span>
+<span class="lineNum">     392 </span>            :   }
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :   osdist-&gt;nbobjs = nbobjs;</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :   if (!nbobjs) {</span>
+<span class="lineNum">     396 </span>            :     /* the whole matrix was invalid, let the caller remove this distances */
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :     free(objs);</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     399 </span>            :   }
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span>            :   /* setup the objs array */
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :   osdist-&gt;objs = objs;</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     404 </span>            : }
+<a name="405"><span class="lineNum">     405 </span>            : </a>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span><span class="lineCov">          4 : void hwloc_distances_finalize_os(struct hwloc_topology *topology)</span>
+<span class="lineNum">     408 </span>            : {
+<span class="lineNum">     409 </span><span class="lineCov">          4 :   int dropall = !topology-&gt;levels[0][0]-&gt;cpuset; /* we don't support distances on multinode systems */</span>
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span><span class="lineCov">          4 :   struct hwloc_os_distances_s *osdist, *next = topology-&gt;first_osdist;</span>
+<span class="lineNum">     412 </span><span class="lineCov">          8 :   while ((osdist = next) != NULL) {</span>
+<span class="lineNum">     413 </span>            :     int err;
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     next = osdist-&gt;next;</span>
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :     if (dropall)</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :       goto drop;</span>
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :     /* remove final distance matrics AND physically-ordered ones */
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     if (osdist-&gt;objs)</span>
+<span class="lineNum">     422 </span>            :       /* nothing to do, switch to the next element */
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     err = hwloc_distances__finalize_os(topology, osdist);</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     if (!err)</span>
+<span class="lineNum">     427 </span>            :       /* convert ok, switch to the next element */
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span>            :    drop:
+<span class="lineNum">     431 </span>            :     /* remove this element */
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     free(osdist-&gt;indexes);</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     free(osdist-&gt;distances);</span>
+<span class="lineNum">     434 </span>            :     /* remove current object */
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :     if (osdist-&gt;prev)</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :       osdist-&gt;prev-&gt;next = next;</span>
+<span class="lineNum">     437 </span>            :     else
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :       topology-&gt;first_osdist = next;</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :     if (next)</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :       next-&gt;prev = osdist-&gt;prev;</span>
+<span class="lineNum">     441 </span>            :     else
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :       topology-&gt;last_osdist = osdist-&gt;prev;</span>
+<span class="lineNum">     443 </span>            :     /* free current object */
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     free(osdist);</span>
+<span class="lineNum">     445 </span>            :   }
+<span class="lineNum">     446 </span><span class="lineCov">          4 : }</span>
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span>            : /***********************************************************
+<span class="lineNum">     449 </span>            :  * Convert internal distances given by the backend/env/user
+<span class="lineNum">     450 </span>            :  * into exported logical distances attached to objects
+<span class="lineNum">     451 </span>            :  */
+<a name="452"><span class="lineNum">     452 </span>            : </a>
+<span class="lineNum">     453 </span>            : static void
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 : hwloc_distances__finalize_logical(struct hwloc_topology *topology,</span>
+<span class="lineNum">     455 </span>            :                                   unsigned nbobjs,
+<span class="lineNum">     456 </span>            :                                   hwloc_obj_t *objs, float *osmatrix)
+<span class="lineNum">     457 </span>            : {
+<span class="lineNum">     458 </span>            :   unsigned i, j, li, lj, minl;
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :   float min = FLT_MAX, max = FLT_MIN;</span>
+<span class="lineNum">     460 </span>            :   hwloc_obj_t root;
+<span class="lineNum">     461 </span>            :   float *matrix;
+<span class="lineNum">     462 </span>            :   hwloc_cpuset_t cpuset, complete_cpuset;
+<span class="lineNum">     463 </span>            :   hwloc_nodeset_t nodeset, complete_nodeset;
+<span class="lineNum">     464 </span>            :   unsigned relative_depth;
+<span class="lineNum">     465 </span>            :   int idx;
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span>            :   /* find the root */
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :   cpuset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :   complete_cpuset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :   nodeset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :   complete_nodeset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :   for(i=0; i&lt;nbobjs; i++) {</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :     hwloc_bitmap_or(cpuset, cpuset, objs[i]-&gt;cpuset);</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :     if (objs[i]-&gt;complete_cpuset)</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :       hwloc_bitmap_or(complete_cpuset, complete_cpuset, objs[i]-&gt;complete_cpuset);</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     if (objs[i]-&gt;nodeset)</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :       hwloc_bitmap_or(nodeset, nodeset, objs[i]-&gt;nodeset);</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     if (objs[i]-&gt;complete_nodeset)</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :       hwloc_bitmap_or(complete_nodeset, complete_nodeset, objs[i]-&gt;complete_nodeset);</span>
+<span class="lineNum">     480 </span>            :   }
+<span class="lineNum">     481 </span>            :   /* find the object covering cpuset, we'll take care of the nodeset later */
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :   root = hwloc_get_obj_covering_cpuset(topology, cpuset);</span>
+<span class="lineNum">     483 </span>            :   /* walk up to find a parent that also covers the nodeset */
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :   while (root &amp;&amp;</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :          (!hwloc_bitmap_isincluded(nodeset, root-&gt;nodeset)</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :           || !hwloc_bitmap_isincluded(complete_nodeset, root-&gt;complete_nodeset)</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :           || !hwloc_bitmap_isincluded(complete_cpuset, root-&gt;complete_cpuset)))</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     root = root-&gt;parent;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :   if (!root) {</span>
+<span class="lineNum">     490 </span>            :     /* should not happen, ignore the distance matrix and report an error. */
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     if (!hwloc_hide_errors()) {</span>
+<span class="lineNum">     492 </span>            :       char *a, *b;
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :       hwloc_bitmap_asprintf(&amp;a, cpuset);</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :       hwloc_bitmap_asprintf(&amp;b, nodeset);</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;****************************************************************************\n&quot;);</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;* hwloc %s has encountered an error when adding a distance matrix to the topology.\n&quot;, HWLOC_VERSION);</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;*\n&quot;);</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;* hwloc_distances__finalize_logical() could not find any object covering\n&quot;);</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;* cpuset %s and nodeset %s\n&quot;, a, b);</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;*\n&quot;);</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;* Please report this error message to the hwloc user's mailing list,\n&quot;);</span>
+<span class="lineNum">     502 </span>            : #ifdef HWLOC_LINUX_SYS
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;* along with the output from the hwloc-gather-topology script.\n&quot;);</span>
+<span class="lineNum">     504 </span>            : #else
+<span class="lineNum">     505 </span>            :       fprintf(stderr, &quot;* along with any relevant topology information from your platform.\n&quot;);
+<span class="lineNum">     506 </span>            : #endif
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;****************************************************************************\n&quot;);</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :       free(a);</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :       free(b);</span>
+<span class="lineNum">     510 </span>            :     }
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :     hwloc_bitmap_free(cpuset);</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :     hwloc_bitmap_free(complete_cpuset);</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     hwloc_bitmap_free(nodeset);</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     hwloc_bitmap_free(complete_nodeset);</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     516 </span>            :   }
+<span class="lineNum">     517 </span>            :   /* don't attach to Misc objects */
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :   while (root-&gt;type == HWLOC_OBJ_MISC)</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     root = root-&gt;parent;</span>
+<span class="lineNum">     520 </span>            :   /* ideally, root has the exact cpuset and nodeset.
+<span class="lineNum">     521 </span>            :    * but ignoring or other things that remove objects may cause the object array to reduce */
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :   assert(hwloc_bitmap_isincluded(cpuset, root-&gt;cpuset));</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :   assert(hwloc_bitmap_isincluded(complete_cpuset, root-&gt;complete_cpuset));</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :   assert(hwloc_bitmap_isincluded(nodeset, root-&gt;nodeset));</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :   assert(hwloc_bitmap_isincluded(complete_nodeset, root-&gt;complete_nodeset));</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :   hwloc_bitmap_free(cpuset);</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :   hwloc_bitmap_free(complete_cpuset);</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :   hwloc_bitmap_free(nodeset);</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :   hwloc_bitmap_free(complete_nodeset);</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :   if (root-&gt;depth &gt;= objs[0]-&gt;depth) {</span>
+<span class="lineNum">     531 </span>            :     /* strange topology led us to find invalid relative depth, ignore */
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     533 </span>            :   }
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :   relative_depth = objs[0]-&gt;depth - root-&gt;depth; /* this assume that we have distances between objects of the same level */</span>
+<span class="lineNum">     535 </span>            : 
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :   if (nbobjs != hwloc_get_nbobjs_inside_cpuset_by_depth(topology, root-&gt;cpuset, root-&gt;depth + relative_depth))</span>
+<span class="lineNum">     537 </span>            :     /* the root does not cover the right number of objects, maybe we failed to insert a root (bad intersect or so). */
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span>            :   /* get the logical index offset, it's the min of all logical indexes */
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :   minl = UINT_MAX;</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :   for(i=0; i&lt;nbobjs; i++)</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :     if (minl &gt; objs[i]-&gt;logical_index)</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :       minl = objs[i]-&gt;logical_index;</span>
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            :   /* compute/check min/max values */
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :   for(i=0; i&lt;nbobjs; i++)</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     for(j=0; j&lt;nbobjs; j++) {</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :       float val = osmatrix[i*nbobjs+j];</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :       if (val &lt; min)</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :         min = val;</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :       if (val &gt; max)</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :         max = val;</span>
+<span class="lineNum">     554 </span>            :     }
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :   if (!min) {</span>
+<span class="lineNum">     556 </span>            :     /* Linux up to 2.6.36 reports ACPI SLIT distances, which should be memory latencies.
+<span class="lineNum">     557 </span>            :      * Except of SGI IP27 (SGI Origin 200/2000 with MIPS processors) where the distances
+<span class="lineNum">     558 </span>            :      * are the number of hops between routers.
+<span class="lineNum">     559 </span>            :      */
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :     hwloc_debug(&quot;%s&quot;, &quot;minimal distance is 0, matrix does not seem to contain latencies, ignoring\n&quot;);</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     562 </span>            :   }
+<span class="lineNum">     563 </span>            : 
+<span class="lineNum">     564 </span>            :   /* store the normalized latency matrix in the root object */
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :   idx = root-&gt;distances_count++;</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :   root-&gt;distances = realloc(root-&gt;distances, root-&gt;distances_count * sizeof(struct hwloc_distances_s *));</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :   root-&gt;distances[idx] = malloc(sizeof(struct hwloc_distances_s));</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :   root-&gt;distances[idx]-&gt;relative_depth = relative_depth;</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :   root-&gt;distances[idx]-&gt;nbobjs = nbobjs;</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :   root-&gt;distances[idx]-&gt;latency = matrix = malloc(nbobjs*nbobjs*sizeof(float));</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :   root-&gt;distances[idx]-&gt;latency_base = (float) min;</span>
+<span class="lineNum">     572 </span>            : #define NORMALIZE_LATENCY(d) ((d)/(min))
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :   root-&gt;distances[idx]-&gt;latency_max = NORMALIZE_LATENCY(max);</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :   for(i=0; i&lt;nbobjs; i++) {</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     li = objs[i]-&gt;logical_index - minl;</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :     matrix[li*nbobjs+li] = NORMALIZE_LATENCY(osmatrix[i*nbobjs+i]);</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :     for(j=i+1; j&lt;nbobjs; j++) {</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :       lj = objs[j]-&gt;logical_index - minl;</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :       matrix[li*nbobjs+lj] = NORMALIZE_LATENCY(osmatrix[i*nbobjs+j]);</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :       matrix[lj*nbobjs+li] = NORMALIZE_LATENCY(osmatrix[j*nbobjs+i]);</span>
+<span class="lineNum">     581 </span>            :     }
+<span class="lineNum">     582 </span>            :   }
+<span class="lineNum">     583 </span>            : }
+<span class="lineNum">     584 </span>            : 
+<span class="lineNum">     585 </span>            : /* convert internal distances into logically-ordered distances
+<span class="lineNum">     586 </span>            :  * that can be exposed in the API
+<a name="587"><span class="lineNum">     587 </span>            :  */</a>
+<span class="lineNum">     588 </span>            : void
+<span class="lineNum">     589 </span><span class="lineCov">          2 : hwloc_distances_finalize_logical(struct hwloc_topology *topology)</span>
+<span class="lineNum">     590 </span>            : {
+<span class="lineNum">     591 </span>            :   unsigned nbobjs;
+<span class="lineNum">     592 </span>            :   int depth;
+<span class="lineNum">     593 </span>            :   struct hwloc_os_distances_s * osdist;
+<span class="lineNum">     594 </span><span class="lineCov">          2 :   for(osdist = topology-&gt;first_osdist; osdist; osdist = osdist-&gt;next) {</span>
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :     nbobjs = osdist-&gt;nbobjs;</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :     if (!nbobjs)</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :     depth = hwloc_get_type_depth(topology, osdist-&gt;type);</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :     if (depth == HWLOC_TYPE_DEPTH_UNKNOWN || depth == HWLOC_TYPE_DEPTH_MULTIPLE)</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :     if (osdist-&gt;objs) {</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :       assert(osdist-&gt;distances);</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :       hwloc_distances__finalize_logical(topology, nbobjs,</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :                                         osdist-&gt;objs,</span>
+<span class="lineNum">     608 </span>            :                                         osdist-&gt;distances);
+<span class="lineNum">     609 </span>            :     }
+<span class="lineNum">     610 </span>            :   }
+<span class="lineNum">     611 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span>            : /***************************************************
+<span class="lineNum">     614 </span>            :  * Destroying logical distances attached to objects
+<span class="lineNum">     615 </span>            :  */
+<span class="lineNum">     616 </span>            : 
+<a name="617"><span class="lineNum">     617 </span>            : /* destroy an object distances structure */</a>
+<span class="lineNum">     618 </span>            : void
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 : hwloc_clear_object_distances_one(struct hwloc_distances_s * distances)</span>
+<span class="lineNum">     620 </span>            : {
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :   free(distances-&gt;latency);</span>
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :   free(distances);</span>
+<span class="lineNum">     623 </span>            : 
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 : }</span>
+<a name="625"><span class="lineNum">     625 </span>            : </a>
+<span class="lineNum">     626 </span>            : void
+<span class="lineNum">     627 </span><span class="lineCov">         70 : hwloc_clear_object_distances(hwloc_obj_t obj)</span>
+<span class="lineNum">     628 </span>            : {
+<span class="lineNum">     629 </span>            :   unsigned i;
+<span class="lineNum">     630 </span><span class="lineCov">         70 :   for (i=0; i&lt;obj-&gt;distances_count; i++)</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :     hwloc_clear_object_distances_one(obj-&gt;distances[i]);</span>
+<span class="lineNum">     632 </span><span class="lineCov">         70 :   free(obj-&gt;distances);</span>
+<span class="lineNum">     633 </span><span class="lineCov">         70 :   obj-&gt;distances = NULL;</span>
+<span class="lineNum">     634 </span><span class="lineCov">         70 :   obj-&gt;distances_count = 0;</span>
+<span class="lineNum">     635 </span><span class="lineCov">         70 : }</span>
+<span class="lineNum">     636 </span>            : 
+<span class="lineNum">     637 </span>            : /******************************************
+<span class="lineNum">     638 </span>            :  * Grouping objects according to distances
+<a name="639"><span class="lineNum">     639 </span>            :  */</a>
+<span class="lineNum">     640 </span>            : 
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 : static void hwloc_report_user_distance_error(const char *msg, int line)</span>
+<span class="lineNum">     642 </span>            : {
+<span class="lineNum">     643 </span>            :     static int reported = 0;
+<span class="lineNum">     644 </span>            : 
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :     if (!reported &amp;&amp; !hwloc_hide_errors()) {</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;****************************************************************************\n&quot;);</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;* hwloc %s has encountered what looks like an error from user-given distances.\n&quot;, HWLOC_VERSION);</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;*\n&quot;);</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;* %s\n&quot;, msg);</span>
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;* Error occurred in topology.c line %d\n&quot;, line);</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;*\n&quot;);</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;* Please make sure that distances given through the interface or environment\n&quot;);</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;* variables do not contradict any other topology information.\n&quot;);</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;****************************************************************************\n&quot;);</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :         reported = 1;</span>
+<span class="lineNum">     656 </span>            :     }
+<a name="657"><span class="lineNum">     657 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     658 </span>            : 
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 : static int hwloc_compare_distances(float a, float b, float accuracy)</span>
+<span class="lineNum">     660 </span>            : {
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :   if (accuracy != 0.0 &amp;&amp; fabsf(a-b) &lt; a * accuracy)</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :   return a &lt; b ? -1 : a == b ? 0 : 1;</span>
+<span class="lineNum">     664 </span>            : }
+<span class="lineNum">     665 </span>            : 
+<span class="lineNum">     666 </span>            : /*
+<span class="lineNum">     667 </span>            :  * Place objects in groups if they are in a transitive graph of minimal distances.
+<span class="lineNum">     668 </span>            :  * Return how many groups were created, or 0 if some incomplete distance graphs were found.
+<a name="669"><span class="lineNum">     669 </span>            :  */</a>
+<span class="lineNum">     670 </span>            : static unsigned
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 : hwloc__find_groups_by_min_distance(unsigned nbobjs,</span>
+<span class="lineNum">     672 </span>            :                                    float *_distances,
+<span class="lineNum">     673 </span>            :                                    float accuracy,
+<span class="lineNum">     674 </span>            :                                    unsigned *groupids,
+<span class="lineNum">     675 </span>            :                                    int verbose)
+<span class="lineNum">     676 </span>            : {
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :   float min_distance = FLT_MAX;</span>
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :   unsigned groupid = 1;</span>
+<span class="lineNum">     679 </span>            :   unsigned i,j,k;
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :   unsigned skipped = 0;</span>
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span>            : #define DISTANCE(i, j) _distances[(i) * nbobjs + (j)]
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :   memset(groupids, 0, nbobjs*sizeof(*groupids));</span>
+<span class="lineNum">     685 </span>            : 
+<span class="lineNum">     686 </span>            :   /* find the minimal distance */
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :   for(i=0; i&lt;nbobjs; i++)</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :     for(j=0; j&lt;nbobjs; j++) /* check the entire matrix, it may not be perfectly symmetric depending on the accuracy */</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :       if (i != j &amp;&amp; DISTANCE(i, j) &lt; min_distance) /* no accuracy here, we want the real minimal */</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :         min_distance = DISTANCE(i, j);</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :   hwloc_debug(&quot;found minimal distance %f between objects\n&quot;, min_distance);</span>
+<span class="lineNum">     692 </span>            : 
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :   if (min_distance == FLT_MAX)</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     695 </span>            : 
+<span class="lineNum">     696 </span>            :   /* build groups of objects connected with this distance */
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :   for(i=0; i&lt;nbobjs; i++) {</span>
+<span class="lineNum">     698 </span>            :     unsigned size;
+<span class="lineNum">     699 </span>            :     int firstfound;
+<span class="lineNum">     700 </span>            : 
+<span class="lineNum">     701 </span>            :     /* if already grouped, skip */
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :     if (groupids[i])</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span>            :     /* start a new group */
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :     groupids[i] = groupid;</span>
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :     size = 1;</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :     firstfound = i;</span>
+<span class="lineNum">     709 </span>            : 
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :     while (firstfound != -1) {</span>
+<span class="lineNum">     711 </span>            :       /* we added new objects to the group, the first one was firstfound.
+<span class="lineNum">     712 </span>            :        * rescan all connections from these new objects (starting at first found) to any other objects,
+<span class="lineNum">     713 </span>            :        * so as to find new objects minimally-connected by transivity.
+<span class="lineNum">     714 </span>            :        */
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :       int newfirstfound = -1;</span>
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :       for(j=firstfound; j&lt;nbobjs; j++)</span>
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :         if (groupids[j] == groupid)</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :           for(k=0; k&lt;nbobjs; k++)</span>
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :               if (!groupids[k] &amp;&amp; !hwloc_compare_distances(DISTANCE(j, k), min_distance, accuracy)) {</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :               groupids[k] = groupid;</span>
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :               size++;</span>
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :               if (newfirstfound == -1)</span>
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :                 newfirstfound = k;</span>
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :               if (i == j)</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :                 hwloc_debug(&quot;object %u is minimally connected to %u\n&quot;, k, i);</span>
+<span class="lineNum">     726 </span>            :               else
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :                 hwloc_debug(&quot;object %u is minimally connected to %u through %u\n&quot;, k, i, j);</span>
+<span class="lineNum">     728 </span>            :             }
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :       firstfound = newfirstfound;</span>
+<span class="lineNum">     730 </span>            :     }
+<span class="lineNum">     731 </span>            : 
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :     if (size == 1) {</span>
+<span class="lineNum">     733 </span>            :       /* cancel this useless group, ignore this object and try from the next one */
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :       groupids[i] = 0;</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :       skipped++;</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     737 </span>            :     }
+<span class="lineNum">     738 </span>            : 
+<span class="lineNum">     739 </span>            :     /* valid this group */
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :     groupid++;</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :     if (verbose)</span>
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Found transitive graph with %u objects with minimal distance %f accuracy %f\n&quot;,</span>
+<span class="lineNum">     743 </span>            :               size, min_distance, accuracy);
+<span class="lineNum">     744 </span>            :   }
+<span class="lineNum">     745 </span>            : 
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :   if (groupid == 2 &amp;&amp; !skipped)</span>
+<span class="lineNum">     747 </span>            :     /* we created a single group containing all objects, ignore it */
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     749 </span>            : 
+<span class="lineNum">     750 </span>            :   /* return the last id, since it's also the number of used group ids */
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :   return groupid-1;</span>
+<span class="lineNum">     752 </span>            : }
+<span class="lineNum">     753 </span>            : 
+<a name="754"><span class="lineNum">     754 </span>            : /* check that the matrix is ok */</a>
+<span class="lineNum">     755 </span>            : static int
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 : hwloc__check_grouping_matrix(unsigned nbobjs, float *_distances, float accuracy, int verbose)</span>
+<span class="lineNum">     757 </span>            : {
+<span class="lineNum">     758 </span>            :   unsigned i,j;
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :   for(i=0; i&lt;nbobjs; i++) {</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :     for(j=i+1; j&lt;nbobjs; j++) {</span>
+<span class="lineNum">     761 </span>            :       /* should be symmetric */
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :       if (hwloc_compare_distances(DISTANCE(i, j), DISTANCE(j, i), accuracy)) {</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :         if (verbose)</span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :           fprintf(stderr, &quot;Distance matrix asymmetric ([%u,%u]=%f != [%u,%u]=%f), aborting\n&quot;,</span>
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :                   i, j, DISTANCE(i, j), j, i, DISTANCE(j, i));</span>
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     767 </span>            :       }
+<span class="lineNum">     768 </span>            :       /* diagonal is smaller than everything else */
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :       if (hwloc_compare_distances(DISTANCE(i, j), DISTANCE(i, i), accuracy) &lt;= 0) {</span>
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :         if (verbose)</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :           fprintf(stderr, &quot;Distance to self not strictly minimal ([%u,%u]=%f &lt;= [%u,%u]=%f), aborting\n&quot;,</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :                   i, j, DISTANCE(i, j), i, i, DISTANCE(i, i));</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     774 </span>            :       }
+<span class="lineNum">     775 </span>            :     }
+<span class="lineNum">     776 </span>            :   }
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     778 </span>            : }
+<span class="lineNum">     779 </span>            : 
+<span class="lineNum">     780 </span>            : /*
+<span class="lineNum">     781 </span>            :  * Look at object physical distances to group them.
+<a name="782"><span class="lineNum">     782 </span>            :  */</a>
+<span class="lineNum">     783 </span>            : static void
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 : hwloc__groups_by_distances(struct hwloc_topology *topology,</span>
+<span class="lineNum">     785 </span>            :                            unsigned nbobjs,
+<span class="lineNum">     786 </span>            :                            struct hwloc_obj **objs,
+<span class="lineNum">     787 </span>            :                            float *_distances,
+<span class="lineNum">     788 </span>            :                            unsigned nbaccuracies, float *accuracies,
+<span class="lineNum">     789 </span>            :                            int fromuser,
+<span class="lineNum">     790 </span>            :                            int needcheck,
+<span class="lineNum">     791 </span>            :                            int verbose)
+<span class="lineNum">     792 </span>            : {
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :   unsigned *groupids = NULL;</span>
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :   unsigned nbgroups = 0;</span>
+<span class="lineNum">     795 </span>            :   unsigned i,j;
+<span class="lineNum">     796 </span>            : 
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :   if (nbobjs &lt;= 2) {</span>
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     799 </span>            :   }
+<span class="lineNum">     800 </span>            : 
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :   groupids = malloc(sizeof(unsigned) * nbobjs);</span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :   if (NULL == groupids) {</span>
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     804 </span>            :   }
+<span class="lineNum">     805 </span>            : 
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :   for(i=0; i&lt;nbaccuracies; i++) {</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :     if (verbose)</span>
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :       fprintf(stderr, &quot;Trying to group %u %s objects according to physical distances with accuracy %f\n&quot;,</span>
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :               nbobjs, hwloc_obj_type_string(objs[0]-&gt;type), accuracies[i]);</span>
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :     if (needcheck &amp;&amp; hwloc__check_grouping_matrix(nbobjs, _distances, accuracies[i], verbose) &lt; 0)</span>
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :     nbgroups = hwloc__find_groups_by_min_distance(nbobjs, _distances, accuracies[i], groupids, verbose);</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :     if (nbgroups)</span>
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     815 </span>            :   }
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :   if (!nbgroups)</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :     goto outter_free;</span>
+<span class="lineNum">     818 </span>            : 
+<span class="lineNum">     819 </span>            :   /* For convenience, put these declarations inside a block.  It's a
+<span class="lineNum">     820 </span>            :      crying shame we can't use C99 syntax here, and have to do a bunch
+<span class="lineNum">     821 </span>            :      of mallocs. :-( */
+<span class="lineNum">     822 </span>            :   {
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :       hwloc_obj_t *groupobjs = NULL;</span>
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :       unsigned *groupsizes = NULL;</span>
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :       float *groupdistances = NULL;</span>
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :       unsigned failed = 0;</span>
+<span class="lineNum">     827 </span>            : 
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :       groupobjs = malloc(sizeof(hwloc_obj_t) * nbgroups);</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :       groupsizes = malloc(sizeof(unsigned) * nbgroups);</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :       groupdistances = malloc(sizeof(float) * nbgroups * nbgroups);</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :       if (NULL == groupobjs || NULL == groupsizes || NULL == groupdistances) {</span>
+<span class="lineNum">     832 </span>            :           goto inner_free;
+<span class="lineNum">     833 </span>            :       }
+<span class="lineNum">     834 </span>            :       /* create new Group objects and record their size */
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :       memset(&amp;(groupsizes[0]), 0, sizeof(groupsizes[0]) * nbgroups);</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :       for(i=0; i&lt;nbgroups; i++) {</span>
+<span class="lineNum">     837 </span>            :           /* create the Group object */
+<span class="lineNum">     838 </span>            :           hwloc_obj_t group_obj, res_obj;
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :           group_obj = hwloc_alloc_setup_object(HWLOC_OBJ_GROUP, -1);</span>
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :           group_obj-&gt;cpuset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :           group_obj-&gt;attr-&gt;group.depth = topology-&gt;next_group_depth;</span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :           for (j=0; j&lt;nbobjs; j++)</span>
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :             if (groupids[j] == i+1) {</span>
+<span class="lineNum">     844 </span>            :               /* assemble the group cpuset */
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :               hwloc_bitmap_or(group_obj-&gt;cpuset, group_obj-&gt;cpuset, objs[j]-&gt;cpuset);</span>
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :               if (objs[i]-&gt;complete_cpuset) {</span>
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :                 if (!group_obj-&gt;complete_cpuset)</span>
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :                   group_obj-&gt;complete_cpuset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">     849 </span><span class="lineNoCov">          0 :                 hwloc_bitmap_or(group_obj-&gt;complete_cpuset, group_obj-&gt;complete_cpuset, objs[j]-&gt;complete_cpuset);</span>
+<span class="lineNum">     850 </span>            :               }
+<span class="lineNum">     851 </span>            :               /* if one obj has a nodeset, assemble a group nodeset */
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :               if (objs[j]-&gt;nodeset) {</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :                 if (!group_obj-&gt;nodeset)</span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :                   group_obj-&gt;nodeset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :                 hwloc_bitmap_or(group_obj-&gt;nodeset, group_obj-&gt;nodeset, objs[j]-&gt;nodeset);</span>
+<span class="lineNum">     856 </span>            :               }
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :               if (objs[i]-&gt;complete_nodeset) {</span>
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :                 if (!group_obj-&gt;complete_nodeset)</span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :                   group_obj-&gt;complete_nodeset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :                 hwloc_bitmap_or(group_obj-&gt;complete_nodeset, group_obj-&gt;complete_nodeset, objs[j]-&gt;complete_nodeset);</span>
+<span class="lineNum">     861 </span>            :               }
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :               groupsizes[i]++;</span>
+<span class="lineNum">     863 </span>            :             }
+<span class="lineNum">     864 </span>            :           hwloc_debug_1arg_bitmap(&quot;adding Group object with %u objects and cpuset %s\n&quot;,
+<span class="lineNum">     865 </span>            :                                   groupsizes[i], group_obj-&gt;cpuset);
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :           res_obj = hwloc__insert_object_by_cpuset(topology, group_obj,</span>
+<span class="lineNum">     867 </span>            :                                                    fromuser ? hwloc_report_user_distance_error : hwloc_report_os_error);
+<span class="lineNum">     868 </span>            :           /* res_obj may be NULL on failure to insert. */
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :           if (!res_obj)</span>
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :             failed++;</span>
+<span class="lineNum">     871 </span>            :           /* or it may be different from groupobjs if we got groups from XML import before grouping */
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :           groupobjs[i] = res_obj;</span>
+<span class="lineNum">     873 </span>            :       }
+<span class="lineNum">     874 </span>            : 
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :       if (failed)</span>
+<span class="lineNum">     876 </span>            :         /* don't try to group above if we got a NULL group here, just keep this incomplete level */
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :         goto inner_free;</span>
+<span class="lineNum">     878 </span>            : 
+<span class="lineNum">     879 </span>            :       /* factorize distances */
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :       memset(&amp;(groupdistances[0]), 0, sizeof(groupdistances[0]) * nbgroups * nbgroups);</span>
+<span class="lineNum">     881 </span>            : #undef DISTANCE
+<span class="lineNum">     882 </span>            : #define DISTANCE(i, j) _distances[(i) * nbobjs + (j)]
+<span class="lineNum">     883 </span>            : #define GROUP_DISTANCE(i, j) groupdistances[(i) * nbgroups + (j)]
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :       for(i=0; i&lt;nbobjs; i++)</span>
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :         if (groupids[i])</span>
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :           for(j=0; j&lt;nbobjs; j++)</span>
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :             if (groupids[j])</span>
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :                 GROUP_DISTANCE(groupids[i]-1, groupids[j]-1) += DISTANCE(i, j);</span>
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :       for(i=0; i&lt;nbgroups; i++)</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :           for(j=0; j&lt;nbgroups; j++) {</span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :               unsigned groupsize = groupsizes[i]*groupsizes[j];</span>
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :               float groupsizef = (float) groupsize;</span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :               GROUP_DISTANCE(i, j) /= groupsizef;</span>
+<span class="lineNum">     894 </span>            :           }
+<span class="lineNum">     895 </span>            : #ifdef HWLOC_DEBUG
+<span class="lineNum">     896 </span>            :       hwloc_debug(&quot;%s&quot;, &quot;generated new distance matrix between groups:\n&quot;);
+<span class="lineNum">     897 </span>            :       hwloc_debug(&quot;%s&quot;, &quot;  index&quot;);
+<span class="lineNum">     898 </span>            :       for(j=0; j&lt;nbgroups; j++)
+<span class="lineNum">     899 </span>            :         hwloc_debug(&quot; % 5d&quot;, (int) j); /* print index because os_index is -1 for Groups */
+<span class="lineNum">     900 </span>            :       hwloc_debug(&quot;%s&quot;, &quot;\n&quot;);
+<span class="lineNum">     901 </span>            :       for(i=0; i&lt;nbgroups; i++) {
+<span class="lineNum">     902 </span>            :         hwloc_debug(&quot;  % 5d&quot;, (int) i);
+<span class="lineNum">     903 </span>            :         for(j=0; j&lt;nbgroups; j++)
+<span class="lineNum">     904 </span>            :           hwloc_debug(&quot; %2.3f&quot;, GROUP_DISTANCE(i, j));
+<span class="lineNum">     905 </span>            :         hwloc_debug(&quot;%s&quot;, &quot;\n&quot;);
+<span class="lineNum">     906 </span>            :       }
+<span class="lineNum">     907 </span>            : #endif
+<span class="lineNum">     908 </span>            : 
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :       topology-&gt;next_group_depth++;</span>
+<span class="lineNum">     910 </span><span class="lineNoCov">          0 :       hwloc__groups_by_distances(topology, nbgroups, groupobjs, (float*) groupdistances, nbaccuracies, accuracies, fromuser, 0 /* no need to check generated matrix */, verbose);</span>
+<span class="lineNum">     911 </span>            : 
+<span class="lineNum">     912 </span>            :   inner_free:
+<span class="lineNum">     913 </span>            :       /* Safely free everything */
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :       if (NULL != groupobjs) {</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :           free(groupobjs);</span>
+<span class="lineNum">     916 </span>            :       }
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :       if (NULL != groupsizes) {</span>
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :           free(groupsizes);</span>
+<span class="lineNum">     919 </span>            :       }
+<span class="lineNum">     920 </span><span class="lineNoCov">          0 :       if (NULL != groupdistances) {</span>
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :           free(groupdistances);</span>
+<span class="lineNum">     922 </span>            :       }
+<span class="lineNum">     923 </span>            :   }
+<span class="lineNum">     924 </span>            : 
+<span class="lineNum">     925 </span>            :  outter_free:
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :   if (NULL != groupids) {</span>
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :       free(groupids);</span>
+<span class="lineNum">     928 </span>            :   }
+<span class="lineNum">     929 </span>            : }
+<a name="930"><span class="lineNum">     930 </span>            : </a>
+<span class="lineNum">     931 </span>            : void
+<span class="lineNum">     932 </span><span class="lineCov">          2 : hwloc_group_by_distances(struct hwloc_topology *topology)</span>
+<span class="lineNum">     933 </span>            : {
+<span class="lineNum">     934 </span>            :   unsigned nbobjs;
+<span class="lineNum">     935 </span>            :   struct hwloc_os_distances_s * osdist;
+<span class="lineNum">     936 </span>            :   const char *env;
+<span class="lineNum">     937 </span><span class="lineCov">          2 :   float accuracies[5] = { 0.0f, 0.01f, 0.02f, 0.05f, 0.1f };</span>
+<span class="lineNum">     938 </span><span class="lineCov">          2 :   unsigned nbaccuracies = 5;</span>
+<span class="lineNum">     939 </span>            :   hwloc_obj_t group_obj;
+<span class="lineNum">     940 </span><span class="lineCov">          2 :   int verbose = 0;</span>
+<span class="lineNum">     941 </span>            :   unsigned i;
+<span class="lineNum">     942 </span>            :   hwloc_localeswitch_declare;
+<span class="lineNum">     943 </span>            : #ifdef HWLOC_DEBUG
+<span class="lineNum">     944 </span>            :   unsigned j;
+<span class="lineNum">     945 </span>            : #endif
+<span class="lineNum">     946 </span>            : 
+<span class="lineNum">     947 </span><span class="lineCov">          2 :   env = getenv(&quot;HWLOC_GROUPING&quot;);</span>
+<span class="lineNum">     948 </span><span class="lineCov">          2 :   if (env &amp;&amp; !atoi(env))</span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     950 </span>            :   /* backward compat with v1.2 */
+<span class="lineNum">     951 </span><span class="lineCov">          2 :   if (getenv(&quot;HWLOC_IGNORE_DISTANCES&quot;))</span>
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     953 </span>            : 
+<span class="lineNum">     954 </span>            :   hwloc_localeswitch_init();
+<span class="lineNum">     955 </span><span class="lineCov">          2 :   env = getenv(&quot;HWLOC_GROUPING_ACCURACY&quot;);</span>
+<span class="lineNum">     956 </span><span class="lineCov">          2 :   if (!env) {</span>
+<span class="lineNum">     957 </span>            :     /* only use 0.0 */
+<span class="lineNum">     958 </span><span class="lineCov">          2 :     nbaccuracies = 1;</span>
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :   } else if (strcmp(env, &quot;try&quot;)) {</span>
+<span class="lineNum">     960 </span>            :     /* use the given value */
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :     nbaccuracies = 1;</span>
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :     accuracies[0] = (float) atof(env);</span>
+<span class="lineNum">     963 </span>            :   } /* otherwise try all values */
+<span class="lineNum">     964 </span>            :   hwloc_localeswitch_fini();
+<span class="lineNum">     965 </span>            : 
+<span class="lineNum">     966 </span>            : #ifdef HWLOC_DEBUG
+<span class="lineNum">     967 </span>            :   verbose = 1;
+<span class="lineNum">     968 </span>            : #else
+<span class="lineNum">     969 </span><span class="lineCov">          2 :   env = getenv(&quot;HWLOC_GROUPING_VERBOSE&quot;);</span>
+<span class="lineNum">     970 </span><span class="lineCov">          2 :   if (env)</span>
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :     verbose = atoi(env);</span>
+<span class="lineNum">     972 </span>            : #endif
+<span class="lineNum">     973 </span>            : 
+<span class="lineNum">     974 </span><span class="lineCov">          2 :   for(osdist = topology-&gt;first_osdist; osdist; osdist = osdist-&gt;next) {</span>
+<span class="lineNum">     975 </span>            : 
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :     nbobjs = osdist-&gt;nbobjs;</span>
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :     if (!nbobjs)</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     979 </span>            : 
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :     if (osdist-&gt;objs) {</span>
+<span class="lineNum">     981 </span>            :       /* if we have objs, we must have distances as well,
+<span class="lineNum">     982 </span>            :        * thanks to hwloc_convert_distances_indexes_into_objects()
+<span class="lineNum">     983 </span>            :        */
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :       assert(osdist-&gt;distances);</span>
+<span class="lineNum">     985 </span>            : 
+<span class="lineNum">     986 </span>            : #ifdef HWLOC_DEBUG
+<span class="lineNum">     987 </span>            :       hwloc_debug(&quot;%s&quot;, &quot;trying to group objects using distance matrix:\n&quot;);
+<span class="lineNum">     988 </span>            :       hwloc_debug(&quot;%s&quot;, &quot;  index&quot;);
+<span class="lineNum">     989 </span>            :       for(j=0; j&lt;nbobjs; j++)
+<span class="lineNum">     990 </span>            :         hwloc_debug(&quot; % 5d&quot;, (int) osdist-&gt;objs[j]-&gt;os_index);
+<span class="lineNum">     991 </span>            :       hwloc_debug(&quot;%s&quot;, &quot;\n&quot;);
+<span class="lineNum">     992 </span>            :       for(i=0; i&lt;nbobjs; i++) {
+<span class="lineNum">     993 </span>            :         hwloc_debug(&quot;  % 5d&quot;, (int) osdist-&gt;objs[i]-&gt;os_index);
+<span class="lineNum">     994 </span>            :         for(j=0; j&lt;nbobjs; j++)
+<span class="lineNum">     995 </span>            :           hwloc_debug(&quot; %2.3f&quot;, osdist-&gt;distances[i*nbobjs + j]);
+<span class="lineNum">     996 </span>            :         hwloc_debug(&quot;%s&quot;, &quot;\n&quot;);
+<span class="lineNum">     997 </span>            :       }
+<span class="lineNum">     998 </span>            : #endif
+<span class="lineNum">     999 </span>            : 
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :       hwloc__groups_by_distances(topology, nbobjs,</span>
+<span class="lineNum">    1001 </span>            :                                  osdist-&gt;objs,
+<span class="lineNum">    1002 </span>            :                                  osdist-&gt;distances,
+<span class="lineNum">    1003 </span>            :                                  nbaccuracies, accuracies,
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :                                  osdist-&gt;indexes != NULL,</span>
+<span class="lineNum">    1005 </span>            :                                  1 /* check the first matrice */,
+<span class="lineNum">    1006 </span>            :                                  verbose);
+<span class="lineNum">    1007 </span>            : 
+<span class="lineNum">    1008 </span>            :       /* add a final group object covering everybody so that the distance matrix can be stored somewhere.
+<span class="lineNum">    1009 </span>            :        * this group will be merged into a regular object if the matrix isn't strangely incomplete
+<span class="lineNum">    1010 </span>            :        */
+<span class="lineNum">    1011 </span><span class="lineNoCov">          0 :       group_obj = hwloc_alloc_setup_object(HWLOC_OBJ_GROUP, -1);</span>
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :       group_obj-&gt;attr-&gt;group.depth = (unsigned) -1;</span>
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :       group_obj-&gt;cpuset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :       for(i=0; i&lt;nbobjs; i++) {</span>
+<span class="lineNum">    1015 </span>            :         /* assemble the group cpuset */
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :         hwloc_bitmap_or(group_obj-&gt;cpuset, group_obj-&gt;cpuset, osdist-&gt;objs[i]-&gt;cpuset);</span>
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :         if (osdist-&gt;objs[i]-&gt;complete_cpuset) {</span>
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :           if (!group_obj-&gt;complete_cpuset)</span>
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :             group_obj-&gt;complete_cpuset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :           hwloc_bitmap_or(group_obj-&gt;complete_cpuset, group_obj-&gt;complete_cpuset, osdist-&gt;objs[i]-&gt;complete_cpuset);</span>
+<span class="lineNum">    1021 </span>            :         }
+<span class="lineNum">    1022 </span>            :         /* if one obj has a nodeset, assemble a group nodeset */
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :         if (osdist-&gt;objs[i]-&gt;nodeset) {</span>
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :           if (!group_obj-&gt;nodeset)</span>
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :             group_obj-&gt;nodeset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :           hwloc_bitmap_or(group_obj-&gt;nodeset, group_obj-&gt;nodeset, osdist-&gt;objs[i]-&gt;nodeset);</span>
+<span class="lineNum">    1027 </span>            :         }
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :         if (osdist-&gt;objs[i]-&gt;complete_nodeset) {</span>
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :           if (!group_obj-&gt;complete_nodeset)</span>
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :             group_obj-&gt;complete_nodeset = hwloc_bitmap_alloc();</span>
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :           hwloc_bitmap_or(group_obj-&gt;complete_nodeset, group_obj-&gt;complete_nodeset, osdist-&gt;objs[i]-&gt;complete_nodeset);</span>
+<span class="lineNum">    1032 </span>            :         }
+<span class="lineNum">    1033 </span>            :       }
+<span class="lineNum">    1034 </span>            :       hwloc_debug_1arg_bitmap(&quot;adding Group object (as root of distance matrix with %u objects) with cpuset %s\n&quot;,
+<span class="lineNum">    1035 </span>            :                               nbobjs, group_obj-&gt;cpuset);
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :       hwloc__insert_object_by_cpuset(topology, group_obj,</span>
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :                                      osdist-&gt;indexes != NULL ? hwloc_report_user_distance_error : hwloc_report_os_error);</span>
+<span class="lineNum">    1038 </span>            :     }
+<span class="lineNum">    1039 </span>            :   }
+<span class="lineNum">    1040 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

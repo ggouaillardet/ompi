@@ -1,0 +1,688 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/include/opal/sys/atomic.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/include/opal/sys</a> - atomic.h<span style="font-size: 80%;"> (source / <a href="atomic.h.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2006 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2007      Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2011      Sandia National Laboratories. All rights reserved.
+<span class="lineNum">      14 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * $HEADER$
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : /** @file
+<span class="lineNum">      22 </span>            :  *
+<span class="lineNum">      23 </span>            :  * Atomic operations.
+<span class="lineNum">      24 </span>            :  *
+<span class="lineNum">      25 </span>            :  * This API is patterned after the FreeBSD kernel atomic interface
+<span class="lineNum">      26 </span>            :  * (which is influenced by Intel's ia64 architecture).  The
+<span class="lineNum">      27 </span>            :  * FreeBSD interface is documented at
+<span class="lineNum">      28 </span>            :  *
+<span class="lineNum">      29 </span>            :  * http://www.freebsd.org/cgi/man.cgi?query=atomic&amp;sektion=9
+<span class="lineNum">      30 </span>            :  *
+<span class="lineNum">      31 </span>            :  * Only the necessary subset of functions are implemented here.
+<span class="lineNum">      32 </span>            :  *
+<span class="lineNum">      33 </span>            :  * The following #defines will be true / false based on
+<span class="lineNum">      34 </span>            :  * assembly support:
+<span class="lineNum">      35 </span>            :  *
+<span class="lineNum">      36 </span>            :  *  - \c OPAL_HAVE_ATOMIC_MEM_BARRIER atomic memory barriers
+<span class="lineNum">      37 </span>            :  *  - \c OPAL_HAVE_ATOMIC_SPINLOCKS atomic spinlocks
+<span class="lineNum">      38 </span>            :  *  - \c OPAL_HAVE_ATOMIC_MATH_32 if 32 bit add/sub/cmpset can be done &quot;atomicly&quot;
+<span class="lineNum">      39 </span>            :  *  - \c OPAL_HAVE_ATOMIC_MATH_64 if 32 bit add/sub/cmpset can be done &quot;atomicly&quot;
+<span class="lineNum">      40 </span>            :  *
+<span class="lineNum">      41 </span>            :  * Note that for the Atomic math, atomic add/sub may be implemented as
+<span class="lineNum">      42 </span>            :  * C code using opal_atomic_cmpset.  The appearance of atomic
+<span class="lineNum">      43 </span>            :  * operation will be upheld in these cases.
+<span class="lineNum">      44 </span>            :  */
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : #ifndef OPAL_SYS_ATOMIC_H
+<span class="lineNum">      47 </span>            : #define OPAL_SYS_ATOMIC_H 1
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            : #include &quot;opal/sys/architecture.h&quot;
+<span class="lineNum">      52 </span>            : #include &quot;opal_stdint.h&quot;
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : /* do some quick #define cleanup in cases where we are doing
+<span class="lineNum">      55 </span>            :    testing... */
+<span class="lineNum">      56 </span>            : #ifdef OPAL_DISABLE_INLINE_ASM
+<span class="lineNum">      57 </span>            : #undef OPAL_C_GCC_INLINE_ASSEMBLY
+<span class="lineNum">      58 </span>            : #define OPAL_C_GCC_INLINE_ASSEMBLY 0
+<span class="lineNum">      59 </span>            : #undef OPAL_C_DEC_INLINE_ASSEMBLY
+<span class="lineNum">      60 </span>            : #define OPAL_C_DEC_INLINE_ASSEMBLY 0
+<span class="lineNum">      61 </span>            : #undef OPAL_C_XLC_INLINE_ASSEMBLY
+<span class="lineNum">      62 </span>            : #define OPAL_C_XLC_INLINE_ASSEMBLY 0
+<span class="lineNum">      63 </span>            : #endif
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : /* define OPAL_{GCC,DEC,XLC}_INLINE_ASSEMBLY based on the
+<span class="lineNum">      66 </span>            :    OPAL_C_{GCC,DEC,XLC}_INLINE_ASSEMBLY defines and whether we
+<span class="lineNum">      67 </span>            :    are in C or C++ */
+<span class="lineNum">      68 </span>            : #if defined(c_plusplus) || defined(__cplusplus)
+<span class="lineNum">      69 </span>            : /* We no longer support inline assembly for C++ as OPAL is a C-only interface */
+<span class="lineNum">      70 </span>            : #define OPAL_GCC_INLINE_ASSEMBLY 0
+<span class="lineNum">      71 </span>            : #define OPAL_DEC_INLINE_ASSEMBLY 0
+<span class="lineNum">      72 </span>            : #define OPAL_XLC_INLINE_ASSEMBLY 0
+<span class="lineNum">      73 </span>            : #else
+<span class="lineNum">      74 </span>            : #define OPAL_GCC_INLINE_ASSEMBLY OPAL_C_GCC_INLINE_ASSEMBLY
+<span class="lineNum">      75 </span>            : #define OPAL_DEC_INLINE_ASSEMBLY OPAL_C_DEC_INLINE_ASSEMBLY
+<span class="lineNum">      76 </span>            : #define OPAL_XLC_INLINE_ASSEMBLY OPAL_C_XLC_INLINE_ASSEMBLY
+<span class="lineNum">      77 </span>            : #endif
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span>            : BEGIN_C_DECLS
+<span class="lineNum">      81 </span>            : /**********************************************************************
+<span class="lineNum">      82 </span>            :  *
+<span class="lineNum">      83 </span>            :  * Data structures for atomic ops
+<span class="lineNum">      84 </span>            :  *
+<span class="lineNum">      85 </span>            :  *********************************************************************/
+<span class="lineNum">      86 </span>            : /**
+<span class="lineNum">      87 </span>            :  * Volatile lock object (with optional padding).
+<span class="lineNum">      88 </span>            :  *
+<span class="lineNum">      89 </span>            :  * \note The internals of the lock are included here, but should be
+<span class="lineNum">      90 </span>            :  * considered private.  The implementation currently in use may choose
+<span class="lineNum">      91 </span>            :  * to use an int or unsigned char as the lock value - the user is not
+<span class="lineNum">      92 </span>            :  * informed either way.
+<span class="lineNum">      93 </span>            :  */
+<span class="lineNum">      94 </span>            : struct opal_atomic_lock_t {
+<span class="lineNum">      95 </span>            :     union {
+<span class="lineNum">      96 </span>            :         volatile int32_t lock;     /**&lt; The lock address (an integer) */
+<span class="lineNum">      97 </span>            :         volatile unsigned char sparc_lock; /**&lt; The lock address on sparc */
+<span class="lineNum">      98 </span>            :         char padding[sizeof(int)]; /**&lt; Array for optional padding */
+<span class="lineNum">      99 </span>            :     } u;
+<span class="lineNum">     100 </span>            : };
+<span class="lineNum">     101 </span>            : typedef struct opal_atomic_lock_t opal_atomic_lock_t;
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            : /**********************************************************************
+<span class="lineNum">     104 </span>            :  *
+<span class="lineNum">     105 </span>            :  * Set or unset these macros in the architecture-specific atomic.h
+<span class="lineNum">     106 </span>            :  * files if we need to specify them as inline or non-inline
+<span class="lineNum">     107 </span>            :  *
+<span class="lineNum">     108 </span>            :  *********************************************************************/
+<span class="lineNum">     109 </span>            : #if !OPAL_GCC_INLINE_ASSEMBLY
+<span class="lineNum">     110 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_MEM_BARRIER 0
+<span class="lineNum">     111 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_CMPSET_32 0
+<span class="lineNum">     112 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_CMPSET_64 0
+<span class="lineNum">     113 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_ADD_32 0
+<span class="lineNum">     114 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_SUB_32 0
+<span class="lineNum">     115 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_ADD_64 0
+<span class="lineNum">     116 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_SUB_64 0
+<span class="lineNum">     117 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_SWAP_32 0
+<span class="lineNum">     118 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_SWAP_64 0
+<span class="lineNum">     119 </span>            : #else
+<span class="lineNum">     120 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_MEM_BARRIER 1
+<span class="lineNum">     121 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_CMPSET_32 1
+<span class="lineNum">     122 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_CMPSET_64 1
+<span class="lineNum">     123 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_ADD_32 1
+<span class="lineNum">     124 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_SUB_32 1
+<span class="lineNum">     125 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_ADD_64 1
+<span class="lineNum">     126 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_SUB_64 1
+<span class="lineNum">     127 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_SWAP_32 1
+<span class="lineNum">     128 </span>            : #define OPAL_HAVE_INLINE_ATOMIC_SWAP_64 1
+<span class="lineNum">     129 </span>            : #endif
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            : /**********************************************************************
+<span class="lineNum">     132 </span>            :  *
+<span class="lineNum">     133 </span>            :  * Load the appropriate architecture files and set some reasonable
+<span class="lineNum">     134 </span>            :  * default values for our support
+<span class="lineNum">     135 </span>            :  *
+<span class="lineNum">     136 </span>            :  *********************************************************************/
+<span class="lineNum">     137 </span>            : #if defined(DOXYGEN)
+<span class="lineNum">     138 </span>            : /* don't include system-level gorp when generating doxygen files */
+<span class="lineNum">     139 </span>            : #elif OPAL_ASSEMBLY_BUILTIN == OPAL_BUILTIN_SYNC
+<span class="lineNum">     140 </span>            : #include &quot;opal/sys/sync_builtin/atomic.h&quot;
+<span class="lineNum">     141 </span>            : #elif OPAL_ASSEMBLY_BUILTIN == OPAL_BUILTIN_OSX
+<span class="lineNum">     142 </span>            : #include &quot;opal/sys/osx/atomic.h&quot;
+<span class="lineNum">     143 </span>            : #elif OPAL_ASSEMBLY_ARCH == OPAL_ALPHA
+<span class="lineNum">     144 </span>            : #include &quot;opal/sys/alpha/atomic.h&quot;
+<span class="lineNum">     145 </span>            : #elif OPAL_ASSEMBLY_ARCH == OPAL_AMD64
+<span class="lineNum">     146 </span>            : #include &quot;opal/sys/amd64/atomic.h&quot;
+<span class="lineNum">     147 </span>            : #elif OPAL_ASSEMBLY_ARCH == OPAL_ARM
+<span class="lineNum">     148 </span>            : #include &quot;opal/sys/arm/atomic.h&quot;
+<span class="lineNum">     149 </span>            : #elif OPAL_ASSEMBLY_ARCH == OPAL_IA32
+<span class="lineNum">     150 </span>            : #include &quot;opal/sys/ia32/atomic.h&quot;
+<span class="lineNum">     151 </span>            : #elif OPAL_ASSEMBLY_ARCH == OPAL_IA64
+<span class="lineNum">     152 </span>            : #include &quot;opal/sys/ia64/atomic.h&quot;
+<span class="lineNum">     153 </span>            : #elif OPAL_ASSEMBLY_ARCH == OPAL_MIPS
+<span class="lineNum">     154 </span>            : #include &quot;opal/sys/mips/atomic.h&quot;
+<span class="lineNum">     155 </span>            : #elif OPAL_ASSEMBLY_ARCH == OPAL_POWERPC32
+<span class="lineNum">     156 </span>            : #include &quot;opal/sys/powerpc/atomic.h&quot;
+<span class="lineNum">     157 </span>            : #elif OPAL_ASSEMBLY_ARCH == OPAL_POWERPC64
+<span class="lineNum">     158 </span>            : #include &quot;opal/sys/powerpc/atomic.h&quot;
+<span class="lineNum">     159 </span>            : #elif OPAL_ASSEMBLY_ARCH == OPAL_SPARC
+<span class="lineNum">     160 </span>            : #include &quot;opal/sys/sparc/atomic.h&quot;
+<span class="lineNum">     161 </span>            : #elif OPAL_ASSEMBLY_ARCH == OPAL_SPARCV9_32
+<span class="lineNum">     162 </span>            : #include &quot;opal/sys/sparcv9/atomic.h&quot;
+<span class="lineNum">     163 </span>            : #elif OPAL_ASSEMBLY_ARCH == OPAL_SPARCV9_64
+<span class="lineNum">     164 </span>            : #include &quot;opal/sys/sparcv9/atomic.h&quot;
+<span class="lineNum">     165 </span>            : #endif
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            : #ifndef DOXYGEN
+<span class="lineNum">     168 </span>            : /* compare and set operations can't really be emulated from software,
+<span class="lineNum">     169 </span>            :    so if these defines aren't already set, they should be set to 0
+<span class="lineNum">     170 </span>            :    now */
+<span class="lineNum">     171 </span>            : #ifndef OPAL_HAVE_ATOMIC_CMPSET_32
+<span class="lineNum">     172 </span>            : #define OPAL_HAVE_ATOMIC_CMPSET_32 0
+<span class="lineNum">     173 </span>            : #endif
+<span class="lineNum">     174 </span>            : #ifndef OPAL_HAVE_ATOMIC_CMPSET_64
+<span class="lineNum">     175 </span>            : #define OPAL_HAVE_ATOMIC_CMPSET_64 0
+<span class="lineNum">     176 </span>            : #endif
+<span class="lineNum">     177 </span>            : #ifndef OPAL_HAVE_ATOMIC_CMPSET_128
+<span class="lineNum">     178 </span>            : #define OPAL_HAVE_ATOMIC_CMPSET_128 0
+<span class="lineNum">     179 </span>            : #endif
+<span class="lineNum">     180 </span>            : #endif /* DOXYGEN */
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            : /**********************************************************************
+<span class="lineNum">     183 </span>            :  *
+<span class="lineNum">     184 </span>            :  * Memory Barriers - defined here if running doxygen or have barriers
+<span class="lineNum">     185 </span>            :  *                   but can't inline
+<span class="lineNum">     186 </span>            :  *
+<span class="lineNum">     187 </span>            :  *********************************************************************/
+<span class="lineNum">     188 </span>            : #if !defined(OPAL_HAVE_ATOMIC_MEM_BARRIER) &amp;&amp; !defined(DOXYGEN)
+<span class="lineNum">     189 </span>            : /* no way to emulate in C code */
+<span class="lineNum">     190 </span>            : #define OPAL_HAVE_ATOMIC_MEM_BARRIER 0
+<span class="lineNum">     191 </span>            : #endif
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            : #if defined(DOXYGEN) || OPAL_HAVE_ATOMIC_MEM_BARRIER
+<span class="lineNum">     194 </span>            : /**
+<span class="lineNum">     195 </span>            :  * Memory barrier
+<span class="lineNum">     196 </span>            :  *
+<span class="lineNum">     197 </span>            :  * Will use system-specific features to instruct the processor and
+<span class="lineNum">     198 </span>            :  * memory controller that all writes and reads that have been posted
+<span class="lineNum">     199 </span>            :  * before the call to \c opal_atomic_mb() must appear to have
+<span class="lineNum">     200 </span>            :  * completed before the next read or write.
+<span class="lineNum">     201 </span>            :  *
+<span class="lineNum">     202 </span>            :  * \note This can have some expensive side effects, including flushing
+<span class="lineNum">     203 </span>            :  * the pipeline, preventing the cpu from reordering instructions, and
+<span class="lineNum">     204 </span>            :  * generally grinding the memory controller's performance.  Use only
+<span class="lineNum">     205 </span>            :  * if you need *both* read and write barriers.
+<span class="lineNum">     206 </span>            :  */
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span>            : #if OPAL_HAVE_INLINE_ATOMIC_MEM_BARRIER
+<span class="lineNum">     209 </span>            : static inline
+<span class="lineNum">     210 </span>            : #endif
+<span class="lineNum">     211 </span>            : void opal_atomic_mb(void);
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            : /**
+<span class="lineNum">     214 </span>            :  * Read memory barrier
+<span class="lineNum">     215 </span>            :  *
+<span class="lineNum">     216 </span>            :  * Use system-specific features to instruct the processor and memory
+<span class="lineNum">     217 </span>            :  * conrtoller that all reads that have been posted before the call to
+<span class="lineNum">     218 </span>            :  * \c opal_atomic_rmb() must appear to have been completed before the
+<span class="lineNum">     219 </span>            :  * next read.  Nothing is said about the ordering of writes when using
+<span class="lineNum">     220 </span>            :  * \c opal_atomic_rmb().
+<span class="lineNum">     221 </span>            :  */
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            : #if OPAL_HAVE_INLINE_ATOMIC_MEM_BARRIER
+<span class="lineNum">     224 </span>            : static inline
+<span class="lineNum">     225 </span>            : #endif
+<span class="lineNum">     226 </span>            : void opal_atomic_rmb(void);
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span>            : /**
+<span class="lineNum">     229 </span>            :  * Write memory barrier.
+<span class="lineNum">     230 </span>            :  *
+<span class="lineNum">     231 </span>            :  * Use system-specific features to instruct the processor and memory
+<span class="lineNum">     232 </span>            :  * conrtoller that all writes that have been posted before the call to
+<span class="lineNum">     233 </span>            :  * \c opal_atomic_wmb() must appear to have been completed before the
+<span class="lineNum">     234 </span>            :  * next write.  Nothing is said about the ordering of reads when using
+<span class="lineNum">     235 </span>            :  * \c opal_atomic_wmb().
+<span class="lineNum">     236 </span>            :  */
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span>            : #if OPAL_HAVE_INLINE_ATOMIC_MEM_BARRIER
+<span class="lineNum">     239 </span>            : static inline
+<span class="lineNum">     240 </span>            : #endif
+<span class="lineNum">     241 </span>            : void opal_atomic_wmb(void);
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            : #endif /* defined(DOXYGEN) || OPAL_HAVE_ATOMIC_MEM_BARRIER */
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            : /**********************************************************************
+<span class="lineNum">     247 </span>            :  *
+<span class="lineNum">     248 </span>            :  * Atomic spinlocks - always inlined, if have atomic cmpset
+<span class="lineNum">     249 </span>            :  *
+<span class="lineNum">     250 </span>            :  *********************************************************************/
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span>            : #if !defined(OPAL_HAVE_ATOMIC_SPINLOCKS) &amp;&amp; !defined(DOXYGEN)
+<span class="lineNum">     253 </span>            : /* 0 is more like &quot;pending&quot; - we'll fix up at the end after all
+<span class="lineNum">     254 </span>            :    the static inline functions are declared */
+<span class="lineNum">     255 </span>            : #define OPAL_HAVE_ATOMIC_SPINLOCKS 0
+<span class="lineNum">     256 </span>            : #endif
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            : #if defined(DOXYGEN) || OPAL_HAVE_ATOMIC_SPINLOCKS || (OPAL_HAVE_ATOMIC_CMPSET_32 || OPAL_HAVE_ATOMIC_CMPSET_64)
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span>            : /**
+<span class="lineNum">     261 </span>            :  * Enumeration of lock states
+<span class="lineNum">     262 </span>            :  */
+<span class="lineNum">     263 </span>            : enum {
+<span class="lineNum">     264 </span>            :     OPAL_ATOMIC_UNLOCKED = 0,
+<span class="lineNum">     265 </span>            :     OPAL_ATOMIC_LOCKED = 1
+<span class="lineNum">     266 </span>            : };
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span>            : /**
+<span class="lineNum">     270 </span>            :  * Initialize a lock to value
+<span class="lineNum">     271 </span>            :  *
+<span class="lineNum">     272 </span>            :  * @param lock         Address of the lock
+<span class="lineNum">     273 </span>            :  * @param value        Initial value to set lock to
+<span class="lineNum">     274 </span>            :  */
+<span class="lineNum">     275 </span>            : #if OPAL_HAVE_ATOMIC_SPINLOCKS == 0
+<span class="lineNum">     276 </span>            : static inline
+<span class="lineNum">     277 </span>            : #endif
+<span class="lineNum">     278 </span>            : void opal_atomic_init(opal_atomic_lock_t* lock, int32_t value);
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span>            : /**
+<span class="lineNum">     282 </span>            :  * Try to acquire a lock.
+<span class="lineNum">     283 </span>            :  *
+<span class="lineNum">     284 </span>            :  * @param lock          Address of the lock.
+<span class="lineNum">     285 </span>            :  * @return              0 if the lock was acquired, 1 otherwise.
+<span class="lineNum">     286 </span>            :  */
+<span class="lineNum">     287 </span>            : #if OPAL_HAVE_ATOMIC_SPINLOCKS == 0
+<span class="lineNum">     288 </span>            : static inline
+<span class="lineNum">     289 </span>            : #endif
+<span class="lineNum">     290 </span>            : int opal_atomic_trylock(opal_atomic_lock_t *lock);
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            : /**
+<span class="lineNum">     294 </span>            :  * Acquire a lock by spinning.
+<span class="lineNum">     295 </span>            :  *
+<span class="lineNum">     296 </span>            :  * @param lock          Address of the lock.
+<span class="lineNum">     297 </span>            :  */
+<span class="lineNum">     298 </span>            : #if OPAL_HAVE_ATOMIC_SPINLOCKS == 0
+<span class="lineNum">     299 </span>            : static inline
+<span class="lineNum">     300 </span>            : #endif
+<span class="lineNum">     301 </span>            : void opal_atomic_lock(opal_atomic_lock_t *lock);
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            : /**
+<span class="lineNum">     305 </span>            :  * Release a lock.
+<span class="lineNum">     306 </span>            :  *
+<span class="lineNum">     307 </span>            :  * @param lock          Address of the lock.
+<span class="lineNum">     308 </span>            :  */
+<span class="lineNum">     309 </span>            : #if OPAL_HAVE_ATOMIC_SPINLOCKS == 0
+<span class="lineNum">     310 </span>            : static inline
+<span class="lineNum">     311 </span>            : #endif
+<span class="lineNum">     312 </span>            : void opal_atomic_unlock(opal_atomic_lock_t *lock);
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span>            : #if OPAL_HAVE_ATOMIC_SPINLOCKS == 0
+<span class="lineNum">     316 </span>            : #undef OPAL_HAVE_ATOMIC_SPINLOCKS
+<span class="lineNum">     317 </span>            : #define OPAL_HAVE_ATOMIC_SPINLOCKS (OPAL_HAVE_ATOMIC_CMPSET_32 || OPAL_HAVE_ATOMIC_CMPSET_64)
+<span class="lineNum">     318 </span>            : #define OPAL_NEED_INLINE_ATOMIC_SPINLOCKS 1
+<span class="lineNum">     319 </span>            : #endif
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span>            : #endif /* OPAL_HAVE_ATOMIC_SPINLOCKS */
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            : /**********************************************************************
+<span class="lineNum">     325 </span>            :  *
+<span class="lineNum">     326 </span>            :  * Atomic math operations
+<span class="lineNum">     327 </span>            :  *
+<span class="lineNum">     328 </span>            :  *********************************************************************/
+<span class="lineNum">     329 </span>            : #if !defined(OPAL_HAVE_ATOMIC_CMPSET_32) &amp;&amp; !defined(DOXYGEN)
+<span class="lineNum">     330 </span>            : #define OPAL_HAVE_ATOMIC_CMPSET_32 0
+<span class="lineNum">     331 </span>            : #endif
+<span class="lineNum">     332 </span>            : #if defined(DOXYGEN) || OPAL_HAVE_ATOMIC_CMPSET_32
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span>            : #if OPAL_HAVE_INLINE_ATOMIC_CMPSET_32
+<span class="lineNum">     335 </span>            : static inline
+<span class="lineNum">     336 </span>            : #endif
+<span class="lineNum">     337 </span>            : int opal_atomic_cmpset_32(volatile int32_t *addr, int32_t oldval,
+<span class="lineNum">     338 </span>            :                           int32_t newval);
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span>            : #if OPAL_HAVE_INLINE_ATOMIC_CMPSET_32
+<span class="lineNum">     341 </span>            : static inline
+<span class="lineNum">     342 </span>            : #endif
+<span class="lineNum">     343 </span>            : int opal_atomic_cmpset_acq_32(volatile int32_t *addr, int32_t oldval,
+<span class="lineNum">     344 </span>            :                               int32_t newval);
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            : #if OPAL_HAVE_INLINE_ATOMIC_CMPSET_32
+<span class="lineNum">     347 </span>            : static inline
+<span class="lineNum">     348 </span>            : #endif
+<span class="lineNum">     349 </span>            : int opal_atomic_cmpset_rel_32(volatile int32_t *addr, int32_t oldval,
+<span class="lineNum">     350 </span>            :                               int32_t newval);
+<span class="lineNum">     351 </span>            : #endif
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span>            : #if !defined(OPAL_HAVE_ATOMIC_CMPSET_64) &amp;&amp; !defined(DOXYGEN)
+<span class="lineNum">     355 </span>            : #define OPAL_HAVE_ATOMIC_CMPSET_64 0
+<span class="lineNum">     356 </span>            : #endif
+<span class="lineNum">     357 </span>            : #if defined(DOXYGEN) || OPAL_HAVE_ATOMIC_CMPSET_64
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span>            : #if OPAL_HAVE_INLINE_ATOMIC_CMPSET_64
+<span class="lineNum">     360 </span>            : static inline
+<span class="lineNum">     361 </span>            : #endif
+<span class="lineNum">     362 </span>            : int opal_atomic_cmpset_64(volatile int64_t *addr, int64_t oldval,
+<span class="lineNum">     363 </span>            :                           int64_t newval);
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span>            : #if OPAL_HAVE_INLINE_ATOMIC_CMPSET_64
+<span class="lineNum">     366 </span>            : static inline
+<span class="lineNum">     367 </span>            : #endif
+<span class="lineNum">     368 </span>            : int opal_atomic_cmpset_acq_64(volatile int64_t *addr, int64_t oldval,
+<span class="lineNum">     369 </span>            :                               int64_t newval);
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span>            : #if OPAL_HAVE_INLINE_ATOMIC_CMPSET_64
+<span class="lineNum">     372 </span>            : static inline
+<span class="lineNum">     373 </span>            : #endif
+<span class="lineNum">     374 </span>            : int opal_atomic_cmpset_rel_64(volatile int64_t *addr, int64_t oldval,
+<span class="lineNum">     375 </span>            :                               int64_t newval);
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span>            : #endif
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span>            : #if !defined(OPAL_HAVE_ATOMIC_MATH_32) &amp;&amp; !defined(DOXYGEN)
+<span class="lineNum">     380 </span>            :   /* define to 0 for these tests.  WIll fix up later. */
+<span class="lineNum">     381 </span>            :   #define OPAL_HAVE_ATOMIC_MATH_32 0
+<span class="lineNum">     382 </span>            : #endif
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span>            : #if defined(DOXYGEN) || OPAL_HAVE_ATOMIC_MATH_32 || OPAL_HAVE_ATOMIC_CMPSET_32
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span>            : /* OPAL_HAVE_INLINE_ATOMIC_*_32 will be 1 if &lt;arch&gt;/atomic.h provides
+<span class="lineNum">     387 </span>            :    a static inline version of it (in assembly).  If we have to fall
+<span class="lineNum">     388 </span>            :    back on cmpset 32, that too will be inline. */
+<span class="lineNum">     389 </span>            : #if OPAL_HAVE_INLINE_ATOMIC_ADD_32 || (!defined(OPAL_HAVE_ATOMIC_ADD_32) &amp;&amp; OPAL_HAVE_ATOMIC_CMPSET_32)
+<span class="lineNum">     390 </span>            : static inline
+<span class="lineNum">     391 </span>            : #endif
+<span class="lineNum">     392 </span>            : int32_t opal_atomic_add_32(volatile int32_t *addr, int delta);
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            : /* OPAL_HAVE_INLINE_ATOMIC_*_32 will be 1 if &lt;arch&gt;/atomic.h provides
+<span class="lineNum">     395 </span>            :    a static inline version of it (in assembly).  If we have to fall
+<span class="lineNum">     396 </span>            :    back to cmpset 32, that too will be inline. */
+<span class="lineNum">     397 </span>            : #if OPAL_HAVE_INLINE_ATOMIC_SUB_32 || (!defined(OPAL_HAVE_ATOMIC_ADD_32) &amp;&amp; OPAL_HAVE_ATOMIC_CMPSET_32)
+<span class="lineNum">     398 </span>            : static inline
+<span class="lineNum">     399 </span>            : #endif
+<span class="lineNum">     400 </span>            : int32_t opal_atomic_sub_32(volatile int32_t *addr, int delta);
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span>            : #endif /* OPAL_HAVE_ATOMIC_MATH_32 */
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span>            : #if ! OPAL_HAVE_ATOMIC_MATH_32
+<span class="lineNum">     405 </span>            : /* fix up the value of opal_have_atomic_math_32 to allow for C versions */
+<span class="lineNum">     406 </span>            : #undef OPAL_HAVE_ATOMIC_MATH_32
+<span class="lineNum">     407 </span>            : #define OPAL_HAVE_ATOMIC_MATH_32 OPAL_HAVE_ATOMIC_CMPSET_32
+<span class="lineNum">     408 </span>            : #endif
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span>            : #ifndef OPAL_HAVE_ATOMIC_MATH_64
+<span class="lineNum">     411 </span>            : /* define to 0 for these tests.  WIll fix up later. */
+<span class="lineNum">     412 </span>            : #define OPAL_HAVE_ATOMIC_MATH_64 0
+<span class="lineNum">     413 </span>            : #endif
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span>            : #if defined(DOXYGEN) || OPAL_HAVE_ATOMIC_MATH_64 || OPAL_HAVE_ATOMIC_CMPSET_64
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span>            : /* OPAL_HAVE_INLINE_ATOMIC_*_64 will be 1 if &lt;arch&gt;/atomic.h provides
+<span class="lineNum">     418 </span>            :    a static inline version of it (in assembly).  If we have to fall
+<span class="lineNum">     419 </span>            :    back to cmpset 64, that too will be inline */
+<span class="lineNum">     420 </span>            : #if OPAL_HAVE_INLINE_ATOMIC_ADD_64 || (!defined(OPAL_HAVE_ATOMIC_ADD_64) &amp;&amp; OPAL_HAVE_ATOMIC_CMPSET_64)
+<span class="lineNum">     421 </span>            : static inline
+<span class="lineNum">     422 </span>            : #endif
+<span class="lineNum">     423 </span>            : int64_t opal_atomic_add_64(volatile int64_t *addr, int64_t delta);
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span>            : /* OPAL_HAVE_INLINE_ATOMIC_*_64 will be 1 if &lt;arch&gt;/atomic.h provides
+<span class="lineNum">     426 </span>            :    a static inline version of it (in assembly).  If we have to fall
+<span class="lineNum">     427 </span>            :    back to cmpset 64, that too will be inline */
+<span class="lineNum">     428 </span>            : #if OPAL_HAVE_INLINE_ATOMIC_SUB_64 || (!defined(OPAL_HAVE_ATOMIC_ADD_64) &amp;&amp; OPAL_HAVE_ATOMIC_CMPSET_64)
+<span class="lineNum">     429 </span>            : static inline
+<span class="lineNum">     430 </span>            : #endif
+<span class="lineNum">     431 </span>            : int64_t opal_atomic_sub_64(volatile int64_t *addr, int64_t delta);
+<span class="lineNum">     432 </span>            : 
+<span class="lineNum">     433 </span>            : #endif /* OPAL_HAVE_ATOMIC_MATH_32 */
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span>            : #if ! OPAL_HAVE_ATOMIC_MATH_64
+<span class="lineNum">     436 </span>            : /* fix up the value of opal_have_atomic_math_64 to allow for C versions */
+<span class="lineNum">     437 </span>            : #undef OPAL_HAVE_ATOMIC_MATH_64
+<span class="lineNum">     438 </span>            : #define OPAL_HAVE_ATOMIC_MATH_64 OPAL_HAVE_ATOMIC_CMPSET_64
+<span class="lineNum">     439 </span>            : #endif
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span>            : /* provide a size_t add/subtract.  When in debug mode, make it an
+<span class="lineNum">     442 </span>            :  * inline function so that we don't have any casts in the
+<span class="lineNum">     443 </span>            :  *  interface and can catch type errors.  When not in debug mode,
+<span class="lineNum">     444 </span>            :  * just make it a macro, so that there's no performance penalty
+<span class="lineNum">     445 </span>            :  */
+<a name="446"><span class="lineNum">     446 </span>            : #if defined(DOXYGEN) || OPAL_ENABLE_DEBUG</a>
+<span class="lineNum">     447 </span>            : static inline size_t
+<span class="lineNum">     448 </span><span class="lineCov">          5 : opal_atomic_add_size_t(volatile size_t *addr, int delta)</span>
+<span class="lineNum">     449 </span>            : {
+<span class="lineNum">     450 </span>            : #if SIZEOF_SIZE_T == 4
+<span class="lineNum">     451 </span>            :     return (size_t) opal_atomic_add_32((int32_t*) addr, delta);
+<span class="lineNum">     452 </span>            : #elif SIZEOF_SIZE_T == 8
+<span class="lineNum">     453 </span><span class="lineCov">          5 :     return (size_t) opal_atomic_add_64((int64_t*) addr, delta);</span>
+<span class="lineNum">     454 </span>            : #else
+<span class="lineNum">     455 </span>            : #error &quot;Unknown size_t size&quot;
+<span class="lineNum">     456 </span>            : #endif
+<span class="lineNum">     457 </span>            : }
+<span class="lineNum">     458 </span>            : static inline size_t
+<span class="lineNum">     459 </span>            : opal_atomic_sub_size_t(volatile size_t *addr, int delta)
+<span class="lineNum">     460 </span>            : {
+<span class="lineNum">     461 </span>            : #if SIZEOF_SIZE_T == 4
+<span class="lineNum">     462 </span>            :     return (size_t) opal_atomic_sub_32((int32_t*) addr, delta);
+<span class="lineNum">     463 </span>            : #elif SIZEOF_SIZE_T == 8
+<span class="lineNum">     464 </span>            :     return (size_t) opal_atomic_sub_64((int64_t*) addr, delta);
+<span class="lineNum">     465 </span>            : #else
+<span class="lineNum">     466 </span>            : #error &quot;Unknown size_t size&quot;
+<span class="lineNum">     467 </span>            : #endif
+<span class="lineNum">     468 </span>            : }
+<span class="lineNum">     469 </span>            : #else
+<span class="lineNum">     470 </span>            : #if SIZEOF_SIZE_T == 4
+<span class="lineNum">     471 </span>            : #define opal_atomic_add_size_t(addr, delta) ((size_t) opal_atomic_add_32((int32_t*) addr, delta))
+<span class="lineNum">     472 </span>            : #define opal_atomic_sub_size_t(addr, delta) ((size_t) opal_atomic_sub_32((int32_t*) addr, delta))
+<span class="lineNum">     473 </span>            : #elif SIZEOF_SIZE_T ==8
+<span class="lineNum">     474 </span>            : #define opal_atomic_add_size_t(addr, delta) ((size_t) opal_atomic_add_64((int64_t*) addr, delta))
+<span class="lineNum">     475 </span>            : #define opal_atomic_sub_size_t(addr, delta) ((size_t) opal_atomic_sub_64((int64_t*) addr, delta))
+<span class="lineNum">     476 </span>            : #else
+<span class="lineNum">     477 </span>            : #error &quot;Unknown size_t size&quot;
+<span class="lineNum">     478 </span>            : #endif
+<span class="lineNum">     479 </span>            : #endif
+<span class="lineNum">     480 </span>            : 
+<span class="lineNum">     481 </span>            : #if defined(DOXYGEN) || (OPAL_HAVE_ATOMIC_CMPSET_32 || OPAL_HAVE_ATOMIC_CMPSET_64)
+<span class="lineNum">     482 </span>            : /* these are always done with inline functions, so always mark as
+<span class="lineNum">     483 </span>            :    static inline */
+<span class="lineNum">     484 </span>            : static inline int opal_atomic_cmpset_xx(volatile void* addr, int64_t oldval,
+<span class="lineNum">     485 </span>            :                                         int64_t newval, size_t length);
+<span class="lineNum">     486 </span>            : static inline int opal_atomic_cmpset_acq_xx(volatile void* addr,
+<span class="lineNum">     487 </span>            :                                             int64_t oldval,  int64_t newval,
+<span class="lineNum">     488 </span>            :                                             size_t length);
+<span class="lineNum">     489 </span>            : static inline int opal_atomic_cmpset_rel_xx(volatile void* addr,
+<span class="lineNum">     490 </span>            :                                             int64_t oldval, int64_t newval,
+<span class="lineNum">     491 </span>            :                                             size_t length);
+<span class="lineNum">     492 </span>            : 
+<span class="lineNum">     493 </span>            : static inline int opal_atomic_cmpset_ptr(volatile void* addr,
+<span class="lineNum">     494 </span>            :                                          void* oldval,
+<span class="lineNum">     495 </span>            :                                          void* newval);
+<span class="lineNum">     496 </span>            : static inline int opal_atomic_cmpset_acq_ptr(volatile void* addr,
+<span class="lineNum">     497 </span>            :                                              void* oldval,
+<span class="lineNum">     498 </span>            :                                              void* newval);
+<span class="lineNum">     499 </span>            : static inline int opal_atomic_cmpset_rel_ptr(volatile void* addr,
+<span class="lineNum">     500 </span>            :                                              void* oldval,
+<span class="lineNum">     501 </span>            :                                              void* newval);
+<span class="lineNum">     502 </span>            : 
+<span class="lineNum">     503 </span>            : /**
+<span class="lineNum">     504 </span>            :  * Atomic compare and set of pointer with relaxed semantics. This
+<span class="lineNum">     505 </span>            :  * macro detect at compile time the type of the first argument and
+<span class="lineNum">     506 </span>            :  * choose the correct function to be called.
+<span class="lineNum">     507 </span>            :  *
+<span class="lineNum">     508 </span>            :  * \note This macro should only be used for integer types.
+<span class="lineNum">     509 </span>            :  *
+<span class="lineNum">     510 </span>            :  * @param addr          Address of &lt;TYPE&gt;.
+<span class="lineNum">     511 </span>            :  * @param oldval        Comparison value &lt;TYPE&gt;.
+<span class="lineNum">     512 </span>            :  * @param newval        New value to set if comparision is true &lt;TYPE&gt;.
+<span class="lineNum">     513 </span>            :  *
+<span class="lineNum">     514 </span>            :  * See opal_atomic_cmpset_* for pseudo-code.
+<span class="lineNum">     515 </span>            :  */
+<span class="lineNum">     516 </span>            : #define opal_atomic_cmpset( ADDR, OLDVAL, NEWVAL )                  \
+<span class="lineNum">     517 </span>            :    opal_atomic_cmpset_xx( (volatile void*)(ADDR), (intptr_t)(OLDVAL), \
+<span class="lineNum">     518 </span>            :                           (intptr_t)(NEWVAL), sizeof(*(ADDR)) )
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span>            : /**
+<span class="lineNum">     521 </span>            :  * Atomic compare and set of pointer with acquire semantics. This
+<span class="lineNum">     522 </span>            :  * macro detect at compile time the type of the first argument
+<span class="lineNum">     523 </span>            :  * and choose the correct function to be called.
+<span class="lineNum">     524 </span>            :  *
+<span class="lineNum">     525 </span>            :  * \note This macro should only be used for integer types.
+<span class="lineNum">     526 </span>            :  *
+<span class="lineNum">     527 </span>            :  * @param addr          Address of &lt;TYPE&gt;.
+<span class="lineNum">     528 </span>            :  * @param oldval        Comparison value &lt;TYPE&gt;.
+<span class="lineNum">     529 </span>            :  * @param newval        New value to set if comparision is true &lt;TYPE&gt;.
+<span class="lineNum">     530 </span>            :  *
+<span class="lineNum">     531 </span>            :  * See opal_atomic_cmpset_acq_* for pseudo-code.
+<span class="lineNum">     532 </span>            :  */
+<span class="lineNum">     533 </span>            : #define opal_atomic_cmpset_acq( ADDR, OLDVAL, NEWVAL )           \
+<span class="lineNum">     534 </span>            :    opal_atomic_cmpset_acq_xx( (volatile void*)(ADDR), (int64_t)(OLDVAL), \
+<span class="lineNum">     535 </span>            :                               (int64_t)(NEWVAL), sizeof(*(ADDR)) )
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span>            : /**
+<span class="lineNum">     539 </span>            :  * Atomic compare and set of pointer with release semantics. This
+<span class="lineNum">     540 </span>            :  * macro detect at compile time the type of the first argument
+<span class="lineNum">     541 </span>            :  * and choose the correct function to b
+<span class="lineNum">     542 </span>            :  *
+<span class="lineNum">     543 </span>            :  * \note This macro should only be used for integer types.
+<span class="lineNum">     544 </span>            :  *
+<span class="lineNum">     545 </span>            :  * @param addr          Address of &lt;TYPE&gt;.
+<span class="lineNum">     546 </span>            :  * @param oldval        Comparison value &lt;TYPE&gt;.
+<span class="lineNum">     547 </span>            :  * @param newval        New value to set if comparision is true &lt;TYPE&gt;.
+<span class="lineNum">     548 </span>            :  *
+<span class="lineNum">     549 </span>            :  * See opal_atomic_cmpsetrel_* for pseudo-code.
+<span class="lineNum">     550 </span>            :  */
+<span class="lineNum">     551 </span>            : #define opal_atomic_cmpset_rel( ADDR, OLDVAL, NEWVAL )           \
+<span class="lineNum">     552 </span>            :    opal_atomic_cmpset_rel_xx( (volatile void*)(ADDR), (int64_t)(OLDVAL), \
+<span class="lineNum">     553 </span>            :                               (int64_t)(NEWVAL), sizeof(*(ADDR)) )
+<span class="lineNum">     554 </span>            : 
+<span class="lineNum">     555 </span>            : #endif /* (OPAL_HAVE_ATOMIC_CMPSET_32 || OPAL_HAVE_ATOMIC_CMPSET_64) */
+<span class="lineNum">     556 </span>            : 
+<span class="lineNum">     557 </span>            : #if defined(DOXYGEN) || (OPAL_HAVE_ATOMIC_MATH_32 || OPAL_HAVE_ATOMIC_MATH_64)
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span>            : static inline void opal_atomic_add_xx(volatile void* addr,
+<span class="lineNum">     560 </span>            :                                       int32_t value, size_t length);
+<span class="lineNum">     561 </span>            : static inline void opal_atomic_sub_xx(volatile void* addr,
+<span class="lineNum">     562 </span>            :                                       int32_t value, size_t length);
+<span class="lineNum">     563 </span>            : #if SIZEOF_VOID_P == 4 &amp;&amp; OPAL_HAVE_ATOMIC_CMPSET_32
+<span class="lineNum">     564 </span>            : static inline int32_t opal_atomic_add_ptr( volatile void* addr, void* delta );
+<span class="lineNum">     565 </span>            : static inline int32_t opal_atomic_sub_ptr( volatile void* addr, void* delta );
+<span class="lineNum">     566 </span>            : #elif SIZEOF_VOID_P == 8 &amp;&amp; OPAL_HAVE_ATOMIC_CMPSET_64
+<span class="lineNum">     567 </span>            : static inline int64_t opal_atomic_add_ptr( volatile void* addr, void* delta );
+<span class="lineNum">     568 </span>            : static inline int64_t opal_atomic_sub_ptr( volatile void* addr, void* delta );
+<span class="lineNum">     569 </span>            : #else
+<span class="lineNum">     570 </span>            : #error Atomic arithmetic on pointers not supported
+<span class="lineNum">     571 </span>            : #endif
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span>            : /**
+<span class="lineNum">     574 </span>            :  * Atomically increment the content depending on the type. This
+<span class="lineNum">     575 </span>            :  * macro detect at compile time the type of the first argument
+<span class="lineNum">     576 </span>            :  * and choose the correct function to be called.
+<span class="lineNum">     577 </span>            :  *
+<span class="lineNum">     578 </span>            :  * \note This macro should only be used for integer types.
+<span class="lineNum">     579 </span>            :  *
+<span class="lineNum">     580 </span>            :  * @param addr          Address of &lt;TYPE&gt;
+<span class="lineNum">     581 </span>            :  * @param delta         Value to add (converted to &lt;TYPE&gt;).
+<span class="lineNum">     582 </span>            :  */
+<span class="lineNum">     583 </span>            : #define opal_atomic_add( ADDR, VALUE )                                  \
+<span class="lineNum">     584 </span>            :    opal_atomic_add_xx( (volatile void*)(ADDR), (int32_t)(VALUE), \
+<span class="lineNum">     585 </span>            :                        sizeof(*(ADDR)) )
+<span class="lineNum">     586 </span>            : 
+<span class="lineNum">     587 </span>            : /**
+<span class="lineNum">     588 </span>            :  * Atomically decrement the content depending on the type. This
+<span class="lineNum">     589 </span>            :  * macro detect at compile time the type of the first argument
+<span class="lineNum">     590 </span>            :  * and choose the correct function to be called.
+<span class="lineNum">     591 </span>            :  *
+<span class="lineNum">     592 </span>            :  * \note This macro should only be used for integer types.
+<span class="lineNum">     593 </span>            :  *
+<span class="lineNum">     594 </span>            :  * @param addr          Address of &lt;TYPE&gt;
+<span class="lineNum">     595 </span>            :  * @param delta         Value to substract (converted to &lt;TYPE&gt;).
+<span class="lineNum">     596 </span>            :  */
+<span class="lineNum">     597 </span>            : #define opal_atomic_sub( ADDR, VALUE )                                  \
+<span class="lineNum">     598 </span>            :    opal_atomic_sub_xx( (volatile void*)(ADDR), (int32_t)(VALUE),        \
+<span class="lineNum">     599 </span>            :                       sizeof(*(ADDR)) )
+<span class="lineNum">     600 </span>            : 
+<span class="lineNum">     601 </span>            : #endif /* OPAL_HAVE_ATOMIC_MATH_32 || OPAL_HAVE_ATOMIC_MATH_64 */
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span>            : /*
+<span class="lineNum">     605 </span>            :  * Include inline implementations of everything not defined directly
+<span class="lineNum">     606 </span>            :  * in assembly
+<span class="lineNum">     607 </span>            :  */
+<span class="lineNum">     608 </span>            : #include &quot;opal/sys/atomic_impl.h&quot;
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span>            : END_C_DECLS
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span>            : #endif /* OPAL_SYS_ATOMIC_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

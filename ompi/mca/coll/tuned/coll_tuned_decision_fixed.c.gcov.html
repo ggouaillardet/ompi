@@ -1,0 +1,844 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - ompi/mca/coll/tuned/coll_tuned_decision_fixed.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/coll/tuned</a> - coll_tuned_decision_fixed.c<span style="font-size: 80%;"> (source / <a href="coll_tuned_decision_fixed.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">199</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2015 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2008      Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
+<span class="lineNum">      15 </span>            :  *                         reserved.
+<span class="lineNum">      16 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * $HEADER$
+<span class="lineNum">      21 </span>            :  */
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;mpi.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;opal/util/bit_ops.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;ompi/datatype/ompi_datatype.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;ompi/communicator/communicator.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;ompi/mca/coll/coll.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;ompi/mca/coll/base/coll_tags.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;ompi/op/op.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;coll_tuned.h&quot;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : /*
+<span class="lineNum">      35 </span>            :  *  allreduce_intra
+<span class="lineNum">      36 </span>            :  *
+<span class="lineNum">      37 </span>            :  *  Function:   - allreduce using other MPI collectives
+<span class="lineNum">      38 </span>            :  *  Accepts:    - same as MPI_Allreduce()
+<span class="lineNum">      39 </span>            :  *  Returns:    - MPI_SUCCESS or error code
+<a name="40"><span class="lineNum">      40 </span>            :  */</a>
+<span class="lineNum">      41 </span>            : int
+<span class="lineNum">      42 </span><span class="lineNoCov">          0 : ompi_coll_tuned_allreduce_intra_dec_fixed(void *sbuf, void *rbuf, int count,</span>
+<span class="lineNum">      43 </span>            :                                           struct ompi_datatype_t *dtype,
+<span class="lineNum">      44 </span>            :                                           struct ompi_op_t *op,
+<span class="lineNum">      45 </span>            :                                           struct ompi_communicator_t *comm,
+<span class="lineNum">      46 </span>            :                                           mca_coll_base_module_t *module)
+<span class="lineNum">      47 </span>            : {
+<span class="lineNum">      48 </span>            :     size_t dsize, block_dsize;
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :     int comm_size = ompi_comm_size(comm);</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :     const size_t intermediate_message = 10000;</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_tuned_stream, &quot;ompi_coll_tuned_allreduce_intra_dec_fixed&quot;));</span>
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            :     /**
+<span class="lineNum">      54 </span>            :      * Decision function based on MX results from the Grig cluster at UTK.
+<span class="lineNum">      55 </span>            :      *
+<span class="lineNum">      56 </span>            :      * Currently, linear, recursive doubling, and nonoverlapping algorithms
+<span class="lineNum">      57 </span>            :      * can handle both commutative and non-commutative operations.
+<span class="lineNum">      58 </span>            :      * Ring algorithm does not support non-commutative operations.
+<span class="lineNum">      59 </span>            :      */
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size(dtype, &amp;dsize);</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     block_dsize = dsize * (ptrdiff_t)count;</span>
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :     if (block_dsize &lt; intermediate_message) {</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :         return (ompi_coll_base_allreduce_intra_recursivedoubling(sbuf, rbuf,</span>
+<span class="lineNum">      65 </span>            :                                                                  count, dtype,
+<span class="lineNum">      66 </span>            :                                                                  op, comm, module));
+<span class="lineNum">      67 </span>            :     }
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     if( ompi_op_is_commute(op) &amp;&amp; (count &gt; comm_size) ) {</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :         const size_t segment_size = 1 &lt;&lt; 20; /* 1 MB */</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :         if (((size_t)comm_size * (size_t)segment_size &gt;= block_dsize)) {</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :             return (ompi_coll_base_allreduce_intra_ring(sbuf, rbuf, count, dtype,</span>
+<span class="lineNum">      73 </span>            :                                                         op, comm, module));
+<span class="lineNum">      74 </span>            :         } else {
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :             return (ompi_coll_base_allreduce_intra_ring_segmented(sbuf, rbuf,</span>
+<span class="lineNum">      76 </span>            :                                                                   count, dtype,
+<span class="lineNum">      77 </span>            :                                                                   op, comm, module,
+<span class="lineNum">      78 </span>            :                                                                   segment_size));
+<span class="lineNum">      79 </span>            :         }
+<span class="lineNum">      80 </span>            :     }
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     return (ompi_coll_base_allreduce_intra_nonoverlapping(sbuf, rbuf, count,</span>
+<span class="lineNum">      83 </span>            :                                                           dtype, op, comm, module));
+<span class="lineNum">      84 </span>            : }
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            : /*
+<span class="lineNum">      87 </span>            :  *      alltoall_intra_dec
+<span class="lineNum">      88 </span>            :  *
+<span class="lineNum">      89 </span>            :  *      Function:       - seletects alltoall algorithm to use
+<span class="lineNum">      90 </span>            :  *      Accepts:        - same arguments as MPI_Alltoall()
+<span class="lineNum">      91 </span>            :  *      Returns:        - MPI_SUCCESS or error code (passed from the bcast implementation)
+<a name="92"><span class="lineNum">      92 </span>            :  */</a>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 : int ompi_coll_tuned_alltoall_intra_dec_fixed(void *sbuf, int scount,</span>
+<span class="lineNum">      95 </span>            :                                              struct ompi_datatype_t *sdtype,
+<span class="lineNum">      96 </span>            :                                              void* rbuf, int rcount,
+<span class="lineNum">      97 </span>            :                                              struct ompi_datatype_t *rdtype,
+<span class="lineNum">      98 </span>            :                                              struct ompi_communicator_t *comm,
+<span class="lineNum">      99 </span>            :                                              mca_coll_base_module_t *module)
+<span class="lineNum">     100 </span>            : {
+<span class="lineNum">     101 </span>            :     int communicator_size;
+<span class="lineNum">     102 </span>            :     size_t dsize, block_dsize;
+<span class="lineNum">     103 </span>            : #if 0
+<span class="lineNum">     104 </span>            :     size_t total_dsize;
+<span class="lineNum">     105 </span>            : #endif
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     communicator_size = ompi_comm_size(comm);</span>
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            :     /* special case */
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     if (communicator_size==2) {</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :         return ompi_coll_base_alltoall_intra_two_procs(sbuf, scount, sdtype,</span>
+<span class="lineNum">     112 </span>            :                                                        rbuf, rcount, rdtype,
+<span class="lineNum">     113 </span>            :                                                        comm, module);
+<span class="lineNum">     114 </span>            :     }
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span>            :     /* Decision function based on measurement on Grig cluster at
+<span class="lineNum">     117 </span>            :        the University of Tennessee (2GB MX) up to 64 nodes.
+<span class="lineNum">     118 </span>            :        Has better performance for messages of intermediate sizes than the old one */
+<span class="lineNum">     119 </span>            :     /* determine block size */
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size(sdtype, &amp;dsize);</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     block_dsize = dsize * (ptrdiff_t)scount;</span>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     if ((block_dsize &lt; (size_t) ompi_coll_tuned_alltoall_small_msg)</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :                                               &amp;&amp; (communicator_size &gt; 12)) {</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         return ompi_coll_base_alltoall_intra_bruck(sbuf, scount, sdtype,</span>
+<span class="lineNum">     126 </span>            :                                                    rbuf, rcount, rdtype,
+<span class="lineNum">     127 </span>            :                                                    comm, module);
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     } else if (block_dsize &lt; (size_t) ompi_coll_tuned_alltoall_intermediate_msg) {</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         return ompi_coll_base_alltoall_intra_basic_linear(sbuf, scount, sdtype,</span>
+<span class="lineNum">     131 </span>            :                                                           rbuf, rcount, rdtype,
+<span class="lineNum">     132 </span>            :                                                           comm, module);
+<span class="lineNum">     133 </span>            :     }
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     return ompi_coll_base_alltoall_intra_pairwise(sbuf, scount, sdtype,</span>
+<span class="lineNum">     136 </span>            :                                                   rbuf, rcount, rdtype,
+<span class="lineNum">     137 </span>            :                                                   comm, module);
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            : #if 0
+<span class="lineNum">     140 </span>            :     /* previous decision */
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            :     /* else we need data size for decision function */
+<span class="lineNum">     143 </span>            :     ompi_datatype_type_size(sdtype, &amp;dsize);
+<span class="lineNum">     144 </span>            :     total_dsize = dsize * scount * communicator_size;   /* needed for decision */
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span>            :     OPAL_OUTPUT((ompi_coll_tuned_stream, &quot;ompi_coll_tuned_alltoall_intra_dec_fixed rank %d com_size %d msg_length %ld&quot;,
+<span class="lineNum">     147 </span>            :                  ompi_comm_rank(comm), communicator_size, total_dsize));
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span>            :     if (communicator_size &gt;= 12 &amp;&amp; total_dsize &lt;= 768) {
+<span class="lineNum">     150 </span>            :         return ompi_coll_base_alltoall_intra_bruck(sbuf, scount, sdtype, rbuf, rcount, rdtype, comm, module);
+<span class="lineNum">     151 </span>            :     }
+<span class="lineNum">     152 </span>            :     if (total_dsize &lt;= 131072) {
+<span class="lineNum">     153 </span>            :         return ompi_coll_base_alltoall_intra_basic_linear(sbuf, scount, sdtype, rbuf, rcount, rdtype, comm, module);
+<span class="lineNum">     154 </span>            :     }
+<span class="lineNum">     155 </span>            :     return ompi_coll_base_alltoall_intra_pairwise(sbuf, scount, sdtype, rbuf, rcount, rdtype, comm, module);
+<span class="lineNum">     156 </span>            : #endif
+<span class="lineNum">     157 </span>            : }
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            : /*
+<span class="lineNum">     160 </span>            :  *      Function:       - selects alltoallv algorithm to use
+<span class="lineNum">     161 </span>            :  *      Accepts:        - same arguments as MPI_Alltoallv()
+<a name="162"><span class="lineNum">     162 </span>            :  *      Returns:        - MPI_SUCCESS or error code</a>
+<span class="lineNum">     163 </span>            :  */
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 : int ompi_coll_tuned_alltoallv_intra_dec_fixed(void *sbuf, int *scounts, int *sdisps,</span>
+<span class="lineNum">     165 </span>            :                                               struct ompi_datatype_t *sdtype,
+<span class="lineNum">     166 </span>            :                                               void *rbuf, int *rcounts, int *rdisps,
+<span class="lineNum">     167 </span>            :                                               struct ompi_datatype_t *rdtype,
+<span class="lineNum">     168 </span>            :                                               struct ompi_communicator_t *comm,
+<span class="lineNum">     169 </span>            :                                               mca_coll_base_module_t *module)
+<span class="lineNum">     170 </span>            : {
+<span class="lineNum">     171 </span>            :     /* For starters, just keep the original algorithm. */
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     return ompi_coll_base_alltoallv_intra_pairwise(sbuf, scounts, sdisps, sdtype,</span>
+<span class="lineNum">     173 </span>            :                                                    rbuf, rcounts, rdisps,rdtype,
+<span class="lineNum">     174 </span>            :                                                    comm, module);
+<span class="lineNum">     175 </span>            : }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            : /*
+<span class="lineNum">     179 </span>            :  *      barrier_intra_dec
+<span class="lineNum">     180 </span>            :  *
+<span class="lineNum">     181 </span>            :  *      Function:       - seletects barrier algorithm to use
+<span class="lineNum">     182 </span>            :  *      Accepts:        - same arguments as MPI_Barrier()
+<a name="183"><span class="lineNum">     183 </span>            :  *      Returns:        - MPI_SUCCESS or error code (passed from the barrier implementation)</a>
+<span class="lineNum">     184 </span>            :  */
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 : int ompi_coll_tuned_barrier_intra_dec_fixed(struct ompi_communicator_t *comm,</span>
+<span class="lineNum">     186 </span>            :                                             mca_coll_base_module_t *module)
+<span class="lineNum">     187 </span>            : {
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :     int communicator_size = ompi_comm_size(comm);</span>
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_tuned_stream, &quot;ompi_coll_tuned_barrier_intra_dec_fixed com_size %d&quot;,</span>
+<span class="lineNum">     191 </span>            :                  communicator_size));
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :     if( 2 == communicator_size )</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         return ompi_coll_base_barrier_intra_two_procs(comm, module);</span>
+<span class="lineNum">     195 </span>            :     /**
+<span class="lineNum">     196 </span>            :      * Basic optimisation. If we have a power of 2 number of nodes
+<span class="lineNum">     197 </span>            :      * the use the recursive doubling algorithm, otherwise
+<span class="lineNum">     198 </span>            :      * bruck is the one we want.
+<span class="lineNum">     199 </span>            :      */
+<span class="lineNum">     200 </span>            :     {
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :         bool has_one = false;</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         for( ; communicator_size &gt; 0; communicator_size &gt;&gt;= 1 ) {</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :             if( communicator_size &amp; 0x1 ) {</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :                 if( has_one )</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :                     return ompi_coll_base_barrier_intra_bruck(comm, module);</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :                 has_one = true;</span>
+<span class="lineNum">     207 </span>            :             }
+<span class="lineNum">     208 </span>            :         }
+<span class="lineNum">     209 </span>            :     }
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :     return ompi_coll_base_barrier_intra_recursivedoubling(comm, module);</span>
+<span class="lineNum">     211 </span>            : }
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span>            : /*
+<span class="lineNum">     215 </span>            :  *      bcast_intra_dec
+<span class="lineNum">     216 </span>            :  *
+<span class="lineNum">     217 </span>            :  *      Function:       - seletects broadcast algorithm to use
+<span class="lineNum">     218 </span>            :  *      Accepts:        - same arguments as MPI_Bcast()
+<a name="219"><span class="lineNum">     219 </span>            :  *      Returns:        - MPI_SUCCESS or error code (passed from the bcast implementation)</a>
+<span class="lineNum">     220 </span>            :  */
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 : int ompi_coll_tuned_bcast_intra_dec_fixed(void *buff, int count,</span>
+<span class="lineNum">     222 </span>            :                                           struct ompi_datatype_t *datatype, int root,
+<span class="lineNum">     223 </span>            :                                           struct ompi_communicator_t *comm,
+<span class="lineNum">     224 </span>            :                                           mca_coll_base_module_t *module)
+<span class="lineNum">     225 </span>            : {
+<span class="lineNum">     226 </span>            :     /* Decision function based on MX results for
+<span class="lineNum">     227 </span>            :        messages up to 36MB and communicator sizes up to 64 nodes */
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     const size_t small_message_size = 2048;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     const size_t intermediate_message_size = 370728;</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     const double a_p16  = 3.2118e-6; /* [1 / byte] */</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     const double b_p16  = 8.7936;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     const double a_p64  = 2.3679e-6; /* [1 / byte] */</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     const double b_p64  = 1.1787;</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     const double a_p128 = 1.6134e-6; /* [1 / byte] */</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     const double b_p128 = 2.1102;</span>
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span>            :     int communicator_size;
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     int segsize = 0;</span>
+<span class="lineNum">     239 </span>            :     size_t message_size, dsize;
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     communicator_size = ompi_comm_size(comm);</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            :     /* else we need data size for decision function */
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size(datatype, &amp;dsize);</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     message_size = dsize * (unsigned long)count;   /* needed for decision */</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_tuned_stream, &quot;ompi_coll_tuned_bcast_intra_dec_fixed&quot;</span>
+<span class="lineNum">     248 </span>            :                  &quot; root %d rank %d com_size %d msg_length %lu&quot;,
+<span class="lineNum">     249 </span>            :                  root, ompi_comm_rank(comm), communicator_size, (unsigned long)message_size));
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            :     /* Handle messages of small and intermediate size, and
+<span class="lineNum">     252 </span>            :        single-element broadcasts */
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     if ((message_size &lt; small_message_size) || (count &lt;= 1)) {</span>
+<span class="lineNum">     254 </span>            :         /* Binomial without segmentation */
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :         segsize = 0;</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         return  ompi_coll_base_bcast_intra_binomial(buff, count, datatype,</span>
+<span class="lineNum">     257 </span>            :                                                     root, comm, module,
+<span class="lineNum">     258 </span>            :                                                     segsize);
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     } else if (message_size &lt; intermediate_message_size) {</span>
+<span class="lineNum">     261 </span>            :         /* SplittedBinary with 1KB segments */
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         segsize = 1024;</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         return ompi_coll_base_bcast_intra_split_bintree(buff, count, datatype,</span>
+<span class="lineNum">     264 </span>            :                                                         root, comm, module,
+<span class="lineNum">     265 </span>            :                                                         segsize);
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            :     }
+<span class="lineNum">     268 </span>            :     /* Handle large message sizes */
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     else if (communicator_size &lt; (a_p128 * message_size + b_p128)) {</span>
+<span class="lineNum">     270 </span>            :         /* Pipeline with 128KB segments */
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :         segsize = 1024  &lt;&lt; 7;</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :         return ompi_coll_base_bcast_intra_pipeline(buff, count, datatype,</span>
+<span class="lineNum">     273 </span>            :                                                    root, comm, module,
+<span class="lineNum">     274 </span>            :                                                    segsize);
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     } else if (communicator_size &lt; 13) {</span>
+<span class="lineNum">     277 </span>            :         /* Split Binary with 8KB segments */
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         segsize = 1024 &lt;&lt; 3;</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :         return ompi_coll_base_bcast_intra_split_bintree(buff, count, datatype,</span>
+<span class="lineNum">     280 </span>            :                                                         root, comm, module,
+<span class="lineNum">     281 </span>            :                                                         segsize);
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     } else if (communicator_size &lt; (a_p64 * message_size + b_p64)) {</span>
+<span class="lineNum">     284 </span>            :         /* Pipeline with 64KB segments */
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :         segsize = 1024 &lt;&lt; 6;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         return ompi_coll_base_bcast_intra_pipeline(buff, count, datatype,</span>
+<span class="lineNum">     287 </span>            :                                                    root, comm, module,
+<span class="lineNum">     288 </span>            :                                                    segsize);
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     } else if (communicator_size &lt; (a_p16 * message_size + b_p16)) {</span>
+<span class="lineNum">     291 </span>            :         /* Pipeline with 16KB segments */
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :         segsize = 1024 &lt;&lt; 4;</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :         return ompi_coll_base_bcast_intra_pipeline(buff, count, datatype,</span>
+<span class="lineNum">     294 </span>            :                                                    root, comm, module,
+<span class="lineNum">     295 </span>            :                                                    segsize);
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            :     }
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span>            :     /* Pipeline with 8KB segments */
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     segsize = 1024 &lt;&lt; 3;</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :     return ompi_coll_base_bcast_intra_pipeline(buff, count, datatype,</span>
+<span class="lineNum">     302 </span>            :                                                root, comm, module,
+<span class="lineNum">     303 </span>            :                                                segsize);
+<span class="lineNum">     304 </span>            : #if 0
+<span class="lineNum">     305 </span>            :     /* this is based on gige measurements */
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            :     if (communicator_size  &lt; 4) {
+<span class="lineNum">     308 </span>            :         return ompi_coll_base_bcast_intra_basic_linear(buff, count, datatype, root, comm, module);
+<span class="lineNum">     309 </span>            :     }
+<span class="lineNum">     310 </span>            :     if (communicator_size == 4) {
+<span class="lineNum">     311 </span>            :         if (message_size &lt; 524288) segsize = 0;
+<span class="lineNum">     312 </span>            :         else segsize = 16384;
+<span class="lineNum">     313 </span>            :         return ompi_coll_base_bcast_intra_bintree(buff, count, datatype, root, comm, module, segsize);
+<span class="lineNum">     314 </span>            :     }
+<span class="lineNum">     315 </span>            :     if (communicator_size &lt;= 8 &amp;&amp; message_size &lt; 4096) {
+<span class="lineNum">     316 </span>            :         return ompi_coll_base_bcast_intra_basic_linear(buff, count, datatype, root, comm, module);
+<span class="lineNum">     317 </span>            :     }
+<span class="lineNum">     318 </span>            :     if (communicator_size &gt; 8 &amp;&amp; message_size &gt;= 32768 &amp;&amp; message_size &lt; 524288) {
+<span class="lineNum">     319 </span>            :         segsize = 16384;
+<span class="lineNum">     320 </span>            :         return  ompi_coll_base_bcast_intra_bintree(buff, count, datatype, root, comm, module, segsize);
+<span class="lineNum">     321 </span>            :     }
+<span class="lineNum">     322 </span>            :     if (message_size &gt;= 524288) {
+<span class="lineNum">     323 </span>            :         segsize = 16384;
+<span class="lineNum">     324 </span>            :         return ompi_coll_base_bcast_intra_pipeline(buff, count, datatype, root, comm, module, segsize);
+<span class="lineNum">     325 </span>            :     }
+<span class="lineNum">     326 </span>            :     segsize = 0;
+<span class="lineNum">     327 </span>            :     /* once tested can swap this back in */
+<span class="lineNum">     328 </span>            :     /* return ompi_coll_base_bcast_intra_bmtree(buff, count, datatype, root, comm, segsize); */
+<span class="lineNum">     329 </span>            :     return ompi_coll_base_bcast_intra_bintree(buff, count, datatype, root, comm, module, segsize);
+<span class="lineNum">     330 </span>            : #endif  /* 0 */
+<span class="lineNum">     331 </span>            : }
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span>            : /*
+<span class="lineNum">     334 </span>            :  *      reduce_intra_dec
+<span class="lineNum">     335 </span>            :  *
+<span class="lineNum">     336 </span>            :  *      Function:       - seletects reduce algorithm to use
+<span class="lineNum">     337 </span>            :  *      Accepts:        - same arguments as MPI_reduce()
+<span class="lineNum">     338 </span>            :  *      Returns:        - MPI_SUCCESS or error code (passed from the reduce implementation)
+<a name="339"><span class="lineNum">     339 </span>            :  *</a>
+<span class="lineNum">     340 </span>            :  */
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 : int ompi_coll_tuned_reduce_intra_dec_fixed( void *sendbuf, void *recvbuf,</span>
+<span class="lineNum">     342 </span>            :                                             int count, struct ompi_datatype_t* datatype,
+<span class="lineNum">     343 </span>            :                                             struct ompi_op_t* op, int root,
+<span class="lineNum">     344 </span>            :                                             struct ompi_communicator_t* comm,
+<span class="lineNum">     345 </span>            :                                             mca_coll_base_module_t *module)
+<span class="lineNum">     346 </span>            : {
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     int communicator_size, segsize = 0;</span>
+<span class="lineNum">     348 </span>            :     size_t message_size, dsize;
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :     const double a1 =  0.6016 / 1024.0; /* [1/B] */</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     const double b1 =  1.3496;</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     const double a2 =  0.0410 / 1024.0; /* [1/B] */</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     const double b2 =  9.7128;</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     const double a3 =  0.0422 / 1024.0; /* [1/B] */</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     const double b3 =  1.1614;</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     const double a4 =  0.0033 / 1024.0; /* [1/B] */</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     const double b4 =  1.6761;</span>
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     const int max_requests = 0; /* no limit on # of outstanding requests */</span>
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     communicator_size = ompi_comm_size(comm);</span>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            :     /* need data size for decision function */
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size(datatype, &amp;dsize);</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     message_size = dsize * (ptrdiff_t)count;   /* needed for decision */</span>
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            :     /**
+<span class="lineNum">     367 </span>            :      * If the operation is non commutative we currently have choice of linear
+<span class="lineNum">     368 </span>            :      * or in-order binary tree algorithm.
+<span class="lineNum">     369 </span>            :      */
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     if( !ompi_op_is_commute(op) ) {</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         if ((communicator_size &lt; 12) &amp;&amp; (message_size &lt; 2048)) {</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :             return ompi_coll_base_reduce_intra_basic_linear (sendbuf, recvbuf, count, datatype, op, root, comm, module);</span>
+<span class="lineNum">     373 </span>            :         }
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :         return ompi_coll_base_reduce_intra_in_order_binary (sendbuf, recvbuf, count, datatype, op, root, comm, module,</span>
+<span class="lineNum">     375 </span>            :                                                              0, max_requests);
+<span class="lineNum">     376 </span>            :     }
+<span class="lineNum">     377 </span>            : 
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_tuned_stream, &quot;ompi_coll_tuned_reduce_intra_dec_fixed &quot;</span>
+<span class="lineNum">     379 </span>            :                  &quot;root %d rank %d com_size %d msg_length %lu&quot;,
+<span class="lineNum">     380 </span>            :                  root, ompi_comm_rank(comm), communicator_size, (unsigned long)message_size));
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     if ((communicator_size &lt; 8) &amp;&amp; (message_size &lt; 512)){</span>
+<span class="lineNum">     383 </span>            :         /* Linear_0K */
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         return ompi_coll_base_reduce_intra_basic_linear(sendbuf, recvbuf, count, datatype, op, root, comm, module);</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     } else if (((communicator_size &lt; 8) &amp;&amp; (message_size &lt; 20480)) ||</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :                (message_size &lt; 2048) || (count &lt;= 1)) {</span>
+<span class="lineNum">     387 </span>            :         /* Binomial_0K */
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         segsize = 0;</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :         return ompi_coll_base_reduce_intra_binomial(sendbuf, recvbuf, count, datatype, op, root, comm, module,</span>
+<span class="lineNum">     390 </span>            :                                                      segsize, max_requests);
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :     } else if (communicator_size &gt; (a1 * message_size + b1)) {</span>
+<span class="lineNum">     392 </span>            :         /* Binomial_1K */
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :         segsize = 1024;</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :         return ompi_coll_base_reduce_intra_binomial(sendbuf, recvbuf, count, datatype, op, root, comm, module,</span>
+<span class="lineNum">     395 </span>            :                                                      segsize, max_requests);
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     } else if (communicator_size &gt; (a2 * message_size + b2)) {</span>
+<span class="lineNum">     397 </span>            :         /* Pipeline_1K */
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :         segsize = 1024;</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :         return ompi_coll_base_reduce_intra_pipeline(sendbuf, recvbuf, count, datatype, op, root, comm, module,</span>
+<span class="lineNum">     400 </span>            :                                                     segsize, max_requests);
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :     } else if (communicator_size &gt; (a3 * message_size + b3)) {</span>
+<span class="lineNum">     402 </span>            :         /* Binary_32K */
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :         segsize = 32*1024;</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         return ompi_coll_base_reduce_intra_binary( sendbuf, recvbuf, count, datatype, op, root,</span>
+<span class="lineNum">     405 </span>            :                                                     comm, module, segsize, max_requests);
+<span class="lineNum">     406 </span>            :     }
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :     if (communicator_size &gt; (a4 * message_size + b4)) {</span>
+<span class="lineNum">     408 </span>            :         /* Pipeline_32K */
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :         segsize = 32*1024;</span>
+<span class="lineNum">     410 </span>            :     } else {
+<span class="lineNum">     411 </span>            :         /* Pipeline_64K */
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         segsize = 64*1024;</span>
+<span class="lineNum">     413 </span>            :     }
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     return ompi_coll_base_reduce_intra_pipeline(sendbuf, recvbuf, count, datatype, op, root, comm, module,</span>
+<span class="lineNum">     415 </span>            :                                                 segsize, max_requests);
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span>            : #if 0
+<span class="lineNum">     418 </span>            :     /* for small messages use linear algorithm */
+<span class="lineNum">     419 </span>            :     if (message_size &lt;= 4096) {
+<span class="lineNum">     420 </span>            :         segsize = 0;
+<span class="lineNum">     421 </span>            :         fanout = communicator_size - 1;
+<span class="lineNum">     422 </span>            :         /* when linear implemented or taken from basic put here, right now using chain as a linear system */
+<span class="lineNum">     423 </span>            :         /* it is implemented and I shouldn't be calling a chain with a fanout bigger than MAXTREEFANOUT from topo.h! */
+<span class="lineNum">     424 </span>            :         return ompi_coll_base_reduce_intra_basic_linear(sendbuf, recvbuf, count, datatype, op, root, comm, module);
+<span class="lineNum">     425 </span>            :     }
+<span class="lineNum">     426 </span>            :     if (message_size &lt; 524288) {
+<span class="lineNum">     427 </span>            :         if (message_size &lt;= 65536 ) {
+<span class="lineNum">     428 </span>            :             segsize = 32768;
+<span class="lineNum">     429 </span>            :             fanout = 8;
+<span class="lineNum">     430 </span>            :         } else {
+<span class="lineNum">     431 </span>            :             segsize = 1024;
+<span class="lineNum">     432 </span>            :             fanout = communicator_size/2;
+<span class="lineNum">     433 </span>            :         }
+<span class="lineNum">     434 </span>            :         /* later swap this for a binary tree */
+<span class="lineNum">     435 </span>            :         /*         fanout = 2; */
+<span class="lineNum">     436 </span>            :         return ompi_coll_base_reduce_intra_chain(sendbuf, recvbuf, count, datatype, op, root, comm, module,
+<span class="lineNum">     437 </span>            :                                                  segsize, fanout, max_requests);
+<span class="lineNum">     438 </span>            :     }
+<span class="lineNum">     439 </span>            :     segsize = 1024;
+<span class="lineNum">     440 </span>            :     return ompi_coll_base_reduce_intra_pipeline(sendbuf, recvbuf, count, datatype, op, root, comm, module,
+<span class="lineNum">     441 </span>            :                                                 segsize, max_requests);
+<span class="lineNum">     442 </span>            : #endif  /* 0 */
+<span class="lineNum">     443 </span>            : }
+<span class="lineNum">     444 </span>            : 
+<span class="lineNum">     445 </span>            : /*
+<span class="lineNum">     446 </span>            :  *      reduce_scatter_intra_dec
+<span class="lineNum">     447 </span>            :  *
+<span class="lineNum">     448 </span>            :  *      Function:       - seletects reduce_scatter algorithm to use
+<span class="lineNum">     449 </span>            :  *      Accepts:        - same arguments as MPI_Reduce_scatter()
+<span class="lineNum">     450 </span>            :  *      Returns:        - MPI_SUCCESS or error code (passed from
+<a name="451"><span class="lineNum">     451 </span>            :  *                        the reduce scatter implementation)</a>
+<span class="lineNum">     452 </span>            :  */
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 : int ompi_coll_tuned_reduce_scatter_intra_dec_fixed( void *sbuf, void *rbuf,</span>
+<span class="lineNum">     454 </span>            :                                                     int *rcounts,
+<span class="lineNum">     455 </span>            :                                                     struct ompi_datatype_t *dtype,
+<span class="lineNum">     456 </span>            :                                                     struct ompi_op_t *op,
+<span class="lineNum">     457 </span>            :                                                     struct ompi_communicator_t *comm,
+<span class="lineNum">     458 </span>            :                                                     mca_coll_base_module_t *module)
+<span class="lineNum">     459 </span>            : {
+<span class="lineNum">     460 </span>            :     int comm_size, i, pow2;
+<span class="lineNum">     461 </span>            :     size_t total_message_size, dsize;
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     const double a = 0.0012;</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :     const double b = 8.0;</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :     const size_t small_message_size = 12 * 1024;</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :     const size_t large_message_size = 256 * 1024;</span>
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_tuned_stream, &quot;ompi_coll_tuned_reduce_scatter_intra_dec_fixed&quot;));</span>
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :     comm_size = ompi_comm_size(comm);</span>
+<span class="lineNum">     470 </span>            :     /* We need data size for decision function */
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size(dtype, &amp;dsize);</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :     total_message_size = 0;</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; comm_size; i++) {</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :         total_message_size += rcounts[i];</span>
+<span class="lineNum">     475 </span>            :     }
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     if( !ompi_op_is_commute(op) ) {</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :         return ompi_coll_base_reduce_scatter_intra_nonoverlapping(sbuf, rbuf, rcounts,</span>
+<span class="lineNum">     479 </span>            :                                                                   dtype, op,
+<span class="lineNum">     480 </span>            :                                                                   comm, module);
+<span class="lineNum">     481 </span>            :     }
+<span class="lineNum">     482 </span>            : 
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     total_message_size *= dsize;</span>
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span>            :     /* compute the nearest power of 2 */
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     pow2 = opal_next_poweroftwo_inclusive (comm_size);</span>
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     if ((total_message_size &lt;= small_message_size) ||</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :         ((total_message_size &lt;= large_message_size) &amp;&amp; (pow2 == comm_size)) ||</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :         (comm_size &gt;= a * total_message_size + b)) {</span>
+<span class="lineNum">     491 </span>            :         return
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :             ompi_coll_base_reduce_scatter_intra_basic_recursivehalving(sbuf, rbuf, rcounts,</span>
+<span class="lineNum">     493 </span>            :                                                                        dtype, op,
+<span class="lineNum">     494 </span>            :                                                                        comm, module);
+<span class="lineNum">     495 </span>            :     }
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :     return ompi_coll_base_reduce_scatter_intra_ring(sbuf, rbuf, rcounts,</span>
+<span class="lineNum">     497 </span>            :                                                      dtype, op,
+<span class="lineNum">     498 </span>            :                                                      comm, module);
+<span class="lineNum">     499 </span>            : }
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span>            : /*
+<span class="lineNum">     502 </span>            :  *      allgather_intra_dec
+<span class="lineNum">     503 </span>            :  *
+<span class="lineNum">     504 </span>            :  *      Function:       - seletects allgather algorithm to use
+<span class="lineNum">     505 </span>            :  *      Accepts:        - same arguments as MPI_Allgather()
+<span class="lineNum">     506 </span>            :  *      Returns:        - MPI_SUCCESS or error code, passed from corresponding
+<span class="lineNum">     507 </span>            :  *                        internal allgather function.
+<a name="508"><span class="lineNum">     508 </span>            :  */</a>
+<span class="lineNum">     509 </span>            : 
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 : int ompi_coll_tuned_allgather_intra_dec_fixed(void *sbuf, int scount,</span>
+<span class="lineNum">     511 </span>            :                                               struct ompi_datatype_t *sdtype,
+<span class="lineNum">     512 </span>            :                                               void* rbuf, int rcount,
+<span class="lineNum">     513 </span>            :                                               struct ompi_datatype_t *rdtype,
+<span class="lineNum">     514 </span>            :                                               struct ompi_communicator_t *comm,
+<span class="lineNum">     515 </span>            :                                               mca_coll_base_module_t *module)
+<span class="lineNum">     516 </span>            : {
+<span class="lineNum">     517 </span>            :     int communicator_size, pow2_size;
+<span class="lineNum">     518 </span>            :     size_t dsize, total_dsize;
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :     communicator_size = ompi_comm_size(comm);</span>
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span>            :     /* Special case for 2 processes */
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     if (communicator_size == 2) {</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :         return ompi_coll_base_allgather_intra_two_procs(sbuf, scount, sdtype,</span>
+<span class="lineNum">     525 </span>            :                                                         rbuf, rcount, rdtype,
+<span class="lineNum">     526 </span>            :                                                         comm, module);
+<span class="lineNum">     527 </span>            :     }
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span>            :     /* Determine complete data size */
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size(sdtype, &amp;dsize);</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :     total_dsize = dsize * (ptrdiff_t)scount * (ptrdiff_t)communicator_size;</span>
+<span class="lineNum">     532 </span>            : 
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_tuned_stream, &quot;ompi_coll_tuned_allgather_intra_dec_fixed&quot;</span>
+<span class="lineNum">     534 </span>            :                  &quot; rank %d com_size %d msg_length %lu&quot;,
+<span class="lineNum">     535 </span>            :                  ompi_comm_rank(comm), communicator_size, (unsigned long)total_dsize));
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :     pow2_size = opal_next_poweroftwo_inclusive (communicator_size);</span>
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span>            :     /* Decision based on MX 2Gb results from Grig cluster at
+<span class="lineNum">     540 </span>            :        The University of Tennesse, Knoxville
+<span class="lineNum">     541 </span>            :        - if total message size is less than 50KB use either bruck or
+<span class="lineNum">     542 </span>            :        recursive doubling for non-power of two and power of two nodes,
+<span class="lineNum">     543 </span>            :        respectively.
+<span class="lineNum">     544 </span>            :        - else use ring and neighbor exchange algorithms for odd and even
+<span class="lineNum">     545 </span>            :        number of nodes, respectively.
+<span class="lineNum">     546 </span>            :     */
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :     if (total_dsize &lt; 50000) {</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :         if (pow2_size == communicator_size) {</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :             return ompi_coll_base_allgather_intra_recursivedoubling(sbuf, scount, sdtype,</span>
+<span class="lineNum">     550 </span>            :                                                                     rbuf, rcount, rdtype,
+<span class="lineNum">     551 </span>            :                                                                     comm, module);
+<span class="lineNum">     552 </span>            :         } else {
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :             return ompi_coll_base_allgather_intra_bruck(sbuf, scount, sdtype,</span>
+<span class="lineNum">     554 </span>            :                                                         rbuf, rcount, rdtype,
+<span class="lineNum">     555 </span>            :                                                         comm, module);
+<span class="lineNum">     556 </span>            :         }
+<span class="lineNum">     557 </span>            :     } else {
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :         if (communicator_size % 2) {</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :             return ompi_coll_base_allgather_intra_ring(sbuf, scount, sdtype,</span>
+<span class="lineNum">     560 </span>            :                                                        rbuf, rcount, rdtype,
+<span class="lineNum">     561 </span>            :                                                        comm, module);
+<span class="lineNum">     562 </span>            :         } else {
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :             return  ompi_coll_base_allgather_intra_neighborexchange(sbuf, scount, sdtype,</span>
+<span class="lineNum">     564 </span>            :                                                                     rbuf, rcount, rdtype,
+<span class="lineNum">     565 </span>            :                                                                     comm, module);
+<span class="lineNum">     566 </span>            :         }
+<span class="lineNum">     567 </span>            :     }
+<span class="lineNum">     568 </span>            : 
+<span class="lineNum">     569 </span>            : #if defined(USE_MPICH2_DECISION)
+<span class="lineNum">     570 </span>            :     /* Decision as in MPICH-2
+<span class="lineNum">     571 </span>            :        presented in Thakur et.al. &quot;Optimization of Collective Communication
+<span class="lineNum">     572 </span>            :        Operations in MPICH&quot;, International Journal of High Performance Computing
+<span class="lineNum">     573 </span>            :        Applications, Vol. 19, No. 1, 49-66 (2005)
+<span class="lineNum">     574 </span>            :        - for power-of-two processes and small and medium size messages
+<span class="lineNum">     575 </span>            :        (up to 512KB) use recursive doubling
+<span class="lineNum">     576 </span>            :        - for non-power-of-two processes and small messages (80KB) use bruck,
+<span class="lineNum">     577 </span>            :        - for everything else use ring.
+<span class="lineNum">     578 </span>            :     */
+<span class="lineNum">     579 </span>            :     if ((pow2_size == communicator_size) &amp;&amp; (total_dsize &lt; 524288)) {
+<span class="lineNum">     580 </span>            :         return ompi_coll_base_allgather_intra_recursivedoubling(sbuf, scount, sdtype,
+<span class="lineNum">     581 </span>            :                                                                 rbuf, rcount, rdtype,
+<span class="lineNum">     582 </span>            :                                                                 comm, module);
+<span class="lineNum">     583 </span>            :     } else if (total_dsize &lt;= 81920) {
+<span class="lineNum">     584 </span>            :         return ompi_coll_base_allgather_intra_bruck(sbuf, scount, sdtype,
+<span class="lineNum">     585 </span>            :                                                     rbuf, rcount, rdtype,
+<span class="lineNum">     586 </span>            :                                                     comm, module);
+<span class="lineNum">     587 </span>            :     }
+<span class="lineNum">     588 </span>            :     return ompi_coll_base_allgather_intra_ring(sbuf, scount, sdtype,
+<span class="lineNum">     589 </span>            :                                                rbuf, rcount, rdtype,
+<span class="lineNum">     590 </span>            :                                                comm, module);
+<span class="lineNum">     591 </span>            : #endif  /* defined(USE_MPICH2_DECISION) */
+<span class="lineNum">     592 </span>            : }
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span>            : /*
+<span class="lineNum">     595 </span>            :  *      allgatherv_intra_dec
+<span class="lineNum">     596 </span>            :  *
+<span class="lineNum">     597 </span>            :  *      Function:       - seletects allgatherv algorithm to use
+<span class="lineNum">     598 </span>            :  *      Accepts:        - same arguments as MPI_Allgatherv()
+<span class="lineNum">     599 </span>            :  *      Returns:        - MPI_SUCCESS or error code, passed from corresponding
+<span class="lineNum">     600 </span>            :  *                        internal allgatherv function.
+<a name="601"><span class="lineNum">     601 </span>            :  */</a>
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 : int ompi_coll_tuned_allgatherv_intra_dec_fixed(void *sbuf, int scount,</span>
+<span class="lineNum">     604 </span>            :                                                struct ompi_datatype_t *sdtype,
+<span class="lineNum">     605 </span>            :                                                void* rbuf, int *rcounts,
+<span class="lineNum">     606 </span>            :                                                int *rdispls,
+<span class="lineNum">     607 </span>            :                                                struct ompi_datatype_t *rdtype,
+<span class="lineNum">     608 </span>            :                                                struct ompi_communicator_t *comm,
+<span class="lineNum">     609 </span>            :                                                mca_coll_base_module_t *module)
+<span class="lineNum">     610 </span>            : {
+<span class="lineNum">     611 </span>            :     int i;
+<span class="lineNum">     612 </span>            :     int communicator_size;
+<span class="lineNum">     613 </span>            :     size_t dsize, total_dsize;
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :     communicator_size = ompi_comm_size(comm);</span>
+<span class="lineNum">     616 </span>            : 
+<span class="lineNum">     617 </span>            :     /* Special case for 2 processes */
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :     if (communicator_size == 2) {</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :         return ompi_coll_base_allgatherv_intra_two_procs(sbuf, scount, sdtype,</span>
+<span class="lineNum">     620 </span>            :                                                          rbuf, rcounts, rdispls, rdtype,
+<span class="lineNum">     621 </span>            :                                                          comm, module);
+<span class="lineNum">     622 </span>            :     }
+<span class="lineNum">     623 </span>            : 
+<span class="lineNum">     624 </span>            :     /* Determine complete data size */
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size(sdtype, &amp;dsize);</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :     total_dsize = 0;</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; communicator_size; i++) {</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :         total_dsize += dsize * (ptrdiff_t)rcounts[i];</span>
+<span class="lineNum">     629 </span>            :     }
+<span class="lineNum">     630 </span>            : 
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_tuned_stream,</span>
+<span class="lineNum">     632 </span>            :                  &quot;ompi_coll_tuned_allgatherv_intra_dec_fixed&quot;
+<span class="lineNum">     633 </span>            :                  &quot; rank %d com_size %d msg_length %lu&quot;,
+<span class="lineNum">     634 </span>            :                  ompi_comm_rank(comm), communicator_size, (unsigned long)total_dsize));
+<span class="lineNum">     635 </span>            : 
+<span class="lineNum">     636 </span>            :     /* Decision based on allgather decision.   */
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :     if (total_dsize &lt; 50000) {</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :         return ompi_coll_base_allgatherv_intra_bruck(sbuf, scount, sdtype,</span>
+<span class="lineNum">     639 </span>            :                                                      rbuf, rcounts, rdispls, rdtype,
+<span class="lineNum">     640 </span>            :                                                      comm, module);
+<span class="lineNum">     641 </span>            :     } else {
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :         if (communicator_size % 2) {</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :             return ompi_coll_base_allgatherv_intra_ring(sbuf, scount, sdtype,</span>
+<span class="lineNum">     644 </span>            :                                                         rbuf, rcounts, rdispls, rdtype,
+<span class="lineNum">     645 </span>            :                                                         comm, module);
+<span class="lineNum">     646 </span>            :         } else {
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :             return  ompi_coll_base_allgatherv_intra_neighborexchange(sbuf, scount, sdtype,</span>
+<span class="lineNum">     648 </span>            :                                                                      rbuf, rcounts, rdispls, rdtype,
+<span class="lineNum">     649 </span>            :                                                                      comm, module);
+<span class="lineNum">     650 </span>            :         }
+<span class="lineNum">     651 </span>            :     }
+<span class="lineNum">     652 </span>            : }
+<span class="lineNum">     653 </span>            : 
+<span class="lineNum">     654 </span>            : /*
+<span class="lineNum">     655 </span>            :  *      gather_intra_dec
+<span class="lineNum">     656 </span>            :  *
+<span class="lineNum">     657 </span>            :  *      Function:       - seletects gather algorithm to use
+<span class="lineNum">     658 </span>            :  *      Accepts:        - same arguments as MPI_Gather()
+<span class="lineNum">     659 </span>            :  *      Returns:        - MPI_SUCCESS or error code, passed from corresponding
+<span class="lineNum">     660 </span>            :  *                        internal allgather function.
+<a name="661"><span class="lineNum">     661 </span>            :  */</a>
+<span class="lineNum">     662 </span>            : 
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 : int ompi_coll_tuned_gather_intra_dec_fixed(void *sbuf, int scount,</span>
+<span class="lineNum">     664 </span>            :                                            struct ompi_datatype_t *sdtype,
+<span class="lineNum">     665 </span>            :                                            void* rbuf, int rcount,
+<span class="lineNum">     666 </span>            :                                            struct ompi_datatype_t *rdtype,
+<span class="lineNum">     667 </span>            :                                            int root,
+<span class="lineNum">     668 </span>            :                                            struct ompi_communicator_t *comm,
+<span class="lineNum">     669 </span>            :                                            mca_coll_base_module_t *module)
+<span class="lineNum">     670 </span>            : {
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :     const int large_segment_size = 32768;</span>
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :     const int small_segment_size = 1024;</span>
+<span class="lineNum">     673 </span>            : 
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :     const size_t large_block_size = 92160;</span>
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :     const size_t intermediate_block_size = 6000;</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :     const size_t small_block_size = 1024;</span>
+<span class="lineNum">     677 </span>            : 
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :     const int large_communicator_size = 60;</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :     const int small_communicator_size = 10;</span>
+<span class="lineNum">     680 </span>            : 
+<span class="lineNum">     681 </span>            :     int communicator_size, rank;
+<span class="lineNum">     682 </span>            :     size_t dsize, block_size;
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_tuned_stream,</span>
+<span class="lineNum">     685 </span>            :                  &quot;ompi_coll_tuned_gather_intra_dec_fixed&quot;));
+<span class="lineNum">     686 </span>            : 
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :     communicator_size = ompi_comm_size(comm);</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     689 </span>            : 
+<span class="lineNum">     690 </span>            :     /* Determine block size */
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :     if (rank == root) {</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :         ompi_datatype_type_size(rdtype, &amp;dsize);</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :         block_size = dsize * (ptrdiff_t)rcount;</span>
+<span class="lineNum">     694 </span>            :     } else {
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :         ompi_datatype_type_size(sdtype, &amp;dsize);</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :         block_size = dsize * (ptrdiff_t)scount;</span>
+<span class="lineNum">     697 </span>            :     }
+<span class="lineNum">     698 </span>            : 
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :     if (block_size &gt; large_block_size) {</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :         return ompi_coll_base_gather_intra_linear_sync(sbuf, scount, sdtype,</span>
+<span class="lineNum">     701 </span>            :                                                        rbuf, rcount, rdtype,
+<span class="lineNum">     702 </span>            :                                                        root, comm, module,
+<span class="lineNum">     703 </span>            :                                                        large_segment_size);
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :     } else if (block_size &gt; intermediate_block_size) {</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :         return ompi_coll_base_gather_intra_linear_sync(sbuf, scount, sdtype,</span>
+<span class="lineNum">     707 </span>            :                                                        rbuf, rcount, rdtype,
+<span class="lineNum">     708 </span>            :                                                        root, comm, module,
+<span class="lineNum">     709 </span>            :                                                        small_segment_size);
+<span class="lineNum">     710 </span>            : 
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     } else if ((communicator_size &gt; large_communicator_size) ||</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :                ((communicator_size &gt; small_communicator_size) &amp;&amp;</span>
+<span class="lineNum">     713 </span>            :                 (block_size &lt; small_block_size))) {
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :         return ompi_coll_base_gather_intra_binomial(sbuf, scount, sdtype,</span>
+<span class="lineNum">     715 </span>            :                                                     rbuf, rcount, rdtype,
+<span class="lineNum">     716 </span>            :                                                     root, comm, module);
+<span class="lineNum">     717 </span>            :     }
+<span class="lineNum">     718 </span>            :     /* Otherwise, use basic linear */
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :     return ompi_coll_base_gather_intra_basic_linear(sbuf, scount, sdtype,</span>
+<span class="lineNum">     720 </span>            :                                                     rbuf, rcount, rdtype,
+<span class="lineNum">     721 </span>            :                                                     root, comm, module);
+<span class="lineNum">     722 </span>            : }
+<span class="lineNum">     723 </span>            : 
+<span class="lineNum">     724 </span>            : /*
+<span class="lineNum">     725 </span>            :  *      scatter_intra_dec
+<span class="lineNum">     726 </span>            :  *
+<span class="lineNum">     727 </span>            :  *      Function:       - seletects scatter algorithm to use
+<span class="lineNum">     728 </span>            :  *      Accepts:        - same arguments as MPI_Scatter()
+<span class="lineNum">     729 </span>            :  *      Returns:        - MPI_SUCCESS or error code, passed from corresponding
+<span class="lineNum">     730 </span>            :  *                        internal allgather function.
+<a name="731"><span class="lineNum">     731 </span>            :  */</a>
+<span class="lineNum">     732 </span>            : 
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 : int ompi_coll_tuned_scatter_intra_dec_fixed(void *sbuf, int scount,</span>
+<span class="lineNum">     734 </span>            :                                             struct ompi_datatype_t *sdtype,
+<span class="lineNum">     735 </span>            :                                             void* rbuf, int rcount,
+<span class="lineNum">     736 </span>            :                                             struct ompi_datatype_t *rdtype,
+<span class="lineNum">     737 </span>            :                                             int root, struct ompi_communicator_t *comm,
+<span class="lineNum">     738 </span>            :                                             mca_coll_base_module_t *module)
+<span class="lineNum">     739 </span>            : {
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :     const size_t small_block_size = 300;</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :     const int small_comm_size = 10;</span>
+<span class="lineNum">     742 </span>            :     int communicator_size, rank;
+<span class="lineNum">     743 </span>            :     size_t dsize, block_size;
+<span class="lineNum">     744 </span>            : 
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((ompi_coll_tuned_stream,</span>
+<span class="lineNum">     746 </span>            :                  &quot;ompi_coll_tuned_scatter_intra_dec_fixed&quot;));
+<span class="lineNum">     747 </span>            : 
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :     communicator_size = ompi_comm_size(comm);</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">     750 </span>            :     /* Determine block size */
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :     if (root == rank) {</span>
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :         ompi_datatype_type_size(sdtype, &amp;dsize);</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :         block_size = dsize * (ptrdiff_t)scount;</span>
+<span class="lineNum">     754 </span>            :     } else {
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :         ompi_datatype_type_size(rdtype, &amp;dsize);</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :         block_size = dsize * (ptrdiff_t)rcount;</span>
+<span class="lineNum">     757 </span>            :     }
+<span class="lineNum">     758 </span>            : 
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :     if ((communicator_size &gt; small_comm_size) &amp;&amp;</span>
+<span class="lineNum">     760 </span>            :         (block_size &lt; small_block_size)) {
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :         return ompi_coll_base_scatter_intra_binomial(sbuf, scount, sdtype,</span>
+<span class="lineNum">     762 </span>            :                                                      rbuf, rcount, rdtype,
+<span class="lineNum">     763 </span>            :                                                      root, comm, module);
+<span class="lineNum">     764 </span>            :     }
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :     return ompi_coll_base_scatter_intra_basic_linear(sbuf, scount, sdtype,</span>
+<span class="lineNum">     766 </span>            :                                                      rbuf, rcount, rdtype,
+<span class="lineNum">     767 </span>            :                                                      root, comm, module);
+<span class="lineNum">     768 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

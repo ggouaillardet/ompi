@@ -1,0 +1,606 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/class/opal_tree.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/class</a> - opal_tree.h<span style="font-size: 80%;"> (source / <a href="opal_tree.h.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2011      Oracle and/or its affiliates.  All rights reserved.
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2011      Oak Ridge National Labs.  All rights reserved.
+<span class="lineNum">       4 </span>            :  *
+<span class="lineNum">       5 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       6 </span>            :  *
+<span class="lineNum">       7 </span>            :  * Additional copyrights may follow
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * $HEADER$
+<span class="lineNum">      10 </span>            :  */
+<span class="lineNum">      11 </span>            : /**
+<span class="lineNum">      12 </span>            :  * @file
+<span class="lineNum">      13 </span>            :  *
+<span class="lineNum">      14 </span>            :  * The opal_tree_t interface is used to provide a generic
+<span class="lineNum">      15 </span>            :  * tree list container for Open MPI.  It was inspired by the opal_list_t
+<span class="lineNum">      16 </span>            :  * interface but instead of organizing items in a doubly-linked list
+<span class="lineNum">      17 </span>            :  * fashion, we order them in a finite tree structure.
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * The general idea is a user creates an class instance that has two
+<span class="lineNum">      20 </span>            :  * components.  A tree structure component as defined by opal_tree_item_t
+<span class="lineNum">      21 </span>            :  * that links all the items together to form the tree.  Then there is
+<span class="lineNum">      22 </span>            :  * a user specific data component which the user defines what is stored at
+<span class="lineNum">      23 </span>            :  * each item.  When a user create a type to be used for a OBJ_CLASS_INSTANCE
+<span class="lineNum">      24 </span>            :  * it will contain the opal_tree_item_t followed by any user specific
+<span class="lineNum">      25 </span>            :  * data.  Then the opal_tree_item_t objects can be put in an
+<span class="lineNum">      26 </span>            :  * opal_tree_t.  Hence, you create a new type that derives from
+<span class="lineNum">      27 </span>            :  * opal_tree_item_t; this new type can then be used with opal_tree_t
+<span class="lineNum">      28 </span>            :  * containers.
+<span class="lineNum">      29 </span>            :  *
+<span class="lineNum">      30 </span>            :  * NOTE: opal_tree_item_t instances can only be on \em one tree at a
+<span class="lineNum">      31 </span>            :  * time.  Specifically, if you add an opal_tree_item_t to one tree,
+<span class="lineNum">      32 </span>            :  * and then add it to another tree (without first removing it from the
+<span class="lineNum">      33 </span>            :  * first tree), you will effectively be hosing the first tree.  You
+<span class="lineNum">      34 </span>            :  * have been warned.
+<span class="lineNum">      35 </span>            :  *
+<span class="lineNum">      36 </span>            :  * If OPAL_ENABLE_DEBUG is true, a bunch of checks occur, including
+<span class="lineNum">      37 </span>            :  * some spot checks for a debugging reference count in an attempt to
+<span class="lineNum">      38 </span>            :  * ensure that an opal_tree_item_t is only one *one* tree at a time.
+<span class="lineNum">      39 </span>            :  * Given the highly concurrent nature of this class, these spot checks
+<span class="lineNum">      40 </span>            :  * cannot guarantee that an item is only one tree at a time.
+<span class="lineNum">      41 </span>            :  * Specifically, since it is a desirable attribute of this class to
+<span class="lineNum">      42 </span>            :  * not use locks for normal operations, it is possible that two
+<span class="lineNum">      43 </span>            :  * threads may [erroneously] modify an opal_tree_item_t concurrently.
+<span class="lineNum">      44 </span>            :  *
+<span class="lineNum">      45 </span>            :  * The only way to guarantee that a debugging reference count is valid
+<span class="lineNum">      46 </span>            :  * for the duration of an operation is to lock the item_t during the
+<span class="lineNum">      47 </span>            :  * operation.  But this fundamentally changes the desirable attribute
+<span class="lineNum">      48 </span>            :  * of this class (i.e., no locks).  So all we can do is spot-check the
+<span class="lineNum">      49 </span>            :  * reference count in a bunch of places and check that it is still the
+<span class="lineNum">      50 </span>            :  * value that we think it should be.  But this doesn't mean that you
+<span class="lineNum">      51 </span>            :  * can run into &quot;unlucky&quot; cases where two threads are concurrently
+<span class="lineNum">      52 </span>            :  * modifying an item_t, but all the spot checks still return the
+<span class="lineNum">      53 </span>            :  * &quot;right&quot; values.  All we can do is hope that we have enough spot
+<span class="lineNum">      54 </span>            :  * checks to statistically drive down the possibility of the unlucky
+<span class="lineNum">      55 </span>            :  * cases happening.
+<span class="lineNum">      56 </span>            :  */
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : #ifndef OPAL_TREE_H
+<span class="lineNum">      59 </span>            : #define OPAL_TREE_H
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      62 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      63 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      64 </span>            : #include &quot;opal/class/opal_object.h&quot;
+<span class="lineNum">      65 </span>            : #include &quot;opal/dss/dss.h&quot;
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">      68 </span>            : /* Need atomics for debugging (reference counting) */
+<span class="lineNum">      69 </span>            : #include &quot;opal/sys/atomic.h&quot;
+<span class="lineNum">      70 </span>            : #include &quot;opal/threads/mutex.h&quot;
+<span class="lineNum">      71 </span>            : #endif
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : BEGIN_C_DECLS
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            : /**
+<span class="lineNum">      76 </span>            :  * \internal
+<span class="lineNum">      77 </span>            :  *
+<span class="lineNum">      78 </span>            :  * The class for the tree container.
+<span class="lineNum">      79 </span>            :  */
+<span class="lineNum">      80 </span>            : OPAL_DECLSPEC OBJ_CLASS_DECLARATION(opal_tree_t);
+<span class="lineNum">      81 </span>            : /**
+<span class="lineNum">      82 </span>            :  * \internal
+<span class="lineNum">      83 </span>            :  *
+<span class="lineNum">      84 </span>            :  * Base class for items that are put in tree containers.
+<span class="lineNum">      85 </span>            :  */
+<span class="lineNum">      86 </span>            : OPAL_DECLSPEC OBJ_CLASS_DECLARATION(opal_tree_item_t);
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            : /**
+<span class="lineNum">      89 </span>            :  * \internal
+<span class="lineNum">      90 </span>            :  *
+<span class="lineNum">      91 </span>            :  * Struct of an opal_tree_item_t
+<span class="lineNum">      92 </span>            :  */
+<span class="lineNum">      93 </span>            : typedef struct opal_tree_item_t
+<span class="lineNum">      94 </span>            : {
+<span class="lineNum">      95 </span>            :     /** Generic parent class for all Open MPI objects */
+<span class="lineNum">      96 </span>            :     opal_object_t super;
+<span class="lineNum">      97 </span>            :     /** Pointer to the tree this item belongs to */
+<span class="lineNum">      98 </span>            :     struct opal_tree_t *opal_tree_container;
+<span class="lineNum">      99 </span>            :     /* Parent info */
+<span class="lineNum">     100 </span>            :     /** Pointer to parent tree item */
+<span class="lineNum">     101 </span>            :     struct opal_tree_item_t *opal_tree_parent;
+<span class="lineNum">     102 </span>            :     /** Depth from the root item in tree */
+<span class="lineNum">     103 </span>            :     unsigned opal_tree_num_ancestors;
+<span class="lineNum">     104 </span>            :     /* Logical rank we are compared to other siblings */
+<span class="lineNum">     105 </span>            :     unsigned opal_tree_sibling_rank;
+<span class="lineNum">     106 </span>            :     /** Pointer to next item below same parent (or NULL if this is the
+<span class="lineNum">     107 </span>            :         leftmost sibling) */
+<span class="lineNum">     108 </span>            :     struct opal_tree_item_t *opal_tree_next_sibling;
+<span class="lineNum">     109 </span>            :     /** Pointer to previous item below same parent (or NULL if this is
+<span class="lineNum">     110 </span>            :         the rightmost sibling) */
+<span class="lineNum">     111 </span>            :     struct opal_tree_item_t *opal_tree_prev_sibling;
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            :     /* Children info */
+<span class="lineNum">     114 </span>            :     /** Number of children */
+<span class="lineNum">     115 </span>            :     unsigned opal_tree_num_children;
+<span class="lineNum">     116 </span>            :     /** Pointer to first child item, or NULL if there are no children */
+<span class="lineNum">     117 </span>            :     struct opal_tree_item_t *opal_tree_first_child;
+<span class="lineNum">     118 </span>            :     /** Pointer to last child item, or NULL if there are no children */
+<span class="lineNum">     119 </span>            :     struct opal_tree_item_t *opal_tree_last_child;
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     122 </span>            :     /** Atomic reference count for debugging */
+<span class="lineNum">     123 </span>            :     int32_t opal_tree_item_refcount;
+<span class="lineNum">     124 </span>            :     /** The tree this item belong to */
+<span class="lineNum">     125 </span>            :     struct opal_tree_t* opal_tree_item_belong_to;
+<span class="lineNum">     126 </span>            : #endif
+<span class="lineNum">     127 </span>            : } opal_tree_item_t;
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            : /**
+<span class="lineNum">     130 </span>            :  * Check to see if item's user specific data matches key
+<span class="lineNum">     131 </span>            :  *
+<span class="lineNum">     132 </span>            :  * @param item - The item we want to check to see if it matches key
+<span class="lineNum">     133 </span>            :  * @param key - The opaque key that we want the match function to check
+<span class="lineNum">     134 </span>            :  *              in the item's user specific data.
+<span class="lineNum">     135 </span>            :  *
+<span class="lineNum">     136 </span>            :  * @returns 0 - If item's user specific data matches key
+<span class="lineNum">     137 </span>            :  * @returns non-zero - If item's user specific data does not match key
+<span class="lineNum">     138 </span>            :  *
+<span class="lineNum">     139 </span>            :  * This function is implemented by the code that constructs the tree
+<span class="lineNum">     140 </span>            :  * and initialized the pointer by the call to opal_tree_init.
+<span class="lineNum">     141 </span>            :  *
+<span class="lineNum">     142 </span>            :  */
+<span class="lineNum">     143 </span>            : typedef int (*opal_tree_comp_fn_t)(opal_tree_item_t *item, void *key);
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            : /**
+<span class="lineNum">     146 </span>            :   * The serialize function typedef. This function is called by the
+<span class="lineNum">     147 </span>            :   * opal tree serialize code to serialize a tree item's user specific
+<span class="lineNum">     148 </span>            :   * data of a class type.
+<span class="lineNum">     149 </span>            :   *
+<span class="lineNum">     150 </span>            :   * @params item - item to serialize the user specific data from
+<span class="lineNum">     151 </span>            :   * @params buffer - the opal_buffer_t to store the serialized data in.
+<span class="lineNum">     152 </span>            :   *
+<span class="lineNum">     153 </span>            :   * @returns OPAL_SUCCESS - when successfully serialized item
+<span class="lineNum">     154 </span>            :   */
+<span class="lineNum">     155 </span>            : typedef int (*opal_tree_item_serialize_fn_t)(opal_tree_item_t *item,
+<span class="lineNum">     156 </span>            :                                              opal_buffer_t *buffer);
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            : /**
+<span class="lineNum">     159 </span>            :   * The deserialize function typedef. This function is called by the
+<span class="lineNum">     160 </span>            :   * opal tree deserialize code to deserialize a tree item's user
+<span class="lineNum">     161 </span>            :   * specific data.
+<span class="lineNum">     162 </span>            :   *
+<span class="lineNum">     163 </span>            :   * @params buffer - the opal_buffer_t to deserialized data.
+<span class="lineNum">     164 </span>            :   * @params item - item to store the deserialized data into the user
+<span class="lineNum">     165 </span>            :   *                specific data
+<span class="lineNum">     166 </span>            :   *
+<span class="lineNum">     167 </span>            :   * @returns OPAL_SUCCESS - when successfully deserialized item
+<span class="lineNum">     168 </span>            :   */
+<span class="lineNum">     169 </span>            : typedef int (*opal_tree_item_deserialize_fn_t)(opal_buffer_t *buffer,
+<span class="lineNum">     170 </span>            :                                                opal_tree_item_t **item);
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            : /**
+<span class="lineNum">     173 </span>            :   * Get the 'key' associated with this item
+<span class="lineNum">     174 </span>            :   */
+<span class="lineNum">     175 </span>            : typedef void *(*opal_tree_get_key_fn_t)(opal_tree_item_t *item);
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            : /**
+<span class="lineNum">     178 </span>            :  * \internal
+<span class="lineNum">     179 </span>            :  *
+<span class="lineNum">     180 </span>            :  * Struct of an opal_tree_t
+<span class="lineNum">     181 </span>            :  *
+<span class="lineNum">     182 </span>            :  */
+<span class="lineNum">     183 </span>            : typedef struct opal_tree_t
+<span class="lineNum">     184 </span>            : {
+<span class="lineNum">     185 </span>            :     /** Generic parent class for all Open MPI objects */
+<span class="lineNum">     186 </span>            :     opal_object_t       super;
+<span class="lineNum">     187 </span>            :     /** Guard item of the tree that child points to root */
+<span class="lineNum">     188 </span>            :     opal_tree_item_t    opal_tree_sentinel;
+<span class="lineNum">     189 </span>            :     /** Quick reference to the number of items in the tree */
+<span class="lineNum">     190 </span>            :     volatile size_t     opal_tree_num_items;
+<span class="lineNum">     191 </span>            :     /** Function to compare two items in tree */
+<span class="lineNum">     192 </span>            :     opal_tree_comp_fn_t comp;
+<span class="lineNum">     193 </span>            :     /** Function to serialize tree item data */
+<span class="lineNum">     194 </span>            :     opal_tree_item_serialize_fn_t serialize;
+<span class="lineNum">     195 </span>            :     /** Function to deserialize tree item data */
+<span class="lineNum">     196 </span>            :     opal_tree_item_deserialize_fn_t deserialize;
+<span class="lineNum">     197 </span>            :     /**&lt; Function to deserialize tree item data */
+<span class="lineNum">     198 </span>            :     opal_tree_get_key_fn_t get_key;
+<span class="lineNum">     199 </span>            : } opal_tree_t;
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            : /** Macros to access items in the tree */
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span>            : /**
+<span class="lineNum">     204 </span>            :  * Get the parent of item in the tree.
+<span class="lineNum">     205 </span>            :  *
+<span class="lineNum">     206 </span>            :  * @param item A tree item.
+<span class="lineNum">     207 </span>            :  *
+<span class="lineNum">     208 </span>            :  * @returns The parent item in the tree
+<span class="lineNum">     209 </span>            :  *
+<span class="lineNum">     210 </span>            :  * This function is safe to be called with a null item pointer.
+<span class="lineNum">     211 </span>            :  */
+<span class="lineNum">     212 </span>            : static inline opal_tree_item_t *opal_tree_get_parent(opal_tree_item_t *item)
+<span class="lineNum">     213 </span>            : {
+<span class="lineNum">     214 </span>            :     return ((item) ? item-&gt;opal_tree_parent : NULL);
+<span class="lineNum">     215 </span>            : }
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            : /**
+<span class="lineNum">     218 </span>            :  * Get the next sibling item in the tree.
+<span class="lineNum">     219 </span>            :  *
+<span class="lineNum">     220 </span>            :  * @param item A tree item.
+<span class="lineNum">     221 </span>            :  *
+<span class="lineNum">     222 </span>            :  * @returns The next sibling item in the tree
+<span class="lineNum">     223 </span>            :  *
+<a name="224"><span class="lineNum">     224 </span>            :  * This function is safe to be called with a null item pointer.</a>
+<span class="lineNum">     225 </span>            :  */
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 : static inline opal_tree_item_t *opal_tree_get_next_sibling(opal_tree_item_t</span>
+<span class="lineNum">     227 </span>            :                                                            *item)
+<span class="lineNum">     228 </span>            : {
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     return ((item) ? item-&gt;opal_tree_next_sibling : NULL);</span>
+<span class="lineNum">     230 </span>            : }
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            : /**
+<span class="lineNum">     234 </span>            :  * Get the previous sibling item in the tree.
+<span class="lineNum">     235 </span>            :  *
+<span class="lineNum">     236 </span>            :  * @param item A tree item.
+<span class="lineNum">     237 </span>            :  *
+<span class="lineNum">     238 </span>            :  * @returns The previous sibling item in the tree
+<span class="lineNum">     239 </span>            :  *
+<a name="240"><span class="lineNum">     240 </span>            :  * This function is safe to be called with a null item pointer.</a>
+<span class="lineNum">     241 </span>            :  */
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 : static inline opal_tree_item_t *opal_tree_get_prev_sibling(opal_tree_item_t</span>
+<span class="lineNum">     243 </span>            :                                                            *item)
+<span class="lineNum">     244 </span>            : {
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     return ((item) ? item-&gt;opal_tree_prev_sibling : NULL);</span>
+<span class="lineNum">     246 </span>            : }
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span>            : /**
+<span class="lineNum">     249 </span>            :  * Get the first child item in the tree.
+<span class="lineNum">     250 </span>            :  *
+<span class="lineNum">     251 </span>            :  * @param item A tree item.
+<span class="lineNum">     252 </span>            :  *
+<span class="lineNum">     253 </span>            :  * @returns The first child item in the tree
+<span class="lineNum">     254 </span>            :  *
+<span class="lineNum">     255 </span>            :  * This function is safe to be called with a null item pointer.
+<a name="256"><span class="lineNum">     256 </span>            :  *</a>
+<span class="lineNum">     257 </span>            :  */
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 : static inline opal_tree_item_t *opal_tree_get_first_child(opal_tree_item_t</span>
+<span class="lineNum">     259 </span>            :                                                           *item)
+<span class="lineNum">     260 </span>            : {
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     return ((item) ? item-&gt;opal_tree_first_child : NULL);</span>
+<span class="lineNum">     262 </span>            : }
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            : /**
+<span class="lineNum">     265 </span>            :  * Get the last child item in the tree.
+<span class="lineNum">     266 </span>            :  *
+<span class="lineNum">     267 </span>            :  * @param item A tree item.
+<span class="lineNum">     268 </span>            :  *
+<span class="lineNum">     269 </span>            :  * @returns The last child item in the tree
+<span class="lineNum">     270 </span>            :  *
+<span class="lineNum">     271 </span>            :  * This function is safe to be called with a null item pointer.
+<a name="272"><span class="lineNum">     272 </span>            :  *</a>
+<span class="lineNum">     273 </span>            :  */
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 : static inline opal_tree_item_t *opal_tree_get_last_child(opal_tree_item_t</span>
+<span class="lineNum">     275 </span>            :                                                          *item)
+<span class="lineNum">     276 </span>            : {
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     return ((item) ? item-&gt;opal_tree_last_child : NULL);</span>
+<span class="lineNum">     278 </span>            : }
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span>            : /**
+<span class="lineNum">     281 </span>            :  * Check for empty tree
+<span class="lineNum">     282 </span>            :  *
+<span class="lineNum">     283 </span>            :  * @param tree The tree container
+<span class="lineNum">     284 </span>            :  *
+<span class="lineNum">     285 </span>            :  * @returns true if tree's size is 0, false otherwise
+<span class="lineNum">     286 </span>            :  *
+<span class="lineNum">     287 </span>            :  * This is an O(1) operation.
+<span class="lineNum">     288 </span>            :  *
+<span class="lineNum">     289 </span>            :  * This is an inlined function in compilers that support inlining,
+<span class="lineNum">     290 </span>            :  * so it's usually a cheap operation.
+<a name="291"><span class="lineNum">     291 </span>            :  *</a>
+<span class="lineNum">     292 </span>            :  */
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 : static inline bool opal_tree_is_empty(opal_tree_t* tree)</span>
+<span class="lineNum">     294 </span>            : {
+<span class="lineNum">     295 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     296 </span>            :     /* Spot check that the tree is a non-null pointer */
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     assert(NULL != tree);</span>
+<span class="lineNum">     298 </span>            : #endif
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :     return (tree-&gt;opal_tree_sentinel.opal_tree_first_child ==</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :             &amp;(tree-&gt;opal_tree_sentinel) ? true : false);</span>
+<span class="lineNum">     301 </span>            : }
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            : /**
+<span class="lineNum">     305 </span>            :  * Return the root item on the tree (does not remove it).
+<span class="lineNum">     306 </span>            :  *
+<span class="lineNum">     307 </span>            :  * @param tree The tree container
+<span class="lineNum">     308 </span>            :  *
+<span class="lineNum">     309 </span>            :  * @returns A pointer to the first item in the tree
+<span class="lineNum">     310 </span>            :  *
+<span class="lineNum">     311 </span>            :  * This is an O(1) operation to return the first item in the tree.
+<span class="lineNum">     312 </span>            :  *
+<span class="lineNum">     313 </span>            :  * This is an inlined function in compilers that support inlining, so
+<span class="lineNum">     314 </span>            :  * it's usually a cheap operation.
+<a name="315"><span class="lineNum">     315 </span>            :  *</a>
+<span class="lineNum">     316 </span>            :  */
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 : static inline opal_tree_item_t* opal_tree_get_root(opal_tree_t* tree)</span>
+<span class="lineNum">     318 </span>            : {
+<span class="lineNum">     319 </span>            :     opal_tree_item_t* item;
+<span class="lineNum">     320 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     assert(NULL != tree);</span>
+<span class="lineNum">     322 </span>            : #endif
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     item = tree-&gt;opal_tree_sentinel.opal_tree_first_child;</span>
+<span class="lineNum">     324 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     325 </span>            :     /* Spot check: ensure that the first item is only on one list */
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     assert(1 == item-&gt;opal_tree_item_refcount);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     assert(tree == item-&gt;opal_tree_item_belong_to );</span>
+<span class="lineNum">     328 </span>            : #endif
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     return item;</span>
+<span class="lineNum">     330 </span>            : }
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span>            : /**
+<span class="lineNum">     333 </span>            :  * Return the number of items in a tree
+<span class="lineNum">     334 </span>            :  *
+<span class="lineNum">     335 </span>            :  * @param tree The tree container
+<span class="lineNum">     336 </span>            :  *
+<span class="lineNum">     337 </span>            :  * @returns The size of the tree (size_t)
+<span class="lineNum">     338 </span>            :  *
+<span class="lineNum">     339 </span>            :  * This is an O(1) (in non-debug mode) lookup to return the
+<span class="lineNum">     340 </span>            :  * size of the list.
+<span class="lineNum">     341 </span>            :  */
+<span class="lineNum">     342 </span>            : OPAL_DECLSPEC size_t opal_tree_get_size(opal_tree_t* tree);
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span>            : /* Functions to manage the tree */
+<span class="lineNum">     346 </span>            : /**
+<span class="lineNum">     347 </span>            :  * Initialize tree container; must be called before using
+<span class="lineNum">     348 </span>            :  * the tree.
+<span class="lineNum">     349 </span>            :  *
+<span class="lineNum">     350 </span>            :  * @param tree        The tree to initialize
+<span class="lineNum">     351 </span>            :  * @param comp        Comparison function to attach to tree.
+<span class="lineNum">     352 </span>            :  * @param serialize   Serialization function to attach to tree.
+<span class="lineNum">     353 </span>            :  * @param deserialize De-serialization function to attach to tree.
+<span class="lineNum">     354 </span>            :  *
+<span class="lineNum">     355 </span>            :  */
+<span class="lineNum">     356 </span>            : OPAL_DECLSPEC void opal_tree_init(opal_tree_t *tree,
+<span class="lineNum">     357 </span>            :                                   opal_tree_comp_fn_t comp,
+<span class="lineNum">     358 </span>            :                                   opal_tree_item_serialize_fn_t serialize,
+<span class="lineNum">     359 </span>            :                                   opal_tree_item_deserialize_fn_t deserialize,
+<span class="lineNum">     360 </span>            :                                   opal_tree_get_key_fn_t get_key);
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            : /**
+<span class="lineNum">     363 </span>            :  * Add new item as child to its parent item
+<span class="lineNum">     364 </span>            :  *
+<span class="lineNum">     365 </span>            :  * @param parent_item pointer to what parent the new item belongs to
+<span class="lineNum">     366 </span>            :  * @param new_item the item to be added as a child to parent_item
+<span class="lineNum">     367 </span>            :  *
+<span class="lineNum">     368 </span>            :  * The new_item is added at the end of the child list of the parent_item.
+<span class="lineNum">     369 </span>            :  */
+<span class="lineNum">     370 </span>            : OPAL_DECLSPEC void opal_tree_add_child(opal_tree_item_t *parent_item,
+<span class="lineNum">     371 </span>            :                                        opal_tree_item_t *new_item);
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span>            : /**
+<span class="lineNum">     374 </span>            :  * Remove an item and everything below from a tree.
+<span class="lineNum">     375 </span>            :  *
+<span class="lineNum">     376 </span>            :  * @param item The item at the top of subtree to remove
+<span class="lineNum">     377 </span>            :  *
+<span class="lineNum">     378 </span>            :  * @returns A pointer to the item on the list previous to the one
+<span class="lineNum">     379 </span>            :  * that was removed.
+<span class="lineNum">     380 </span>            :  *
+<span class="lineNum">     381 </span>            :  * This is an O(1) operation to remove an item from the tree.  The
+<span class="lineNum">     382 </span>            :  * item and all children below it will be removed from the tree.  This
+<span class="lineNum">     383 </span>            :  * means the item's siblings pointers and potentially the parents first
+<span class="lineNum">     384 </span>            :  * and last pointers will be updated to skip over the item.  The tree container
+<span class="lineNum">     385 </span>            :  * will also have its num_items adjusted to reflect the number of items
+<span class="lineNum">     386 </span>            :  * that were removed.  The tree item (and all children below it) that is
+<span class="lineNum">     387 </span>            :  * returned is now &quot;owned&quot; by the caller -- they are responsible for
+<span class="lineNum">     388 </span>            :  * OBJ_RELEASE()'ing it.
+<span class="lineNum">     389 </span>            :  *
+<span class="lineNum">     390 </span>            :  * With ENABLE_DEBUG on this routine will validate whether the item is actually
+<span class="lineNum">     391 </span>            :  * in the tree before doing pointer manipulation.
+<span class="lineNum">     392 </span>            :  */
+<span class="lineNum">     393 </span>            : OPAL_DECLSPEC opal_tree_item_t *opal_tree_remove_subtree(opal_tree_item_t *item);
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span>            : /**
+<span class="lineNum">     396 </span>            :  * Remove an item, everything below inherited by parent.
+<span class="lineNum">     397 </span>            :  *
+<span class="lineNum">     398 </span>            :  * @param tree Tree from which to remove
+<span class="lineNum">     399 </span>            :  * @param item The item to remove
+<span class="lineNum">     400 </span>            :  *
+<span class="lineNum">     401 </span>            :  * @returns Success/Failure
+<span class="lineNum">     402 </span>            :  */
+<span class="lineNum">     403 </span>            : OPAL_DECLSPEC int opal_tree_remove_item(opal_tree_t *tree,
+<span class="lineNum">     404 </span>            :                                         opal_tree_item_t *item);
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            : /**
+<span class="lineNum">     407 </span>            :  * Serialize tree data
+<span class="lineNum">     408 </span>            :  *
+<span class="lineNum">     409 </span>            :  * @param start_item The item of a tree to start serializing data
+<span class="lineNum">     410 </span>            :  * @param buffer The opal buffer that contains the serialized
+<span class="lineNum">     411 </span>            :  *  data stream of the tree
+<span class="lineNum">     412 </span>            :  *
+<span class="lineNum">     413 </span>            :  * @returns OPAL_SUCCESS if data has been successfully converted.
+<span class="lineNum">     414 </span>            :  *
+<span class="lineNum">     415 </span>            :  * This routine walks the tree starting at start_item until it has serialized
+<span class="lineNum">     416 </span>            :  * all children items of start_item and creates a bytestream of data,
+<span class="lineNum">     417 </span>            :  * using the opal_dss.pack routine, that can be sent over a network.
+<span class="lineNum">     418 </span>            :  * The format of the bytestream represents the tree parent/child relationship
+<span class="lineNum">     419 </span>            :  * of each item in the tree plus the data inside the tree.  This routine calls
+<span class="lineNum">     420 </span>            :  * the tree's serialization method to serialize the user specific data for
+<span class="lineNum">     421 </span>            :  * each item.
+<span class="lineNum">     422 </span>            :  *
+<span class="lineNum">     423 </span>            :  */
+<span class="lineNum">     424 </span>            : OPAL_DECLSPEC int opal_tree_serialize(opal_tree_item_t *start_item,
+<span class="lineNum">     425 </span>            :                                       opal_buffer_t *buffer);
+<span class="lineNum">     426 </span>            : 
+<span class="lineNum">     427 </span>            : /**
+<span class="lineNum">     428 </span>            :  * De-serialize tree data
+<span class="lineNum">     429 </span>            :  *
+<span class="lineNum">     430 </span>            :  * @param buffer The opal buffer that is to be deserialized
+<span class="lineNum">     431 </span>            :  * @param start_item The item in the tree the data should be
+<span class="lineNum">     432 </span>            :  * deserialized into
+<span class="lineNum">     433 </span>            :  *
+<span class="lineNum">     434 </span>            :  * @returns Status of call OPAL_SUCCESS if everything worked
+<span class="lineNum">     435 </span>            :  *
+<span class="lineNum">     436 </span>            :  * This routine takes a bytestream that was created by the
+<span class="lineNum">     437 </span>            :  * opal_tree_serialize() function and deserializes it into the
+<span class="lineNum">     438 </span>            :  * tree given.  If the tree already has data in it, this routine
+<span class="lineNum">     439 </span>            :  * will start adding the new data as a new child of the root
+<span class="lineNum">     440 </span>            :  * item.  This routine calls the tree's de-serialization
+<span class="lineNum">     441 </span>            :  * method to deserialize the user specific data for each item.
+<span class="lineNum">     442 </span>            :  *
+<span class="lineNum">     443 </span>            :  */
+<span class="lineNum">     444 </span>            : OPAL_DECLSPEC int opal_tree_deserialize(opal_buffer_t *buffer,
+<span class="lineNum">     445 </span>            :                                         opal_tree_item_t *start_item);
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span>            : /**
+<span class="lineNum">     448 </span>            :  * Access the 'key' associated with the item
+<span class="lineNum">     449 </span>            :  *
+<span class="lineNum">     450 </span>            :  * @param tree Source Tree
+<span class="lineNum">     451 </span>            :  * @param item Item to access key of
+<span class="lineNum">     452 </span>            :  *
+<span class="lineNum">     453 </span>            :  * @returns Success/Failure
+<span class="lineNum">     454 </span>            :  */
+<span class="lineNum">     455 </span>            : OPAL_DECLSPEC void * opal_tree_get_key(opal_tree_t *tree, opal_tree_item_t *item);
+<span class="lineNum">     456 </span>            : 
+<span class="lineNum">     457 </span>            : /**
+<span class="lineNum">     458 </span>            :  * Copy/Duplicate a tree (requires serialize/deserialize)
+<span class="lineNum">     459 </span>            :  *
+<span class="lineNum">     460 </span>            :  * @param from Source tree to copy 'from'
+<span class="lineNum">     461 </span>            :  * @param to   Destination tree to copy 'to'
+<span class="lineNum">     462 </span>            :  *
+<span class="lineNum">     463 </span>            :  * @returns Success/Failure
+<span class="lineNum">     464 </span>            :  */
+<span class="lineNum">     465 </span>            : OPAL_DECLSPEC int opal_tree_dup(opal_tree_t *from, opal_tree_t *to);
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span>            : /**
+<span class="lineNum">     468 </span>            :  * Copy/Duplicate a subtree (requires serialize/deserialize)
+<span class="lineNum">     469 </span>            :  *
+<span class="lineNum">     470 </span>            :  * @param base Base tree
+<span class="lineNum">     471 </span>            :  * @param from Source tree item to copy 'from'
+<span class="lineNum">     472 </span>            :  *
+<span class="lineNum">     473 </span>            :  * @returns Tree item copy
+<span class="lineNum">     474 </span>            :  */
+<span class="lineNum">     475 </span>            : OPAL_DECLSPEC int opal_tree_copy_subtree(opal_tree_t *from_tree, opal_tree_item_t *from_item,
+<span class="lineNum">     476 </span>            :                                          opal_tree_t *to_tree,   opal_tree_item_t *to_parent);
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span>            : /**
+<span class="lineNum">     479 </span>            :  * Copy/Duplicate a tree item (requires serialize/deserialize)
+<span class="lineNum">     480 </span>            :  *
+<span class="lineNum">     481 </span>            :  * @param base Base tree
+<span class="lineNum">     482 </span>            :  * @param from Source tree item to copy 'from'
+<span class="lineNum">     483 </span>            :  *
+<span class="lineNum">     484 </span>            :  * @returns Tree item copy
+<span class="lineNum">     485 </span>            :  */
+<span class="lineNum">     486 </span>            : OPAL_DECLSPEC opal_tree_item_t *opal_tree_dup_item(opal_tree_t *base, opal_tree_item_t *from);
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span>            : /**
+<span class="lineNum">     489 </span>            :  * Count the number of children of this parent
+<span class="lineNum">     490 </span>            :  *
+<span class="lineNum">     491 </span>            :  * @param parent A parent node in the tree
+<span class="lineNum">     492 </span>            :  *
+<span class="lineNum">     493 </span>            :  * @returns Number of children of this parent
+<span class="lineNum">     494 </span>            :  */
+<span class="lineNum">     495 </span>            : OPAL_DECLSPEC int opal_tree_num_children(opal_tree_item_t *parent);
+<span class="lineNum">     496 </span>            : 
+<span class="lineNum">     497 </span>            : /**
+<span class="lineNum">     498 </span>            :  * Compare two trees
+<span class="lineNum">     499 </span>            :  *
+<span class="lineNum">     500 </span>            :  * @param left Tree
+<span class="lineNum">     501 </span>            :  * @param right Tree
+<span class="lineNum">     502 </span>            :  *
+<span class="lineNum">     503 </span>            :  * @returns 0 if identical, ow returns non-zero
+<span class="lineNum">     504 </span>            :  */
+<span class="lineNum">     505 </span>            : OPAL_DECLSPEC int opal_tree_compare(opal_tree_t *left, opal_tree_t *right);
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span>            : /* Functions to search for items on tree */
+<span class="lineNum">     508 </span>            : /**
+<span class="lineNum">     509 </span>            :  * Return the next tree item that matches key provided
+<span class="lineNum">     510 </span>            :  *
+<span class="lineNum">     511 </span>            :  * @param item The item to start the find from
+<span class="lineNum">     512 </span>            :  * @param key the key we are wanting to match with
+<span class="lineNum">     513 </span>            :  *
+<span class="lineNum">     514 </span>            :  * @returns A pointer to the next item that in the tree (starting from item)
+<span class="lineNum">     515 </span>            :  * that matches the key based on a depth first search of the tree.  A null
+<span class="lineNum">     516 </span>            :  * pointer is returned if we've reached the end of the tree and have not
+<span class="lineNum">     517 </span>            :  * matched the key.
+<span class="lineNum">     518 </span>            :  *
+<span class="lineNum">     519 </span>            :  * This routine uses the tree container's comp function to determine the
+<span class="lineNum">     520 </span>            :  * whether there is a match between the key and each item we search in the
+<span class="lineNum">     521 </span>            :  * tree.  This means the actual tree type constructed determines how the
+<span class="lineNum">     522 </span>            :  * compare is done with the key.  In the case no compare routine is given
+<span class="lineNum">     523 </span>            :  * and NULL pointer is always returned for this function.
+<span class="lineNum">     524 </span>            :  *
+<span class="lineNum">     525 </span>            :  */
+<span class="lineNum">     526 </span>            : OPAL_DECLSPEC opal_tree_item_t *opal_tree_find_with(opal_tree_item_t *item,
+<span class="lineNum">     527 </span>            :                                                     void *key);
+<span class="lineNum">     528 </span>            : END_C_DECLS
+<span class="lineNum">     529 </span>            : 
+<span class="lineNum">     530 </span>            : #endif /* OPAL_TREE_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

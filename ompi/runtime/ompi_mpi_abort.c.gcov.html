@@ -1,0 +1,293 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - ompi/runtime/ompi_mpi_abort.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">ompi/runtime</a> - ompi_mpi_abort.c<span style="font-size: 80%;"> (source / <a href="ompi_mpi_abort.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">60</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2014 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2006-2014 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2010-2011 Oak Ridge National Labs.  All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2014      Research Organization for Information Science
+<span class="lineNum">      15 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      16 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * $HEADER$
+<span class="lineNum">      21 </span>            :  */
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      26 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      27 </span>            : #endif
+<span class="lineNum">      28 </span>            : #ifdef HAVE_SYS_TYPES_H
+<span class="lineNum">      29 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      30 </span>            : #endif
+<span class="lineNum">      31 </span>            : #ifdef HAVE_SYS_PARAM_H
+<span class="lineNum">      32 </span>            : #include &lt;sys/param.h&gt;
+<span class="lineNum">      33 </span>            : #endif
+<span class="lineNum">      34 </span>            : #ifdef HAVE_NETDB_H
+<span class="lineNum">      35 </span>            : #include &lt;netdb.h&gt;
+<span class="lineNum">      36 </span>            : #endif
+<span class="lineNum">      37 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : #include &quot;opal/mca/backtrace/backtrace.h&quot;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : #include &quot;ompi/communicator/communicator.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;ompi/runtime/mpiruntime.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;ompi/runtime/params.h&quot;
+<span class="lineNum">      44 </span>            : #include &quot;ompi/debuggers/debuggers.h&quot;
+<span class="lineNum">      45 </span>            : #include &quot;ompi/errhandler/errcode.h&quot;
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : static bool have_been_invoked = false;
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : /*
+<span class="lineNum">      51 </span>            :  * Local helper function to build an array of all the procs in a
+<span class="lineNum">      52 </span>            :  * communicator, excluding this process.
+<span class="lineNum">      53 </span>            :  *
+<span class="lineNum">      54 </span>            :  * Killing a just the indicated peers must be implemented for
+<span class="lineNum">      55 </span>            :  * MPI_Abort() to work according to the standard language for
+<span class="lineNum">      56 </span>            :  * a 'high-quality' implementation.
+<span class="lineNum">      57 </span>            :  *
+<span class="lineNum">      58 </span>            :  * It would be nifty if we could differentiate between the
+<span class="lineNum">      59 </span>            :  * abort scenarios (but we don't, currently):
+<span class="lineNum">      60 </span>            :  *      - MPI_Abort()
+<span class="lineNum">      61 </span>            :  *      - MPI_ERRORS_ARE_FATAL
+<a name="62"><span class="lineNum">      62 </span>            :  *      - Victim of MPI_Abort()</a>
+<span class="lineNum">      63 </span>            :  */
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 : static void try_kill_peers(ompi_communicator_t *comm,</span>
+<span class="lineNum">      65 </span>            :                            int errcode)
+<span class="lineNum">      66 </span>            : {
+<span class="lineNum">      67 </span>            :     int nprocs;
+<span class="lineNum">      68 </span>            :     ompi_process_name_t *procs;
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     nprocs = ompi_comm_size(comm);</span>
+<span class="lineNum">      71 </span>            :     /* ompi_comm_remote_size() returns 0 if not an intercomm, so
+<span class="lineNum">      72 </span>            :        this is safe */
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     nprocs += ompi_comm_remote_size(comm);</span>
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     procs = (ompi_process_name_t*) calloc(nprocs, sizeof(ompi_process_name_t));</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     if (NULL == procs) {</span>
+<span class="lineNum">      77 </span>            :         /* quick clean orte and get out */
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :         ompi_rte_abort(errno, &quot;Abort: unable to alloc memory to kill procs&quot;);</span>
+<span class="lineNum">      79 </span>            :     }
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            :     /* put all the local group procs in the abort list */
+<span class="lineNum">      82 </span>            :     int rank, i, count;
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     rank = ompi_comm_rank(comm);</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     for (count = i = 0; i &lt; ompi_comm_size(comm); ++i) {</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :         if (rank == i) {</span>
+<span class="lineNum">      86 </span>            :             /* Don't include this process in the array */
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :             --nprocs;</span>
+<span class="lineNum">      88 </span>            :         } else {
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :             assert(count &lt;= nprocs);</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :             procs[count++] =</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :                 *OMPI_CAST_RTE_NAME(&amp;ompi_group_get_proc_ptr(comm-&gt;c_remote_group, i)-&gt;super.proc_name);</span>
+<span class="lineNum">      92 </span>            :         }
+<span class="lineNum">      93 </span>            :     }
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            :     /* if requested, kill off remote group procs too */
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; ompi_comm_remote_size(comm); ++i) {</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :         assert(count &lt;= nprocs);</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         procs[count++] =</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :             *OMPI_CAST_RTE_NAME(&amp;ompi_group_get_proc_ptr(comm-&gt;c_remote_group, i)-&gt;super.proc_name);</span>
+<span class="lineNum">     100 </span>            :     }
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     if (nprocs &gt; 0) {</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :         ompi_rte_abort_peers(procs, nprocs, errcode);</span>
+<span class="lineNum">     104 </span>            :     }
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            :     /* We could fall through here if ompi_rte_abort_peers() fails, or
+<span class="lineNum">     107 </span>            :        if (nprocs == 0).  Either way, tidy up and let the caller
+<span class="lineNum">     108 </span>            :        handle it. */
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :     free(procs);</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 : }</span>
+<a name="111"><span class="lineNum">     111 </span>            : </a>
+<span class="lineNum">     112 </span>            : int
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 : ompi_mpi_abort(struct ompi_communicator_t* comm,</span>
+<span class="lineNum">     114 </span>            :                int errcode)
+<span class="lineNum">     115 </span>            : {
+<span class="lineNum">     116 </span>            :     char *msg, *host, hostname[MAXHOSTNAMELEN];
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     pid_t pid = 0;</span>
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            :     /* Protection for recursive invocation */
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     if (have_been_invoked) {</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         return OMPI_SUCCESS;</span>
+<span class="lineNum">     122 </span>            :     }
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     have_been_invoked = true;</span>
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            :     /* If MPI is initialized, we know we have a runtime nodename, so
+<span class="lineNum">     126 </span>            :        use that.  Otherwise, call gethostname. */
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     if (ompi_rte_initialized) {</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         host = ompi_process_info.nodename;</span>
+<span class="lineNum">     129 </span>            :     } else {
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         gethostname(hostname, sizeof(hostname));</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         host = hostname;</span>
+<span class="lineNum">     132 </span>            :     }
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     pid = getpid();</span>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            :     /* Should we print a stack trace?  Not aggregated because they
+<span class="lineNum">     136 </span>            :        might be different on all processes. */
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     if (ompi_mpi_abort_print_stack) {</span>
+<span class="lineNum">     138 </span>            :         char **messages;
+<span class="lineNum">     139 </span>            :         int len, i;
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         if (OMPI_SUCCESS == opal_backtrace_buffer(&amp;messages, &amp;len)) {</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :             for (i = 0; i &lt; len; ++i) {</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :                 fprintf(stderr, &quot;[%s:%d] [%d] func:%s\n&quot;, host, (int) pid,</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :                         i, messages[i]);</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :                 fflush(stderr);</span>
+<span class="lineNum">     146 </span>            :             }
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :             free(messages);</span>
+<span class="lineNum">     148 </span>            :         } else {
+<span class="lineNum">     149 </span>            :             /* This will print an message if it's unable to print the
+<span class="lineNum">     150 </span>            :                backtrace, so we don't need an additional &quot;else&quot; clause
+<span class="lineNum">     151 </span>            :                if opal_backtrace_print() is not supported. */
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :             opal_backtrace_print(stderr, NULL, 1);</span>
+<span class="lineNum">     153 </span>            :         }
+<span class="lineNum">     154 </span>            :     }
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            :     /* Notify the debugger that we're about to abort */
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :     if (errcode &lt; 0 ||</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :         asprintf(&amp;msg, &quot;[%s:%d] aborting with MPI error %s%s&quot;,</span>
+<span class="lineNum">     160 </span>            :                  host, (int) pid, ompi_mpi_errnum_get_string(errcode),
+<span class="lineNum">     161 </span>            :                  ompi_mpi_abort_print_stack ?
+<span class="lineNum">     162 </span>            :                  &quot; (stack trace available on stderr)&quot; : &quot;&quot;) &lt; 0) {
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :         msg = NULL;</span>
+<span class="lineNum">     164 </span>            :     }
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     ompi_debugger_notify_abort(msg);</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     if (NULL != msg) {</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :         free(msg);</span>
+<span class="lineNum">     168 </span>            :     }
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span>            :     /* Should we wait for a while before aborting? */
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     if (0 != ompi_mpi_abort_delay) {</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :         if (ompi_mpi_abort_delay &lt; 0) {</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :             fprintf(stderr ,&quot;[%s:%d] Looping forever (MCA parameter mpi_abort_delay is &lt; 0)\n&quot;,</span>
+<span class="lineNum">     175 </span>            :                     host, (int) pid);
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :             fflush(stderr);</span>
+<span class="lineNum">     177 </span>            :             while (1) {
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :                 sleep(5);</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     180 </span>            :         } else {
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :             fprintf(stderr, &quot;[%s:%d] Delaying for %d seconds before aborting\n&quot;,</span>
+<span class="lineNum">     182 </span>            :                     host, (int) pid, ompi_mpi_abort_delay);
+<span class="lineNum">     183 </span>            :             do {
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :                 sleep(1);</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :             } while (--ompi_mpi_abort_delay &gt; 0);</span>
+<span class="lineNum">     186 </span>            :         }
+<span class="lineNum">     187 </span>            :     }
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span>            :     /* If the RTE isn't setup yet/any more, then don't even try
+<span class="lineNum">     190 </span>            :        killing everyone.  Sorry, Charlie... */
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     if (!ompi_rte_initialized) {</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         fprintf(stderr, &quot;[%s:%d] Local abort %s completed successfully, but am not able to aggregate error messages, and not able to guarantee that all other processes were killed!\n&quot;,</span>
+<span class="lineNum">     193 </span>            :                 host, (int) pid, ompi_mpi_finalized ?
+<span class="lineNum">     194 </span>            :                 &quot;after MPI_FINALIZE started&quot; : &quot;before MPI_INIT completed&quot;);
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :         exit(errcode == 0 ? 1 : errcode);</span>
+<span class="lineNum">     196 </span>            :     }
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            :     /* If OMPI is initialized and we have a non-NULL communicator,
+<span class="lineNum">     199 </span>            :        then try to kill just that set of processes */
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     if (ompi_mpi_initialized &amp;&amp; !ompi_mpi_finalized &amp;&amp; NULL != comm) {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :         try_kill_peers(comm, errcode);</span>
+<span class="lineNum">     202 </span>            :     }
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            :     /* We can fall through to here in a few cases:
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span>            :        1. The attempt to kill just a subset of peers via
+<span class="lineNum">     207 </span>            :           try_kill_peers() failed (e.g., as of July 2014, ORTE does
+<span class="lineNum">     208 </span>            :           returns NOT_IMPLENTED from orte_rte_abort_peers()).
+<span class="lineNum">     209 </span>            :        2. MPI wasn't initialized, was already finalized, or we got a
+<span class="lineNum">     210 </span>            :           NULL communicator.
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            :        In all of these cases, the only sensible thing left to do is to
+<span class="lineNum">     213 </span>            :        kill the entire job.  Wah wah. */
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     ompi_rte_abort(errcode, NULL);</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            :     /* Does not return */
+<span class="lineNum">     217 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,464 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/state/staged_orted/state_staged_orted.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/state/staged_orted</a> - state_staged_orted.c<span style="font-size: 80%;"> (source / <a href="state_staged_orted.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">132</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.
+<span class="lineNum">       3 </span>            :  *                         All rights reserved.
+<span class="lineNum">       4 </span>            :  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+<span class="lineNum">       5 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       6 </span>            :  *
+<span class="lineNum">       7 </span>            :  * Additional copyrights may follow
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * $HEADER$
+<span class="lineNum">      10 </span>            :  */
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      15 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      16 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      17 </span>            : #endif  /* HAVE_UNISTD_H */
+<span class="lineNum">      18 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      21 </span>            : #include &quot;opal/dss/dss.h&quot;
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &quot;orte/mca/dfs/dfs.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;orte/mca/iof/iof.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;orte/mca/rml/rml.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;orte/util/session_dir.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;orte/runtime/orte_quit.h&quot;
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #include &quot;orte/mca/state/state.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;orte/mca/state/base/base.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;orte/mca/state/base/state_private.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;state_staged_orted.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : /*
+<span class="lineNum">      36 </span>            :  * Module functions: Global
+<span class="lineNum">      37 </span>            :  */
+<span class="lineNum">      38 </span>            : static int init(void);
+<span class="lineNum">      39 </span>            : static int finalize(void);
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : /******************
+<span class="lineNum">      42 </span>            :  * STAGED_ORTED module
+<span class="lineNum">      43 </span>            :  ******************/
+<span class="lineNum">      44 </span>            : orte_state_base_module_t orte_state_staged_orted_module = {
+<span class="lineNum">      45 </span>            :     init,
+<span class="lineNum">      46 </span>            :     finalize,
+<span class="lineNum">      47 </span>            :     orte_state_base_activate_job_state,
+<span class="lineNum">      48 </span>            :     orte_state_base_add_job_state,
+<span class="lineNum">      49 </span>            :     orte_state_base_set_job_state_callback,
+<span class="lineNum">      50 </span>            :     orte_state_base_set_job_state_priority,
+<span class="lineNum">      51 </span>            :     orte_state_base_remove_job_state,
+<span class="lineNum">      52 </span>            :     orte_state_base_activate_proc_state,
+<span class="lineNum">      53 </span>            :     orte_state_base_add_proc_state,
+<span class="lineNum">      54 </span>            :     orte_state_base_set_proc_state_callback,
+<span class="lineNum">      55 </span>            :     orte_state_base_set_proc_state_priority,
+<span class="lineNum">      56 </span>            :     orte_state_base_remove_proc_state
+<span class="lineNum">      57 </span>            : };
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : /* Local functions */
+<span class="lineNum">      60 </span>            : static void track_jobs(int fd, short argc, void *cbdata);
+<span class="lineNum">      61 </span>            : static void track_procs(int fd, short argc, void *cbdata);
+<span class="lineNum">      62 </span>            : static int pack_state_update(opal_buffer_t *buf,
+<span class="lineNum">      63 </span>            :                              orte_job_t *jdata,
+<span class="lineNum">      64 </span>            :                              orte_proc_t *proc);
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : /* defined default state machines */
+<span class="lineNum">      67 </span>            : static orte_job_state_t job_states[] = {
+<span class="lineNum">      68 </span>            :     ORTE_JOB_STATE_LOCAL_LAUNCH_COMPLETE,
+<span class="lineNum">      69 </span>            : };
+<span class="lineNum">      70 </span>            : static orte_state_cbfunc_t job_callbacks[] = {
+<span class="lineNum">      71 </span>            :     track_jobs
+<span class="lineNum">      72 </span>            : };
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            : static orte_proc_state_t proc_states[] = {
+<span class="lineNum">      75 </span>            :     ORTE_PROC_STATE_RUNNING,
+<span class="lineNum">      76 </span>            :     ORTE_PROC_STATE_REGISTERED,
+<span class="lineNum">      77 </span>            :     ORTE_PROC_STATE_IOF_COMPLETE,
+<span class="lineNum">      78 </span>            :     ORTE_PROC_STATE_WAITPID_FIRED
+<span class="lineNum">      79 </span>            : };
+<span class="lineNum">      80 </span>            : static orte_state_cbfunc_t proc_callbacks[] = {
+<span class="lineNum">      81 </span>            :     track_procs,
+<span class="lineNum">      82 </span>            :     track_procs,
+<span class="lineNum">      83 </span>            :     track_procs,
+<span class="lineNum">      84 </span>            :     track_procs
+<span class="lineNum">      85 </span>            : };
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : /************************
+<a name="88"><span class="lineNum">      88 </span>            :  * API Definitions</a>
+<span class="lineNum">      89 </span>            :  ************************/
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 : static int init(void)</span>
+<span class="lineNum">      91 </span>            : {
+<span class="lineNum">      92 </span>            :     int num_states, i, rc;
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            :     /* setup the state machine */
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;orte_job_states, opal_list_t);</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;orte_proc_states, opal_list_t);</span>
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     num_states = sizeof(job_states) / sizeof(orte_job_state_t);</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; num_states; i++) {</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = orte_state.add_job_state(job_states[i],</span>
+<span class="lineNum">     101 </span>            :                                                            job_callbacks[i],
+<span class="lineNum">     102 </span>            :                                                            ORTE_SYS_PRI))) {
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     104 </span>            :         }
+<span class="lineNum">     105 </span>            :     }
+<span class="lineNum">     106 </span>            :     /* add a default error response */
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = orte_state.add_job_state(ORTE_JOB_STATE_FORCED_EXIT,</span>
+<span class="lineNum">     108 </span>            :                                                        orte_quit, ORTE_ERROR_PRI))) {
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     110 </span>            :     }
+<span class="lineNum">     111 </span>            :     /* add a state for when we are ordered to terminate */
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = orte_state.add_job_state(ORTE_JOB_STATE_DAEMONS_TERMINATED,</span>
+<span class="lineNum">     113 </span>            :                                                        orte_quit, ORTE_ERROR_PRI))) {
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     115 </span>            :     }
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     if (5 &lt; opal_output_get_verbosity(orte_state_base_framework.framework_output)) {</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :         orte_state_base_print_job_state_machine();</span>
+<span class="lineNum">     118 </span>            :     }
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            :     /* populate the proc state machine to allow us to
+<span class="lineNum">     121 </span>            :      * track proc lifecycle changes
+<span class="lineNum">     122 </span>            :      */
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     num_states = sizeof(proc_states) / sizeof(orte_proc_state_t);</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; num_states; i++) {</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         if (ORTE_SUCCESS != (rc = orte_state.add_proc_state(proc_states[i],</span>
+<span class="lineNum">     126 </span>            :                                                             proc_callbacks[i],
+<span class="lineNum">     127 </span>            :                                                             ORTE_SYS_PRI))) {
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     129 </span>            :         }
+<span class="lineNum">     130 </span>            :     }
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     if (5 &lt; opal_output_get_verbosity(orte_state_base_framework.framework_output)) {</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :         orte_state_base_print_proc_state_machine();</span>
+<span class="lineNum">     133 </span>            :     }
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     135 </span>            : }
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 : static int finalize(void)</span>
+<span class="lineNum">     138 </span>            : {
+<span class="lineNum">     139 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            :     /* cleanup the state machines */
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     while (NULL != (item = opal_list_remove_first(&amp;orte_job_states))) {</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item);</span>
+<span class="lineNum">     144 </span>            :     }
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;orte_job_states);</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     while (NULL != (item = opal_list_remove_first(&amp;orte_proc_states))) {</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item);</span>
+<span class="lineNum">     148 </span>            :     }
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;orte_proc_states);</span>
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     152 </span>            : }
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 : static void track_jobs(int fd, short argc, void *cbdata)</span>
+<span class="lineNum">     155 </span>            : {
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     orte_state_caddy_t *caddy = (orte_state_caddy_t*)cbdata;</span>
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            :     /* ignore this */
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(caddy);</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 : static void send_fms(opal_buffer_t *bptr, void *cbdata)</span>
+<span class="lineNum">     163 </span>            : {
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     orte_proc_t *pdata = (orte_proc_t*)cbdata;</span>
+<span class="lineNum">     165 </span>            :     orte_proc_t *pptr;
+<span class="lineNum">     166 </span>            :     orte_job_t *jdata;
+<span class="lineNum">     167 </span>            :     opal_buffer_t *xfer, *alert;
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :     orte_dfs_cmd_t cmd = ORTE_DFS_RELAY_POSTS_CMD;</span>
+<span class="lineNum">     169 </span>            :     int rc, i;
+<span class="lineNum">     170 </span>            :     orte_plm_cmd_flag_t cmd2;
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            :     /* we will get a NULL buffer if there are no maps, so check and
+<span class="lineNum">     173 </span>            :      * ignore sending an update if that's the case
+<span class="lineNum">     174 </span>            :      */
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     if (NULL != bptr) {</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :         opal_output_verbose(1, orte_state_base_framework.framework_output,</span>
+<span class="lineNum">     177 </span>            :                             &quot;%s SENDING FILE MAPS FOR %s OF SIZE %d&quot;,
+<span class="lineNum">     178 </span>            :                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :                             ORTE_NAME_PRINT(&amp;pdata-&gt;name), (int)bptr-&gt;bytes_used);</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :         xfer = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.pack(xfer, &amp;cmd, 1, ORTE_DFS_CMD_T))) {</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(xfer);</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     185 </span>            :         }
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.pack(xfer, &amp;pdata-&gt;name, 1, ORTE_NAME))) {</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(xfer);</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     190 </span>            :         }
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != (rc = opal_dss.pack(xfer, &amp;bptr, 1, OPAL_BUFFER))) {</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(xfer);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     195 </span>            :         }
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :         if (0 &gt; (rc = orte_rml.send_buffer_nb(ORTE_PROC_MY_HNP, xfer,</span>
+<span class="lineNum">     197 </span>            :                                               ORTE_RML_TAG_DFS_CMD,
+<span class="lineNum">     198 </span>            :                                               orte_rml_send_callback, NULL))) {
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(xfer);</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     202 </span>            :         }
+<span class="lineNum">     203 </span>            :     }
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            :     /* Clean up the session directory as if we were the process
+<span class="lineNum">     206 </span>            :      * itself.  This covers the case where the process died abnormally
+<span class="lineNum">     207 </span>            :      * and didn't cleanup its own session directory.
+<span class="lineNum">     208 </span>            :      */
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     orte_session_dir_finalize(&amp;pdata-&gt;name);</span>
+<span class="lineNum">     210 </span>            :     /* alert the HNP */
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :     cmd2 = ORTE_PLM_UPDATE_PROC_STATE;</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     alert = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &amp;cmd2, 1, ORTE_PLM_CMD))) {</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(alert);</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     217 </span>            :     }
+<span class="lineNum">     218 </span>            :     /* get the job object for this proc */
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     if (NULL == (jdata = orte_get_job_data_object(pdata-&gt;name.jobid))) {</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     222 </span>            :     }
+<span class="lineNum">     223 </span>            :     /* pack the info */
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = pack_state_update(alert, jdata, pdata))) {</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     226 </span>            :     }
+<span class="lineNum">     227 </span>            :     /* send it */
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((5, orte_state_base_framework.framework_output,</span>
+<span class="lineNum">     229 </span>            :                          &quot;%s SENDING TERMINATION UPDATE FOR PROC %s&quot;,
+<span class="lineNum">     230 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     231 </span>            :                          ORTE_NAME_PRINT(&amp;pdata-&gt;name)));
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     if (0 &gt; (rc = orte_rml.send_buffer_nb(ORTE_PROC_MY_HNP, alert,</span>
+<span class="lineNum">     233 </span>            :                                           ORTE_RML_TAG_PLM,
+<span class="lineNum">     234 </span>            :                                           orte_rml_send_callback, NULL))) {
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     236 </span>            :     }
+<span class="lineNum">     237 </span>            :     /* find this proc in the children array and remove it so
+<span class="lineNum">     238 </span>            :      * we don't keep telling the HNP that it died
+<span class="lineNum">     239 </span>            :      */
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; orte_local_children-&gt;size; i++) {</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         if (NULL == (pptr = (orte_proc_t*)opal_pointer_array_get_item(orte_local_children, i))) {</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     243 </span>            :         }
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :         if (pptr == pdata) {</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :             opal_pointer_array_set_item(orte_local_children, i, NULL);</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(pdata);</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     248 </span>            :         }
+<span class="lineNum">     249 </span>            :     }
+<span class="lineNum">     250 </span>            : }
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 : static void track_procs(int fd, short argc, void *cbdata)</span>
+<span class="lineNum">     254 </span>            : {
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     orte_state_caddy_t *caddy = (orte_state_caddy_t*)cbdata;</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :     orte_process_name_t *proc = &amp;caddy-&gt;name;</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     orte_proc_state_t state = caddy-&gt;proc_state;</span>
+<span class="lineNum">     258 </span>            :     orte_job_t *jdata;
+<span class="lineNum">     259 </span>            :     orte_proc_t *pdata;
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT_VERBOSE((5, orte_state_base_framework.framework_output,</span>
+<span class="lineNum">     262 </span>            :                          &quot;%s state:staged_orted:track_procs called for proc %s state %s&quot;,
+<span class="lineNum">     263 </span>            :                          ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+<span class="lineNum">     264 </span>            :                          ORTE_NAME_PRINT(proc),
+<span class="lineNum">     265 </span>            :                          orte_proc_state_to_str(state)));
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            :     /* get the job object for this proc */
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     if (NULL == (jdata = orte_get_job_data_object(proc-&gt;jobid))) {</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         goto cleanup;</span>
+<span class="lineNum">     271 </span>            :     }
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     pdata = (orte_proc_t*)opal_pointer_array_get_item(jdata-&gt;procs, proc-&gt;vpid);</span>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     switch (state) {</span>
+<span class="lineNum">     275 </span>            :     case ORTE_PROC_STATE_RUNNING:
+<span class="lineNum">     276 </span>            :         /* update the proc state */
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :         pdata-&gt;state = state;</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         jdata-&gt;num_launched++;</span>
+<span class="lineNum">     279 </span>            :         /* we don't really care - nothing further to do */
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span>            :     case ORTE_PROC_STATE_REGISTERED:
+<span class="lineNum">     283 </span>            :         /* update the proc state */
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :         pdata-&gt;state = state;</span>
+<span class="lineNum">     285 </span>            :         /* if this proc registered as an MPI proc, and
+<span class="lineNum">     286 </span>            :          * MPI is not allowed, then that is an error
+<span class="lineNum">     287 </span>            :          */
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         if (ORTE_FLAG_TEST(pdata, ORTE_PROC_FLAG_AS_MPI) &amp;&amp;</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :             !ORTE_FLAG_TEST(jdata, ORTE_JOB_FLAG_GANG_LAUNCHED)) {</span>
+<span class="lineNum">     290 </span>            :             /* abort the proc */
+<span class="lineNum">     291 </span>            :             /* notify the HNP of the error */
+<span class="lineNum">     292 </span>            :         }
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            :     case ORTE_PROC_STATE_IOF_COMPLETE:
+<span class="lineNum">     296 </span>            :         /* do NOT update the proc state as this can hit
+<span class="lineNum">     297 </span>            :          * while we are still trying to notify the HNP of
+<span class="lineNum">     298 </span>            :          * successful launch for short-lived procs
+<span class="lineNum">     299 </span>            :          */
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :         ORTE_FLAG_SET(pdata, ORTE_PROC_FLAG_IOF_COMPLETE);</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :         if (ORTE_FLAG_TEST(pdata, ORTE_PROC_FLAG_WAITPID)) {</span>
+<span class="lineNum">     302 </span>            :             /* the proc has terminated */
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :             ORTE_FLAG_UNSET(pdata, ORTE_PROC_FLAG_ALIVE);</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :             pdata-&gt;state = ORTE_PROC_STATE_TERMINATED;</span>
+<span class="lineNum">     305 </span>            :             /* retrieve any file maps posted by this process and forward them
+<span class="lineNum">     306 </span>            :              * to the HNP for collection
+<span class="lineNum">     307 </span>            :              */
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :             orte_dfs.get_file_map(proc, send_fms, pdata);</span>
+<span class="lineNum">     309 </span>            :          }
+<span class="lineNum">     310 </span>            :         /* Release the stdin IOF file descriptor for this child, if one
+<span class="lineNum">     311 </span>            :          * was defined. File descriptors for the other IOF channels - stdout,
+<span class="lineNum">     312 </span>            :          * stderr, and stddiag - were released when their associated pipes
+<span class="lineNum">     313 </span>            :          * were cleared and closed due to termination of the process
+<span class="lineNum">     314 </span>            :          * Do this after we handle termination in case the IOF needs
+<span class="lineNum">     315 </span>            :          * to check to see if all procs from the job are actually terminated
+<span class="lineNum">     316 </span>            :          */
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         if (NULL != orte_iof.close) {</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :             orte_iof.close(proc, ORTE_IOF_STDIN);</span>
+<span class="lineNum">     319 </span>            :         }
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span>            :     case ORTE_PROC_STATE_WAITPID_FIRED:
+<span class="lineNum">     323 </span>            :         /* do NOT update the proc state as this can hit
+<span class="lineNum">     324 </span>            :          * while we are still trying to notify the HNP of
+<span class="lineNum">     325 </span>            :          * successful launch for short-lived procs
+<span class="lineNum">     326 </span>            :          */
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         ORTE_FLAG_SET(pdata, ORTE_PROC_FLAG_WAITPID);</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :         if (ORTE_FLAG_TEST(pdata, ORTE_PROC_FLAG_IOF_COMPLETE)) {</span>
+<span class="lineNum">     329 </span>            :             /* the proc has terminated */
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :             ORTE_FLAG_UNSET(pdata, ORTE_PROC_FLAG_ALIVE);</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :             pdata-&gt;state = ORTE_PROC_STATE_TERMINATED;</span>
+<span class="lineNum">     332 </span>            :             /* retrieve any file maps posted by this process and forward them
+<span class="lineNum">     333 </span>            :              * to the HNP for collection
+<span class="lineNum">     334 </span>            :              */
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :             orte_dfs.get_file_map(proc, send_fms, pdata);</span>
+<span class="lineNum">     336 </span>            :         }
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span>            :     default:
+<span class="lineNum">     340 </span>            :         /* ignore */
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     342 </span>            :     }
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span>            :  cleanup:
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(caddy);</span>
+<a name="346"><span class="lineNum">     346 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 : static int pack_state_update(opal_buffer_t *alert,</span>
+<span class="lineNum">     349 </span>            :                              orte_job_t *jdata,
+<span class="lineNum">     350 </span>            :                              orte_proc_t *child)
+<span class="lineNum">     351 </span>            : {
+<span class="lineNum">     352 </span>            :     int rc;
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     orte_vpid_t null=ORTE_VPID_INVALID;</span>
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span>            :     /* pack the jobid */
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &amp;jdata-&gt;jobid, 1, ORTE_JOBID))) {</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     359 </span>            :     }
+<span class="lineNum">     360 </span>            :     /* pack the child's vpid */
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &amp;(child-&gt;name.vpid), 1, ORTE_VPID))) {</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     364 </span>            :     }
+<span class="lineNum">     365 </span>            :     /* pack the pid */
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &amp;child-&gt;pid, 1, OPAL_PID))) {</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     369 </span>            :     }
+<span class="lineNum">     370 </span>            :     /* pack its state */
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &amp;child-&gt;state, 1, ORTE_PROC_STATE))) {</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     374 </span>            :     }
+<span class="lineNum">     375 </span>            :     /* pack its exit code */
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &amp;child-&gt;exit_code, 1, ORTE_EXIT_CODE))) {</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     379 </span>            :     }
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            :     /* flag that this job is complete so the receiver can know */
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     if (ORTE_SUCCESS != (rc = opal_dss.pack(alert, &amp;null, 1, ORTE_VPID))) {</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :         ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     385 </span>            :     }
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     388 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,1561 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/hwloc/hwloc1110/hwloc/src/bitmap.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">opal/mca/hwloc/hwloc1110/hwloc/src</a> - bitmap.c<span style="font-size: 80%;"> (source / <a href="bitmap.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">207</td>
+            <td class="headerCovTableEntry">743</td>
+            <td class="headerCovTableEntryLo">27.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">23</td>
+            <td class="headerCovTableEntry">51</td>
+            <td class="headerCovTableEntryLo">45.1 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright © 2009 CNRS
+<span class="lineNum">       3 </span>            :  * Copyright © 2009-2015 Inria.  All rights reserved.
+<span class="lineNum">       4 </span>            :  * Copyright © 2009-2011 Université Bordeaux
+<span class="lineNum">       5 </span>            :  * Copyright © 2009-2011 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * See COPYING in top-level directory.
+<span class="lineNum">       7 </span>            :  */
+<span class="lineNum">       8 </span>            : 
+<span class="lineNum">       9 </span>            : #include &lt;private/autogen/config.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;hwloc/autogen/config.h&gt;
+<span class="lineNum">      11 </span>            : #include &lt;hwloc.h&gt;
+<span class="lineNum">      12 </span>            : #include &lt;private/misc.h&gt;
+<span class="lineNum">      13 </span>            : #include &lt;private/private.h&gt;
+<span class="lineNum">      14 </span>            : #include &lt;hwloc/bitmap.h&gt;
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : #include &lt;stdarg.h&gt;
+<span class="lineNum">      17 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      18 </span>            : #include &lt;assert.h&gt;
+<span class="lineNum">      19 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;ctype.h&gt;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : /* TODO
+<span class="lineNum">      23 </span>            :  * - have a way to change the initial allocation size
+<span class="lineNum">      24 </span>            :  * - preallocate inside the bitmap structure (so that the whole structure is a cacheline for instance)
+<span class="lineNum">      25 </span>            :  *   and allocate a dedicated array only later when reallocating larger
+<span class="lineNum">      26 </span>            :  */
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : /* magic number */
+<span class="lineNum">      29 </span>            : #define HWLOC_BITMAP_MAGIC 0x20091007
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : /* actual opaque type internals */
+<span class="lineNum">      32 </span>            : struct hwloc_bitmap_s {
+<span class="lineNum">      33 </span>            :   unsigned ulongs_count; /* how many ulong bitmasks are valid, &gt;= 1 */
+<span class="lineNum">      34 </span>            :   unsigned ulongs_allocated; /* how many ulong bitmasks are allocated, &gt;= ulongs_count */
+<span class="lineNum">      35 </span>            :   unsigned long *ulongs;
+<span class="lineNum">      36 </span>            :   int infinite; /* set to 1 if all bits beyond ulongs are set */
+<span class="lineNum">      37 </span>            : #ifdef HWLOC_DEBUG
+<span class="lineNum">      38 </span>            :   int magic;
+<span class="lineNum">      39 </span>            : #endif
+<span class="lineNum">      40 </span>            : };
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : /* overzealous check in debug-mode, not as powerful as valgrind but still useful */
+<span class="lineNum">      43 </span>            : #ifdef HWLOC_DEBUG
+<span class="lineNum">      44 </span>            : #define HWLOC__BITMAP_CHECK(set) do {                           \
+<span class="lineNum">      45 </span>            :   assert((set)-&gt;magic == HWLOC_BITMAP_MAGIC);                        \
+<span class="lineNum">      46 </span>            :   assert((set)-&gt;ulongs_count &gt;= 1);                               \
+<span class="lineNum">      47 </span>            :   assert((set)-&gt;ulongs_allocated &gt;= (set)-&gt;ulongs_count);      \
+<span class="lineNum">      48 </span>            : } while (0)
+<span class="lineNum">      49 </span>            : #else
+<span class="lineNum">      50 </span>            : #define HWLOC__BITMAP_CHECK(set)
+<span class="lineNum">      51 </span>            : #endif
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : /* extract a subset from a set using an index or a cpu */
+<span class="lineNum">      54 </span>            : #define HWLOC_SUBBITMAP_INDEX(cpu)              ((cpu)/(HWLOC_BITS_PER_LONG))
+<span class="lineNum">      55 </span>            : #define HWLOC_SUBBITMAP_CPU_ULBIT(cpu)          ((cpu)%(HWLOC_BITS_PER_LONG))
+<span class="lineNum">      56 </span>            : /* Read from a bitmap ulong without knowing whether x is valid.
+<span class="lineNum">      57 </span>            :  * Writers should make sure that x is valid and modify set-&gt;ulongs[x] directly.
+<span class="lineNum">      58 </span>            :  */
+<span class="lineNum">      59 </span>            : #define HWLOC_SUBBITMAP_READULONG(set,x)        ((x) &lt; (set)-&gt;ulongs_count ? (set)-&gt;ulongs[x] : (set)-&gt;infinite ? HWLOC_SUBBITMAP_FULL : HWLOC_SUBBITMAP_ZERO)
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            : /* predefined subset values */
+<span class="lineNum">      62 </span>            : #define HWLOC_SUBBITMAP_ZERO                    0UL
+<span class="lineNum">      63 </span>            : #define HWLOC_SUBBITMAP_FULL                    (~0UL)
+<span class="lineNum">      64 </span>            : #define HWLOC_SUBBITMAP_ULBIT(bit)              (1UL&lt;&lt;(bit))
+<span class="lineNum">      65 </span>            : #define HWLOC_SUBBITMAP_CPU(cpu)                HWLOC_SUBBITMAP_ULBIT(HWLOC_SUBBITMAP_CPU_ULBIT(cpu))
+<span class="lineNum">      66 </span>            : #define HWLOC_SUBBITMAP_ULBIT_TO(bit)           (HWLOC_SUBBITMAP_FULL&gt;&gt;(HWLOC_BITS_PER_LONG-1-(bit)))
+<span class="lineNum">      67 </span>            : #define HWLOC_SUBBITMAP_ULBIT_FROM(bit)         (HWLOC_SUBBITMAP_FULL&lt;&lt;(bit))
+<a name="68"><span class="lineNum">      68 </span>            : #define HWLOC_SUBBITMAP_ULBIT_FROMTO(begin,end) (HWLOC_SUBBITMAP_ULBIT_TO(end) &amp; HWLOC_SUBBITMAP_ULBIT_FROM(begin))</a>
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span><span class="lineCov">        434 : struct hwloc_bitmap_s * hwloc_bitmap_alloc(void)</span>
+<span class="lineNum">      71 </span>            : {
+<span class="lineNum">      72 </span>            :   struct hwloc_bitmap_s * set;
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span><span class="lineCov">        434 :   set = malloc(sizeof(struct hwloc_bitmap_s));</span>
+<span class="lineNum">      75 </span><span class="lineCov">        434 :   if (!set)</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineCov">        434 :   set-&gt;ulongs_count = 1;</span>
+<span class="lineNum">      79 </span><span class="lineCov">        434 :   set-&gt;ulongs_allocated = 64/sizeof(unsigned long);</span>
+<span class="lineNum">      80 </span><span class="lineCov">        434 :   set-&gt;ulongs = malloc(64);</span>
+<span class="lineNum">      81 </span><span class="lineCov">        434 :   if (!set-&gt;ulongs) {</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     free(set);</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">      84 </span>            :   }
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span><span class="lineCov">        434 :   set-&gt;ulongs[0] = HWLOC_SUBBITMAP_ZERO;</span>
+<span class="lineNum">      87 </span><span class="lineCov">        434 :   set-&gt;infinite = 0;</span>
+<span class="lineNum">      88 </span>            : #ifdef HWLOC_DEBUG
+<span class="lineNum">      89 </span>            :   set-&gt;magic = HWLOC_BITMAP_MAGIC;
+<span class="lineNum">      90 </span>            : #endif
+<span class="lineNum">      91 </span><span class="lineCov">        434 :   return set;</span>
+<a name="92"><span class="lineNum">      92 </span>            : }</a>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span><span class="lineCov">        132 : struct hwloc_bitmap_s * hwloc_bitmap_alloc_full(void)</span>
+<span class="lineNum">      95 </span>            : {
+<span class="lineNum">      96 </span><span class="lineCov">        132 :   struct hwloc_bitmap_s * set = hwloc_bitmap_alloc();</span>
+<span class="lineNum">      97 </span><span class="lineCov">        132 :   if (set) {</span>
+<span class="lineNum">      98 </span><span class="lineCov">        132 :     set-&gt;infinite = 1;</span>
+<span class="lineNum">      99 </span><span class="lineCov">        132 :     set-&gt;ulongs[0] = HWLOC_SUBBITMAP_FULL;</span>
+<span class="lineNum">     100 </span>            :   }
+<span class="lineNum">     101 </span><span class="lineCov">        132 :   return set;</span>
+<a name="102"><span class="lineNum">     102 </span>            : }</a>
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineCov">        616 : void hwloc_bitmap_free(struct hwloc_bitmap_s * set)</span>
+<span class="lineNum">     105 </span>            : {
+<span class="lineNum">     106 </span><span class="lineCov">        616 :   if (!set)</span>
+<span class="lineNum">     107 </span><span class="lineCov">        182 :     return;</span>
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            :   HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     110 </span>            : #ifdef HWLOC_DEBUG
+<span class="lineNum">     111 </span>            :   set-&gt;magic = 0;
+<span class="lineNum">     112 </span>            : #endif
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span><span class="lineCov">        434 :   free(set-&gt;ulongs);</span>
+<span class="lineNum">     115 </span><span class="lineCov">        434 :   free(set);</span>
+<span class="lineNum">     116 </span>            : }
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            : /* enlarge until it contains at least needed_count ulongs.
+<a name="119"><span class="lineNum">     119 </span>            :  */</a>
+<span class="lineNum">     120 </span>            : static void
+<span class="lineNum">     121 </span><span class="lineCov">        748 : hwloc_bitmap_enlarge_by_ulongs(struct hwloc_bitmap_s * set, unsigned needed_count)</span>
+<span class="lineNum">     122 </span>            : {
+<span class="lineNum">     123 </span><span class="lineCov">        748 :   unsigned tmp = 1 &lt;&lt; hwloc_flsl((unsigned long) needed_count - 1);</span>
+<span class="lineNum">     124 </span><span class="lineCov">        748 :   if (tmp &gt; set-&gt;ulongs_allocated) {</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :     set-&gt;ulongs = realloc(set-&gt;ulongs, tmp * sizeof(unsigned long));</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     assert(set-&gt;ulongs);</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     set-&gt;ulongs_allocated = tmp;</span>
+<span class="lineNum">     128 </span>            :   }
+<span class="lineNum">     129 </span><span class="lineCov">        748 : }</span>
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            : /* enlarge until it contains at least needed_count ulongs,
+<span class="lineNum">     132 </span>            :  * and update new ulongs according to the infinite field.
+<a name="133"><span class="lineNum">     133 </span>            :  */</a>
+<span class="lineNum">     134 </span>            : static void
+<span class="lineNum">     135 </span><span class="lineCov">         14 : hwloc_bitmap_realloc_by_ulongs(struct hwloc_bitmap_s * set, unsigned needed_count)</span>
+<span class="lineNum">     136 </span>            : {
+<span class="lineNum">     137 </span>            :   unsigned i;
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            :   HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineCov">         14 :   if (needed_count &lt;= set-&gt;ulongs_count)</span>
+<span class="lineNum">     142 </span><span class="lineCov">         14 :     return;</span>
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            :   /* realloc larger if needed */
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :   hwloc_bitmap_enlarge_by_ulongs(set, needed_count);</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            :   /* fill the newly allocated subset depending on the infinite flag */
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :   for(i=set-&gt;ulongs_count; i&lt;needed_count; i++)</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     set-&gt;ulongs[i] = set-&gt;infinite ? HWLOC_SUBBITMAP_FULL : HWLOC_SUBBITMAP_ZERO;</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :   set-&gt;ulongs_count = needed_count;</span>
+<span class="lineNum">     151 </span>            : }
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            : /* realloc until it contains at least cpu+1 bits */
+<span class="lineNum">     154 </span>            : #define hwloc_bitmap_realloc_by_cpu_index(set, cpu) hwloc_bitmap_realloc_by_ulongs(set, ((cpu)/HWLOC_BITS_PER_LONG)+1)
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            : /* reset a bitmap to exactely the needed size.
+<span class="lineNum">     157 </span>            :  * the caller must reinitialize all ulongs and the infinite flag later.
+<a name="158"><span class="lineNum">     158 </span>            :  */</a>
+<span class="lineNum">     159 </span>            : static void
+<span class="lineNum">     160 </span><span class="lineCov">        748 : hwloc_bitmap_reset_by_ulongs(struct hwloc_bitmap_s * set, unsigned needed_count)</span>
+<span class="lineNum">     161 </span>            : {
+<span class="lineNum">     162 </span><span class="lineCov">        748 :   hwloc_bitmap_enlarge_by_ulongs(set, needed_count);</span>
+<span class="lineNum">     163 </span><span class="lineCov">        748 :   set-&gt;ulongs_count = needed_count;</span>
+<span class="lineNum">     164 </span><span class="lineCov">        748 : }</span>
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            : /* reset until it contains exactly cpu+1 bits (roundup to a ulong).
+<span class="lineNum">     167 </span>            :  * the caller must reinitialize all ulongs and the infinite flag later.
+<span class="lineNum">     168 </span>            :  */
+<a name="169"><span class="lineNum">     169 </span>            : #define hwloc_bitmap_reset_by_cpu_index(set, cpu) hwloc_bitmap_reset_by_ulongs(set, ((cpu)/HWLOC_BITS_PER_LONG)+1)</a>
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 : struct hwloc_bitmap_s * hwloc_bitmap_dup(const struct hwloc_bitmap_s * old)</span>
+<span class="lineNum">     172 </span>            : {
+<span class="lineNum">     173 </span>            :   struct hwloc_bitmap_s * new;
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :   if (!old)</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            :   HWLOC__BITMAP_CHECK(old);
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :   new = malloc(sizeof(struct hwloc_bitmap_s));</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :   if (!new)</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :   new-&gt;ulongs = malloc(old-&gt;ulongs_allocated * sizeof(unsigned long));</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   if (!new-&gt;ulongs) {</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     free(new);</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     188 </span>            :   }
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :   new-&gt;ulongs_allocated = old-&gt;ulongs_allocated;</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :   new-&gt;ulongs_count = old-&gt;ulongs_count;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :   memcpy(new-&gt;ulongs, old-&gt;ulongs, new-&gt;ulongs_count * sizeof(unsigned long));</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   new-&gt;infinite = old-&gt;infinite;</span>
+<span class="lineNum">     193 </span>            : #ifdef HWLOC_DEBUG
+<span class="lineNum">     194 </span>            :   new-&gt;magic = HWLOC_BITMAP_MAGIC;
+<span class="lineNum">     195 </span>            : #endif
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :   return new;</span>
+<a name="197"><span class="lineNum">     197 </span>            : }</a>
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span><span class="lineCov">         84 : void hwloc_bitmap_copy(struct hwloc_bitmap_s * dst, const struct hwloc_bitmap_s * src)</span>
+<span class="lineNum">     200 </span>            : {
+<span class="lineNum">     201 </span>            :   HWLOC__BITMAP_CHECK(dst);
+<span class="lineNum">     202 </span>            :   HWLOC__BITMAP_CHECK(src);
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineCov">         84 :   hwloc_bitmap_reset_by_ulongs(dst, src-&gt;ulongs_count);</span>
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span><span class="lineCov">         84 :   memcpy(dst-&gt;ulongs, src-&gt;ulongs, src-&gt;ulongs_count * sizeof(unsigned long));</span>
+<span class="lineNum">     207 </span><span class="lineCov">         84 :   dst-&gt;infinite = src-&gt;infinite;</span>
+<span class="lineNum">     208 </span><span class="lineCov">         84 : }</span>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            : /* Strings always use 32bit groups */
+<span class="lineNum">     211 </span>            : #define HWLOC_PRIxSUBBITMAP             &quot;%08lx&quot;
+<span class="lineNum">     212 </span>            : #define HWLOC_BITMAP_SUBSTRING_SIZE     32
+<span class="lineNum">     213 </span>            : #define HWLOC_BITMAP_SUBSTRING_LENGTH   (HWLOC_BITMAP_SUBSTRING_SIZE/4)
+<a name="214"><span class="lineNum">     214 </span>            : #define HWLOC_BITMAP_STRING_PER_LONG    (HWLOC_BITS_PER_LONG/HWLOC_BITMAP_SUBSTRING_SIZE)</a>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 : int hwloc_bitmap_snprintf(char * __hwloc_restrict buf, size_t buflen, const struct hwloc_bitmap_s * __hwloc_restrict set)</span>
+<span class="lineNum">     217 </span>            : {
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :   ssize_t size = buflen;</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   char *tmp = buf;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :   int res, ret = 0;</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :   int needcomma = 0;</span>
+<span class="lineNum">     222 </span>            :   int i;
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   unsigned long accum = 0;</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :   int accumed = 0;</span>
+<span class="lineNum">     225 </span>            : #if HWLOC_BITS_PER_LONG == HWLOC_BITMAP_SUBSTRING_SIZE
+<span class="lineNum">     226 </span>            :   const unsigned long accum_mask = ~0UL;
+<span class="lineNum">     227 </span>            : #else /* HWLOC_BITS_PER_LONG != HWLOC_BITMAP_SUBSTRING_SIZE */
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :   const unsigned long accum_mask = ((1UL &lt;&lt; HWLOC_BITMAP_SUBSTRING_SIZE) - 1) &lt;&lt; (HWLOC_BITS_PER_LONG - HWLOC_BITMAP_SUBSTRING_SIZE);</span>
+<span class="lineNum">     229 </span>            : #endif /* HWLOC_BITS_PER_LONG != HWLOC_BITMAP_SUBSTRING_SIZE */
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span>            :   HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            :   /* mark the end in case we do nothing later */
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :   if (buflen &gt; 0)</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     tmp[0] = '\0';</span>
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :   if (set-&gt;infinite) {</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     res = hwloc_snprintf(tmp, size, &quot;0xf...f&quot;);</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     needcomma = 1;</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     if (res &lt; 0)</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     ret += res;</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     if (res &gt;= size)</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :       res = size&gt;0 ? size - 1 : 0;</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     tmp += res;</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     size -= res;</span>
+<span class="lineNum">     247 </span>            :   }
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :   i=set-&gt;ulongs_count-1;</span>
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :   if (set-&gt;infinite) {</span>
+<span class="lineNum">     252 </span>            :     /* ignore starting FULL since we have 0xf...f already */
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     while (i&gt;=0 &amp;&amp; set-&gt;ulongs[i] == HWLOC_SUBBITMAP_FULL)</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :       i--;</span>
+<span class="lineNum">     255 </span>            :   } else {
+<span class="lineNum">     256 </span>            :     /* ignore starting ZERO except the last one */
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     while (i&gt;=0 &amp;&amp; set-&gt;ulongs[i] == HWLOC_SUBBITMAP_ZERO)</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :       i--;</span>
+<span class="lineNum">     259 </span>            :   }
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :   while (i&gt;=0 || accumed) {</span>
+<span class="lineNum">     262 </span>            :     /* Refill accumulator */
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     if (!accumed) {</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :       accum = set-&gt;ulongs[i--];</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :       accumed = HWLOC_BITS_PER_LONG;</span>
+<span class="lineNum">     266 </span>            :     }
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     if (accum &amp; accum_mask) {</span>
+<span class="lineNum">     269 </span>            :       /* print the whole subset if not empty */
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         res = hwloc_snprintf(tmp, size, needcomma ? &quot;,0x&quot; HWLOC_PRIxSUBBITMAP : &quot;0x&quot; HWLOC_PRIxSUBBITMAP,</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :                      (accum &amp; accum_mask) &gt;&gt; (HWLOC_BITS_PER_LONG - HWLOC_BITMAP_SUBSTRING_SIZE));</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :       needcomma = 1;</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     } else if (i == -1 &amp;&amp; accumed == HWLOC_BITMAP_SUBSTRING_SIZE) {</span>
+<span class="lineNum">     274 </span>            :       /* print a single 0 to mark the last subset */
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :       res = hwloc_snprintf(tmp, size, needcomma ? &quot;,0x0&quot; : &quot;0x0&quot;);</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     } else if (needcomma) {</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :       res = hwloc_snprintf(tmp, size, &quot;,&quot;);</span>
+<span class="lineNum">     278 </span>            :     } else {
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :       res = 0;</span>
+<span class="lineNum">     280 </span>            :     }
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     if (res &lt; 0)</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     ret += res;</span>
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            : #if HWLOC_BITS_PER_LONG == HWLOC_BITMAP_SUBSTRING_SIZE
+<span class="lineNum">     286 </span>            :     accum = 0;
+<span class="lineNum">     287 </span>            :     accumed = 0;
+<span class="lineNum">     288 </span>            : #else
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     accum &lt;&lt;= HWLOC_BITMAP_SUBSTRING_SIZE;</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     accumed -= HWLOC_BITMAP_SUBSTRING_SIZE;</span>
+<span class="lineNum">     291 </span>            : #endif
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     if (res &gt;= size)</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :       res = size&gt;0 ? size - 1 : 0;</span>
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     tmp += res;</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     size -= res;</span>
+<span class="lineNum">     298 </span>            :   }
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span>            :   /* if didn't display anything, display 0x0 */
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :   if (!ret) {</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     res = hwloc_snprintf(tmp, size, &quot;0x0&quot;);</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     if (res &lt; 0)</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :     ret += res;</span>
+<span class="lineNum">     306 </span>            :   }
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :   return ret;</span>
+<a name="309"><span class="lineNum">     309 </span>            : }</a>
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 : int hwloc_bitmap_asprintf(char ** strp, const struct hwloc_bitmap_s * __hwloc_restrict set)</span>
+<span class="lineNum">     312 </span>            : {
+<span class="lineNum">     313 </span>            :   int len;
+<span class="lineNum">     314 </span>            :   char *buf;
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            :   HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :   len = hwloc_bitmap_snprintf(NULL, 0, set);</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :   buf = malloc(len+1);</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :   *strp = buf;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :   return hwloc_bitmap_snprintf(buf, len+1, set);</span>
+<a name="322"><span class="lineNum">     322 </span>            : }</a>
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span><span class="lineCov">        176 : int hwloc_bitmap_sscanf(struct hwloc_bitmap_s *set, const char * __hwloc_restrict string)</span>
+<span class="lineNum">     325 </span>            : {
+<span class="lineNum">     326 </span><span class="lineCov">        176 :   const char * current = string;</span>
+<span class="lineNum">     327 </span><span class="lineCov">        176 :   unsigned long accum = 0;</span>
+<span class="lineNum">     328 </span><span class="lineCov">        176 :   int count=0;</span>
+<span class="lineNum">     329 </span><span class="lineCov">        176 :   int infinite = 0;</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            :   /* count how many substrings there are */
+<span class="lineNum">     332 </span><span class="lineCov">        176 :   count++;</span>
+<span class="lineNum">     333 </span><span class="lineCov">        352 :   while ((current = strchr(current+1, ',')) != NULL)</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :     count++;</span>
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span><span class="lineCov">        176 :   current = string;</span>
+<span class="lineNum">     337 </span><span class="lineCov">        176 :   if (!strncmp(&quot;0xf...f&quot;, current, 7)) {</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     current += 7;</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     if (*current != ',') {</span>
+<span class="lineNum">     340 </span>            :       /* special case for infinite/full bitmap */
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :       hwloc_bitmap_fill(set);</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :       return 0;</span>
+<span class="lineNum">     343 </span>            :     }
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     current++;</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     infinite = 1;</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     count--;</span>
+<span class="lineNum">     347 </span>            :   }
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span><span class="lineCov">        176 :   hwloc_bitmap_reset_by_ulongs(set, (count + HWLOC_BITMAP_STRING_PER_LONG - 1) / HWLOC_BITMAP_STRING_PER_LONG);</span>
+<span class="lineNum">     350 </span><span class="lineCov">        176 :   set-&gt;infinite = 0;</span>
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span><span class="lineCov">        352 :   while (*current != '\0') {</span>
+<span class="lineNum">     353 </span>            :     unsigned long val;
+<span class="lineNum">     354 </span>            :     char *next;
+<span class="lineNum">     355 </span><span class="lineCov">        176 :     val = strtoul(current, &amp;next, 16);</span>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineCov">        176 :     assert(count &gt; 0);</span>
+<span class="lineNum">     358 </span><span class="lineCov">        176 :     count--;</span>
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineCov">        176 :     accum |= (val &lt;&lt; ((count * HWLOC_BITMAP_SUBSTRING_SIZE) % HWLOC_BITS_PER_LONG));</span>
+<span class="lineNum">     361 </span><span class="lineCov">        176 :     if (!(count % HWLOC_BITMAP_STRING_PER_LONG)) {</span>
+<span class="lineNum">     362 </span><span class="lineCov">        176 :       set-&gt;ulongs[count / HWLOC_BITMAP_STRING_PER_LONG] = accum;</span>
+<span class="lineNum">     363 </span><span class="lineCov">        176 :       accum = 0;</span>
+<span class="lineNum">     364 </span>            :     }
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span><span class="lineCov">        176 :     if (*next != ',') {</span>
+<span class="lineNum">     367 </span><span class="lineCov">        176 :       if (*next || count &gt; 0)</span>
+<span class="lineNum">     368 </span>            :         goto failed;
+<span class="lineNum">     369 </span>            :       else
+<span class="lineNum">     370 </span>            :         break;
+<span class="lineNum">     371 </span>            :     }
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :     current = (const char*) next+1;</span>
+<span class="lineNum">     373 </span>            :   }
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span><span class="lineCov">        176 :   set-&gt;infinite = infinite; /* set at the end, to avoid spurious realloc with filled new ulongs */</span>
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span><span class="lineCov">        176 :   return 0;</span>
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span>            :  failed:
+<span class="lineNum">     380 </span>            :   /* failure to parse */
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :   hwloc_bitmap_zero(set);</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :   return -1;</span>
+<a name="383"><span class="lineNum">     383 </span>            : }</a>
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span><span class="lineCov">          4 : int hwloc_bitmap_list_snprintf(char * __hwloc_restrict buf, size_t buflen, const struct hwloc_bitmap_s * __hwloc_restrict set)</span>
+<span class="lineNum">     386 </span>            : {
+<span class="lineNum">     387 </span><span class="lineCov">          4 :   int prev = -1;</span>
+<span class="lineNum">     388 </span>            :   hwloc_bitmap_t reverse;
+<span class="lineNum">     389 </span><span class="lineCov">          4 :   ssize_t size = buflen;</span>
+<span class="lineNum">     390 </span><span class="lineCov">          4 :   char *tmp = buf;</span>
+<span class="lineNum">     391 </span><span class="lineCov">          4 :   int res, ret = 0;</span>
+<span class="lineNum">     392 </span><span class="lineCov">          4 :   int needcomma = 0;</span>
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            :   HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineCov">          4 :   reverse = hwloc_bitmap_alloc(); /* FIXME: add hwloc_bitmap_alloc_size() + hwloc_bitmap_init_allocated() to avoid malloc? */</span>
+<span class="lineNum">     397 </span><span class="lineCov">          4 :   hwloc_bitmap_not(reverse, set);</span>
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span>            :   /* mark the end in case we do nothing later */
+<span class="lineNum">     400 </span><span class="lineCov">          4 :   if (buflen &gt; 0)</span>
+<span class="lineNum">     401 </span><span class="lineCov">          2 :     tmp[0] = '\0';</span>
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span>            :   while (1) {
+<span class="lineNum">     404 </span>            :     int begin, end;
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineCov">          8 :     begin = hwloc_bitmap_next(set, prev);</span>
+<span class="lineNum">     407 </span><span class="lineCov">          8 :     if (begin == -1)</span>
+<span class="lineNum">     408 </span><span class="lineCov">          4 :       break;</span>
+<span class="lineNum">     409 </span><span class="lineCov">          4 :     end = hwloc_bitmap_next(reverse, begin);</span>
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span><span class="lineCov">          4 :     if (end == begin+1) {</span>
+<span class="lineNum">     412 </span><span class="lineCov">          4 :       res = hwloc_snprintf(tmp, size, needcomma ? &quot;,%d&quot; : &quot;%d&quot;, begin);</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     } else if (end == -1) {</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :       res = hwloc_snprintf(tmp, size, needcomma ? &quot;,%d-&quot; : &quot;%d-&quot;, begin);</span>
+<span class="lineNum">     415 </span>            :     } else {
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :       res = hwloc_snprintf(tmp, size, needcomma ? &quot;,%d-%d&quot; : &quot;%d-%d&quot;, begin, end-1);</span>
+<span class="lineNum">     417 </span>            :     }
+<span class="lineNum">     418 </span><span class="lineCov">          4 :     if (res &lt; 0) {</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :       hwloc_bitmap_free(reverse);</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     421 </span>            :     }
+<span class="lineNum">     422 </span><span class="lineCov">          4 :     ret += res;</span>
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineCov">          4 :     if (res &gt;= size)</span>
+<span class="lineNum">     425 </span><span class="lineCov">          2 :       res = size&gt;0 ? size - 1 : 0;</span>
+<span class="lineNum">     426 </span>            : 
+<span class="lineNum">     427 </span><span class="lineCov">          4 :     tmp += res;</span>
+<span class="lineNum">     428 </span><span class="lineCov">          4 :     size -= res;</span>
+<span class="lineNum">     429 </span><span class="lineCov">          4 :     needcomma = 1;</span>
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span><span class="lineCov">          4 :     if (end == -1)</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :       break;</span>
+<span class="lineNum">     433 </span>            :     else
+<span class="lineNum">     434 </span><span class="lineCov">          4 :       prev = end - 1;</span>
+<span class="lineNum">     435 </span><span class="lineCov">          4 :   }</span>
+<span class="lineNum">     436 </span>            : 
+<span class="lineNum">     437 </span><span class="lineCov">          4 :   hwloc_bitmap_free(reverse);</span>
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineCov">          4 :   return ret;</span>
+<a name="440"><span class="lineNum">     440 </span>            : }</a>
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span><span class="lineCov">          2 : int hwloc_bitmap_list_asprintf(char ** strp, const struct hwloc_bitmap_s * __hwloc_restrict set)</span>
+<span class="lineNum">     443 </span>            : {
+<span class="lineNum">     444 </span>            :   int len;
+<span class="lineNum">     445 </span>            :   char *buf;
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span>            :   HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span><span class="lineCov">          2 :   len = hwloc_bitmap_list_snprintf(NULL, 0, set);</span>
+<span class="lineNum">     450 </span><span class="lineCov">          2 :   buf = malloc(len+1);</span>
+<span class="lineNum">     451 </span><span class="lineCov">          2 :   *strp = buf;</span>
+<span class="lineNum">     452 </span><span class="lineCov">          2 :   return hwloc_bitmap_list_snprintf(buf, len+1, set);</span>
+<a name="453"><span class="lineNum">     453 </span>            : }</a>
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span><span class="lineCov">          4 : int hwloc_bitmap_list_sscanf(struct hwloc_bitmap_s *set, const char * __hwloc_restrict string)</span>
+<span class="lineNum">     456 </span>            : {
+<span class="lineNum">     457 </span><span class="lineCov">          4 :   const char * current = string;</span>
+<span class="lineNum">     458 </span>            :   char *next;
+<span class="lineNum">     459 </span><span class="lineCov">          4 :   long begin = -1, val;</span>
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span><span class="lineCov">          4 :   hwloc_bitmap_zero(set);</span>
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span><span class="lineCov">          8 :   while (*current != '\0') {</span>
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            :     /* ignore empty ranges */
+<span class="lineNum">     466 </span><span class="lineCov">          8 :     while (*current == ',')</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :       current++;</span>
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span><span class="lineCov">          4 :     val = strtoul(current, &amp;next, 0);</span>
+<span class="lineNum">     470 </span>            :     /* make sure we got at least one digit */
+<span class="lineNum">     471 </span><span class="lineCov">          4 :     if (next == current)</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :       goto failed;</span>
+<span class="lineNum">     473 </span>            : 
+<span class="lineNum">     474 </span><span class="lineCov">          4 :     if (begin != -1) {</span>
+<span class="lineNum">     475 </span>            :       /* finishing a range */
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :       hwloc_bitmap_set_range(set, begin, val);</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :       begin = -1;</span>
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span><span class="lineCov">          4 :     } else if (*next == '-') {</span>
+<span class="lineNum">     480 </span>            :       /* starting a new range */
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :       if (*(next+1) == '\0') {</span>
+<span class="lineNum">     482 </span>            :         /* infinite range */
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :         hwloc_bitmap_set_range(set, val, -1);</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     485 </span>            :       } else {
+<span class="lineNum">     486 </span>            :         /* normal range */
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :         begin = val;</span>
+<span class="lineNum">     488 </span>            :       }
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span><span class="lineCov">          4 :     } else if (*next == ',' || *next == '\0') {</span>
+<span class="lineNum">     491 </span>            :       /* single digit */
+<span class="lineNum">     492 </span><span class="lineCov">          4 :       hwloc_bitmap_set(set, val);</span>
+<span class="lineNum">     493 </span>            :     }
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span><span class="lineCov">          4 :     if (*next == '\0')</span>
+<span class="lineNum">     496 </span><span class="lineCov">          4 :       break;</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     current = next+1;</span>
+<span class="lineNum">     498 </span>            :   }
+<span class="lineNum">     499 </span>            : 
+<span class="lineNum">     500 </span><span class="lineCov">          4 :   return 0;</span>
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span>            :  failed:
+<span class="lineNum">     503 </span>            :   /* failure to parse */
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :   hwloc_bitmap_zero(set);</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :   return -1;</span>
+<a name="506"><span class="lineNum">     506 </span>            : }</a>
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 : int hwloc_bitmap_taskset_snprintf(char * __hwloc_restrict buf, size_t buflen, const struct hwloc_bitmap_s * __hwloc_restrict set)</span>
+<span class="lineNum">     509 </span>            : {
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :   ssize_t size = buflen;</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :   char *tmp = buf;</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :   int res, ret = 0;</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :   int started = 0;</span>
+<span class="lineNum">     514 </span>            :   int i;
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span>            :   HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span>            :   /* mark the end in case we do nothing later */
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :   if (buflen &gt; 0)</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :     tmp[0] = '\0';</span>
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :   if (set-&gt;infinite) {</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     res = hwloc_snprintf(tmp, size, &quot;0xf...f&quot;);</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :     started = 1;</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :     if (res &lt; 0)</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :     ret += res;</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :     if (res &gt;= size)</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :       res = size&gt;0 ? size - 1 : 0;</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :     tmp += res;</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :     size -= res;</span>
+<span class="lineNum">     532 </span>            :   }
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :   i=set-&gt;ulongs_count-1;</span>
+<span class="lineNum">     535 </span>            : 
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :   if (set-&gt;infinite) {</span>
+<span class="lineNum">     537 </span>            :     /* ignore starting FULL since we have 0xf...f already */
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     while (i&gt;=0 &amp;&amp; set-&gt;ulongs[i] == HWLOC_SUBBITMAP_FULL)</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :       i--;</span>
+<span class="lineNum">     540 </span>            :   } else {
+<span class="lineNum">     541 </span>            :     /* ignore starting ZERO except the last one */
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :     while (i&gt;=1 &amp;&amp; set-&gt;ulongs[i] == HWLOC_SUBBITMAP_ZERO)</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :       i--;</span>
+<span class="lineNum">     544 </span>            :   }
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :   while (i&gt;=0) {</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :     unsigned long val = set-&gt;ulongs[i--];</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     if (started) {</span>
+<span class="lineNum">     549 </span>            :       /* print the whole subset */
+<span class="lineNum">     550 </span>            : #if HWLOC_BITS_PER_LONG == 64
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :       res = hwloc_snprintf(tmp, size, &quot;%016lx&quot;, val);</span>
+<span class="lineNum">     552 </span>            : #else
+<span class="lineNum">     553 </span>            :       res = hwloc_snprintf(tmp, size, &quot;%08lx&quot;, val);
+<span class="lineNum">     554 </span>            : #endif
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :     } else if (val || i == -1) {</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :       res = hwloc_snprintf(tmp, size, &quot;0x%lx&quot;, val);</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :       started = 1;</span>
+<span class="lineNum">     558 </span>            :     } else {
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :       res = 0;</span>
+<span class="lineNum">     560 </span>            :     }
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     if (res &lt; 0)</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :     ret += res;</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :     if (res &gt;= size)</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :       res = size&gt;0 ? size - 1 : 0;</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :     tmp += res;</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     size -= res;</span>
+<span class="lineNum">     568 </span>            :   }
+<span class="lineNum">     569 </span>            : 
+<span class="lineNum">     570 </span>            :   /* if didn't display anything, display 0x0 */
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :   if (!ret) {</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :     res = hwloc_snprintf(tmp, size, &quot;0x0&quot;);</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :     if (res &lt; 0)</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :       return -1;</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     ret += res;</span>
+<span class="lineNum">     576 </span>            :   }
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :   return ret;</span>
+<a name="579"><span class="lineNum">     579 </span>            : }</a>
+<span class="lineNum">     580 </span>            : 
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 : int hwloc_bitmap_taskset_asprintf(char ** strp, const struct hwloc_bitmap_s * __hwloc_restrict set)</span>
+<span class="lineNum">     582 </span>            : {
+<span class="lineNum">     583 </span>            :   int len;
+<span class="lineNum">     584 </span>            :   char *buf;
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span>            :   HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :   len = hwloc_bitmap_taskset_snprintf(NULL, 0, set);</span>
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :   buf = malloc(len+1);</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :   *strp = buf;</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :   return hwloc_bitmap_taskset_snprintf(buf, len+1, set);</span>
+<a name="592"><span class="lineNum">     592 </span>            : }</a>
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 : int hwloc_bitmap_taskset_sscanf(struct hwloc_bitmap_s *set, const char * __hwloc_restrict string)</span>
+<span class="lineNum">     595 </span>            : {
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :   const char * current = string;</span>
+<span class="lineNum">     597 </span>            :   int chars;
+<span class="lineNum">     598 </span>            :   int count;
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :   int infinite = 0;</span>
+<span class="lineNum">     600 </span>            : 
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :   current = string;</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :   if (!strncmp(&quot;0xf...f&quot;, current, 7)) {</span>
+<span class="lineNum">     603 </span>            :     /* infinite bitmap */
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :     infinite = 1;</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :     current += 7;</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :     if (*current == '\0') {</span>
+<span class="lineNum">     607 </span>            :       /* special case for infinite/full bitmap */
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :       hwloc_bitmap_fill(set);</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :       return 0;</span>
+<span class="lineNum">     610 </span>            :     }
+<span class="lineNum">     611 </span>            :   } else {
+<span class="lineNum">     612 </span>            :     /* finite bitmap */
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :     if (!strncmp(&quot;0x&quot;, current, 2))</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :       current += 2;</span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :     if (*current == '\0') {</span>
+<span class="lineNum">     616 </span>            :       /* special case for empty bitmap */
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :       hwloc_bitmap_zero(set);</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :       return 0;</span>
+<span class="lineNum">     619 </span>            :     }
+<span class="lineNum">     620 </span>            :   }
+<span class="lineNum">     621 </span>            :   /* we know there are other characters now */
+<span class="lineNum">     622 </span>            : 
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :   chars = strlen(current);</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :   count = (chars * 4 + HWLOC_BITS_PER_LONG - 1) / HWLOC_BITS_PER_LONG;</span>
+<span class="lineNum">     625 </span>            : 
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :   hwloc_bitmap_reset_by_ulongs(set, count);</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :   set-&gt;infinite = 0;</span>
+<span class="lineNum">     628 </span>            : 
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :   while (*current != '\0') {</span>
+<span class="lineNum">     630 </span>            :     int tmpchars;
+<span class="lineNum">     631 </span>            :     char ustr[17];
+<span class="lineNum">     632 </span>            :     unsigned long val;
+<span class="lineNum">     633 </span>            :     char *next;
+<span class="lineNum">     634 </span>            : 
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :     tmpchars = chars % (HWLOC_BITS_PER_LONG/4);</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :     if (!tmpchars)</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :       tmpchars = (HWLOC_BITS_PER_LONG/4);</span>
+<span class="lineNum">     638 </span>            : 
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :     memcpy(ustr, current, tmpchars);</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :     ustr[tmpchars] = '\0';</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :     val = strtoul(ustr, &amp;next, 16);</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :     if (*next != '\0')</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :       goto failed;</span>
+<span class="lineNum">     644 </span>            : 
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :     set-&gt;ulongs[count-1] = val;</span>
+<span class="lineNum">     646 </span>            : 
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :     current += tmpchars;</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :     chars -= tmpchars;</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :     count--;</span>
+<span class="lineNum">     650 </span>            :   }
+<span class="lineNum">     651 </span>            : 
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :   set-&gt;infinite = infinite; /* set at the end, to avoid spurious realloc with filled new ulongs */</span>
+<span class="lineNum">     653 </span>            : 
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     655 </span>            : 
+<span class="lineNum">     656 </span>            :  failed:
+<span class="lineNum">     657 </span>            :   /* failure to parse */
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :   hwloc_bitmap_zero(set);</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :   return -1;</span>
+<a name="660"><span class="lineNum">     660 </span>            : }</a>
+<span class="lineNum">     661 </span>            : 
+<span class="lineNum">     662 </span><span class="lineCov">         20 : static void hwloc_bitmap__zero(struct hwloc_bitmap_s *set)</span>
+<span class="lineNum">     663 </span>            : {
+<span class="lineNum">     664 </span>            :         unsigned i;
+<span class="lineNum">     665 </span><span class="lineCov">         40 :         for(i=0; i&lt;set-&gt;ulongs_count; i++)</span>
+<span class="lineNum">     666 </span><span class="lineCov">         20 :                 set-&gt;ulongs[i] = HWLOC_SUBBITMAP_ZERO;</span>
+<span class="lineNum">     667 </span><span class="lineCov">         20 :         set-&gt;infinite = 0;</span>
+<a name="668"><span class="lineNum">     668 </span><span class="lineCov">         20 : }</span></a>
+<span class="lineNum">     669 </span>            : 
+<span class="lineNum">     670 </span><span class="lineCov">         20 : void hwloc_bitmap_zero(struct hwloc_bitmap_s * set)</span>
+<span class="lineNum">     671 </span>            : {
+<span class="lineNum">     672 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     673 </span>            : 
+<span class="lineNum">     674 </span><span class="lineCov">         20 :         hwloc_bitmap_reset_by_ulongs(set, 1);</span>
+<span class="lineNum">     675 </span><span class="lineCov">         20 :         hwloc_bitmap__zero(set);</span>
+<a name="676"><span class="lineNum">     676 </span><span class="lineCov">         20 : }</span></a>
+<span class="lineNum">     677 </span>            : 
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 : static void hwloc_bitmap__fill(struct hwloc_bitmap_s * set)</span>
+<span class="lineNum">     679 </span>            : {
+<span class="lineNum">     680 </span>            :         unsigned i;
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :         for(i=0; i&lt;set-&gt;ulongs_count; i++)</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :                 set-&gt;ulongs[i] = HWLOC_SUBBITMAP_FULL;</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :         set-&gt;infinite = 1;</span>
+<a name="684"><span class="lineNum">     684 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     685 </span>            : 
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 : void hwloc_bitmap_fill(struct hwloc_bitmap_s * set)</span>
+<span class="lineNum">     687 </span>            : {
+<span class="lineNum">     688 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     689 </span>            : 
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :         hwloc_bitmap_reset_by_ulongs(set, 1);</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :         hwloc_bitmap__fill(set);</span>
+<a name="692"><span class="lineNum">     692 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     693 </span>            : 
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 : void hwloc_bitmap_from_ulong(struct hwloc_bitmap_s *set, unsigned long mask)</span>
+<span class="lineNum">     695 </span>            : {
+<span class="lineNum">     696 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     697 </span>            : 
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :         hwloc_bitmap_reset_by_ulongs(set, 1);</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :         set-&gt;ulongs[0] = mask; /* there's always at least one ulong allocated */</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :         set-&gt;infinite = 0;</span>
+<a name="701"><span class="lineNum">     701 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     702 </span>            : 
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 : void hwloc_bitmap_from_ith_ulong(struct hwloc_bitmap_s *set, unsigned i, unsigned long mask)</span>
+<span class="lineNum">     704 </span>            : {
+<span class="lineNum">     705 </span>            :         unsigned j;
+<span class="lineNum">     706 </span>            : 
+<span class="lineNum">     707 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     708 </span>            : 
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :         hwloc_bitmap_reset_by_ulongs(set, i+1);</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :         set-&gt;ulongs[i] = mask;</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :         for(j=0; j&lt;i; j++)</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :                 set-&gt;ulongs[j] = HWLOC_SUBBITMAP_ZERO;</span>
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :         set-&gt;infinite = 0;</span>
+<a name="714"><span class="lineNum">     714 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     715 </span>            : 
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 : unsigned long hwloc_bitmap_to_ulong(const struct hwloc_bitmap_s *set)</span>
+<span class="lineNum">     717 </span>            : {
+<span class="lineNum">     718 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     719 </span>            : 
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :         return set-&gt;ulongs[0]; /* there's always at least one ulong allocated */</span>
+<a name="721"><span class="lineNum">     721 </span>            : }</a>
+<span class="lineNum">     722 </span>            : 
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 : unsigned long hwloc_bitmap_to_ith_ulong(const struct hwloc_bitmap_s *set, unsigned i)</span>
+<span class="lineNum">     724 </span>            : {
+<span class="lineNum">     725 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :         return HWLOC_SUBBITMAP_READULONG(set, i);</span>
+<a name="728"><span class="lineNum">     728 </span>            : }</a>
+<span class="lineNum">     729 </span>            : 
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 : void hwloc_bitmap_only(struct hwloc_bitmap_s * set, unsigned cpu)</span>
+<span class="lineNum">     731 </span>            : {
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :         unsigned index_ = HWLOC_SUBBITMAP_INDEX(cpu);</span>
+<span class="lineNum">     733 </span>            : 
+<span class="lineNum">     734 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     735 </span>            : 
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :         hwloc_bitmap_reset_by_cpu_index(set, cpu);</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :         hwloc_bitmap__zero(set);</span>
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :         set-&gt;ulongs[index_] |= HWLOC_SUBBITMAP_CPU(cpu);</span>
+<a name="739"><span class="lineNum">     739 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     740 </span>            : 
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 : void hwloc_bitmap_allbut(struct hwloc_bitmap_s * set, unsigned cpu)</span>
+<span class="lineNum">     742 </span>            : {
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :         unsigned index_ = HWLOC_SUBBITMAP_INDEX(cpu);</span>
+<span class="lineNum">     744 </span>            : 
+<span class="lineNum">     745 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     746 </span>            : 
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :         hwloc_bitmap_reset_by_cpu_index(set, cpu);</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :         hwloc_bitmap__fill(set);</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :         set-&gt;ulongs[index_] &amp;= ~HWLOC_SUBBITMAP_CPU(cpu);</span>
+<a name="750"><span class="lineNum">     750 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     751 </span>            : 
+<span class="lineNum">     752 </span><span class="lineCov">         12 : void hwloc_bitmap_set(struct hwloc_bitmap_s * set, unsigned cpu)</span>
+<span class="lineNum">     753 </span>            : {
+<span class="lineNum">     754 </span><span class="lineCov">         12 :         unsigned index_ = HWLOC_SUBBITMAP_INDEX(cpu);</span>
+<span class="lineNum">     755 </span>            : 
+<span class="lineNum">     756 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     757 </span>            : 
+<span class="lineNum">     758 </span>            :         /* nothing to do if setting inside the infinite part of the bitmap */
+<span class="lineNum">     759 </span><span class="lineCov">         12 :         if (set-&gt;infinite &amp;&amp; cpu &gt;= set-&gt;ulongs_count * HWLOC_BITS_PER_LONG)</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     761 </span>            : 
+<span class="lineNum">     762 </span><span class="lineCov">         12 :         hwloc_bitmap_realloc_by_cpu_index(set, cpu);</span>
+<span class="lineNum">     763 </span><span class="lineCov">         12 :         set-&gt;ulongs[index_] |= HWLOC_SUBBITMAP_CPU(cpu);</span>
+<a name="764"><span class="lineNum">     764 </span>            : }</a>
+<span class="lineNum">     765 </span>            : 
+<span class="lineNum">     766 </span><span class="lineCov">          2 : void hwloc_bitmap_set_range(struct hwloc_bitmap_s * set, unsigned begincpu, int _endcpu)</span>
+<span class="lineNum">     767 </span>            : {
+<span class="lineNum">     768 </span>            :         unsigned i;
+<span class="lineNum">     769 </span>            :         unsigned beginset,endset;
+<span class="lineNum">     770 </span><span class="lineCov">          2 :         unsigned endcpu = (unsigned) _endcpu;</span>
+<span class="lineNum">     771 </span>            : 
+<span class="lineNum">     772 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     773 </span>            : 
+<span class="lineNum">     774 </span><span class="lineCov">          2 :         if (_endcpu == -1) {</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :                 set-&gt;infinite = 1;</span>
+<span class="lineNum">     776 </span>            :                 /* keep endcpu == -1 since this unsigned is actually larger than anything else */
+<span class="lineNum">     777 </span>            :         }
+<span class="lineNum">     778 </span>            : 
+<span class="lineNum">     779 </span><span class="lineCov">          2 :         if (set-&gt;infinite) {</span>
+<span class="lineNum">     780 </span>            :                 /* truncate the range according to the infinite part of the bitmap */
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :                 if (endcpu &gt;= set-&gt;ulongs_count * HWLOC_BITS_PER_LONG)</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :                         endcpu = set-&gt;ulongs_count * HWLOC_BITS_PER_LONG - 1;</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :                 if (begincpu &gt;= set-&gt;ulongs_count * HWLOC_BITS_PER_LONG)</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :                         return;</span>
+<span class="lineNum">     785 </span>            :         }
+<span class="lineNum">     786 </span><span class="lineCov">          2 :         if (endcpu &lt; begincpu)</span>
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     788 </span><span class="lineCov">          2 :         hwloc_bitmap_realloc_by_cpu_index(set, endcpu);</span>
+<span class="lineNum">     789 </span>            : 
+<span class="lineNum">     790 </span><span class="lineCov">          2 :         beginset = HWLOC_SUBBITMAP_INDEX(begincpu);</span>
+<span class="lineNum">     791 </span><span class="lineCov">          2 :         endset = HWLOC_SUBBITMAP_INDEX(endcpu);</span>
+<span class="lineNum">     792 </span><span class="lineCov">          2 :         for(i=beginset+1; i&lt;endset; i++)</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :                 set-&gt;ulongs[i] = HWLOC_SUBBITMAP_FULL;</span>
+<span class="lineNum">     794 </span><span class="lineCov">          2 :         if (beginset == endset) {</span>
+<span class="lineNum">     795 </span><span class="lineCov">          2 :                 set-&gt;ulongs[beginset] |= HWLOC_SUBBITMAP_ULBIT_FROMTO(HWLOC_SUBBITMAP_CPU_ULBIT(begincpu), HWLOC_SUBBITMAP_CPU_ULBIT(endcpu));</span>
+<span class="lineNum">     796 </span>            :         } else {
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :                 set-&gt;ulongs[beginset] |= HWLOC_SUBBITMAP_ULBIT_FROM(HWLOC_SUBBITMAP_CPU_ULBIT(begincpu));</span>
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :                 set-&gt;ulongs[endset] |= HWLOC_SUBBITMAP_ULBIT_TO(HWLOC_SUBBITMAP_CPU_ULBIT(endcpu));</span>
+<span class="lineNum">     799 </span>            :         }
+<a name="800"><span class="lineNum">     800 </span>            : }</a>
+<span class="lineNum">     801 </span>            : 
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 : void hwloc_bitmap_set_ith_ulong(struct hwloc_bitmap_s *set, unsigned i, unsigned long mask)</span>
+<span class="lineNum">     803 </span>            : {
+<span class="lineNum">     804 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     805 </span>            : 
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :         hwloc_bitmap_realloc_by_ulongs(set, i+1);</span>
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :         set-&gt;ulongs[i] = mask;</span>
+<a name="808"><span class="lineNum">     808 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     809 </span>            : 
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 : void hwloc_bitmap_clr(struct hwloc_bitmap_s * set, unsigned cpu)</span>
+<span class="lineNum">     811 </span>            : {
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :         unsigned index_ = HWLOC_SUBBITMAP_INDEX(cpu);</span>
+<span class="lineNum">     813 </span>            : 
+<span class="lineNum">     814 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     815 </span>            : 
+<span class="lineNum">     816 </span>            :         /* nothing to do if clearing inside the infinitely-unset part of the bitmap */
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :         if (!set-&gt;infinite &amp;&amp; cpu &gt;= set-&gt;ulongs_count * HWLOC_BITS_PER_LONG)</span>
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     819 </span>            : 
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :         hwloc_bitmap_realloc_by_cpu_index(set, cpu);</span>
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :         set-&gt;ulongs[index_] &amp;= ~HWLOC_SUBBITMAP_CPU(cpu);</span>
+<a name="822"><span class="lineNum">     822 </span>            : }</a>
+<span class="lineNum">     823 </span>            : 
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 : void hwloc_bitmap_clr_range(struct hwloc_bitmap_s * set, unsigned begincpu, int _endcpu)</span>
+<span class="lineNum">     825 </span>            : {
+<span class="lineNum">     826 </span>            :         unsigned i;
+<span class="lineNum">     827 </span>            :         unsigned beginset,endset;
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :         unsigned endcpu = (unsigned) _endcpu;</span>
+<span class="lineNum">     829 </span>            : 
+<span class="lineNum">     830 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     831 </span>            : 
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :         if (_endcpu == -1) {</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :                 set-&gt;infinite = 0;</span>
+<span class="lineNum">     834 </span>            :                 /* keep endcpu == -1 since this unsigned is actually larger than anything else */
+<span class="lineNum">     835 </span>            :         }
+<span class="lineNum">     836 </span>            : 
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :         if (!set-&gt;infinite) {</span>
+<span class="lineNum">     838 </span>            :                 /* truncate the range according to the infinitely-unset part of the bitmap */
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :                 if (endcpu &gt;= set-&gt;ulongs_count * HWLOC_BITS_PER_LONG)</span>
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :                         endcpu = set-&gt;ulongs_count * HWLOC_BITS_PER_LONG - 1;</span>
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :                 if (begincpu &gt;= set-&gt;ulongs_count * HWLOC_BITS_PER_LONG)</span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :                         return;</span>
+<span class="lineNum">     843 </span>            :         }
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :         if (endcpu &lt; begincpu)</span>
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :         hwloc_bitmap_realloc_by_cpu_index(set, endcpu);</span>
+<span class="lineNum">     847 </span>            : 
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :         beginset = HWLOC_SUBBITMAP_INDEX(begincpu);</span>
+<span class="lineNum">     849 </span><span class="lineNoCov">          0 :         endset = HWLOC_SUBBITMAP_INDEX(endcpu);</span>
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :         for(i=beginset+1; i&lt;endset; i++)</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :                 set-&gt;ulongs[i] = HWLOC_SUBBITMAP_ZERO;</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :         if (beginset == endset) {</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :                 set-&gt;ulongs[beginset] &amp;= ~HWLOC_SUBBITMAP_ULBIT_FROMTO(HWLOC_SUBBITMAP_CPU_ULBIT(begincpu), HWLOC_SUBBITMAP_CPU_ULBIT(endcpu));</span>
+<span class="lineNum">     854 </span>            :         } else {
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :                 set-&gt;ulongs[beginset] &amp;= ~HWLOC_SUBBITMAP_ULBIT_FROM(HWLOC_SUBBITMAP_CPU_ULBIT(begincpu));</span>
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :                 set-&gt;ulongs[endset] &amp;= ~HWLOC_SUBBITMAP_ULBIT_TO(HWLOC_SUBBITMAP_CPU_ULBIT(endcpu));</span>
+<span class="lineNum">     857 </span>            :         }
+<a name="858"><span class="lineNum">     858 </span>            : }</a>
+<span class="lineNum">     859 </span>            : 
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 : int hwloc_bitmap_isset(const struct hwloc_bitmap_s * set, unsigned cpu)</span>
+<span class="lineNum">     861 </span>            : {
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :         unsigned index_ = HWLOC_SUBBITMAP_INDEX(cpu);</span>
+<span class="lineNum">     863 </span>            : 
+<span class="lineNum">     864 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     865 </span>            : 
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :         return (HWLOC_SUBBITMAP_READULONG(set, index_) &amp; HWLOC_SUBBITMAP_CPU(cpu)) != 0;</span>
+<a name="867"><span class="lineNum">     867 </span>            : }</a>
+<span class="lineNum">     868 </span>            : 
+<span class="lineNum">     869 </span><span class="lineCov">          8 : int hwloc_bitmap_iszero(const struct hwloc_bitmap_s *set)</span>
+<span class="lineNum">     870 </span>            : {
+<span class="lineNum">     871 </span>            :         unsigned i;
+<span class="lineNum">     872 </span>            : 
+<span class="lineNum">     873 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     874 </span>            : 
+<span class="lineNum">     875 </span><span class="lineCov">          8 :         if (set-&gt;infinite)</span>
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :                 return 0;</span>
+<span class="lineNum">     877 </span><span class="lineCov">          8 :         for(i=0; i&lt;set-&gt;ulongs_count; i++)</span>
+<span class="lineNum">     878 </span><span class="lineCov">          8 :                 if (set-&gt;ulongs[i] != HWLOC_SUBBITMAP_ZERO)</span>
+<span class="lineNum">     879 </span><span class="lineCov">          8 :                         return 0;</span>
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :         return 1;</span>
+<a name="881"><span class="lineNum">     881 </span>            : }</a>
+<span class="lineNum">     882 </span>            : 
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 : int hwloc_bitmap_isfull(const struct hwloc_bitmap_s *set)</span>
+<span class="lineNum">     884 </span>            : {
+<span class="lineNum">     885 </span>            :         unsigned i;
+<span class="lineNum">     886 </span>            : 
+<span class="lineNum">     887 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">     888 </span>            : 
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :         if (!set-&gt;infinite)</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :                 return 0;</span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :         for(i=0; i&lt;set-&gt;ulongs_count; i++)</span>
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :                 if (set-&gt;ulongs[i] != HWLOC_SUBBITMAP_FULL)</span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :                         return 0;</span>
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :         return 1;</span>
+<a name="895"><span class="lineNum">     895 </span>            : }</a>
+<span class="lineNum">     896 </span>            : 
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 : int hwloc_bitmap_isequal (const struct hwloc_bitmap_s *set1, const struct hwloc_bitmap_s *set2)</span>
+<span class="lineNum">     898 </span>            : {
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :         unsigned count1 = set1-&gt;ulongs_count;</span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :         unsigned count2 = set2-&gt;ulongs_count;</span>
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :         unsigned min_count = count1 &lt; count2 ? count1 : count2;</span>
+<span class="lineNum">     902 </span>            :         unsigned i;
+<span class="lineNum">     903 </span>            : 
+<span class="lineNum">     904 </span>            :         HWLOC__BITMAP_CHECK(set1);
+<span class="lineNum">     905 </span>            :         HWLOC__BITMAP_CHECK(set2);
+<span class="lineNum">     906 </span>            : 
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :         for(i=0; i&lt;min_count; i++)</span>
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :                 if (set1-&gt;ulongs[i] != set2-&gt;ulongs[i])</span>
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :                         return 0;</span>
+<span class="lineNum">     910 </span>            : 
+<span class="lineNum">     911 </span><span class="lineNoCov">          0 :         if (count1 != count2) {</span>
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :                 unsigned long w1 = set1-&gt;infinite ? HWLOC_SUBBITMAP_FULL : HWLOC_SUBBITMAP_ZERO;</span>
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :                 unsigned long w2 = set2-&gt;infinite ? HWLOC_SUBBITMAP_FULL : HWLOC_SUBBITMAP_ZERO;</span>
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :                 for(i=min_count; i&lt;count1; i++) {</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :                         if (set1-&gt;ulongs[i] != w2)</span>
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :                                 return 0;</span>
+<span class="lineNum">     917 </span>            :                 }
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :                 for(i=min_count; i&lt;count2; i++) {</span>
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :                         if (set2-&gt;ulongs[i] != w1)</span>
+<span class="lineNum">     920 </span><span class="lineNoCov">          0 :                                 return 0;</span>
+<span class="lineNum">     921 </span>            :                 }
+<span class="lineNum">     922 </span>            :         }
+<span class="lineNum">     923 </span>            : 
+<span class="lineNum">     924 </span><span class="lineNoCov">          0 :         if (set1-&gt;infinite != set2-&gt;infinite)</span>
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :                 return 0;</span>
+<span class="lineNum">     926 </span>            : 
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :         return 1;</span>
+<a name="928"><span class="lineNum">     928 </span>            : }</a>
+<span class="lineNum">     929 </span>            : 
+<span class="lineNum">     930 </span><span class="lineCov">         20 : int hwloc_bitmap_intersects (const struct hwloc_bitmap_s *set1, const struct hwloc_bitmap_s *set2)</span>
+<span class="lineNum">     931 </span>            : {
+<span class="lineNum">     932 </span><span class="lineCov">         20 :         unsigned count1 = set1-&gt;ulongs_count;</span>
+<span class="lineNum">     933 </span><span class="lineCov">         20 :         unsigned count2 = set2-&gt;ulongs_count;</span>
+<span class="lineNum">     934 </span><span class="lineCov">         20 :         unsigned min_count = count1 &lt; count2 ? count1 : count2;</span>
+<span class="lineNum">     935 </span>            :         unsigned i;
+<span class="lineNum">     936 </span>            : 
+<span class="lineNum">     937 </span>            :         HWLOC__BITMAP_CHECK(set1);
+<span class="lineNum">     938 </span>            :         HWLOC__BITMAP_CHECK(set2);
+<span class="lineNum">     939 </span>            : 
+<span class="lineNum">     940 </span><span class="lineCov">         32 :         for(i=0; i&lt;min_count; i++)</span>
+<span class="lineNum">     941 </span><span class="lineCov">         20 :                 if (set1-&gt;ulongs[i] &amp; set2-&gt;ulongs[i])</span>
+<span class="lineNum">     942 </span><span class="lineCov">          8 :                         return 1;</span>
+<span class="lineNum">     943 </span>            : 
+<span class="lineNum">     944 </span><span class="lineCov">         12 :         if (count1 != count2) {</span>
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :                 if (set2-&gt;infinite) {</span>
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :                         for(i=min_count; i&lt;set1-&gt;ulongs_count; i++)</span>
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :                                 if (set1-&gt;ulongs[i])</span>
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :                                         return 1;</span>
+<span class="lineNum">     949 </span>            :                 }
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :                 if (set1-&gt;infinite) {</span>
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :                         for(i=min_count; i&lt;set2-&gt;ulongs_count; i++)</span>
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :                                 if (set2-&gt;ulongs[i])</span>
+<span class="lineNum">     953 </span><span class="lineNoCov">          0 :                                         return 1;</span>
+<span class="lineNum">     954 </span>            :                 }
+<span class="lineNum">     955 </span>            :         }
+<span class="lineNum">     956 </span>            : 
+<span class="lineNum">     957 </span><span class="lineCov">         12 :         if (set1-&gt;infinite &amp;&amp; set2-&gt;infinite)</span>
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :                 return 1;</span>
+<span class="lineNum">     959 </span>            : 
+<span class="lineNum">     960 </span><span class="lineCov">         12 :         return 0;</span>
+<a name="961"><span class="lineNum">     961 </span>            : }</a>
+<span class="lineNum">     962 </span>            : 
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 : int hwloc_bitmap_isincluded (const struct hwloc_bitmap_s *sub_set, const struct hwloc_bitmap_s *super_set)</span>
+<span class="lineNum">     964 </span>            : {
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :         unsigned super_count = super_set-&gt;ulongs_count;</span>
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :         unsigned sub_count = sub_set-&gt;ulongs_count;</span>
+<span class="lineNum">     967 </span><span class="lineNoCov">          0 :         unsigned min_count = super_count &lt; sub_count ? super_count : sub_count;</span>
+<span class="lineNum">     968 </span>            :         unsigned i;
+<span class="lineNum">     969 </span>            : 
+<span class="lineNum">     970 </span>            :         HWLOC__BITMAP_CHECK(sub_set);
+<span class="lineNum">     971 </span>            :         HWLOC__BITMAP_CHECK(super_set);
+<span class="lineNum">     972 </span>            : 
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :         for(i=0; i&lt;min_count; i++)</span>
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :                 if (super_set-&gt;ulongs[i] != (super_set-&gt;ulongs[i] | sub_set-&gt;ulongs[i]))</span>
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :                         return 0;</span>
+<span class="lineNum">     976 </span>            : 
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :         if (super_count != sub_count) {</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :                 if (!super_set-&gt;infinite)</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :                         for(i=min_count; i&lt;sub_count; i++)</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :                                 if (sub_set-&gt;ulongs[i])</span>
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :                                         return 0;</span>
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :                 if (sub_set-&gt;infinite)</span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :                         for(i=min_count; i&lt;super_count; i++)</span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :                                 if (super_set-&gt;ulongs[i] != HWLOC_SUBBITMAP_FULL)</span>
+<span class="lineNum">     985 </span><span class="lineNoCov">          0 :                                         return 0;</span>
+<span class="lineNum">     986 </span>            :         }
+<span class="lineNum">     987 </span>            : 
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :         if (sub_set-&gt;infinite &amp;&amp; !super_set-&gt;infinite)</span>
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :                 return 0;</span>
+<span class="lineNum">     990 </span>            : 
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :         return 1;</span>
+<a name="992"><span class="lineNum">     992 </span>            : }</a>
+<span class="lineNum">     993 </span>            : 
+<span class="lineNum">     994 </span><span class="lineCov">        100 : void hwloc_bitmap_or (struct hwloc_bitmap_s *res, const struct hwloc_bitmap_s *set1, const struct hwloc_bitmap_s *set2)</span>
+<span class="lineNum">     995 </span>            : {
+<span class="lineNum">     996 </span>            :         /* cache counts so that we can reset res even if it's also set1 or set2 */
+<span class="lineNum">     997 </span><span class="lineCov">        100 :         unsigned count1 = set1-&gt;ulongs_count;</span>
+<span class="lineNum">     998 </span><span class="lineCov">        100 :         unsigned count2 = set2-&gt;ulongs_count;</span>
+<span class="lineNum">     999 </span><span class="lineCov">        100 :         unsigned max_count = count1 &gt; count2 ? count1 : count2;</span>
+<span class="lineNum">    1000 </span><span class="lineCov">        100 :         unsigned min_count = count1 + count2 - max_count;</span>
+<span class="lineNum">    1001 </span>            :         unsigned i;
+<span class="lineNum">    1002 </span>            : 
+<span class="lineNum">    1003 </span>            :         HWLOC__BITMAP_CHECK(res);
+<span class="lineNum">    1004 </span>            :         HWLOC__BITMAP_CHECK(set1);
+<span class="lineNum">    1005 </span>            :         HWLOC__BITMAP_CHECK(set2);
+<span class="lineNum">    1006 </span>            : 
+<span class="lineNum">    1007 </span><span class="lineCov">        100 :         hwloc_bitmap_reset_by_ulongs(res, max_count);</span>
+<span class="lineNum">    1008 </span>            : 
+<span class="lineNum">    1009 </span><span class="lineCov">        200 :         for(i=0; i&lt;min_count; i++)</span>
+<span class="lineNum">    1010 </span><span class="lineCov">        100 :                 res-&gt;ulongs[i] = set1-&gt;ulongs[i] | set2-&gt;ulongs[i];</span>
+<span class="lineNum">    1011 </span>            : 
+<span class="lineNum">    1012 </span><span class="lineCov">        100 :         if (count1 != count2) {</span>
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :                 if (min_count &lt; count1) {</span>
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :                         if (set2-&gt;infinite) {</span>
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :                                 res-&gt;ulongs_count = min_count;</span>
+<span class="lineNum">    1016 </span>            :                         } else {
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :                                 for(i=min_count; i&lt;max_count; i++)</span>
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :                                         res-&gt;ulongs[i] = set1-&gt;ulongs[i];</span>
+<span class="lineNum">    1019 </span>            :                         }
+<span class="lineNum">    1020 </span>            :                 } else {
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :                         if (set1-&gt;infinite) {</span>
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :                                 res-&gt;ulongs_count = min_count;</span>
+<span class="lineNum">    1023 </span>            :                         } else {
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :                                 for(i=min_count; i&lt;max_count; i++)</span>
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :                                         res-&gt;ulongs[i] = set2-&gt;ulongs[i];</span>
+<span class="lineNum">    1026 </span>            :                         }
+<span class="lineNum">    1027 </span>            :                 }
+<span class="lineNum">    1028 </span>            :         }
+<span class="lineNum">    1029 </span>            : 
+<span class="lineNum">    1030 </span><span class="lineCov">        100 :         res-&gt;infinite = set1-&gt;infinite || set2-&gt;infinite;</span>
+<a name="1031"><span class="lineNum">    1031 </span><span class="lineCov">        100 : }</span></a>
+<span class="lineNum">    1032 </span>            : 
+<span class="lineNum">    1033 </span><span class="lineCov">        280 : void hwloc_bitmap_and (struct hwloc_bitmap_s *res, const struct hwloc_bitmap_s *set1, const struct hwloc_bitmap_s *set2)</span>
+<span class="lineNum">    1034 </span>            : {
+<span class="lineNum">    1035 </span>            :         /* cache counts so that we can reset res even if it's also set1 or set2 */
+<span class="lineNum">    1036 </span><span class="lineCov">        280 :         unsigned count1 = set1-&gt;ulongs_count;</span>
+<span class="lineNum">    1037 </span><span class="lineCov">        280 :         unsigned count2 = set2-&gt;ulongs_count;</span>
+<span class="lineNum">    1038 </span><span class="lineCov">        280 :         unsigned max_count = count1 &gt; count2 ? count1 : count2;</span>
+<span class="lineNum">    1039 </span><span class="lineCov">        280 :         unsigned min_count = count1 + count2 - max_count;</span>
+<span class="lineNum">    1040 </span>            :         unsigned i;
+<span class="lineNum">    1041 </span>            : 
+<span class="lineNum">    1042 </span>            :         HWLOC__BITMAP_CHECK(res);
+<span class="lineNum">    1043 </span>            :         HWLOC__BITMAP_CHECK(set1);
+<span class="lineNum">    1044 </span>            :         HWLOC__BITMAP_CHECK(set2);
+<span class="lineNum">    1045 </span>            : 
+<span class="lineNum">    1046 </span><span class="lineCov">        280 :         hwloc_bitmap_reset_by_ulongs(res, max_count);</span>
+<span class="lineNum">    1047 </span>            : 
+<span class="lineNum">    1048 </span><span class="lineCov">        560 :         for(i=0; i&lt;min_count; i++)</span>
+<span class="lineNum">    1049 </span><span class="lineCov">        280 :                 res-&gt;ulongs[i] = set1-&gt;ulongs[i] &amp; set2-&gt;ulongs[i];</span>
+<span class="lineNum">    1050 </span>            : 
+<span class="lineNum">    1051 </span><span class="lineCov">        280 :         if (count1 != count2) {</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :                 if (min_count &lt; count1) {</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :                         if (set2-&gt;infinite) {</span>
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :                                 for(i=min_count; i&lt;max_count; i++)</span>
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :                                         res-&gt;ulongs[i] = set1-&gt;ulongs[i];</span>
+<span class="lineNum">    1056 </span>            :                         } else {
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :                                 res-&gt;ulongs_count = min_count;</span>
+<span class="lineNum">    1058 </span>            :                         }
+<span class="lineNum">    1059 </span>            :                 } else {
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :                         if (set1-&gt;infinite) {</span>
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :                                 for(i=min_count; i&lt;max_count; i++)</span>
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 :                                         res-&gt;ulongs[i] = set2-&gt;ulongs[i];</span>
+<span class="lineNum">    1063 </span>            :                         } else {
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :                                 res-&gt;ulongs_count = min_count;</span>
+<span class="lineNum">    1065 </span>            :                         }
+<span class="lineNum">    1066 </span>            :                 }
+<span class="lineNum">    1067 </span>            :         }
+<span class="lineNum">    1068 </span>            : 
+<span class="lineNum">    1069 </span><span class="lineCov">        280 :         res-&gt;infinite = set1-&gt;infinite &amp;&amp; set2-&gt;infinite;</span>
+<a name="1070"><span class="lineNum">    1070 </span><span class="lineCov">        280 : }</span></a>
+<span class="lineNum">    1071 </span>            : 
+<span class="lineNum">    1072 </span><span class="lineNoCov">          0 : void hwloc_bitmap_andnot (struct hwloc_bitmap_s *res, const struct hwloc_bitmap_s *set1, const struct hwloc_bitmap_s *set2)</span>
+<span class="lineNum">    1073 </span>            : {
+<span class="lineNum">    1074 </span>            :         /* cache counts so that we can reset res even if it's also set1 or set2 */
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :         unsigned count1 = set1-&gt;ulongs_count;</span>
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :         unsigned count2 = set2-&gt;ulongs_count;</span>
+<span class="lineNum">    1077 </span><span class="lineNoCov">          0 :         unsigned max_count = count1 &gt; count2 ? count1 : count2;</span>
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :         unsigned min_count = count1 + count2 - max_count;</span>
+<span class="lineNum">    1079 </span>            :         unsigned i;
+<span class="lineNum">    1080 </span>            : 
+<span class="lineNum">    1081 </span>            :         HWLOC__BITMAP_CHECK(res);
+<span class="lineNum">    1082 </span>            :         HWLOC__BITMAP_CHECK(set1);
+<span class="lineNum">    1083 </span>            :         HWLOC__BITMAP_CHECK(set2);
+<span class="lineNum">    1084 </span>            : 
+<span class="lineNum">    1085 </span><span class="lineNoCov">          0 :         hwloc_bitmap_reset_by_ulongs(res, max_count);</span>
+<span class="lineNum">    1086 </span>            : 
+<span class="lineNum">    1087 </span><span class="lineNoCov">          0 :         for(i=0; i&lt;min_count; i++)</span>
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :                 res-&gt;ulongs[i] = set1-&gt;ulongs[i] &amp; ~set2-&gt;ulongs[i];</span>
+<span class="lineNum">    1089 </span>            : 
+<span class="lineNum">    1090 </span><span class="lineNoCov">          0 :         if (count1 != count2) {</span>
+<span class="lineNum">    1091 </span><span class="lineNoCov">          0 :                 if (min_count &lt; count1) {</span>
+<span class="lineNum">    1092 </span><span class="lineNoCov">          0 :                         if (!set2-&gt;infinite) {</span>
+<span class="lineNum">    1093 </span><span class="lineNoCov">          0 :                                 for(i=min_count; i&lt;max_count; i++)</span>
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :                                         res-&gt;ulongs[i] = set1-&gt;ulongs[i];</span>
+<span class="lineNum">    1095 </span>            :                         } else {
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 :                                 res-&gt;ulongs_count = min_count;</span>
+<span class="lineNum">    1097 </span>            :                         }
+<span class="lineNum">    1098 </span>            :                 } else {
+<span class="lineNum">    1099 </span><span class="lineNoCov">          0 :                         if (set1-&gt;infinite) {</span>
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :                                 for(i=min_count; i&lt;max_count; i++)</span>
+<span class="lineNum">    1101 </span><span class="lineNoCov">          0 :                                         res-&gt;ulongs[i] = ~set2-&gt;ulongs[i];</span>
+<span class="lineNum">    1102 </span>            :                         } else {
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :                                 res-&gt;ulongs_count = min_count;</span>
+<span class="lineNum">    1104 </span>            :                         }
+<span class="lineNum">    1105 </span>            :                 }
+<span class="lineNum">    1106 </span>            :         }
+<span class="lineNum">    1107 </span>            : 
+<span class="lineNum">    1108 </span><span class="lineNoCov">          0 :         res-&gt;infinite = set1-&gt;infinite &amp;&amp; !set2-&gt;infinite;</span>
+<a name="1109"><span class="lineNum">    1109 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1110 </span>            : 
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 : void hwloc_bitmap_xor (struct hwloc_bitmap_s *res, const struct hwloc_bitmap_s *set1, const struct hwloc_bitmap_s *set2)</span>
+<span class="lineNum">    1112 </span>            : {
+<span class="lineNum">    1113 </span>            :         /* cache counts so that we can reset res even if it's also set1 or set2 */
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :         unsigned count1 = set1-&gt;ulongs_count;</span>
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :         unsigned count2 = set2-&gt;ulongs_count;</span>
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :         unsigned max_count = count1 &gt; count2 ? count1 : count2;</span>
+<span class="lineNum">    1117 </span><span class="lineNoCov">          0 :         unsigned min_count = count1 + count2 - max_count;</span>
+<span class="lineNum">    1118 </span>            :         unsigned i;
+<span class="lineNum">    1119 </span>            : 
+<span class="lineNum">    1120 </span>            :         HWLOC__BITMAP_CHECK(res);
+<span class="lineNum">    1121 </span>            :         HWLOC__BITMAP_CHECK(set1);
+<span class="lineNum">    1122 </span>            :         HWLOC__BITMAP_CHECK(set2);
+<span class="lineNum">    1123 </span>            : 
+<span class="lineNum">    1124 </span><span class="lineNoCov">          0 :         hwloc_bitmap_reset_by_ulongs(res, max_count);</span>
+<span class="lineNum">    1125 </span>            : 
+<span class="lineNum">    1126 </span><span class="lineNoCov">          0 :         for(i=0; i&lt;min_count; i++)</span>
+<span class="lineNum">    1127 </span><span class="lineNoCov">          0 :                 res-&gt;ulongs[i] = set1-&gt;ulongs[i] ^ set2-&gt;ulongs[i];</span>
+<span class="lineNum">    1128 </span>            : 
+<span class="lineNum">    1129 </span><span class="lineNoCov">          0 :         if (count1 != count2) {</span>
+<span class="lineNum">    1130 </span><span class="lineNoCov">          0 :                 if (min_count &lt; count1) {</span>
+<span class="lineNum">    1131 </span><span class="lineNoCov">          0 :                         unsigned long w2 = set2-&gt;infinite ? HWLOC_SUBBITMAP_FULL : HWLOC_SUBBITMAP_ZERO;</span>
+<span class="lineNum">    1132 </span><span class="lineNoCov">          0 :                         for(i=min_count; i&lt;max_count; i++)</span>
+<span class="lineNum">    1133 </span><span class="lineNoCov">          0 :                                 res-&gt;ulongs[i] = set1-&gt;ulongs[i] ^ w2;</span>
+<span class="lineNum">    1134 </span>            :                 } else {
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :                         unsigned long w1 = set1-&gt;infinite ? HWLOC_SUBBITMAP_FULL : HWLOC_SUBBITMAP_ZERO;</span>
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 :                         for(i=min_count; i&lt;max_count; i++)</span>
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :                                 res-&gt;ulongs[i] = set2-&gt;ulongs[i] ^ w1;</span>
+<span class="lineNum">    1138 </span>            :                 }
+<span class="lineNum">    1139 </span>            :         }
+<span class="lineNum">    1140 </span>            : 
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :         res-&gt;infinite = (!set1-&gt;infinite) != (!set2-&gt;infinite);</span>
+<a name="1142"><span class="lineNum">    1142 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1143 </span>            : 
+<span class="lineNum">    1144 </span><span class="lineCov">         88 : void hwloc_bitmap_not (struct hwloc_bitmap_s *res, const struct hwloc_bitmap_s *set)</span>
+<span class="lineNum">    1145 </span>            : {
+<span class="lineNum">    1146 </span><span class="lineCov">         88 :         unsigned count = set-&gt;ulongs_count;</span>
+<span class="lineNum">    1147 </span>            :         unsigned i;
+<span class="lineNum">    1148 </span>            : 
+<span class="lineNum">    1149 </span>            :         HWLOC__BITMAP_CHECK(res);
+<span class="lineNum">    1150 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">    1151 </span>            : 
+<span class="lineNum">    1152 </span><span class="lineCov">         88 :         hwloc_bitmap_reset_by_ulongs(res, count);</span>
+<span class="lineNum">    1153 </span>            : 
+<span class="lineNum">    1154 </span><span class="lineCov">        176 :         for(i=0; i&lt;count; i++)</span>
+<span class="lineNum">    1155 </span><span class="lineCov">         88 :                 res-&gt;ulongs[i] = ~set-&gt;ulongs[i];</span>
+<span class="lineNum">    1156 </span>            : 
+<span class="lineNum">    1157 </span><span class="lineCov">         88 :         res-&gt;infinite = !set-&gt;infinite;</span>
+<a name="1158"><span class="lineNum">    1158 </span><span class="lineCov">         88 : }</span></a>
+<span class="lineNum">    1159 </span>            : 
+<span class="lineNum">    1160 </span><span class="lineNoCov">          0 : int hwloc_bitmap_first(const struct hwloc_bitmap_s * set)</span>
+<span class="lineNum">    1161 </span>            : {
+<span class="lineNum">    1162 </span>            :         unsigned i;
+<span class="lineNum">    1163 </span>            : 
+<span class="lineNum">    1164 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">    1165 </span>            : 
+<span class="lineNum">    1166 </span><span class="lineNoCov">          0 :         for(i=0; i&lt;set-&gt;ulongs_count; i++) {</span>
+<span class="lineNum">    1167 </span>            :                 /* subsets are unsigned longs, use ffsl */
+<span class="lineNum">    1168 </span><span class="lineNoCov">          0 :                 unsigned long w = set-&gt;ulongs[i];</span>
+<span class="lineNum">    1169 </span><span class="lineNoCov">          0 :                 if (w)</span>
+<span class="lineNum">    1170 </span><span class="lineNoCov">          0 :                         return hwloc_ffsl(w) - 1 + HWLOC_BITS_PER_LONG*i;</span>
+<span class="lineNum">    1171 </span>            :         }
+<span class="lineNum">    1172 </span>            : 
+<span class="lineNum">    1173 </span><span class="lineNoCov">          0 :         if (set-&gt;infinite)</span>
+<span class="lineNum">    1174 </span><span class="lineNoCov">          0 :                 return set-&gt;ulongs_count * HWLOC_BITS_PER_LONG;</span>
+<span class="lineNum">    1175 </span>            : 
+<span class="lineNum">    1176 </span><span class="lineNoCov">          0 :         return -1;</span>
+<a name="1177"><span class="lineNum">    1177 </span>            : }</a>
+<span class="lineNum">    1178 </span>            : 
+<span class="lineNum">    1179 </span><span class="lineCov">         12 : int hwloc_bitmap_last(const struct hwloc_bitmap_s * set)</span>
+<span class="lineNum">    1180 </span>            : {
+<span class="lineNum">    1181 </span>            :         int i;
+<span class="lineNum">    1182 </span>            : 
+<span class="lineNum">    1183 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">    1184 </span>            : 
+<span class="lineNum">    1185 </span><span class="lineCov">         12 :         if (set-&gt;infinite)</span>
+<span class="lineNum">    1186 </span><span class="lineNoCov">          0 :                 return -1;</span>
+<span class="lineNum">    1187 </span>            : 
+<span class="lineNum">    1188 </span><span class="lineCov">         12 :         for(i=set-&gt;ulongs_count-1; i&gt;=0; i--) {</span>
+<span class="lineNum">    1189 </span>            :                 /* subsets are unsigned longs, use flsl */
+<span class="lineNum">    1190 </span><span class="lineCov">         12 :                 unsigned long w = set-&gt;ulongs[i];</span>
+<span class="lineNum">    1191 </span><span class="lineCov">         12 :                 if (w)</span>
+<span class="lineNum">    1192 </span><span class="lineCov">         12 :                         return hwloc_flsl(w) - 1 + HWLOC_BITS_PER_LONG*i;</span>
+<span class="lineNum">    1193 </span>            :         }
+<span class="lineNum">    1194 </span>            : 
+<span class="lineNum">    1195 </span><span class="lineNoCov">          0 :         return -1;</span>
+<a name="1196"><span class="lineNum">    1196 </span>            : }</a>
+<span class="lineNum">    1197 </span>            : 
+<span class="lineNum">    1198 </span><span class="lineCov">         12 : int hwloc_bitmap_next(const struct hwloc_bitmap_s * set, int prev_cpu)</span>
+<span class="lineNum">    1199 </span>            : {
+<span class="lineNum">    1200 </span><span class="lineCov">         12 :         unsigned i = HWLOC_SUBBITMAP_INDEX(prev_cpu + 1);</span>
+<span class="lineNum">    1201 </span>            : 
+<span class="lineNum">    1202 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">    1203 </span>            : 
+<span class="lineNum">    1204 </span><span class="lineCov">         12 :         if (i &gt;= set-&gt;ulongs_count) {</span>
+<span class="lineNum">    1205 </span><span class="lineNoCov">          0 :                 if (set-&gt;infinite)</span>
+<span class="lineNum">    1206 </span><span class="lineNoCov">          0 :                         return prev_cpu + 1;</span>
+<span class="lineNum">    1207 </span>            :                 else
+<span class="lineNum">    1208 </span><span class="lineNoCov">          0 :                         return -1;</span>
+<span class="lineNum">    1209 </span>            :         }
+<span class="lineNum">    1210 </span>            : 
+<span class="lineNum">    1211 </span><span class="lineCov">         16 :         for(; i&lt;set-&gt;ulongs_count; i++) {</span>
+<span class="lineNum">    1212 </span>            :                 /* subsets are unsigned longs, use ffsl */
+<span class="lineNum">    1213 </span><span class="lineCov">         12 :                 unsigned long w = set-&gt;ulongs[i];</span>
+<span class="lineNum">    1214 </span>            : 
+<span class="lineNum">    1215 </span>            :                 /* if the prev cpu is in the same word as the possible next one,
+<span class="lineNum">    1216 </span>            :                    we need to mask out previous cpus */
+<span class="lineNum">    1217 </span><span class="lineCov">         12 :                 if (prev_cpu &gt;= 0 &amp;&amp; HWLOC_SUBBITMAP_INDEX((unsigned) prev_cpu) == i)</span>
+<span class="lineNum">    1218 </span><span class="lineCov">          8 :                         w &amp;= ~HWLOC_SUBBITMAP_ULBIT_TO(HWLOC_SUBBITMAP_CPU_ULBIT(prev_cpu));</span>
+<span class="lineNum">    1219 </span>            : 
+<span class="lineNum">    1220 </span><span class="lineCov">         12 :                 if (w)</span>
+<span class="lineNum">    1221 </span><span class="lineCov">          8 :                         return hwloc_ffsl(w) - 1 + HWLOC_BITS_PER_LONG*i;</span>
+<span class="lineNum">    1222 </span>            :         }
+<span class="lineNum">    1223 </span>            : 
+<span class="lineNum">    1224 </span><span class="lineCov">          4 :         if (set-&gt;infinite)</span>
+<span class="lineNum">    1225 </span><span class="lineNoCov">          0 :                 return set-&gt;ulongs_count * HWLOC_BITS_PER_LONG;</span>
+<span class="lineNum">    1226 </span>            : 
+<span class="lineNum">    1227 </span><span class="lineCov">          4 :         return -1;</span>
+<a name="1228"><span class="lineNum">    1228 </span>            : }</a>
+<span class="lineNum">    1229 </span>            : 
+<span class="lineNum">    1230 </span><span class="lineNoCov">          0 : void hwloc_bitmap_singlify(struct hwloc_bitmap_s * set)</span>
+<span class="lineNum">    1231 </span>            : {
+<span class="lineNum">    1232 </span>            :         unsigned i;
+<span class="lineNum">    1233 </span><span class="lineNoCov">          0 :         int found = 0;</span>
+<span class="lineNum">    1234 </span>            : 
+<span class="lineNum">    1235 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">    1236 </span>            : 
+<span class="lineNum">    1237 </span><span class="lineNoCov">          0 :         for(i=0; i&lt;set-&gt;ulongs_count; i++) {</span>
+<span class="lineNum">    1238 </span><span class="lineNoCov">          0 :                 if (found) {</span>
+<span class="lineNum">    1239 </span><span class="lineNoCov">          0 :                         set-&gt;ulongs[i] = HWLOC_SUBBITMAP_ZERO;</span>
+<span class="lineNum">    1240 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">    1241 </span>            :                 } else {
+<span class="lineNum">    1242 </span>            :                         /* subsets are unsigned longs, use ffsl */
+<span class="lineNum">    1243 </span><span class="lineNoCov">          0 :                         unsigned long w = set-&gt;ulongs[i];</span>
+<span class="lineNum">    1244 </span><span class="lineNoCov">          0 :                         if (w) {</span>
+<span class="lineNum">    1245 </span><span class="lineNoCov">          0 :                                 int _ffs = hwloc_ffsl(w);</span>
+<span class="lineNum">    1246 </span><span class="lineNoCov">          0 :                                 set-&gt;ulongs[i] = HWLOC_SUBBITMAP_CPU(_ffs-1);</span>
+<span class="lineNum">    1247 </span><span class="lineNoCov">          0 :                                 found = 1;</span>
+<span class="lineNum">    1248 </span>            :                         }
+<span class="lineNum">    1249 </span>            :                 }
+<span class="lineNum">    1250 </span>            :         }
+<span class="lineNum">    1251 </span>            : 
+<span class="lineNum">    1252 </span><span class="lineNoCov">          0 :         if (set-&gt;infinite) {</span>
+<span class="lineNum">    1253 </span><span class="lineNoCov">          0 :                 if (found) {</span>
+<span class="lineNum">    1254 </span><span class="lineNoCov">          0 :                         set-&gt;infinite = 0;</span>
+<span class="lineNum">    1255 </span>            :                 } else {
+<span class="lineNum">    1256 </span>            :                         /* set the first non allocated bit */
+<span class="lineNum">    1257 </span><span class="lineNoCov">          0 :                         unsigned first = set-&gt;ulongs_count * HWLOC_BITS_PER_LONG;</span>
+<span class="lineNum">    1258 </span><span class="lineNoCov">          0 :                         set-&gt;infinite = 0; /* do not let realloc fill the newly allocated sets */</span>
+<span class="lineNum">    1259 </span><span class="lineNoCov">          0 :                         hwloc_bitmap_set(set, first);</span>
+<span class="lineNum">    1260 </span>            :                 }
+<span class="lineNum">    1261 </span>            :         }
+<a name="1262"><span class="lineNum">    1262 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1263 </span>            : 
+<span class="lineNum">    1264 </span><span class="lineCov">         12 : int hwloc_bitmap_compare_first(const struct hwloc_bitmap_s * set1, const struct hwloc_bitmap_s * set2)</span>
+<span class="lineNum">    1265 </span>            : {
+<span class="lineNum">    1266 </span><span class="lineCov">         12 :         unsigned count1 = set1-&gt;ulongs_count;</span>
+<span class="lineNum">    1267 </span><span class="lineCov">         12 :         unsigned count2 = set2-&gt;ulongs_count;</span>
+<span class="lineNum">    1268 </span><span class="lineCov">         12 :         unsigned max_count = count1 &gt; count2 ? count1 : count2;</span>
+<span class="lineNum">    1269 </span><span class="lineCov">         12 :         unsigned min_count = count1 + count2 - max_count;</span>
+<span class="lineNum">    1270 </span>            :         unsigned i;
+<span class="lineNum">    1271 </span>            : 
+<span class="lineNum">    1272 </span>            :         HWLOC__BITMAP_CHECK(set1);
+<span class="lineNum">    1273 </span>            :         HWLOC__BITMAP_CHECK(set2);
+<span class="lineNum">    1274 </span>            : 
+<span class="lineNum">    1275 </span><span class="lineCov">         12 :         for(i=0; i&lt;min_count; i++) {</span>
+<span class="lineNum">    1276 </span><span class="lineCov">         12 :                 unsigned long w1 = set1-&gt;ulongs[i];</span>
+<span class="lineNum">    1277 </span><span class="lineCov">         12 :                 unsigned long w2 = set2-&gt;ulongs[i];</span>
+<span class="lineNum">    1278 </span><span class="lineCov">         12 :                 if (w1 || w2) {</span>
+<span class="lineNum">    1279 </span><span class="lineCov">         12 :                         int _ffs1 = hwloc_ffsl(w1);</span>
+<span class="lineNum">    1280 </span><span class="lineCov">         12 :                         int _ffs2 = hwloc_ffsl(w2);</span>
+<span class="lineNum">    1281 </span>            :                         /* if both have a bit set, compare for real */
+<span class="lineNum">    1282 </span><span class="lineCov">         12 :                         if (_ffs1 &amp;&amp; _ffs2)</span>
+<span class="lineNum">    1283 </span><span class="lineCov">         12 :                                 return _ffs1-_ffs2;</span>
+<span class="lineNum">    1284 </span>            :                         /* one is empty, and it is considered higher, so reverse-compare them */
+<span class="lineNum">    1285 </span><span class="lineNoCov">          0 :                         return _ffs2-_ffs1;</span>
+<span class="lineNum">    1286 </span>            :                 }
+<span class="lineNum">    1287 </span>            :         }
+<span class="lineNum">    1288 </span>            : 
+<span class="lineNum">    1289 </span><span class="lineNoCov">          0 :         if (count1 != count2) {</span>
+<span class="lineNum">    1290 </span><span class="lineNoCov">          0 :                 if (min_count &lt; count2) {</span>
+<span class="lineNum">    1291 </span><span class="lineNoCov">          0 :                         for(i=min_count; i&lt;count2; i++) {</span>
+<span class="lineNum">    1292 </span><span class="lineNoCov">          0 :                                 unsigned long w2 = set2-&gt;ulongs[i];</span>
+<span class="lineNum">    1293 </span><span class="lineNoCov">          0 :                                 if (set1-&gt;infinite)</span>
+<span class="lineNum">    1294 </span><span class="lineNoCov">          0 :                                         return -!(w2 &amp; 1);</span>
+<span class="lineNum">    1295 </span><span class="lineNoCov">          0 :                                 else if (w2)</span>
+<span class="lineNum">    1296 </span><span class="lineNoCov">          0 :                                         return 1;</span>
+<span class="lineNum">    1297 </span>            :                         }
+<span class="lineNum">    1298 </span>            :                 } else {
+<span class="lineNum">    1299 </span><span class="lineNoCov">          0 :                         for(i=min_count; i&lt;count1; i++) {</span>
+<span class="lineNum">    1300 </span><span class="lineNoCov">          0 :                                 unsigned long w1 = set1-&gt;ulongs[i];</span>
+<span class="lineNum">    1301 </span><span class="lineNoCov">          0 :                                 if (set2-&gt;infinite)</span>
+<span class="lineNum">    1302 </span><span class="lineNoCov">          0 :                                         return !(w1 &amp; 1);</span>
+<span class="lineNum">    1303 </span><span class="lineNoCov">          0 :                                 else if (w1)</span>
+<span class="lineNum">    1304 </span><span class="lineNoCov">          0 :                                         return -1;</span>
+<span class="lineNum">    1305 </span>            :                         }
+<span class="lineNum">    1306 </span>            :                 }
+<span class="lineNum">    1307 </span>            :         }
+<span class="lineNum">    1308 </span>            : 
+<span class="lineNum">    1309 </span><span class="lineNoCov">          0 :         return !!set1-&gt;infinite - !!set2-&gt;infinite;</span>
+<a name="1310"><span class="lineNum">    1310 </span>            : }</a>
+<span class="lineNum">    1311 </span>            : 
+<span class="lineNum">    1312 </span><span class="lineNoCov">          0 : int hwloc_bitmap_compare(const struct hwloc_bitmap_s * set1, const struct hwloc_bitmap_s * set2)</span>
+<span class="lineNum">    1313 </span>            : {
+<span class="lineNum">    1314 </span><span class="lineNoCov">          0 :         unsigned count1 = set1-&gt;ulongs_count;</span>
+<span class="lineNum">    1315 </span><span class="lineNoCov">          0 :         unsigned count2 = set2-&gt;ulongs_count;</span>
+<span class="lineNum">    1316 </span><span class="lineNoCov">          0 :         unsigned max_count = count1 &gt; count2 ? count1 : count2;</span>
+<span class="lineNum">    1317 </span><span class="lineNoCov">          0 :         unsigned min_count = count1 + count2 - max_count;</span>
+<span class="lineNum">    1318 </span>            :         int i;
+<span class="lineNum">    1319 </span>            : 
+<span class="lineNum">    1320 </span>            :         HWLOC__BITMAP_CHECK(set1);
+<span class="lineNum">    1321 </span>            :         HWLOC__BITMAP_CHECK(set2);
+<span class="lineNum">    1322 </span>            : 
+<span class="lineNum">    1323 </span><span class="lineNoCov">          0 :         if ((!set1-&gt;infinite) != (!set2-&gt;infinite))</span>
+<span class="lineNum">    1324 </span><span class="lineNoCov">          0 :                 return !!set1-&gt;infinite - !!set2-&gt;infinite;</span>
+<span class="lineNum">    1325 </span>            : 
+<span class="lineNum">    1326 </span><span class="lineNoCov">          0 :         if (count1 != count2) {</span>
+<span class="lineNum">    1327 </span><span class="lineNoCov">          0 :                 if (min_count &lt; count2) {</span>
+<span class="lineNum">    1328 </span><span class="lineNoCov">          0 :                         unsigned long val1 = set1-&gt;infinite ? HWLOC_SUBBITMAP_FULL :  HWLOC_SUBBITMAP_ZERO;</span>
+<span class="lineNum">    1329 </span><span class="lineNoCov">          0 :                         for(i=max_count-1; i&gt;=(signed) min_count; i--) {</span>
+<span class="lineNum">    1330 </span><span class="lineNoCov">          0 :                                 unsigned long val2 = set2-&gt;ulongs[i];</span>
+<span class="lineNum">    1331 </span><span class="lineNoCov">          0 :                                 if (val1 == val2)</span>
+<span class="lineNum">    1332 </span><span class="lineNoCov">          0 :                                         continue;</span>
+<span class="lineNum">    1333 </span><span class="lineNoCov">          0 :                                 return val1 &lt; val2 ? -1 : 1;</span>
+<span class="lineNum">    1334 </span>            :                         }
+<span class="lineNum">    1335 </span>            :                 } else {
+<span class="lineNum">    1336 </span><span class="lineNoCov">          0 :                         unsigned long val2 = set2-&gt;infinite ? HWLOC_SUBBITMAP_FULL :  HWLOC_SUBBITMAP_ZERO;</span>
+<span class="lineNum">    1337 </span><span class="lineNoCov">          0 :                         for(i=max_count-1; i&gt;=(signed) min_count; i--) {</span>
+<span class="lineNum">    1338 </span><span class="lineNoCov">          0 :                                 unsigned long val1 = set1-&gt;ulongs[i];</span>
+<span class="lineNum">    1339 </span><span class="lineNoCov">          0 :                                 if (val1 == val2)</span>
+<span class="lineNum">    1340 </span><span class="lineNoCov">          0 :                                         continue;</span>
+<span class="lineNum">    1341 </span><span class="lineNoCov">          0 :                                 return val1 &lt; val2 ? -1 : 1;</span>
+<span class="lineNum">    1342 </span>            :                         }
+<span class="lineNum">    1343 </span>            :                 }
+<span class="lineNum">    1344 </span>            :         }
+<span class="lineNum">    1345 </span>            : 
+<span class="lineNum">    1346 </span><span class="lineNoCov">          0 :         for(i=min_count-1; i&gt;=0; i--) {</span>
+<span class="lineNum">    1347 </span><span class="lineNoCov">          0 :                 unsigned long val1 = set1-&gt;ulongs[i];</span>
+<span class="lineNum">    1348 </span><span class="lineNoCov">          0 :                 unsigned long val2 = set2-&gt;ulongs[i];</span>
+<span class="lineNum">    1349 </span><span class="lineNoCov">          0 :                 if (val1 == val2)</span>
+<span class="lineNum">    1350 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">    1351 </span><span class="lineNoCov">          0 :                 return val1 &lt; val2 ? -1 : 1;</span>
+<span class="lineNum">    1352 </span>            :         }
+<span class="lineNum">    1353 </span>            : 
+<span class="lineNum">    1354 </span><span class="lineNoCov">          0 :         return 0;</span>
+<a name="1355"><span class="lineNum">    1355 </span>            : }</a>
+<span class="lineNum">    1356 </span>            : 
+<span class="lineNum">    1357 </span><span class="lineNoCov">          0 : int hwloc_bitmap_weight(const struct hwloc_bitmap_s * set)</span>
+<span class="lineNum">    1358 </span>            : {
+<span class="lineNum">    1359 </span><span class="lineNoCov">          0 :         int weight = 0;</span>
+<span class="lineNum">    1360 </span>            :         unsigned i;
+<span class="lineNum">    1361 </span>            : 
+<span class="lineNum">    1362 </span>            :         HWLOC__BITMAP_CHECK(set);
+<span class="lineNum">    1363 </span>            : 
+<span class="lineNum">    1364 </span><span class="lineNoCov">          0 :         if (set-&gt;infinite)</span>
+<span class="lineNum">    1365 </span><span class="lineNoCov">          0 :                 return -1;</span>
+<span class="lineNum">    1366 </span>            : 
+<span class="lineNum">    1367 </span><span class="lineNoCov">          0 :         for(i=0; i&lt;set-&gt;ulongs_count; i++)</span>
+<span class="lineNum">    1368 </span><span class="lineNoCov">          0 :                 weight += hwloc_weight_long(set-&gt;ulongs[i]);</span>
+<span class="lineNum">    1369 </span><span class="lineNoCov">          0 :         return weight;</span>
+<a name="1370"><span class="lineNum">    1370 </span>            : }</a>
+<span class="lineNum">    1371 </span>            : 
+<span class="lineNum">    1372 </span><span class="lineNoCov">          0 : int hwloc_bitmap_compare_inclusion(const struct hwloc_bitmap_s * set1, const struct hwloc_bitmap_s * set2)</span>
+<span class="lineNum">    1373 </span>            : {
+<span class="lineNum">    1374 </span><span class="lineNoCov">          0 :         unsigned max_count = set1-&gt;ulongs_count &gt; set2-&gt;ulongs_count ? set1-&gt;ulongs_count : set2-&gt;ulongs_count;</span>
+<span class="lineNum">    1375 </span><span class="lineNoCov">          0 :         int result = HWLOC_BITMAP_EQUAL; /* means empty sets return equal */</span>
+<span class="lineNum">    1376 </span><span class="lineNoCov">          0 :         int empty1 = 1;</span>
+<span class="lineNum">    1377 </span><span class="lineNoCov">          0 :         int empty2 = 1;</span>
+<span class="lineNum">    1378 </span>            :         unsigned i;
+<span class="lineNum">    1379 </span>            : 
+<span class="lineNum">    1380 </span>            :         HWLOC__BITMAP_CHECK(set1);
+<span class="lineNum">    1381 </span>            :         HWLOC__BITMAP_CHECK(set2);
+<span class="lineNum">    1382 </span>            : 
+<span class="lineNum">    1383 </span><span class="lineNoCov">          0 :         for(i=0; i&lt;max_count; i++) {</span>
+<span class="lineNum">    1384 </span><span class="lineNoCov">          0 :           unsigned long val1 = HWLOC_SUBBITMAP_READULONG(set1, (unsigned) i);</span>
+<span class="lineNum">    1385 </span><span class="lineNoCov">          0 :           unsigned long val2 = HWLOC_SUBBITMAP_READULONG(set2, (unsigned) i);</span>
+<span class="lineNum">    1386 </span>            : 
+<span class="lineNum">    1387 </span><span class="lineNoCov">          0 :           if (!val1) {</span>
+<span class="lineNum">    1388 </span><span class="lineNoCov">          0 :             if (!val2)</span>
+<span class="lineNum">    1389 </span>            :               /* both empty, no change */
+<span class="lineNum">    1390 </span><span class="lineNoCov">          0 :               continue;</span>
+<span class="lineNum">    1391 </span>            : 
+<span class="lineNum">    1392 </span>            :             /* val1 empty, val2 not */
+<span class="lineNum">    1393 </span><span class="lineNoCov">          0 :             if (result == HWLOC_BITMAP_CONTAINS) {</span>
+<span class="lineNum">    1394 </span><span class="lineNoCov">          0 :               if (!empty2)</span>
+<span class="lineNum">    1395 </span><span class="lineNoCov">          0 :                 return HWLOC_BITMAP_INTERSECTS;</span>
+<span class="lineNum">    1396 </span><span class="lineNoCov">          0 :               result = HWLOC_BITMAP_DIFFERENT;</span>
+<span class="lineNum">    1397 </span><span class="lineNoCov">          0 :             } else if (result == HWLOC_BITMAP_EQUAL) {</span>
+<span class="lineNum">    1398 </span><span class="lineNoCov">          0 :               result = HWLOC_BITMAP_INCLUDED;</span>
+<span class="lineNum">    1399 </span>            :             }
+<span class="lineNum">    1400 </span>            :             /* no change otherwise */
+<span class="lineNum">    1401 </span>            : 
+<span class="lineNum">    1402 </span><span class="lineNoCov">          0 :           } else if (!val2) {</span>
+<span class="lineNum">    1403 </span>            :             /* val2 empty, val1 not */
+<span class="lineNum">    1404 </span><span class="lineNoCov">          0 :             if (result == HWLOC_BITMAP_INCLUDED) {</span>
+<span class="lineNum">    1405 </span><span class="lineNoCov">          0 :               if (!empty1)</span>
+<span class="lineNum">    1406 </span><span class="lineNoCov">          0 :                 return HWLOC_BITMAP_INTERSECTS;</span>
+<span class="lineNum">    1407 </span><span class="lineNoCov">          0 :               result = HWLOC_BITMAP_DIFFERENT;</span>
+<span class="lineNum">    1408 </span><span class="lineNoCov">          0 :             } else if (result == HWLOC_BITMAP_EQUAL) {</span>
+<span class="lineNum">    1409 </span><span class="lineNoCov">          0 :               result = HWLOC_BITMAP_CONTAINS;</span>
+<span class="lineNum">    1410 </span>            :             }
+<span class="lineNum">    1411 </span>            :             /* no change otherwise */
+<span class="lineNum">    1412 </span>            : 
+<span class="lineNum">    1413 </span><span class="lineNoCov">          0 :           } else if (val1 == val2) {</span>
+<span class="lineNum">    1414 </span>            :             /* equal and not empty */
+<span class="lineNum">    1415 </span><span class="lineNoCov">          0 :             if (result == HWLOC_BITMAP_DIFFERENT)</span>
+<span class="lineNum">    1416 </span><span class="lineNoCov">          0 :               return HWLOC_BITMAP_INTERSECTS;</span>
+<span class="lineNum">    1417 </span>            :             /* equal/contains/included unchanged */
+<span class="lineNum">    1418 </span>            : 
+<span class="lineNum">    1419 </span><span class="lineNoCov">          0 :           } else if ((val1 &amp; val2) == val1) {</span>
+<span class="lineNum">    1420 </span>            :             /* included and not empty */
+<span class="lineNum">    1421 </span><span class="lineNoCov">          0 :             if (result == HWLOC_BITMAP_CONTAINS || result == HWLOC_BITMAP_DIFFERENT)</span>
+<span class="lineNum">    1422 </span><span class="lineNoCov">          0 :               return HWLOC_BITMAP_INTERSECTS;</span>
+<span class="lineNum">    1423 </span>            :             /* equal/included unchanged */
+<span class="lineNum">    1424 </span><span class="lineNoCov">          0 :             result = HWLOC_BITMAP_INCLUDED;</span>
+<span class="lineNum">    1425 </span>            : 
+<span class="lineNum">    1426 </span><span class="lineNoCov">          0 :           } else if ((val1 &amp; val2) == val2) {</span>
+<span class="lineNum">    1427 </span>            :             /* contains and not empty */
+<span class="lineNum">    1428 </span><span class="lineNoCov">          0 :             if (result == HWLOC_BITMAP_INCLUDED || result == HWLOC_BITMAP_DIFFERENT)</span>
+<span class="lineNum">    1429 </span><span class="lineNoCov">          0 :               return HWLOC_BITMAP_INTERSECTS;</span>
+<span class="lineNum">    1430 </span>            :             /* equal/contains unchanged */
+<span class="lineNum">    1431 </span><span class="lineNoCov">          0 :             result = HWLOC_BITMAP_CONTAINS;</span>
+<span class="lineNum">    1432 </span>            : 
+<span class="lineNum">    1433 </span><span class="lineNoCov">          0 :           } else if ((val1 &amp; val2) != 0) {</span>
+<span class="lineNum">    1434 </span>            :             /* intersects and not empty */
+<span class="lineNum">    1435 </span><span class="lineNoCov">          0 :             return HWLOC_BITMAP_INTERSECTS;</span>
+<span class="lineNum">    1436 </span>            : 
+<span class="lineNum">    1437 </span>            :           } else {
+<span class="lineNum">    1438 </span>            :             /* different and not empty */
+<span class="lineNum">    1439 </span>            : 
+<span class="lineNum">    1440 </span>            :             /* equal/included/contains with non-empty sets means intersects */
+<span class="lineNum">    1441 </span><span class="lineNoCov">          0 :             if (result == HWLOC_BITMAP_EQUAL &amp;&amp; !empty1 /* implies !empty2 */)</span>
+<span class="lineNum">    1442 </span><span class="lineNoCov">          0 :               return HWLOC_BITMAP_INTERSECTS;</span>
+<span class="lineNum">    1443 </span><span class="lineNoCov">          0 :             if (result == HWLOC_BITMAP_INCLUDED &amp;&amp; !empty1)</span>
+<span class="lineNum">    1444 </span><span class="lineNoCov">          0 :               return HWLOC_BITMAP_INTERSECTS;</span>
+<span class="lineNum">    1445 </span><span class="lineNoCov">          0 :             if (result == HWLOC_BITMAP_CONTAINS &amp;&amp; !empty2)</span>
+<span class="lineNum">    1446 </span><span class="lineNoCov">          0 :               return HWLOC_BITMAP_INTERSECTS;</span>
+<span class="lineNum">    1447 </span>            :             /* otherwise means different */
+<span class="lineNum">    1448 </span><span class="lineNoCov">          0 :             result = HWLOC_BITMAP_DIFFERENT;</span>
+<span class="lineNum">    1449 </span>            :           }
+<span class="lineNum">    1450 </span>            : 
+<span class="lineNum">    1451 </span><span class="lineNoCov">          0 :           empty1 &amp;= !val1;</span>
+<span class="lineNum">    1452 </span><span class="lineNoCov">          0 :           empty2 &amp;= !val2;</span>
+<span class="lineNum">    1453 </span>            :         }
+<span class="lineNum">    1454 </span>            : 
+<span class="lineNum">    1455 </span><span class="lineNoCov">          0 :         if (!set1-&gt;infinite) {</span>
+<span class="lineNum">    1456 </span><span class="lineNoCov">          0 :           if (set2-&gt;infinite) {</span>
+<span class="lineNum">    1457 </span>            :             /* set2 infinite only */
+<span class="lineNum">    1458 </span><span class="lineNoCov">          0 :             if (result == HWLOC_BITMAP_CONTAINS) {</span>
+<span class="lineNum">    1459 </span><span class="lineNoCov">          0 :               if (!empty2)</span>
+<span class="lineNum">    1460 </span><span class="lineNoCov">          0 :                 return HWLOC_BITMAP_INTERSECTS;</span>
+<span class="lineNum">    1461 </span><span class="lineNoCov">          0 :               result = HWLOC_BITMAP_DIFFERENT;</span>
+<span class="lineNum">    1462 </span><span class="lineNoCov">          0 :             } else if (result == HWLOC_BITMAP_EQUAL) {</span>
+<span class="lineNum">    1463 </span><span class="lineNoCov">          0 :               result = HWLOC_BITMAP_INCLUDED;</span>
+<span class="lineNum">    1464 </span>            :             }
+<span class="lineNum">    1465 </span>            :             /* no change otherwise */
+<span class="lineNum">    1466 </span>            :           }
+<span class="lineNum">    1467 </span><span class="lineNoCov">          0 :         } else if (!set2-&gt;infinite) {</span>
+<span class="lineNum">    1468 </span>            :           /* set1 infinite only */
+<span class="lineNum">    1469 </span><span class="lineNoCov">          0 :           if (result == HWLOC_BITMAP_INCLUDED) {</span>
+<span class="lineNum">    1470 </span><span class="lineNoCov">          0 :             if (!empty1)</span>
+<span class="lineNum">    1471 </span><span class="lineNoCov">          0 :               return HWLOC_BITMAP_INTERSECTS;</span>
+<span class="lineNum">    1472 </span><span class="lineNoCov">          0 :             result = HWLOC_BITMAP_DIFFERENT;</span>
+<span class="lineNum">    1473 </span><span class="lineNoCov">          0 :           } else if (result == HWLOC_BITMAP_EQUAL) {</span>
+<span class="lineNum">    1474 </span><span class="lineNoCov">          0 :             result = HWLOC_BITMAP_CONTAINS;</span>
+<span class="lineNum">    1475 </span>            :           }
+<span class="lineNum">    1476 </span>            :           /* no change otherwise */
+<span class="lineNum">    1477 </span>            :         } else {
+<span class="lineNum">    1478 </span>            :           /* both infinite */
+<span class="lineNum">    1479 </span><span class="lineNoCov">          0 :           if (result == HWLOC_BITMAP_DIFFERENT)</span>
+<span class="lineNum">    1480 </span><span class="lineNoCov">          0 :             return HWLOC_BITMAP_INTERSECTS;</span>
+<span class="lineNum">    1481 </span>            :           /* equal/contains/included unchanged */
+<span class="lineNum">    1482 </span>            :         }
+<span class="lineNum">    1483 </span>            : 
+<span class="lineNum">    1484 </span><span class="lineNoCov">          0 :         return result;</span>
+<span class="lineNum">    1485 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

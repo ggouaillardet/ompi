@@ -1,0 +1,286 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/runtime/opal_finalize.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/runtime</a> - opal_finalize.c<span style="font-size: 80%;"> (source / <a href="opal_finalize.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">39</td>
+            <td class="headerCovTableEntry">53</td>
+            <td class="headerCovTableEntryLo">73.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryMed">75.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2010 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2005 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2008-2015 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2010-2015 Los Alamos National Security, LLC.
+<span class="lineNum">      14 </span>            :  *                         All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2013-2015 Intel, Inc. All rights reserved
+<span class="lineNum">      16 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * $HEADER$
+<span class="lineNum">      21 </span>            :  */
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : /** @file **/
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &quot;opal/class/opal_object.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;opal/dss/dss.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;opal/util/malloc.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;opal/util/net.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;opal/util/keyval_parse.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;opal/util/show_help.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;opal/memoryhooks/memory.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;opal/mca/base/base.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;opal/runtime/opal.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;opal/datatype/opal_datatype.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;opal/mca/if/base/base.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;opal/mca/installdirs/base/base.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;opal/mca/memchecker/base/base.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;opal/mca/memcpy/base/base.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;opal/mca/memory/base/base.h&quot;
+<span class="lineNum">      44 </span>            : #include &quot;opal/mca/backtrace/base/base.h&quot;
+<span class="lineNum">      45 </span>            : #include &quot;opal/mca/sec/base/base.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;opal/mca/timer/base/base.h&quot;
+<span class="lineNum">      47 </span>            : #include &quot;opal/mca/hwloc/base/base.h&quot;
+<span class="lineNum">      48 </span>            : #include &quot;opal/mca/event/base/base.h&quot;
+<span class="lineNum">      49 </span>            : #include &quot;opal/runtime/opal_progress.h&quot;
+<span class="lineNum">      50 </span>            : #include &quot;opal/mca/shmem/base/base.h&quot;
+<span class="lineNum">      51 </span>            : #if OPAL_ENABLE_FT_CR    == 1
+<span class="lineNum">      52 </span>            : #include &quot;opal/mca/compress/base/base.h&quot;
+<span class="lineNum">      53 </span>            : #endif
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : #include &quot;opal/runtime/opal_cr.h&quot;
+<span class="lineNum">      56 </span>            : #include &quot;opal/mca/crs/base/base.h&quot;
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : extern int opal_initialized;
+<span class="lineNum">      59 </span>            : extern int opal_util_initialized;
+<a name="60"><span class="lineNum">      60 </span>            : extern bool opal_init_called;</a>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span><span class="lineCov">          2 : static void __opal_attribute_destructor__ opal_cleanup (void)</span>
+<span class="lineNum">      63 </span>            : {
+<span class="lineNum">      64 </span><span class="lineCov">          2 :     if (!opal_initialized) {</span>
+<span class="lineNum">      65 </span>            :         /* nothing to do */
+<span class="lineNum">      66 </span><span class="lineCov">          2 :         return;</span>
+<span class="lineNum">      67 </span>            :     }
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            :     /* finalize the class/object system */
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     opal_class_finalize();</span>
+<span class="lineNum">      71 </span>            : }
+<a name="72"><span class="lineNum">      72 </span>            : </a>
+<span class="lineNum">      73 </span>            : int
+<span class="lineNum">      74 </span><span class="lineCov">          4 : opal_finalize_util(void)</span>
+<span class="lineNum">      75 </span>            : {
+<span class="lineNum">      76 </span><span class="lineCov">          4 :     if( --opal_util_initialized != 0 ) {</span>
+<span class="lineNum">      77 </span><span class="lineCov">          2 :         if( opal_util_initialized &lt; 0 ) {</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :             return OPAL_ERROR;</span>
+<span class="lineNum">      79 </span>            :         }
+<span class="lineNum">      80 </span><span class="lineCov">          2 :         return OPAL_SUCCESS;</span>
+<span class="lineNum">      81 </span>            :     }
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            :     /* close interfaces code. */
+<span class="lineNum">      84 </span><span class="lineCov">          2 :     (void) mca_base_framework_close(&amp;opal_if_base_framework);</span>
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span><span class="lineCov">          2 :     (void) mca_base_framework_close(&amp;opal_event_base_framework);</span>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            :     /* Clear out all the registered MCA params */
+<span class="lineNum">      89 </span><span class="lineCov">          2 :     opal_deregister_params();</span>
+<span class="lineNum">      90 </span><span class="lineCov">          2 :     mca_base_var_finalize();</span>
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span><span class="lineCov">          2 :     opal_net_finalize();</span>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            :     /* keyval lex-based parser */
+<span class="lineNum">      95 </span><span class="lineCov">          2 :     opal_util_keyval_parse_finalize();</span>
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span><span class="lineCov">          2 :     (void) mca_base_framework_close(&amp;opal_installdirs_base_framework);</span>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            :     /* finalize the memory allocator */
+<span class="lineNum">     100 </span><span class="lineCov">          2 :     opal_malloc_finalize();</span>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :     /* finalize the show_help system */
+<span class="lineNum">     103 </span><span class="lineCov">          2 :     opal_show_help_finalize();</span>
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            :     /* finalize the output system.  This has to come *after* the
+<span class="lineNum">     106 </span>            :        malloc code, as the malloc code needs to call into this, but
+<span class="lineNum">     107 </span>            :        the malloc code turning off doesn't affect opal_output that
+<span class="lineNum">     108 </span>            :        much */
+<span class="lineNum">     109 </span><span class="lineCov">          2 :     opal_output_finalize();</span>
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :     /* close the dss */
+<span class="lineNum">     112 </span><span class="lineCov">          2 :     opal_dss_close();</span>
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span><span class="lineCov">          2 :     opal_datatype_finalize();</span>
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span>            : #if OPAL_NO_LIB_DESTRUCTOR
+<span class="lineNum">     117 </span>            :     opal_cleanup ();
+<span class="lineNum">     118 </span>            : #endif
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineCov">          2 :     free (opal_process_info.nodename);</span>
+<span class="lineNum">     121 </span><span class="lineCov">          2 :     opal_process_info.nodename = NULL;</span>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     124 </span>            : }
+<span class="lineNum">     125 </span>            : 
+<a name="126"><span class="lineNum">     126 </span>            : </a>
+<span class="lineNum">     127 </span>            : int
+<span class="lineNum">     128 </span><span class="lineCov">          2 : opal_finalize(void)</span>
+<span class="lineNum">     129 </span>            : {
+<span class="lineNum">     130 </span><span class="lineCov">          2 :     if( --opal_initialized != 0 ) {</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         if( opal_initialized &lt; 0 ) {</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :             return OPAL_ERROR;</span>
+<span class="lineNum">     133 </span>            :         }
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :         return OPAL_SUCCESS;</span>
+<span class="lineNum">     135 </span>            :     }
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span><span class="lineCov">          2 :     opal_progress_finalize();</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            :     /* close the checkpoint and restart service */
+<span class="lineNum">     140 </span><span class="lineCov">          2 :     opal_cr_finalize();</span>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            :     /* close the security framework */
+<span class="lineNum">     143 </span><span class="lineCov">          2 :     (void) mca_base_framework_close(&amp;opal_sec_base_framework);</span>
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            : #if OPAL_ENABLE_FT_CR    == 1
+<span class="lineNum">     146 </span>            :     (void) mca_base_framework_close(&amp;opal_compress_base_framework);
+<span class="lineNum">     147 </span>            : #endif
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineCov">          2 :     (void) mca_base_framework_close(&amp;opal_event_base_framework);</span>
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            :     /* close high resolution timers */
+<span class="lineNum">     152 </span><span class="lineCov">          2 :     (void) mca_base_framework_close(&amp;opal_timer_base_framework);</span>
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineCov">          2 :     (void) mca_base_framework_close(&amp;opal_backtrace_base_framework);</span>
+<span class="lineNum">     155 </span><span class="lineCov">          2 :     (void) mca_base_framework_close(&amp;opal_memchecker_base_framework);</span>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            :     /* close the memory manager components.  Registered hooks can
+<span class="lineNum">     158 </span>            :        still be fired any time between now and the call to
+<span class="lineNum">     159 </span>            :        opal_mem_free_finalize(), and callbacks from the memory manager
+<span class="lineNum">     160 </span>            :        hooks to the bowels of the mem_free code can still occur any
+<span class="lineNum">     161 </span>            :        time between now and end of application (even post main()!) */
+<span class="lineNum">     162 </span><span class="lineCov">          2 :     (void) mca_base_framework_close(&amp;opal_memory_base_framework);</span>
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span>            :     /* close the memcpy framework */
+<span class="lineNum">     165 </span><span class="lineCov">          2 :     (void) mca_base_framework_close(&amp;opal_memcpy_base_framework);</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            :     /* finalize the memory manager / tracker */
+<span class="lineNum">     168 </span><span class="lineCov">          2 :     opal_mem_hooks_finalize();</span>
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span>            :     /* close the hwloc framework */
+<span class="lineNum">     171 </span><span class="lineCov">          2 :     (void) mca_base_framework_close(&amp;opal_hwloc_base_framework);</span>
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            :     /* close the shmem framework */
+<span class="lineNum">     174 </span><span class="lineCov">          2 :     (void) mca_base_framework_close(&amp;opal_shmem_base_framework);</span>
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            :     /* close the sec framework */
+<span class="lineNum">     177 </span><span class="lineCov">          2 :     (void) mca_base_framework_close(&amp;opal_sec_base_framework);</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            :     /* finalize util code */
+<span class="lineNum">     180 </span><span class="lineCov">          2 :     opal_finalize_util();</span>
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     183 </span>            : }
+<a name="184"><span class="lineNum">     184 </span>            : </a>
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 : void opal_finalize_test(void)</span>
+<span class="lineNum">     187 </span>            : {
+<span class="lineNum">     188 </span>            :     /* Clear out all the registered MCA params */
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     mca_base_var_finalize();</span>
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     (void) mca_base_framework_close(&amp;opal_installdirs_base_framework);</span>
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            :     /* finalize the mca */
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     mca_base_close();</span>
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span>            :     /* finalize the show_help system */
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :     opal_show_help_finalize();</span>
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span>            :     /* finalize the output system.  This has to come *after* the
+<span class="lineNum">     200 </span>            :        malloc code, as the malloc code needs to call into this, but
+<span class="lineNum">     201 </span>            :        the malloc code turning off doesn't affect opal_output that
+<span class="lineNum">     202 </span>            :        much */
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :     opal_output_finalize();</span>
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            :     /* close the dss */
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :     opal_dss_close();</span>
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span>            :     /* finalize the class/object system */
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     opal_class_finalize();</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

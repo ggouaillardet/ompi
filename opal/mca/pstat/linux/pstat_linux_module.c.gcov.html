@@ -1,0 +1,629 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/pstat/linux/pstat_linux_module.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/pstat/linux</a> - pstat_linux_module.c<span style="font-size: 80%;"> (source / <a href="pstat_linux_module.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">244</td>
+            <td class="headerCovTableEntryLo">1.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntryLo">25.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2008 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2005 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2006-2015 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2013      Los Alamos National Security, LLC.  All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2013      Intel, Inc.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      16 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      21 </span>            :  *
+<span class="lineNum">      22 </span>            :  * $HEADER$
+<span class="lineNum">      23 </span>            :  */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : /* This component will only be compiled on Linux, where we are
+<span class="lineNum">      29 </span>            :    guaranteed to have &lt;unistd.h&gt; and friends */
+<span class="lineNum">      30 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;ctype.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;time.h&gt;
+<span class="lineNum">      38 </span>            : #ifdef HAVE_SYS_TIME_H
+<span class="lineNum">      39 </span>            : #include &lt;sys/time.h&gt;
+<span class="lineNum">      40 </span>            : #endif
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : #include &lt;sys/param.h&gt;  /* for HZ to convert jiffies to actual time */
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : #include &quot;opal/dss/dss_types.h&quot;
+<span class="lineNum">      45 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;opal/util/printf.h&quot;
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : #include &quot;pstat_linux.h&quot;
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : /*
+<span class="lineNum">      51 </span>            :  * API functions
+<span class="lineNum">      52 </span>            :  */
+<span class="lineNum">      53 </span>            : static int linux_module_init(void);
+<span class="lineNum">      54 </span>            : static int query(pid_t pid,
+<span class="lineNum">      55 </span>            :                  opal_pstats_t *stats,
+<span class="lineNum">      56 </span>            :                  opal_node_stats_t *nstats);
+<span class="lineNum">      57 </span>            : static int linux_module_fini(void);
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : /*
+<span class="lineNum">      60 </span>            :  * Linux pstat module
+<span class="lineNum">      61 </span>            :  */
+<span class="lineNum">      62 </span>            : const opal_pstat_base_module_t opal_pstat_linux_module = {
+<span class="lineNum">      63 </span>            :     /* Initialization function */
+<span class="lineNum">      64 </span>            :     linux_module_init,
+<span class="lineNum">      65 </span>            :     query,
+<span class="lineNum">      66 </span>            :     linux_module_fini
+<span class="lineNum">      67 </span>            : };
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : #define OPAL_STAT_MAX_LENGTH   1024
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : /* Local functions */
+<span class="lineNum">      72 </span>            : static char *local_getline(FILE *fp);
+<span class="lineNum">      73 </span>            : static char *local_stripper(char *data);
+<span class="lineNum">      74 </span>            : static void local_getfields(char *data, char ***fields);
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            : /* Local data */
+<a name="77"><span class="lineNum">      77 </span>            : static char input[OPAL_STAT_MAX_LENGTH];</a>
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span><span class="lineCov">          3 : static int linux_module_init(void)</span>
+<span class="lineNum">      80 </span>            : {
+<span class="lineNum">      81 </span><span class="lineCov">          3 :     return OPAL_SUCCESS;</span>
+<a name="82"><span class="lineNum">      82 </span>            : }</a>
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span><span class="lineCov">          3 : static int linux_module_fini(void)</span>
+<span class="lineNum">      85 </span>            : {
+<span class="lineNum">      86 </span><span class="lineCov">          3 :     return OPAL_SUCCESS;</span>
+<a name="87"><span class="lineNum">      87 </span>            : }</a>
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 : static char *next_field(char *ptr, int barrier)</span>
+<span class="lineNum">      90 </span>            : {
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     int i=0;</span>
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            :     /* we are probably pointing to the last char
+<span class="lineNum">      94 </span>            :      * of the current field, so look for whitespace
+<span class="lineNum">      95 </span>            :      */
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     while (!isspace(*ptr) &amp;&amp; i &lt; barrier) {</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :         ptr++;  /* step over the current char */</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         i++;</span>
+<span class="lineNum">      99 </span>            :     }
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span>            :     /* now look for the next field */
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     while (isspace(*ptr) &amp;&amp; i &lt; barrier) {</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :         ptr++;</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :         i++;</span>
+<span class="lineNum">     105 </span>            :     }
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     return ptr;</span>
+<a name="108"><span class="lineNum">     108 </span>            : }</a>
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 : static float convert_value(char *value)</span>
+<span class="lineNum">     111 </span>            : {
+<span class="lineNum">     112 </span>            :     char *ptr;
+<span class="lineNum">     113 </span>            :     float fval;
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            :     /* compute base value */
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     fval = (float)strtoul(value, &amp;ptr, 10);</span>
+<span class="lineNum">     117 </span>            :     /* get the unit multiplier */
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     if (NULL != ptr &amp;&amp; NULL != strstr(ptr, &quot;kB&quot;)) {</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :         fval /= 1024.0;</span>
+<span class="lineNum">     120 </span>            :     }
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     return fval;</span>
+<a name="122"><span class="lineNum">     122 </span>            : }</a>
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 : static int query(pid_t pid,</span>
+<span class="lineNum">     125 </span>            :                  opal_pstats_t *stats,
+<span class="lineNum">     126 </span>            :                  opal_node_stats_t *nstats)
+<span class="lineNum">     127 </span>            : {
+<span class="lineNum">     128 </span>            :     char data[4096];
+<span class="lineNum">     129 </span>            :     int fd;
+<span class="lineNum">     130 </span>            :     size_t numchars;
+<span class="lineNum">     131 </span>            :     char *ptr, *eptr;
+<span class="lineNum">     132 </span>            :     int i;
+<span class="lineNum">     133 </span>            :     int len, itime;
+<span class="lineNum">     134 </span>            :     double dtime;
+<span class="lineNum">     135 </span>            :     FILE *fp;
+<span class="lineNum">     136 </span>            :     char *dptr, *value;
+<span class="lineNum">     137 </span>            :     char **fields;
+<span class="lineNum">     138 </span>            :     opal_diskstats_t *ds;
+<span class="lineNum">     139 </span>            :     opal_netstats_t *ns;
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     if (NULL != stats) {</span>
+<span class="lineNum">     142 </span>            :         /* record the time of this sample */
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         gettimeofday(&amp;stats-&gt;sample_time, NULL);</span>
+<span class="lineNum">     144 </span>            :         /* check the nstats - don't do gettimeofday twice
+<span class="lineNum">     145 </span>            :          * as it is expensive
+<span class="lineNum">     146 </span>            :          */
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         if (NULL != nstats) {</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :             nstats-&gt;sample_time.tv_sec = stats-&gt;sample_time.tv_sec;</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :             nstats-&gt;sample_time.tv_usec = stats-&gt;sample_time.tv_usec;</span>
+<span class="lineNum">     150 </span>            :         }
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     } else if (NULL != nstats) {</span>
+<span class="lineNum">     152 </span>            :         /* record the time of this sample */
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         gettimeofday(&amp;nstats-&gt;sample_time, NULL);</span>
+<span class="lineNum">     154 </span>            :     }
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     if (NULL != stats) {</span>
+<span class="lineNum">     157 </span>            :         /* create the stat filename for this proc */
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :         numchars = snprintf(data, sizeof(data), &quot;/proc/%d/stat&quot;, pid);</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :         if (numchars &gt;= sizeof(data)) {</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :             return OPAL_ERR_VALUE_OUT_OF_BOUNDS;</span>
+<span class="lineNum">     161 </span>            :         }
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :         if (0 &gt; (fd = open(data, O_RDONLY))) {</span>
+<span class="lineNum">     164 </span>            :             /* can't access this file - most likely, this means we
+<span class="lineNum">     165 </span>            :              * aren't really on a supported system, or the proc no
+<span class="lineNum">     166 </span>            :              * longer exists. Just return an error
+<span class="lineNum">     167 </span>            :              */
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :             return OPAL_ERR_FILE_OPEN_FAILURE;</span>
+<span class="lineNum">     169 </span>            :         }
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            :         /* absorb all of the file's contents in one gulp - we'll process
+<span class="lineNum">     172 </span>            :          * it once it is in memory for speed
+<span class="lineNum">     173 </span>            :          */
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :         memset(data, 0, sizeof(data));</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :         len = read(fd, data, sizeof(data)-1);</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :         if (len &lt; 0) {</span>
+<span class="lineNum">     177 </span>            :             /* This shouldn't happen! */
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :             close(fd);</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :             return OPAL_ERR_FILE_OPEN_FAILURE;</span>
+<span class="lineNum">     180 </span>            :         }
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         close(fd);</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            :         /* remove newline at end */
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         data[len] = '\0';</span>
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            :         /* the stat file consists of a single line in a carefully formatted
+<span class="lineNum">     187 </span>            :          * form. Parse it field by field as per proc(3) to get the ones we want
+<span class="lineNum">     188 </span>            :          */
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            :         /* we don't need to read the pid from the file - we already know it! */
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :         stats-&gt;pid = pid;</span>
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            :         /* the cmd is surrounded by parentheses - find the start */
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         if (NULL == (ptr = strchr(data, '('))) {</span>
+<span class="lineNum">     195 </span>            :             /* no cmd =&gt; something wrong with data, return error */
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :             return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     197 </span>            :         }
+<span class="lineNum">     198 </span>            :         /* step over the paren */
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :         ptr++;</span>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            :         /* find the ending paren */
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         if (NULL == (eptr = strchr(ptr, ')'))) {</span>
+<span class="lineNum">     203 </span>            :             /* no end to cmd =&gt; something wrong with data, return error */
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :             return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     205 </span>            :         }
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            :         /* save the cmd name, up to the limit of the array */
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         i = 0;</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :         while (ptr &lt; eptr &amp;&amp; i &lt; OPAL_PSTAT_MAX_STRING_LEN) {</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :             stats-&gt;cmd[i++] = *ptr++;</span>
+<span class="lineNum">     211 </span>            :         }
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            :         /* move to the next field in the data */
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         ptr = next_field(eptr, len);</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            :         /* next is the process state - a single character */
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         stats-&gt;state[0] = *ptr;</span>
+<span class="lineNum">     218 </span>            :         /* move to next field */
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);</span>
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span>            :         /* skip fields until we get to the times */
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len); /* ppid */</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len); /* pgrp */</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len); /* session */</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len); /* tty_nr */</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len); /* tpgid */</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len); /* flags */</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len); /* minflt */</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len); /* cminflt */</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len); /* majflt */</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len); /* cmajflt */</span>
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            :         /* grab the process time usage fields */
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         itime = strtoul(ptr, &amp;ptr, 10);    /* utime */</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         itime += strtoul(ptr, &amp;ptr, 10);   /* add the stime */</span>
+<span class="lineNum">     236 </span>            :         /* convert to time in seconds */
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         dtime = (double)itime / (double)HZ;</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         stats-&gt;time.tv_sec = (int)dtime;</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         stats-&gt;time.tv_usec = (int)(1000000.0 * (dtime - stats-&gt;time.tv_sec));</span>
+<span class="lineNum">     240 </span>            :         /* move to next field */
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            :         /* skip fields until we get to priority */
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len); /* cutime */</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len); /* cstime */</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            :         /* save the priority */
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :         stats-&gt;priority = strtol(ptr, &amp;ptr, 10);</span>
+<span class="lineNum">     249 </span>            :         /* move to next field */
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);</span>
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span>            :         /* skip nice */
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);</span>
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span>            :         /* get number of threads */
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         stats-&gt;num_threads = strtoul(ptr, &amp;ptr, 10);</span>
+<span class="lineNum">     257 </span>            :         /* move to next field */
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);</span>
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span>            :         /* skip fields until we get to processor id */
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* itrealvalue */</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* starttime */</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* vsize */</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* rss */</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* rss limit */</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* startcode */</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* endcode */</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* startstack */</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* kstkesp */</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* kstkeip */</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* signal */</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* blocked */</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* sigignore */</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* sigcatch */</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* wchan */</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* nswap */</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* cnswap */</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         ptr = next_field(ptr, len);  /* exit_signal */</span>
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span>            :         /* finally - get the processor */
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :         stats-&gt;processor = strtol(ptr, NULL, 10);</span>
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            :         /* that's all we care about from this data - ignore the rest */
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            :         /* now create the status filename for this proc */
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         memset(data, 0, sizeof(data));</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :         numchars = snprintf(data, sizeof(data), &quot;/proc/%d/status&quot;, pid);</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         if (numchars &gt;= sizeof(data)) {</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :             return OPAL_ERR_VALUE_OUT_OF_BOUNDS;</span>
+<span class="lineNum">     290 </span>            :         }
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :         if (NULL == (fp = fopen(data, &quot;r&quot;))) {</span>
+<span class="lineNum">     293 </span>            :             /* ignore this */
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :             return OPAL_SUCCESS;</span>
+<span class="lineNum">     295 </span>            :         }
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            :         /* parse it according to proc(3) */
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :         while (NULL != (dptr = local_getline(fp))) {</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :             if (NULL == (value = local_stripper(dptr))) {</span>
+<span class="lineNum">     300 </span>            :                 /* cannot process */
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     302 </span>            :             }
+<span class="lineNum">     303 </span>            :             /* look for VmPeak */
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :             if (0 == strncmp(dptr, &quot;VmPeak&quot;, strlen(&quot;VmPeak&quot;))) {</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :                 stats-&gt;peak_vsize = convert_value(value);</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :             } else if (0 == strncmp(dptr, &quot;VmSize&quot;, strlen(&quot;VmSize&quot;))) {</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :                 stats-&gt;vsize = convert_value(value);</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :             } else if (0 == strncmp(dptr, &quot;VmRSS&quot;, strlen(&quot;VmRSS&quot;))) {</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :                 stats-&gt;rss = convert_value(value);</span>
+<span class="lineNum">     310 </span>            :             }
+<span class="lineNum">     311 </span>            :         }
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :         fclose(fp);</span>
+<span class="lineNum">     313 </span>            :     }
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     if (NULL != nstats) {</span>
+<span class="lineNum">     316 </span>            :         /* get the loadavg data */
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         if (0 &gt; (fd = open(&quot;/proc/loadavg&quot;, O_RDONLY))) {</span>
+<span class="lineNum">     318 </span>            :             /* not an error if we don't find this one as it
+<span class="lineNum">     319 </span>            :              * isn't critical
+<span class="lineNum">     320 </span>            :              */
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :             goto diskstats;</span>
+<span class="lineNum">     322 </span>            :         }
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            :         /* absorb all of the file's contents in one gulp - we'll process
+<span class="lineNum">     325 </span>            :          * it once it is in memory for speed
+<span class="lineNum">     326 </span>            :          */
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         memset(data, 0, sizeof(data));</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :         len = read(fd, data, sizeof(data)-1);</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         close(fd);</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :         if (len &lt; 0) {</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :             goto diskstats;</span>
+<span class="lineNum">     332 </span>            :         }
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span>            :         /* remove newline at end */
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :         data[len] = '\0';</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            :         /* we only care about the first three numbers */
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         nstats-&gt;la = strtof(data, &amp;ptr);</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :         nstats-&gt;la5 = strtof(ptr, &amp;eptr);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         nstats-&gt;la15 = strtof(eptr, NULL);</span>
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span>            :         /* see if we can open the meminfo file */
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :         if (NULL == (fp = fopen(&quot;/proc/meminfo&quot;, &quot;r&quot;))) {</span>
+<span class="lineNum">     344 </span>            :             /* ignore this */
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :             goto diskstats;</span>
+<span class="lineNum">     346 </span>            :         }
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span>            :         /* read the file one line at a time */
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :         while (NULL != (dptr = local_getline(fp))) {</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :             if (NULL == (value = local_stripper(dptr))) {</span>
+<span class="lineNum">     351 </span>            :                 /* cannot process */
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     353 </span>            :             }
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :             if (0 == strcmp(dptr, &quot;MemTotal&quot;)) {</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :                 nstats-&gt;total_mem = convert_value(value);</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :             } else if (0 == strcmp(dptr, &quot;MemFree&quot;)) {</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :                 nstats-&gt;free_mem = convert_value(value);</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :             } else if (0 == strcmp(dptr, &quot;Buffers&quot;)) {</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :                 nstats-&gt;buffers = convert_value(value);</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :             } else if (0 == strcmp(dptr, &quot;Cached&quot;)) {</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :                 nstats-&gt;cached = convert_value(value);</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :             } else if (0 == strcmp(dptr, &quot;SwapCached&quot;)) {</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :                 nstats-&gt;swap_cached = convert_value(value);</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :             } else if (0 == strcmp(dptr, &quot;SwapTotal&quot;)) {</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :                 nstats-&gt;swap_total = convert_value(value);</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :             } else if (0 == strcmp(dptr, &quot;SwapFree&quot;)) {</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :                 nstats-&gt;swap_free = convert_value(value);</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :             } else if (0 == strcmp(dptr, &quot;Mapped&quot;)) {</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :                 nstats-&gt;mapped = convert_value(value);</span>
+<span class="lineNum">     370 </span>            :             }
+<span class="lineNum">     371 </span>            :         }
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :         fclose(fp);</span>
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span>            :     diskstats:
+<span class="lineNum">     375 </span>            :         /* look for the diskstats file */
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :         if (NULL == (fp = fopen(&quot;/proc/diskstats&quot;, &quot;r&quot;))) {</span>
+<span class="lineNum">     377 </span>            :             /* not an error if we don't find this one as it
+<span class="lineNum">     378 </span>            :              * isn't critical
+<span class="lineNum">     379 </span>            :              */
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :             goto netstats;</span>
+<span class="lineNum">     381 </span>            :         }
+<span class="lineNum">     382 </span>            :         /* read the file one line at a time */
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :         while (NULL != (dptr = local_getline(fp))) {</span>
+<span class="lineNum">     384 </span>            :             /* look for the local disks */
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :             if (NULL == strstr(dptr, &quot;sd&quot;)) {</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     387 </span>            :             }
+<span class="lineNum">     388 </span>            :             /* parse to extract the fields */
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :             fields = NULL;</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :             local_getfields(dptr, &amp;fields);</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :             if (NULL == fields) {</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     393 </span>            :             }
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :             if (14 &lt; opal_argv_count(fields)) {</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :                 opal_argv_free(fields);</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     397 </span>            :             }
+<span class="lineNum">     398 </span>            :             /* pack the ones of interest into the struct */
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :             ds = OBJ_NEW(opal_diskstats_t);</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :             ds-&gt;disk = strdup(fields[2]);</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :             ds-&gt;num_reads_completed = strtoul(fields[3], NULL, 10);</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :             ds-&gt;num_reads_merged = strtoul(fields[4], NULL, 10);</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :             ds-&gt;num_sectors_read = strtoul(fields[5], NULL, 10);</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :             ds-&gt;milliseconds_reading = strtoul(fields[6], NULL, 10);</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :             ds-&gt;num_writes_completed = strtoul(fields[7], NULL, 10);</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :             ds-&gt;num_writes_merged = strtoul(fields[8], NULL, 10);</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :             ds-&gt;num_sectors_written = strtoul(fields[9], NULL, 10);</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :             ds-&gt;milliseconds_writing = strtoul(fields[10], NULL, 10);</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :             ds-&gt;num_ios_in_progress = strtoul(fields[11], NULL, 10);</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :             ds-&gt;milliseconds_io = strtoul(fields[12], NULL, 10);</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :             ds-&gt;weighted_milliseconds_io = strtoul(fields[13], NULL, 10);</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :             opal_list_append(&amp;nstats-&gt;diskstats, &amp;ds-&gt;super);</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :             opal_argv_free(fields);</span>
+<span class="lineNum">     414 </span>            :         }
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :         fclose(fp);</span>
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span>            :     netstats:
+<span class="lineNum">     418 </span>            :         /* look for the netstats file */
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :         if (NULL == (fp = fopen(&quot;/proc/net/dev&quot;, &quot;r&quot;))) {</span>
+<span class="lineNum">     420 </span>            :             /* not an error if we don't find this one as it
+<span class="lineNum">     421 </span>            :              * isn't critical
+<span class="lineNum">     422 </span>            :              */
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :             goto complete;</span>
+<span class="lineNum">     424 </span>            :         }
+<span class="lineNum">     425 </span>            :         /* skip the first two lines as they are headers */
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         local_getline(fp);</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :         local_getline(fp);</span>
+<span class="lineNum">     428 </span>            :         /* read the file one line at a time */
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :         while (NULL != (dptr = local_getline(fp))) {</span>
+<span class="lineNum">     430 </span>            :             /* the interface is at the start of the line */
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :             if (NULL == (ptr = strchr(dptr, ':'))) {</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     433 </span>            :             }
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :             *ptr = '\0';</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :             ptr++;</span>
+<span class="lineNum">     436 </span>            :             /* parse to extract the fields */
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :             fields = NULL;</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :             local_getfields(ptr, &amp;fields);</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :             if (NULL == fields) {</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     441 </span>            :             }
+<span class="lineNum">     442 </span>            :             /* pack the ones of interest into the struct */
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :             ns = OBJ_NEW(opal_netstats_t);</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :             ns-&gt;net_interface = strdup(dptr);</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :             ns-&gt;num_bytes_recvd = strtoul(fields[0], NULL, 10);</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :             ns-&gt;num_packets_recvd = strtoul(fields[1], NULL, 10);</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :             ns-&gt;num_recv_errs = strtoul(fields[2], NULL, 10);</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :             ns-&gt;num_bytes_sent = strtoul(fields[8], NULL, 10);</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :             ns-&gt;num_packets_sent = strtoul(fields[9], NULL, 10);</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :             ns-&gt;num_send_errs = strtoul(fields[10], NULL, 10);</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :             opal_list_append(&amp;nstats-&gt;netstats, &amp;ns-&gt;super);</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :             opal_argv_free(fields);</span>
+<span class="lineNum">     453 </span>            :         }
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :         fclose(fp);</span>
+<span class="lineNum">     455 </span>            :     }
+<span class="lineNum">     456 </span>            : 
+<span class="lineNum">     457 </span>            :  complete:
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<a name="459"><span class="lineNum">     459 </span>            : }</a>
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 : static char *local_getline(FILE *fp)</span>
+<span class="lineNum">     462 </span>            : {
+<span class="lineNum">     463 </span>            :     char *ret, *ptr;
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :     ret = fgets(input, OPAL_STAT_MAX_LENGTH, fp);</span>
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :     if (NULL != ret) {</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :         input[strlen(input)-1] = '\0';  /* remove newline */</span>
+<span class="lineNum">     468 </span>            :         /* strip leading white space */
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :         ptr = input;</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :         while (!isalnum(*ptr)) {</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :             ptr++;</span>
+<span class="lineNum">     472 </span>            :         }
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :         return ptr;</span>
+<span class="lineNum">     474 </span>            :     }
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<a name="477"><span class="lineNum">     477 </span>            : }</a>
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 : static char *local_stripper(char *data)</span>
+<span class="lineNum">     480 </span>            : {
+<span class="lineNum">     481 </span>            :     char *ptr, *end, *enddata;
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :     int len = strlen(data);</span>
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            :     /* find the colon */
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :     if (NULL == (end = strchr(data, ':'))) {</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     487 </span>            :     }
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :     ptr = end;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :     --end;</span>
+<span class="lineNum">     490 </span>            :     /* working backwards, look for first non-whitespace */
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     while (end != data &amp;&amp; !isalnum(*end)) {</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :         --end;</span>
+<span class="lineNum">     493 </span>            :     }
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :     ++end;</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     *end = '\0';</span>
+<span class="lineNum">     496 </span>            :     /* now look for value */
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     ptr++;</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     enddata = &amp;(data[len-1]);</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     while (ptr != enddata &amp;&amp; !isalnum(*ptr)) {</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :         ++ptr;</span>
+<span class="lineNum">     501 </span>            :     }
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     return ptr;</span>
+<a name="503"><span class="lineNum">     503 </span>            : }</a>
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 : static void local_getfields(char *dptr, char ***fields)</span>
+<span class="lineNum">     506 </span>            : {
+<span class="lineNum">     507 </span>            :     char *ptr, *end;
+<span class="lineNum">     508 </span>            : 
+<span class="lineNum">     509 </span>            :     /* set default */
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :     *fields = NULL;</span>
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span>            :     /* find the beginning */
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     ptr = dptr;</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     while ('\0' != *ptr &amp;&amp; !isalnum(*ptr)) {</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :         ptr++;</span>
+<span class="lineNum">     516 </span>            :     }
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :     if ('\0' == *ptr) {</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     519 </span>            :     }
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span>            :     /* working from this point, find the end of each
+<span class="lineNum">     522 </span>            :      * alpha-numeric field and store it on the stack.
+<span class="lineNum">     523 </span>            :      * Then shift across the white space to the start
+<span class="lineNum">     524 </span>            :      * of the next one
+<span class="lineNum">     525 </span>            :      */
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :     end = ptr;  /* ptr points to an alnum */</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :     end++;  /* look at next character */</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :     while ('\0' != *end) {</span>
+<span class="lineNum">     529 </span>            :         /* find the end of this alpha string */
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :         while ('\0' != *end &amp;&amp; isalnum(*end)) {</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :             end++;</span>
+<span class="lineNum">     532 </span>            :         }
+<span class="lineNum">     533 </span>            :         /* terminate it */
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :         *end = '\0';</span>
+<span class="lineNum">     535 </span>            :         /* store it on the stack */
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :         opal_argv_append_nosize(fields, ptr);</span>
+<span class="lineNum">     537 </span>            :         /* step across any white space */
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :         end++;</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :         while ('\0' != *end &amp;&amp; !isalnum(*end)) {</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :             end++;</span>
+<span class="lineNum">     541 </span>            :         }
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :         if ('\0' == *end) {</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :             ptr = NULL;</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     545 </span>            :         }
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :         ptr = end;</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :         end++;</span>
+<span class="lineNum">     548 </span>            :     }
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :     if (NULL != ptr) {</span>
+<span class="lineNum">     550 </span>            :         /* have a hanging field */
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :         opal_argv_append_nosize(fields, ptr);</span>
+<span class="lineNum">     552 </span>            :     }
+<span class="lineNum">     553 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,488 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/class/opal_bitmap.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/class</a> - opal_bitmap.c<span style="font-size: 80%;"> (source / <a href="opal_bitmap.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">61</td>
+            <td class="headerCovTableEntry">150</td>
+            <td class="headerCovTableEntryLo">40.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2014 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2007      Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2010-2012 Oak Ridge National Labs.  All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      16 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      17 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * $HEADER$
+<span class="lineNum">      22 </span>            :  */
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;limits.h&gt;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;opal/class/opal_bitmap.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : /* The number of bits in the underlying type of the bitmap field
+<span class="lineNum">      33 </span>            :  * in the opal_bitmap_t struct
+<span class="lineNum">      34 </span>            :  */
+<span class="lineNum">      35 </span>            : #define SIZE_OF_BASE_TYPE  64
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : static void opal_bitmap_construct(opal_bitmap_t *bm);
+<span class="lineNum">      38 </span>            : static void opal_bitmap_destruct(opal_bitmap_t *bm);
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : OBJ_CLASS_INSTANCE(opal_bitmap_t, opal_object_t,
+<span class="lineNum">      41 </span>            :                    opal_bitmap_construct, opal_bitmap_destruct);
+<span class="lineNum">      42 </span>            : 
+<a name="43"><span class="lineNum">      43 </span>            : </a>
+<span class="lineNum">      44 </span>            : static void
+<span class="lineNum">      45 </span><span class="lineCov">          6 : opal_bitmap_construct(opal_bitmap_t *bm)</span>
+<span class="lineNum">      46 </span>            : {
+<span class="lineNum">      47 </span><span class="lineCov">          6 :     bm-&gt;bitmap = NULL;</span>
+<span class="lineNum">      48 </span><span class="lineCov">          6 :     bm-&gt;array_size = 0;</span>
+<span class="lineNum">      49 </span><span class="lineCov">          6 :     bm-&gt;max_size = INT_MAX;</span>
+<span class="lineNum">      50 </span><span class="lineCov">          6 : }</span>
+<span class="lineNum">      51 </span>            : 
+<a name="52"><span class="lineNum">      52 </span>            : </a>
+<span class="lineNum">      53 </span>            : static void
+<span class="lineNum">      54 </span><span class="lineCov">          6 : opal_bitmap_destruct(opal_bitmap_t *bm)</span>
+<span class="lineNum">      55 </span>            : {
+<span class="lineNum">      56 </span><span class="lineCov">          6 :     if (NULL != bm-&gt;bitmap) {</span>
+<span class="lineNum">      57 </span><span class="lineCov">          6 :         free(bm-&gt;bitmap);</span>
+<span class="lineNum">      58 </span><span class="lineCov">          6 :         bm-&gt;bitmap = NULL;</span>
+<span class="lineNum">      59 </span>            :     }
+<span class="lineNum">      60 </span><span class="lineCov">          6 : }</span>
+<a name="61"><span class="lineNum">      61 </span>            : </a>
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span><span class="lineCov">          2 : int opal_bitmap_set_max_size (opal_bitmap_t *bm, int max_size)</span>
+<span class="lineNum">      64 </span>            : {
+<span class="lineNum">      65 </span><span class="lineCov">          2 :     if (NULL == bm) {</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">      67 </span>            :     }
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            :     /*
+<span class="lineNum">      70 </span>            :      * Only if the caller wants to set the maximum size,
+<span class="lineNum">      71 </span>            :      * we set it (in numbers of bits!), otherwise it is
+<span class="lineNum">      72 </span>            :      * set to INT_MAX in the constructor.
+<span class="lineNum">      73 </span>            :      */
+<span class="lineNum">      74 </span><span class="lineCov">          2 :     bm-&gt;max_size = (int)(((size_t)max_size + SIZE_OF_BASE_TYPE - 1) / SIZE_OF_BASE_TYPE);</span>
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">      77 </span>            : }
+<span class="lineNum">      78 </span>            : 
+<a name="79"><span class="lineNum">      79 </span>            : </a>
+<span class="lineNum">      80 </span>            : int
+<span class="lineNum">      81 </span><span class="lineCov">          6 : opal_bitmap_init(opal_bitmap_t *bm, int size)</span>
+<span class="lineNum">      82 </span>            : {
+<span class="lineNum">      83 </span>            :     /*
+<span class="lineNum">      84 </span>            :      * Only if the caller set the maximum size before initializing,
+<span class="lineNum">      85 </span>            :      * we test here (in numbers of bits!)
+<span class="lineNum">      86 </span>            :      * By default, the max size is INT_MAX, set in the constructor.
+<span class="lineNum">      87 </span>            :      */
+<span class="lineNum">      88 </span><span class="lineCov">          6 :     if ((size &lt;= 0) || (NULL == bm) || (size &gt; bm-&gt;max_size)) {</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">      90 </span>            :     }
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span><span class="lineCov">          6 :     bm-&gt;array_size = (int)(((size_t)size + SIZE_OF_BASE_TYPE - 1) / SIZE_OF_BASE_TYPE);</span>
+<span class="lineNum">      93 </span><span class="lineCov">          6 :     if( NULL != bm-&gt;bitmap ) {</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :         free(bm-&gt;bitmap);</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         if(bm-&gt;max_size &lt; bm-&gt;array_size)</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :             bm-&gt;max_size = bm-&gt;array_size;</span>
+<span class="lineNum">      97 </span>            :     }
+<span class="lineNum">      98 </span><span class="lineCov">          6 :     bm-&gt;bitmap = (uint64_t*) malloc(bm-&gt;array_size * sizeof(uint64_t));</span>
+<span class="lineNum">      99 </span><span class="lineCov">          6 :     if (NULL == bm-&gt;bitmap) {</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     101 </span>            :     }
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineCov">          6 :     opal_bitmap_clear_all_bits(bm);</span>
+<span class="lineNum">     104 </span><span class="lineCov">          6 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     105 </span>            : }
+<span class="lineNum">     106 </span>            : 
+<a name="107"><span class="lineNum">     107 </span>            : </a>
+<span class="lineNum">     108 </span>            : int
+<span class="lineNum">     109 </span><span class="lineCov">         14 : opal_bitmap_set_bit(opal_bitmap_t *bm, int bit)</span>
+<span class="lineNum">     110 </span>            : {
+<span class="lineNum">     111 </span>            :     int index, offset, new_size;
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span><span class="lineCov">         14 :     if ((bit &lt; 0) || (NULL == bm) || (bit &gt; bm-&gt;max_size)) {</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     115 </span>            :     }
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span><span class="lineCov">         14 :     index = bit / SIZE_OF_BASE_TYPE;</span>
+<span class="lineNum">     118 </span><span class="lineCov">         14 :     offset = bit % SIZE_OF_BASE_TYPE;</span>
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineCov">         14 :     if (index &gt;= bm-&gt;array_size) {</span>
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span>            :         /* We need to allocate more space for the bitmap, since we are
+<span class="lineNum">     123 </span>            :          out of range. We don't throw any error here, because this is
+<span class="lineNum">     124 </span>            :          valid and we simply expand the bitmap */
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :         new_size = (int)(((size_t)index / bm-&gt;array_size + 1 ) * bm-&gt;array_size);</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :         if( new_size &gt; bm-&gt;max_size )</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :             new_size = bm-&gt;max_size;</span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            :         /* New size is just a multiple of the original size to fit in
+<span class="lineNum">     131 </span>            :          the index. */
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :         bm-&gt;bitmap = (uint64_t*)realloc(bm-&gt;bitmap, new_size*sizeof(uint64_t));</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :         if (NULL == bm-&gt;bitmap) {</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :             return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     135 </span>            :         }
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span>            :         /* zero out the new elements */
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :         memset(&amp;bm-&gt;bitmap[bm-&gt;array_size], 0, (new_size - bm-&gt;array_size) * sizeof(uint64_t));</span>
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            :         /* Update the array_size */
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         bm-&gt;array_size = new_size;</span>
+<span class="lineNum">     142 </span>            :     }
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            :     /* Now set the bit */
+<span class="lineNum">     145 </span><span class="lineCov">         14 :     bm-&gt;bitmap[index] |= (1UL &lt;&lt; offset);</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineCov">         14 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     148 </span>            : }
+<span class="lineNum">     149 </span>            : 
+<a name="150"><span class="lineNum">     150 </span>            : </a>
+<span class="lineNum">     151 </span>            : int
+<span class="lineNum">     152 </span><span class="lineCov">         24 : opal_bitmap_clear_bit(opal_bitmap_t *bm, int bit)</span>
+<span class="lineNum">     153 </span>            : {
+<span class="lineNum">     154 </span>            :     int index, offset;
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineCov">         24 :     if ((bit &lt; 0) || NULL == bm || (bit &gt;= (bm-&gt;array_size * SIZE_OF_BASE_TYPE))) {</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     158 </span>            :     }
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineCov">         24 :     index = bit / SIZE_OF_BASE_TYPE;</span>
+<span class="lineNum">     161 </span><span class="lineCov">         24 :     offset = bit % SIZE_OF_BASE_TYPE;</span>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineCov">         24 :     bm-&gt;bitmap[index] &amp;= ~(1UL &lt;&lt; offset);</span>
+<span class="lineNum">     164 </span><span class="lineCov">         24 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     165 </span>            : }
+<span class="lineNum">     166 </span>            : 
+<a name="167"><span class="lineNum">     167 </span>            : </a>
+<span class="lineNum">     168 </span>            : bool
+<span class="lineNum">     169 </span><span class="lineCov">         20 : opal_bitmap_is_set_bit(opal_bitmap_t *bm, int bit)</span>
+<span class="lineNum">     170 </span>            : {
+<span class="lineNum">     171 </span>            :     int index, offset;
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineCov">         20 :     if ((bit &lt; 0) || NULL == bm || (bit &gt;= (bm-&gt;array_size * SIZE_OF_BASE_TYPE))) {</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     175 </span>            :     }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineCov">         20 :     index = bit / SIZE_OF_BASE_TYPE;</span>
+<span class="lineNum">     178 </span><span class="lineCov">         20 :     offset = bit % SIZE_OF_BASE_TYPE;</span>
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineCov">         20 :     if (0 != (bm-&gt;bitmap[index] &amp; (1UL &lt;&lt; offset))) {</span>
+<span class="lineNum">     181 </span><span class="lineCov">         10 :         return true;</span>
+<span class="lineNum">     182 </span>            :     }
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span><span class="lineCov">         10 :     return false;</span>
+<span class="lineNum">     185 </span>            : }
+<span class="lineNum">     186 </span>            : 
+<a name="187"><span class="lineNum">     187 </span>            : </a>
+<span class="lineNum">     188 </span>            : int
+<span class="lineNum">     189 </span><span class="lineCov">         16 : opal_bitmap_clear_all_bits(opal_bitmap_t *bm)</span>
+<span class="lineNum">     190 </span>            : {
+<span class="lineNum">     191 </span><span class="lineCov">         16 :     if (NULL == bm) {</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     193 </span>            :     }
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineCov">         16 :     memset(bm-&gt;bitmap, 0, bm-&gt;array_size * sizeof(uint64_t));</span>
+<span class="lineNum">     196 </span><span class="lineCov">         16 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     197 </span>            : }
+<span class="lineNum">     198 </span>            : 
+<a name="199"><span class="lineNum">     199 </span>            : </a>
+<span class="lineNum">     200 </span>            : int
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 : opal_bitmap_set_all_bits(opal_bitmap_t *bm)</span>
+<span class="lineNum">     202 </span>            : {
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :     if (NULL == bm) {</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     205 </span>            :     }
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     memset(bm-&gt;bitmap, 0xff, bm-&gt;array_size * sizeof(uint64_t));</span>
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     210 </span>            : }
+<span class="lineNum">     211 </span>            : 
+<a name="212"><span class="lineNum">     212 </span>            : </a>
+<span class="lineNum">     213 </span>            : int
+<span class="lineNum">     214 </span><span class="lineCov">         24 : opal_bitmap_find_and_set_first_unset_bit(opal_bitmap_t *bm, int *position)</span>
+<span class="lineNum">     215 </span>            : {
+<span class="lineNum">     216 </span><span class="lineCov">         24 :     int i = 0;</span>
+<span class="lineNum">     217 </span><span class="lineCov">         24 :     uint64_t temp, all_ones = 0xffffffffffffffffUL;</span>
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span><span class="lineCov">         24 :     if (NULL == bm) {</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     221 </span>            :     }
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            :     /* Neglect all which don't have an unset bit */
+<span class="lineNum">     224 </span><span class="lineCov">         24 :     *position = 0;</span>
+<span class="lineNum">     225 </span><span class="lineCov">         48 :     while((i &lt; bm-&gt;array_size) &amp;&amp; (bm-&gt;bitmap[i] == all_ones)) {</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         ++i;</span>
+<span class="lineNum">     227 </span>            :     }
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span><span class="lineCov">         24 :     if (i == bm-&gt;array_size) {</span>
+<span class="lineNum">     230 </span>            :         /* increase the bitmap size then */
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         *position = bm-&gt;array_size * SIZE_OF_BASE_TYPE;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         return opal_bitmap_set_bit(bm, *position);</span>
+<span class="lineNum">     233 </span>            :     }
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span>            :     /* This one has an unset bit, find its bit number */
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span><span class="lineCov">         24 :     temp = bm-&gt;bitmap[i];</span>
+<span class="lineNum">     238 </span><span class="lineCov">         24 :     bm-&gt;bitmap[i] |= (bm-&gt;bitmap[i] + 1); /* Set the first zero bit */</span>
+<span class="lineNum">     239 </span><span class="lineCov">         24 :     temp ^= bm-&gt;bitmap[i];  /* Compute the change: the first unset bit in the original number */</span>
+<span class="lineNum">     240 </span><span class="lineCov">        180 :     while( !(temp &amp; 0x1) ) {</span>
+<span class="lineNum">     241 </span><span class="lineCov">        132 :         ++(*position);</span>
+<span class="lineNum">     242 </span><span class="lineCov">        132 :         temp &gt;&gt;= 1;</span>
+<span class="lineNum">     243 </span>            :     }
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span><span class="lineCov">         24 :     (*position) += i * SIZE_OF_BASE_TYPE;</span>
+<span class="lineNum">     246 </span><span class="lineCov">         24 :     return OPAL_SUCCESS;</span>
+<a name="247"><span class="lineNum">     247 </span>            : }</a>
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 : int opal_bitmap_bitwise_and_inplace(opal_bitmap_t *dest, opal_bitmap_t *right)</span>
+<span class="lineNum">     250 </span>            : {
+<span class="lineNum">     251 </span>            :     int i;
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            :     /*
+<span class="lineNum">     254 </span>            :      * Sanity check
+<span class="lineNum">     255 </span>            :      */
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :     if( NULL == dest || NULL == right ) {</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     258 </span>            :     }
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     if( dest-&gt;array_size != right-&gt;array_size ) {</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     261 </span>            :     }
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span>            :     /*
+<span class="lineNum">     264 </span>            :      * Bitwise AND
+<span class="lineNum">     265 </span>            :      */
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     for(i = 0; i &lt; dest-&gt;array_size; ++i) {</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         dest-&gt;bitmap[i] &amp;= right-&gt;bitmap[i];</span>
+<span class="lineNum">     268 </span>            :     }
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<a name="271"><span class="lineNum">     271 </span>            : }</a>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 : int opal_bitmap_bitwise_or_inplace(opal_bitmap_t *dest, opal_bitmap_t *right)</span>
+<span class="lineNum">     274 </span>            : {
+<span class="lineNum">     275 </span>            :     int i;
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            :     /*
+<span class="lineNum">     278 </span>            :      * Sanity check
+<span class="lineNum">     279 </span>            :      */
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :     if( NULL == dest || NULL == right ) {</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     282 </span>            :     }
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     if( dest-&gt;array_size != right-&gt;array_size ) {</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     285 </span>            :     }
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span>            :     /*
+<span class="lineNum">     288 </span>            :      * Bitwise OR
+<span class="lineNum">     289 </span>            :      */
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     for(i = 0; i &lt; dest-&gt;array_size; ++i) {</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         dest-&gt;bitmap[i] |= right-&gt;bitmap[i];</span>
+<span class="lineNum">     292 </span>            :     }
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<a name="295"><span class="lineNum">     295 </span>            : }</a>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 : int opal_bitmap_bitwise_xor_inplace(opal_bitmap_t *dest, opal_bitmap_t *right)</span>
+<span class="lineNum">     298 </span>            : {
+<span class="lineNum">     299 </span>            :     int i;
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            :     /*
+<span class="lineNum">     302 </span>            :      * Sanity check
+<span class="lineNum">     303 </span>            :      */
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     if( NULL == dest || NULL == right ) {</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     306 </span>            :     }
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     if( dest-&gt;array_size != right-&gt;array_size ) {</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     309 </span>            :     }
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span>            :     /*
+<span class="lineNum">     312 </span>            :      * Bitwise XOR
+<span class="lineNum">     313 </span>            :      */
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     for(i = 0; i &lt; dest-&gt;array_size; ++i) {</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :         dest-&gt;bitmap[i] ^= right-&gt;bitmap[i];</span>
+<span class="lineNum">     316 </span>            :     }
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<a name="319"><span class="lineNum">     319 </span>            : }</a>
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 : bool opal_bitmap_are_different(opal_bitmap_t *left, opal_bitmap_t *right)</span>
+<span class="lineNum">     322 </span>            : {
+<span class="lineNum">     323 </span>            :     int i;
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            :     /*
+<span class="lineNum">     326 </span>            :      * Sanity check
+<span class="lineNum">     327 </span>            :      */
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     if( NULL == left || NULL == right ) {</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         return OPAL_ERR_BAD_PARAM;</span>
+<span class="lineNum">     330 </span>            :     }
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :     if( opal_bitmap_size(left) != opal_bitmap_size(right) ) {</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     334 </span>            :     }
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span>            :     /*
+<span class="lineNum">     337 </span>            :      * Direct comparison
+<span class="lineNum">     338 </span>            :      */
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     for(i = 0; i &lt; left-&gt;array_size; ++i) {</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         if( left-&gt;bitmap[i] != right-&gt;bitmap[i] ) {</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     342 </span>            :         }
+<span class="lineNum">     343 </span>            :     }
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     return false;</span>
+<a name="346"><span class="lineNum">     346 </span>            : }</a>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 : char * opal_bitmap_get_string(opal_bitmap_t *bitmap)</span>
+<span class="lineNum">     349 </span>            : {
+<span class="lineNum">     350 </span>            :     int i;
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     char *bitmap_str = NULL;</span>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     if( NULL == bitmap) {</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     355 </span>            :     }
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     bitmap_str = malloc(bitmap-&gt;array_size * SIZE_OF_BASE_TYPE + 1);</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     if (NULL == bitmap_str) {</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     360 </span>            :     }
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     bitmap_str[bitmap-&gt;array_size * SIZE_OF_BASE_TYPE] = '\0';</span>
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     for( i = 0; i &lt; (bitmap-&gt;array_size * SIZE_OF_BASE_TYPE); ++i) {</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :         if( opal_bitmap_is_set_bit(bitmap, i) ) {</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :             bitmap_str[i] = 'X';</span>
+<span class="lineNum">     366 </span>            :         } else {
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :             bitmap_str[i] = '_';</span>
+<span class="lineNum">     368 </span>            :         }
+<span class="lineNum">     369 </span>            :     }
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     return bitmap_str;</span>
+<a name="372"><span class="lineNum">     372 </span>            : }</a>
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 : int opal_bitmap_num_unset_bits(opal_bitmap_t *bm, int len)</span>
+<span class="lineNum">     375 </span>            : {
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     return (len - opal_bitmap_num_set_bits(bm, len));</span>
+<a name="377"><span class="lineNum">     377 </span>            : }</a>
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 : int opal_bitmap_num_set_bits(opal_bitmap_t *bm, int len)</span>
+<span class="lineNum">     380 </span>            : {
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :     int i, cnt = 0;</span>
+<span class="lineNum">     382 </span>            :     uint64_t val;
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span>            : #if OPAL_ENABLE_DEBUG
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     if ((len &lt; 0) || NULL == bm || (len &gt;= (bm-&gt;array_size * SIZE_OF_BASE_TYPE))) {</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     387 </span>            :     }
+<span class="lineNum">     388 </span>            : #endif
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     for(i = 0; i &lt; len; ++i) {</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :         if( 0 == (val = bm-&gt;bitmap[i]) ) continue;</span>
+<span class="lineNum">     392 </span>            :         /*  Peter Wegner in CACM 3 (1960), 322. This method goes through as many
+<span class="lineNum">     393 </span>            :          *  iterations as there are set bits. */
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :         for( ; val; cnt++ ) {</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :             val &amp;= val - 1;  /* clear the least significant bit set */</span>
+<span class="lineNum">     396 </span>            :         }
+<span class="lineNum">     397 </span>            :     }
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :     return cnt;</span>
+<a name="400"><span class="lineNum">     400 </span>            : }</a>
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 : bool opal_bitmap_is_clear(opal_bitmap_t *bm)</span>
+<span class="lineNum">     403 </span>            : {
+<span class="lineNum">     404 </span>            :     int i;
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; bm-&gt;array_size; ++i) {</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :         if (0 != bm-&gt;bitmap[i]) {</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     409 </span>            :         }
+<span class="lineNum">     410 </span>            :     }
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     412 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/datatype/opal_copy_functions.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/datatype</a> - opal_copy_functions.c<span style="font-size: 80%;"> (source / <a href="opal_copy_functions.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2009 The University of Tennessee and The University
+<span class="lineNum">       4 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       5 </span>            :  *                         reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2009      Oak Ridge National Labs.  All rights reserved.
+<span class="lineNum">       7 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">       8 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2015 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      13 </span>            :  *
+<span class="lineNum">      14 </span>            :  * $HEADER$
+<span class="lineNum">      15 </span>            :  */
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &lt;stddef.h&gt;
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &quot;opal/datatype/opal_datatype.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;opal/datatype/opal_convertor.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;opal/datatype/opal_datatype_internal.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;opal/datatype/opal_datatype_checksum.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;opal/datatype/opal_convertor_internal.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : /*
+<span class="lineNum">      28 </span>            :  * This function is used to copy data from one buffer to another.  The assumption
+<span class="lineNum">      29 </span>            :  *     is that the number of bytes per element to copy at the source and destination
+<span class="lineNum">      30 </span>            :  *     are the same.
+<span class="lineNum">      31 </span>            :  *   count - number of instances of a given data-type to copy
+<span class="lineNum">      32 </span>            :  *   from - point to the source buffer
+<span class="lineNum">      33 </span>            :  *   to - pointer to the destination buffer
+<span class="lineNum">      34 </span>            :  *   from_len - length of source buffer (in bytes)
+<span class="lineNum">      35 </span>            :  *   to_len - length of destination buffer (in bytes)
+<span class="lineNum">      36 </span>            :  *   from_extent - extent of the source data type (in bytes)
+<span class="lineNum">      37 </span>            :  *   to_extent - extent of the destination data type (in bytes)
+<span class="lineNum">      38 </span>            :  *
+<span class="lineNum">      39 </span>            :  * Return value: Number of elements of type TYPE copied
+<span class="lineNum">      40 </span>            :  */
+<span class="lineNum">      41 </span>            : #define COPY_TYPE( TYPENAME, TYPE, COUNT )                                              \
+<span class="lineNum">      42 </span>            : static int copy_##TYPENAME( opal_convertor_t *pConvertor, uint32_t count,               \
+<span class="lineNum">      43 </span>            :                             char* from, size_t from_len, OPAL_PTRDIFF_TYPE from_extent, \
+<span class="lineNum">      44 </span>            :                             char* to, size_t to_len, OPAL_PTRDIFF_TYPE to_extent,       \
+<span class="lineNum">      45 </span>            :                             OPAL_PTRDIFF_TYPE *advance)                                 \
+<span class="lineNum">      46 </span>            : {                                                                                       \
+<span class="lineNum">      47 </span>            :     uint32_t i;                                                                         \
+<span class="lineNum">      48 </span>            :     size_t remote_TYPE_size = sizeof(TYPE) * (COUNT); /* TODO */                        \
+<span class="lineNum">      49 </span>            :     size_t local_TYPE_size = (COUNT) * sizeof(TYPE);                                    \
+<span class="lineNum">      50 </span>            :                                                                                         \
+<span class="lineNum">      51 </span>            :     /* make sure the remote buffer is large enough to hold the data */                  \
+<span class="lineNum">      52 </span>            :     if( (remote_TYPE_size * count) &gt; from_len ) {                                       \
+<span class="lineNum">      53 </span>            :         count = (uint32_t)(from_len / remote_TYPE_size);                                \
+<span class="lineNum">      54 </span>            :         if( (count * remote_TYPE_size) != from_len ) {                                  \
+<span class="lineNum">      55 </span>            :             DUMP( &quot;oops should I keep this data somewhere (excedent %d bytes)?\n&quot;,      \
+<span class="lineNum">      56 </span>            :                   from_len - (count * remote_TYPE_size) );                              \
+<span class="lineNum">      57 </span>            :         }                                                                               \
+<span class="lineNum">      58 </span>            :         DUMP( &quot;correct: copy %s count %d from buffer %p with length %d to %p space %d\n&quot;, \
+<span class="lineNum">      59 </span>            :               #TYPE, count, from, from_len, to, to_len );                               \
+<span class="lineNum">      60 </span>            :     } else                                                                              \
+<span class="lineNum">      61 </span>            :         DUMP( &quot;         copy %s count %d from buffer %p with length %d to %p space %d\n&quot;, \
+<span class="lineNum">      62 </span>            :               #TYPE, count, from, from_len, to, to_len );                               \
+<span class="lineNum">      63 </span>            :                                                                                         \
+<span class="lineNum">      64 </span>            :     if( (from_extent == (OPAL_PTRDIFF_TYPE)local_TYPE_size) &amp;&amp;                          \
+<span class="lineNum">      65 </span>            :         (to_extent == (OPAL_PTRDIFF_TYPE)remote_TYPE_size) ) {                          \
+<span class="lineNum">      66 </span>            :         /* copy of contigous data at both source and destination */                     \
+<span class="lineNum">      67 </span>            :         MEMCPY( to, from, count * local_TYPE_size );                                    \
+<span class="lineNum">      68 </span>            :     } else {                                                                            \
+<span class="lineNum">      69 </span>            :         /* source or destination are non-contigous */                                   \
+<span class="lineNum">      70 </span>            :         for( i = 0; i &lt; count; i++ ) {                                                  \
+<span class="lineNum">      71 </span>            :             MEMCPY( to, from, local_TYPE_size );                                        \
+<span class="lineNum">      72 </span>            :             to += to_extent;                                                            \
+<span class="lineNum">      73 </span>            :             from += from_extent;                                                        \
+<span class="lineNum">      74 </span>            :         }                                                                               \
+<span class="lineNum">      75 </span>            :     }                                                                                   \
+<span class="lineNum">      76 </span>            :     *advance = count * from_extent;                                                     \
+<span class="lineNum">      77 </span>            :     return count;                                                                       \
+<span class="lineNum">      78 </span>            : }
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span>            : /*
+<span class="lineNum">      81 </span>            :  * This function is used to copy data from one buffer to another.  The assumption
+<span class="lineNum">      82 </span>            :  *     is that the number of bytes per element to copy at the source and destination
+<span class="lineNum">      83 </span>            :  *     are the same.
+<span class="lineNum">      84 </span>            :  *   count - number of instances of a given data-type to copy
+<span class="lineNum">      85 </span>            :  *   from - point to the source buffer
+<span class="lineNum">      86 </span>            :  *   to - pointer to the destination buffer
+<span class="lineNum">      87 </span>            :  *   from_len - length of source buffer (in bytes)
+<span class="lineNum">      88 </span>            :  *   to_len - length of destination buffer (in bytes)
+<span class="lineNum">      89 </span>            :  *   from_extent - extent of the source data type (in bytes)
+<span class="lineNum">      90 </span>            :  *   to_extent - extent of the destination data type (in bytes)
+<span class="lineNum">      91 </span>            :  *
+<span class="lineNum">      92 </span>            :  * Return value: Number of elements of type TYPE copied
+<span class="lineNum">      93 </span>            :  */
+<span class="lineNum">      94 </span>            : #define COPY_CONTIGUOUS_BYTES( TYPENAME, COUNT )                                          \
+<span class="lineNum">      95 </span>            : static int copy_##TYPENAME##_##COUNT( opal_convertor_t *pConvertor, uint32_t count,       \
+<span class="lineNum">      96 </span>            :                                       char* from, size_t from_len, OPAL_PTRDIFF_TYPE from_extent, \
+<span class="lineNum">      97 </span>            :                                       char* to, size_t to_len, OPAL_PTRDIFF_TYPE to_extent,       \
+<span class="lineNum">      98 </span>            :                                       OPAL_PTRDIFF_TYPE *advance )              \
+<span class="lineNum">      99 </span>            : {                                                                               \
+<span class="lineNum">     100 </span>            :     uint32_t i;                                                                 \
+<span class="lineNum">     101 </span>            :     size_t remote_TYPE_size = (size_t)(COUNT); /* TODO */                       \
+<span class="lineNum">     102 </span>            :     size_t local_TYPE_size = (size_t)(COUNT);                                   \
+<span class="lineNum">     103 </span>            :                                                                                 \
+<span class="lineNum">     104 </span>            :     if( (remote_TYPE_size * count) &gt; from_len ) {                               \
+<span class="lineNum">     105 </span>            :         count = (uint32_t)(from_len / remote_TYPE_size);                        \
+<span class="lineNum">     106 </span>            :         if( (count * remote_TYPE_size) != from_len ) {                          \
+<span class="lineNum">     107 </span>            :             DUMP( &quot;oops should I keep this data somewhere (excedent %d bytes)?\n&quot;, \
+<span class="lineNum">     108 </span>            :                   from_len - (count * remote_TYPE_size) );                      \
+<span class="lineNum">     109 </span>            :         }                                                                       \
+<span class="lineNum">     110 </span>            :         DUMP( &quot;correct: copy %s count %d from buffer %p with length %d to %p space %d\n&quot;, \
+<span class="lineNum">     111 </span>            :               #TYPENAME, count, from, from_len, to, to_len );                   \
+<span class="lineNum">     112 </span>            :     } else                                                                      \
+<span class="lineNum">     113 </span>            :         DUMP( &quot;         copy %s count %d from buffer %p with length %d to %p space %d\n&quot;, \
+<span class="lineNum">     114 </span>            :               #TYPENAME, count, from, from_len, to, to_len );                   \
+<span class="lineNum">     115 </span>            :                                                                                 \
+<span class="lineNum">     116 </span>            :     if( (from_extent == (OPAL_PTRDIFF_TYPE)local_TYPE_size) &amp;&amp;                  \
+<span class="lineNum">     117 </span>            :         (to_extent == (OPAL_PTRDIFF_TYPE)remote_TYPE_size) ) {                  \
+<span class="lineNum">     118 </span>            :         MEMCPY( to, from, count * local_TYPE_size );                            \
+<span class="lineNum">     119 </span>            :     } else {                                                                    \
+<span class="lineNum">     120 </span>            :         for( i = 0; i &lt; count; i++ ) {                                          \
+<span class="lineNum">     121 </span>            :             MEMCPY( to, from, local_TYPE_size );                                \
+<span class="lineNum">     122 </span>            :             to += to_extent;                                                    \
+<span class="lineNum">     123 </span>            :             from += from_extent;                                                \
+<span class="lineNum">     124 </span>            :         }                                                                       \
+<span class="lineNum">     125 </span>            :     }                                                                           \
+<span class="lineNum">     126 </span>            :     *advance = count * from_extent;                                             \
+<span class="lineNum">     127 </span>            :     return count;                                                               \
+<span class="lineNum">     128 </span>            : }
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            : /* set up copy functions for the basic C MPI data types */
+<span class="lineNum">     131 </span>            : /* per default, select all of them */
+<span class="lineNum">     132 </span>            : #define REQUIRE_COPY_BYTES_1 1
+<span class="lineNum">     133 </span>            : #define REQUIRE_COPY_BYTES_2 1
+<span class="lineNum">     134 </span>            : #define REQUIRE_COPY_BYTES_4 1
+<span class="lineNum">     135 </span>            : #define REQUIRE_COPY_BYTES_8 1
+<span class="lineNum">     136 </span>            : #define REQUIRE_COPY_BYTES_16 1
+<a name="137"><span class="lineNum">     137 </span>            : </a>
+<span class="lineNum">     138 </span>            : #if REQUIRE_COPY_BYTES_1
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 : COPY_CONTIGUOUS_BYTES( bytes, 1 )</span>
+<a name="140"><span class="lineNum">     140 </span>            : #endif</a>
+<span class="lineNum">     141 </span>            : #if REQUIRE_COPY_BYTES_2
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 : COPY_CONTIGUOUS_BYTES( bytes, 2 )</span>
+<a name="143"><span class="lineNum">     143 </span>            : #endif</a>
+<span class="lineNum">     144 </span>            : #if REQUIRE_COPY_BYTES_4
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 : COPY_CONTIGUOUS_BYTES( bytes, 4 )</span>
+<a name="146"><span class="lineNum">     146 </span>            : #endif</a>
+<span class="lineNum">     147 </span>            : #if REQUIRE_COPY_BYTES_8
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 : COPY_CONTIGUOUS_BYTES( bytes, 8 )</span>
+<a name="149"><span class="lineNum">     149 </span>            : #endif</a>
+<span class="lineNum">     150 </span>            : #if REQUIRE_COPY_BYTES_16
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 : COPY_CONTIGUOUS_BYTES( bytes, 16 )</span>
+<span class="lineNum">     152 </span>            : #endif
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span>            : #if SIZEOF_FLOAT == 2
+<span class="lineNum">     155 </span>            : COPY_TYPE( float_2, float, 1 )
+<span class="lineNum">     156 </span>            : #elif SIZEOF_DOUBLE == 2
+<span class="lineNum">     157 </span>            : COPY_TYPE( float_2, double, 1 )
+<span class="lineNum">     158 </span>            : #elif HAVE_LONG_DOUBLE &amp;&amp; SIZEOF_LONG_DOUBLE == 2
+<span class="lineNum">     159 </span>            : COPY_TYPE( float_2, long double, 1 )
+<span class="lineNum">     160 </span>            : #else
+<span class="lineNum">     161 </span>            : /* #error No basic type for copy function for opal_datatype_float2 found */
+<span class="lineNum">     162 </span>            : #define copy_float_2 NULL
+<span class="lineNum">     163 </span>            : #endif
+<a name="164"><span class="lineNum">     164 </span>            : </a>
+<span class="lineNum">     165 </span>            : #if SIZEOF_FLOAT == 4
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 : COPY_TYPE( float_4, float, 1 )</span>
+<span class="lineNum">     167 </span>            : #elif SIZEOF_DOUBLE == 4
+<span class="lineNum">     168 </span>            : COPY_TYPE( float_4, double, 1 )
+<span class="lineNum">     169 </span>            : #elif HAVE_LONG_DOUBLE &amp;&amp; SIZEOF_LONG_DOUBLE == 4
+<span class="lineNum">     170 </span>            : COPY_TYPE( float_4, long double, 1 )
+<span class="lineNum">     171 </span>            : #else
+<span class="lineNum">     172 </span>            : #error No basic type for copy function for opal_datatype_float4 found
+<span class="lineNum">     173 </span>            : #endif
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            : #if SIZEOF_FLOAT == 8
+<a name="176"><span class="lineNum">     176 </span>            : COPY_TYPE( float_8, float, 1 )</a>
+<span class="lineNum">     177 </span>            : #elif SIZEOF_DOUBLE == 8
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 : COPY_TYPE( float_8, double, 1 )</span>
+<span class="lineNum">     179 </span>            : #elif HAVE_LONG_DOUBLE &amp;&amp; SIZEOF_LONG_DOUBLE == 8
+<span class="lineNum">     180 </span>            : COPY_TYPE( float_8, long double, 1 )
+<span class="lineNum">     181 </span>            : #else
+<span class="lineNum">     182 </span>            : #error No basic type for copy function for opal_datatype_float8 found
+<span class="lineNum">     183 </span>            : #endif
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            : #if SIZEOF_FLOAT == 12
+<span class="lineNum">     186 </span>            : COPY_TYPE( float_12, float, 1 )
+<span class="lineNum">     187 </span>            : #elif SIZEOF_DOUBLE == 12
+<span class="lineNum">     188 </span>            : COPY_TYPE( float_12, double, 1 )
+<span class="lineNum">     189 </span>            : #elif HAVE_LONG_DOUBLE &amp;&amp; SIZEOF_LONG_DOUBLE == 12
+<span class="lineNum">     190 </span>            : COPY_TYPE( float_12, long double, 1 )
+<span class="lineNum">     191 </span>            : #else
+<span class="lineNum">     192 </span>            : /* #error No basic type for copy function for opal_datatype_float12 found */
+<span class="lineNum">     193 </span>            : #define copy_float_12 NULL
+<span class="lineNum">     194 </span>            : #endif
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span>            : #if SIZEOF_FLOAT == 16
+<span class="lineNum">     197 </span>            : COPY_TYPE( float_16, float, 1 )
+<span class="lineNum">     198 </span>            : #elif SIZEOF_DOUBLE == 16
+<a name="199"><span class="lineNum">     199 </span>            : COPY_TYPE( float_16, double, 1 )</a>
+<span class="lineNum">     200 </span>            : #elif HAVE_LONG_DOUBLE &amp;&amp; SIZEOF_LONG_DOUBLE == 16
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 : COPY_TYPE( float_16, long double, 1 )</span>
+<span class="lineNum">     202 </span>            : #else
+<span class="lineNum">     203 </span>            : /* #error No basic type for copy function for opal_datatype_float16 found */
+<span class="lineNum">     204 </span>            : #define copy_float_16 NULL
+<span class="lineNum">     205 </span>            : #endif
+<a name="206"><span class="lineNum">     206 </span>            : </a>
+<span class="lineNum">     207 </span>            : #if HAVE_FLOAT__COMPLEX
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 : COPY_TYPE ( float_complex, float _Complex, 1)</span>
+<span class="lineNum">     209 </span>            : #else
+<span class="lineNum">     210 </span>            : /* #error No basic type for copy function for opal_datatype_float_complex found */
+<span class="lineNum">     211 </span>            : #define copy_float_complex NULL
+<span class="lineNum">     212 </span>            : #endif
+<a name="213"><span class="lineNum">     213 </span>            : </a>
+<span class="lineNum">     214 </span>            : #if HAVE_DOUBLE__COMPLEX
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 : COPY_TYPE ( double_complex, double _Complex, 1)</span>
+<span class="lineNum">     216 </span>            : #else
+<span class="lineNum">     217 </span>            : /* #error No basic type for copy function for opal_datatype_double_complex found */
+<span class="lineNum">     218 </span>            : #define copy_double_complex NULL
+<span class="lineNum">     219 </span>            : #endif
+<a name="220"><span class="lineNum">     220 </span>            : </a>
+<span class="lineNum">     221 </span>            : #if HAVE_LONG_DOUBLE__COMPLEX
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 : COPY_TYPE ( long_double_complex, long double _Complex, 1)</span>
+<span class="lineNum">     223 </span>            : #else
+<span class="lineNum">     224 </span>            : /* #error No basic type for copy function for opal_datatype_long_double_complex found */
+<span class="lineNum">     225 </span>            : #define copy_long_double_complex NULL
+<span class="lineNum">     226 </span>            : #endif
+<a name="227"><span class="lineNum">     227 </span>            : </a>
+<span class="lineNum">     228 </span>            : #if SIZEOF__BOOL == SIZEOF_CHAR
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 : COPY_TYPE (bool, char, 1)</span>
+<span class="lineNum">     230 </span>            : #elif SIZEOF__BOOL == SIZEOF_SHORT
+<span class="lineNum">     231 </span>            : COPY_TYPE (bool, short, 1)
+<span class="lineNum">     232 </span>            : #elif SIZEOF__BOOL == SIZEOF_INT
+<span class="lineNum">     233 </span>            : COPY_TYPE (bool, int, 1)
+<span class="lineNum">     234 </span>            : #elif SIZEOF__BOOL == SIZEOF_LONG
+<span class="lineNum">     235 </span>            : COPY_TYPE (bool, long, 1)
+<span class="lineNum">     236 </span>            : #else
+<span class="lineNum">     237 </span>            : #error No basic type for copy function for opal_datatype_bool found
+<a name="238"><span class="lineNum">     238 </span>            : #endif</a>
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 : COPY_TYPE (wchar, wchar_t, 1)</span>
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            : /* Table of predefined copy functions - one for each OPAL type */
+<span class="lineNum">     244 </span>            : /* NOTE: The order of this array *MUST* match the order in opal_datatype_basicDatatypes */
+<span class="lineNum">     245 </span>            : conversion_fct_t opal_datatype_copy_functions[OPAL_DATATYPE_MAX_PREDEFINED] = {
+<span class="lineNum">     246 </span>            :     (conversion_fct_t)NULL,                      /* OPAL_DATATYPE_LOOP         */
+<span class="lineNum">     247 </span>            :     (conversion_fct_t)NULL,                      /* OPAL_DATATYPE_END_LOOP     */
+<span class="lineNum">     248 </span>            :     (conversion_fct_t)NULL,                      /* OPAL_DATATYPE_LB           */
+<span class="lineNum">     249 </span>            :     (conversion_fct_t)NULL,                      /* OPAL_DATATYPE_UB           */
+<span class="lineNum">     250 </span>            :     (conversion_fct_t)copy_bytes_1,              /* OPAL_DATATYPE_INT1         */
+<span class="lineNum">     251 </span>            :     (conversion_fct_t)copy_bytes_2,              /* OPAL_DATATYPE_INT2         */
+<span class="lineNum">     252 </span>            :     (conversion_fct_t)copy_bytes_4,              /* OPAL_DATATYPE_INT4         */
+<span class="lineNum">     253 </span>            :     (conversion_fct_t)copy_bytes_8,              /* OPAL_DATATYPE_INT8         */
+<span class="lineNum">     254 </span>            :     (conversion_fct_t)copy_bytes_16,             /* OPAL_DATATYPE_INT16        */
+<span class="lineNum">     255 </span>            :     (conversion_fct_t)copy_bytes_1,              /* OPAL_DATATYPE_UINT1        */
+<span class="lineNum">     256 </span>            :     (conversion_fct_t)copy_bytes_2,              /* OPAL_DATATYPE_UINT2        */
+<span class="lineNum">     257 </span>            :     (conversion_fct_t)copy_bytes_4,              /* OPAL_DATATYPE_UINT4        */
+<span class="lineNum">     258 </span>            :     (conversion_fct_t)copy_bytes_8,              /* OPAL_DATATYPE_UINT8        */
+<span class="lineNum">     259 </span>            :     (conversion_fct_t)copy_bytes_16,             /* OPAL_DATATYPE_UINT16       */
+<span class="lineNum">     260 </span>            :     (conversion_fct_t)copy_float_2,              /* OPAL_DATATYPE_FLOAT2       */
+<span class="lineNum">     261 </span>            :     (conversion_fct_t)copy_float_4,              /* OPAL_DATATYPE_FLOAT4       */
+<span class="lineNum">     262 </span>            :     (conversion_fct_t)copy_float_8,              /* OPAL_DATATYPE_FLOAT8       */
+<span class="lineNum">     263 </span>            :     (conversion_fct_t)copy_float_12,             /* OPAL_DATATYPE_FLOAT12       */
+<span class="lineNum">     264 </span>            :     (conversion_fct_t)copy_float_16,             /* OPAL_DATATYPE_FLOAT16      */
+<span class="lineNum">     265 </span>            :     (conversion_fct_t)copy_float_complex,        /* OPAL_DATATYPE_FLOAT_COMPLEX */
+<span class="lineNum">     266 </span>            :     (conversion_fct_t)copy_double_complex,       /* OPAL_DATATYPE_DOUBLE_COMPLEX */
+<span class="lineNum">     267 </span>            :     (conversion_fct_t)copy_long_double_complex,  /* OPAL_DATATYPE_LONG_DOUBLE_COMPLEX */
+<span class="lineNum">     268 </span>            :     (conversion_fct_t)copy_bool,                 /* OPAL_DATATYPE_BOOL         */
+<span class="lineNum">     269 </span>            :     (conversion_fct_t)copy_wchar,                /* OPAL_DATATYPE_WCHAR        */
+<span class="lineNum">     270 </span>            :     (conversion_fct_t)NULL                       /* OPAL_DATATYPE_UNAVAILABLE  */
+<span class="lineNum">     271 </span>            : };
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

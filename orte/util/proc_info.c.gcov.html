@@ -1,0 +1,442 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/util/proc_info.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">orte/util</a> - proc_info.c<span style="font-size: 80%;"> (source / <a href="proc_info.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">69</td>
+            <td class="headerCovTableEntry">106</td>
+            <td class="headerCovTableEntryLo">65.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryLo">66.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2011 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2009      Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2012      Los Alamos National Security, LLC.
+<span class="lineNum">      14 </span>            :  *                         All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2014-2015 Intel, Inc. All rights reserved
+<span class="lineNum">      16 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * $HEADER$
+<span class="lineNum">      21 </span>            :  */
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;orte/constants.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      29 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      30 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      31 </span>            : #endif
+<span class="lineNum">      32 </span>            : #ifdef HAVE_SYS_TYPES_H
+<span class="lineNum">      33 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      34 </span>            : #endif
+<span class="lineNum">      35 </span>            : #if HAVE_ARPA_INET_H
+<span class="lineNum">      36 </span>            : #include &lt;arpa/inet.h&gt;
+<span class="lineNum">      37 </span>            : #endif
+<span class="lineNum">      38 </span>            : #include &lt;ctype.h&gt;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : #include &quot;opal/mca/base/base.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;opal/mca/base/mca_base_var.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;opal/util/if.h&quot;
+<span class="lineNum">      44 </span>            : #include &quot;opal/util/net.h&quot;
+<span class="lineNum">      45 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      46 </span>            : #include &quot;opal/util/proc.h&quot;
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : #include &quot;orte/util/attr.h&quot;
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : #include &quot;orte/util/proc_info.h&quot;
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : /* provide a connection to a reqd variable */
+<span class="lineNum">      53 </span>            : extern bool orte_keep_fqdn_hostnames;
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : #define ORTE_NAME_INVALID {ORTE_JOBID_INVALID, ORTE_VPID_INVALID}
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : ORTE_DECLSPEC orte_proc_info_t orte_process_info = {
+<span class="lineNum">      58 </span>            :     .my_name =                         ORTE_NAME_INVALID,
+<span class="lineNum">      59 </span>            :     .my_daemon =                       ORTE_NAME_INVALID,
+<span class="lineNum">      60 </span>            :     .my_daemon_uri =                   NULL,
+<span class="lineNum">      61 </span>            :     .my_hnp =                          ORTE_NAME_INVALID,
+<span class="lineNum">      62 </span>            :     .my_hnp_uri =                      NULL,
+<span class="lineNum">      63 </span>            :     .my_parent =                       ORTE_NAME_INVALID,
+<span class="lineNum">      64 </span>            :     .my_scheduler =                    ORTE_NAME_INVALID,
+<span class="lineNum">      65 </span>            :     .hnp_pid =                         0,
+<span class="lineNum">      66 </span>            :     .app_num =                         0,
+<span class="lineNum">      67 </span>            :     .num_procs =                       1,
+<span class="lineNum">      68 </span>            :     .max_procs =                       1,
+<span class="lineNum">      69 </span>            :     .num_daemons =                     1,
+<span class="lineNum">      70 </span>            :     .num_nodes =                       1,
+<span class="lineNum">      71 </span>            :     .nodename =                        NULL,
+<span class="lineNum">      72 </span>            :     .aliases =                         NULL,
+<span class="lineNum">      73 </span>            :     .pid =                             0,
+<span class="lineNum">      74 </span>            :     .proc_type =                       ORTE_PROC_TYPE_NONE,
+<span class="lineNum">      75 </span>            :     .sync_buf =                        NULL,
+<span class="lineNum">      76 </span>            :     .my_port =                         0,
+<span class="lineNum">      77 </span>            :     .num_restarts =                    0,
+<span class="lineNum">      78 </span>            :     .my_node_rank =                    ORTE_NODE_RANK_INVALID,
+<span class="lineNum">      79 </span>            :     .my_local_rank =                   ORTE_LOCAL_RANK_INVALID,
+<span class="lineNum">      80 </span>            :     .num_local_peers =                 0,
+<span class="lineNum">      81 </span>            :     .tmpdir_base =                     NULL,
+<span class="lineNum">      82 </span>            :     .top_session_dir =                 NULL,
+<span class="lineNum">      83 </span>            :     .job_session_dir =                 NULL,
+<span class="lineNum">      84 </span>            :     .proc_session_dir =                NULL,
+<span class="lineNum">      85 </span>            :     .sock_stdin =                      NULL,
+<span class="lineNum">      86 </span>            :     .sock_stdout =                     NULL,
+<span class="lineNum">      87 </span>            :     .sock_stderr =                     NULL,
+<span class="lineNum">      88 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">      89 </span>            :     .cpuset =                          NULL,
+<span class="lineNum">      90 </span>            : #endif
+<span class="lineNum">      91 </span>            :     .app_rank =                        -1,
+<span class="lineNum">      92 </span>            :     .my_hostid =                       ORTE_VPID_INVALID
+<span class="lineNum">      93 </span>            : };
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            : static bool init=false;
+<span class="lineNum">      96 </span>            : static int orte_ess_node_rank;
+<a name="97"><span class="lineNum">      97 </span>            : static char *orte_strip_prefix;</a>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span><span class="lineCov">          4 : int orte_proc_info(void)</span>
+<span class="lineNum">     100 </span>            : {
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :     int idx, i;
+<span class="lineNum">     103 </span>            :     char *ptr;
+<span class="lineNum">     104 </span>            :     char hostname[ORTE_MAX_HOSTNAME_SIZE];
+<span class="lineNum">     105 </span>            :     char **prefixes;
+<span class="lineNum">     106 </span>            :     bool match;
+<span class="lineNum">     107 </span>            :     struct in_addr buf;
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span><span class="lineCov">          4 :     if (init) {</span>
+<span class="lineNum">     110 </span><span class="lineCov">          2 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     111 </span>            :     }
+<span class="lineNum">     112 </span><span class="lineCov">          2 :     init = true;</span>
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span><span class="lineCov">          2 :     OBJ_CONSTRUCT(&amp;orte_process_info.super, opal_proc_t);</span>
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span><span class="lineCov">          2 :     orte_process_info.my_hnp_uri = NULL;</span>
+<span class="lineNum">     117 </span><span class="lineCov">          2 :     mca_base_var_register (&quot;orte&quot;, &quot;orte&quot;, NULL, &quot;hnp_uri&quot;,</span>
+<span class="lineNum">     118 </span>            :                            &quot;HNP contact info&quot;,
+<span class="lineNum">     119 </span>            :                            MCA_BASE_VAR_TYPE_STRING, NULL, 0,
+<span class="lineNum">     120 </span>            :                            MCA_BASE_VAR_FLAG_INTERNAL,
+<span class="lineNum">     121 </span>            :                            OPAL_INFO_LVL_9,
+<span class="lineNum">     122 </span>            :                            MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     123 </span>            :                            &amp;orte_process_info.my_hnp_uri);
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineCov">          2 :     if (NULL != orte_process_info.my_hnp_uri) {</span>
+<span class="lineNum">     126 </span><span class="lineCov">          2 :         ptr = orte_process_info.my_hnp_uri;</span>
+<span class="lineNum">     127 </span>            :         /* the uri value passed to us will have quote marks around it to protect
+<span class="lineNum">     128 </span>            :         * the value if passed on the command line. We must remove those
+<span class="lineNum">     129 </span>            :         * to have a correct uri string
+<span class="lineNum">     130 </span>            :         */
+<span class="lineNum">     131 </span><span class="lineCov">          2 :         if ('&quot;' == ptr[0]) {</span>
+<span class="lineNum">     132 </span>            :             /* if the first char is a quote, then so will the last one be */
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :             ptr[strlen(ptr)-1] = '\0';</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :             memmove (ptr, ptr + 1, strlen (ptr));</span>
+<span class="lineNum">     135 </span>            :         }
+<span class="lineNum">     136 </span>            :     }
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span><span class="lineCov">          2 :     orte_process_info.my_daemon_uri = NULL;</span>
+<span class="lineNum">     139 </span><span class="lineCov">          2 :     (void) mca_base_var_register (&quot;orte&quot;, &quot;orte&quot;, NULL, &quot;local_daemon_uri&quot;,</span>
+<span class="lineNum">     140 </span>            :                                   &quot;Daemon contact info&quot;,
+<span class="lineNum">     141 </span>            :                                   MCA_BASE_VAR_TYPE_STRING, NULL, 0,
+<span class="lineNum">     142 </span>            :                                   MCA_BASE_VAR_FLAG_INTERNAL,
+<span class="lineNum">     143 </span>            :                                   OPAL_INFO_LVL_9,
+<span class="lineNum">     144 </span>            :                                   MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     145 </span>            :                                   &amp;orte_process_info.my_daemon_uri);
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineCov">          2 :     if (NULL != orte_process_info.my_daemon_uri) {</span>
+<span class="lineNum">     148 </span><span class="lineCov">          2 :         ptr = orte_process_info.my_daemon_uri;</span>
+<span class="lineNum">     149 </span>            :         /* the uri value passed to us may have quote marks around it to protect
+<span class="lineNum">     150 </span>            :          * the value if passed on the command line. We must remove those
+<span class="lineNum">     151 </span>            :          * to have a correct uri string
+<span class="lineNum">     152 </span>            :          */
+<span class="lineNum">     153 </span><span class="lineCov">          2 :         if ('&quot;' == ptr[0]) {</span>
+<span class="lineNum">     154 </span>            :             /* if the first char is a quote, then so will the last one be */
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :             ptr[strlen(ptr)-1] = '\0';</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :             memmove (ptr, ptr + 1, strlen (ptr) - 1);</span>
+<span class="lineNum">     157 </span>            :         }
+<span class="lineNum">     158 </span>            :     }
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineCov">          2 :     orte_process_info.app_num = 0;</span>
+<span class="lineNum">     161 </span><span class="lineCov">          2 :     (void) mca_base_var_register (&quot;orte&quot;, &quot;orte&quot;, NULL, &quot;app_num&quot;,</span>
+<span class="lineNum">     162 </span>            :                                   &quot;Index of the app_context that defines this proc&quot;,
+<span class="lineNum">     163 </span>            :                                   MCA_BASE_VAR_TYPE_INT, NULL, 0,
+<span class="lineNum">     164 </span>            :                                   MCA_BASE_VAR_FLAG_INTERNAL,
+<span class="lineNum">     165 </span>            :                                   OPAL_INFO_LVL_9,
+<span class="lineNum">     166 </span>            :                                   MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     167 </span>            :                                   &amp;orte_process_info.app_num);
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            :     /* get the process id */
+<span class="lineNum">     170 </span><span class="lineCov">          2 :     orte_process_info.pid = getpid();</span>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            :     /* get the nodename */
+<span class="lineNum">     173 </span><span class="lineCov">          2 :     gethostname(hostname, ORTE_MAX_HOSTNAME_SIZE);</span>
+<span class="lineNum">     174 </span>            :     /* add this to our list of aliases */
+<span class="lineNum">     175 </span><span class="lineCov">          2 :     opal_argv_append_nosize(&amp;orte_process_info.aliases, hostname);</span>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineCov">          2 :     if (!orte_keep_fqdn_hostnames) {</span>
+<span class="lineNum">     178 </span>            :         /* if the nodename is an IP address, do not mess with it! */
+<span class="lineNum">     179 </span><span class="lineCov">          4 :         if (0 == inet_pton(AF_INET, hostname, &amp;buf) &amp;&amp;</span>
+<span class="lineNum">     180 </span><span class="lineCov">          2 :             0 == inet_pton(AF_INET6, hostname, &amp;buf)) {</span>
+<span class="lineNum">     181 </span>            :             /* not an IP address, so remove any domain info */
+<span class="lineNum">     182 </span><span class="lineCov">          2 :             if (NULL != (ptr = strchr(hostname, '.'))) {</span>
+<span class="lineNum">     183 </span><span class="lineCov">          2 :                 *ptr = '\0';</span>
+<span class="lineNum">     184 </span>            :                 /* add this to our list of aliases */
+<span class="lineNum">     185 </span><span class="lineCov">          2 :                 opal_argv_append_nosize(&amp;orte_process_info.aliases, hostname);</span>
+<span class="lineNum">     186 </span>            :             }
+<span class="lineNum">     187 </span>            :         }
+<span class="lineNum">     188 </span>            :     }
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineCov">          2 :     orte_strip_prefix = NULL;</span>
+<span class="lineNum">     191 </span><span class="lineCov">          2 :     (void) mca_base_var_register (&quot;orte&quot;, &quot;orte&quot;, NULL, &quot;strip_prefix&quot;,</span>
+<span class="lineNum">     192 </span>            :                                   &quot;Prefix(es) to match when deciding whether to strip leading characters and zeroes from &quot;
+<span class="lineNum">     193 </span>            :                                   &quot;node names returned by daemons&quot;, MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+<span class="lineNum">     194 </span>            :                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     195 </span>            :                                   &amp;orte_strip_prefix);
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            :     /* we have to strip node names here, if user directs, to ensure that
+<span class="lineNum">     198 </span>            :      * the names exchanged in the modex match the names found locally
+<span class="lineNum">     199 </span>            :      */
+<span class="lineNum">     200 </span><span class="lineCov">          2 :     if (NULL != orte_strip_prefix) {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :         prefixes = opal_argv_split(orte_strip_prefix, ',');</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         match = false;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :         for (i=0; NULL != prefixes[i]; i++) {</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :             if (0 == strncmp(hostname, prefixes[i], strlen(prefixes[i]))) {</span>
+<span class="lineNum">     205 </span>            :                 /* remove the prefix and leading zeroes */
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :                 idx = strlen(prefixes[i]);</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :                 while (idx &lt; (int)strlen(hostname) &amp;&amp;</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :                        (hostname[idx] &lt;= '0' || '9' &lt; hostname[idx])) {</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :                     idx++;</span>
+<span class="lineNum">     210 </span>            :                 }
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :                 if ((int)strlen(hostname) &lt;= idx) {</span>
+<span class="lineNum">     212 </span>            :                     /* there were no non-zero numbers in the name */
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :                     orte_process_info.nodename = strdup(&amp;hostname[strlen(prefixes[i])]);</span>
+<span class="lineNum">     214 </span>            :                 } else {
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :                     orte_process_info.nodename = strdup(&amp;hostname[idx]);</span>
+<span class="lineNum">     216 </span>            :                 }
+<span class="lineNum">     217 </span>            :                 /* add this to our list of aliases */
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :                 opal_argv_append_nosize(&amp;orte_process_info.aliases, orte_process_info.nodename);</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :                 match = true;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     221 </span>            :             }
+<span class="lineNum">     222 </span>            :         }
+<span class="lineNum">     223 </span>            :         /* if we didn't find a match, then just use the hostname as-is */
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :         if (!match) {</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :             orte_process_info.nodename = strdup(hostname);</span>
+<span class="lineNum">     226 </span>            :         }
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         opal_argv_free(prefixes);</span>
+<span class="lineNum">     228 </span>            :     } else {
+<span class="lineNum">     229 </span><span class="lineCov">          2 :         orte_process_info.nodename = strdup(hostname);</span>
+<span class="lineNum">     230 </span>            :     }
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            :     /* add &quot;localhost&quot; to our list of aliases */
+<span class="lineNum">     233 </span><span class="lineCov">          2 :     opal_argv_append_nosize(&amp;orte_process_info.aliases, &quot;localhost&quot;);</span>
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span>            :     /* get the number of nodes in the job */
+<span class="lineNum">     236 </span><span class="lineCov">          2 :     orte_process_info.num_nodes = 1;</span>
+<span class="lineNum">     237 </span><span class="lineCov">          2 :     (void) mca_base_var_register (&quot;orte&quot;, &quot;orte&quot;, NULL, &quot;num_nodes&quot;,</span>
+<span class="lineNum">     238 </span>            :                                   &quot;Number of nodes in the job&quot;,
+<span class="lineNum">     239 </span>            :                                   MCA_BASE_VAR_TYPE_INT, NULL, 0,
+<span class="lineNum">     240 </span>            :                                   MCA_BASE_VAR_FLAG_INTERNAL,
+<span class="lineNum">     241 </span>            :                                   OPAL_INFO_LVL_9,
+<span class="lineNum">     242 </span>            :                                   MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     243 </span>            :                                   &amp;orte_process_info.num_nodes);
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            :     /* get the number of times this proc has restarted */
+<span class="lineNum">     246 </span><span class="lineCov">          2 :     orte_process_info.num_restarts = 0;</span>
+<span class="lineNum">     247 </span><span class="lineCov">          2 :     (void) mca_base_var_register (&quot;orte&quot;, &quot;orte&quot;, NULL, &quot;num_restarts&quot;,</span>
+<span class="lineNum">     248 </span>            :                                   &quot;Number of times this proc has restarted&quot;,
+<span class="lineNum">     249 </span>            :                                   MCA_BASE_VAR_TYPE_INT, NULL, 0,
+<span class="lineNum">     250 </span>            :                                   MCA_BASE_VAR_FLAG_INTERNAL,
+<span class="lineNum">     251 </span>            :                                   OPAL_INFO_LVL_9,
+<span class="lineNum">     252 </span>            :                                   MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     253 </span>            :                                   &amp;orte_process_info.num_restarts);
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span><span class="lineCov">          2 :     orte_process_info.app_rank = 0;</span>
+<span class="lineNum">     256 </span><span class="lineCov">          2 :     (void) mca_base_var_register (&quot;orte&quot;, &quot;orte&quot;, NULL, &quot;app_rank&quot;,</span>
+<span class="lineNum">     257 </span>            :                                   &quot;Rank of this proc within its app_context&quot;,
+<span class="lineNum">     258 </span>            :                                   MCA_BASE_VAR_TYPE_INT, NULL, 0,
+<span class="lineNum">     259 </span>            :                                   MCA_BASE_VAR_FLAG_INTERNAL,
+<span class="lineNum">     260 </span>            :                                   OPAL_INFO_LVL_9,
+<span class="lineNum">     261 </span>            :                                   MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     262 </span>            :                                   &amp;orte_process_info.app_rank);
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            :     /* get my node rank in case we are using static ports - this won't
+<span class="lineNum">     265 </span>            :      * be present for daemons, so don't error out if we don't have it
+<span class="lineNum">     266 </span>            :      */
+<span class="lineNum">     267 </span><span class="lineCov">          2 :     orte_ess_node_rank = ORTE_NODE_RANK_INVALID;</span>
+<span class="lineNum">     268 </span><span class="lineCov">          2 :     (void) mca_base_var_register (&quot;orte&quot;, &quot;orte&quot;, NULL, &quot;ess_node_rank&quot;, &quot;Process node rank&quot;,</span>
+<span class="lineNum">     269 </span>            :                                   MCA_BASE_VAR_TYPE_INT, NULL, 0,
+<span class="lineNum">     270 </span>            :                                   MCA_BASE_VAR_FLAG_INTERNAL,
+<span class="lineNum">     271 </span>            :                                   OPAL_INFO_LVL_9,
+<span class="lineNum">     272 </span>            :                                   MCA_BASE_VAR_SCOPE_CONSTANT,
+<span class="lineNum">     273 </span>            :                                   &amp;orte_ess_node_rank);
+<span class="lineNum">     274 </span><span class="lineCov">          2 :     orte_process_info.my_node_rank = (orte_node_rank_t) orte_ess_node_rank;</span>
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span>            :     /* setup the sync buffer */
+<span class="lineNum">     277 </span><span class="lineCov">          2 :     orte_process_info.sync_buf = OBJ_NEW(opal_buffer_t);</span>
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineCov">          2 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     280 </span>            : }
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineCov">          2 : int orte_proc_info_finalize(void)</span>
+<span class="lineNum">     284 </span>            : {
+<span class="lineNum">     285 </span><span class="lineCov">          2 :     if (!init) {</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     287 </span>            :     }
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineCov">          2 :     if (NULL != orte_process_info.tmpdir_base) {</span>
+<span class="lineNum">     290 </span><span class="lineCov">          2 :         free(orte_process_info.tmpdir_base);</span>
+<span class="lineNum">     291 </span><span class="lineCov">          2 :         orte_process_info.tmpdir_base = NULL;</span>
+<span class="lineNum">     292 </span>            :     }
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineCov">          2 :     if (NULL != orte_process_info.top_session_dir) {</span>
+<span class="lineNum">     295 </span><span class="lineCov">          2 :         free(orte_process_info.top_session_dir);</span>
+<span class="lineNum">     296 </span><span class="lineCov">          2 :         orte_process_info.top_session_dir = NULL;</span>
+<span class="lineNum">     297 </span>            :     }
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span><span class="lineCov">          2 :     if (NULL != orte_process_info.job_session_dir) {</span>
+<span class="lineNum">     300 </span><span class="lineCov">          2 :         free(orte_process_info.job_session_dir);</span>
+<span class="lineNum">     301 </span><span class="lineCov">          2 :         orte_process_info.job_session_dir = NULL;</span>
+<span class="lineNum">     302 </span>            :     }
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span><span class="lineCov">          2 :     if (NULL != orte_process_info.proc_session_dir) {</span>
+<span class="lineNum">     305 </span><span class="lineCov">          2 :         free(orte_process_info.proc_session_dir);</span>
+<span class="lineNum">     306 </span><span class="lineCov">          2 :         orte_process_info.proc_session_dir = NULL;</span>
+<span class="lineNum">     307 </span>            :     }
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span><span class="lineCov">          2 :     if (NULL != orte_process_info.nodename) {</span>
+<span class="lineNum">     310 </span><span class="lineCov">          2 :         free(orte_process_info.nodename);</span>
+<span class="lineNum">     311 </span><span class="lineCov">          2 :         orte_process_info.nodename = NULL;</span>
+<span class="lineNum">     312 </span>            :     }
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineCov">          2 :     if (NULL != orte_process_info.sock_stdin) {</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :         free(orte_process_info.sock_stdin);</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         orte_process_info.sock_stdin = NULL;</span>
+<span class="lineNum">     317 </span>            :     }
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineCov">          2 :     if (NULL != orte_process_info.sock_stdout) {</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :         free(orte_process_info.sock_stdout);</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         orte_process_info.sock_stdout = NULL;</span>
+<span class="lineNum">     322 </span>            :     }
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span><span class="lineCov">          2 :     if (NULL != orte_process_info.sock_stderr) {</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :         free(orte_process_info.sock_stderr);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :         orte_process_info.sock_stderr = NULL;</span>
+<span class="lineNum">     327 </span>            :     }
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span><span class="lineCov">          2 :     orte_process_info.proc_type = ORTE_PROC_TYPE_NONE;</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineCov">          4 :     OBJ_RELEASE(orte_process_info.sync_buf);</span>
+<span class="lineNum">     332 </span><span class="lineCov">          2 :     orte_process_info.sync_buf = NULL;</span>
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span><span class="lineCov">          2 :     OBJ_DESTRUCT(&amp;orte_process_info.super);</span>
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span><span class="lineCov">          2 :     opal_argv_free(orte_process_info.aliases);</span>
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span><span class="lineCov">          2 :     init = false;</span>
+<span class="lineNum">     339 </span><span class="lineCov">          2 :     return ORTE_SUCCESS;</span>
+<a name="340"><span class="lineNum">     340 </span>            : }</a>
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 : bool orte_ifislocal(const char *hostname)</span>
+<span class="lineNum">     343 </span>            : {
+<span class="lineNum">     344 </span>            :     int i;
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            :     /* see if it matches any of our known aliases */
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     if (NULL != orte_process_info.aliases) {</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :         for (i=0; NULL != orte_process_info.aliases[i]; i++) {</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :             if (0 == strcmp(hostname, orte_process_info.aliases[i])) {</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :                 return true;</span>
+<span class="lineNum">     351 </span>            :             }
+<span class="lineNum">     352 </span>            :         }
+<span class="lineNum">     353 </span>            :     }
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span>            :     /* okay, have to resolve the address - the opal_ifislocal
+<span class="lineNum">     356 </span>            :      * function will not attempt to resolve the address if
+<span class="lineNum">     357 </span>            :      * told not to do so */
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     if (opal_ifislocal(hostname)) {</span>
+<span class="lineNum">     359 </span>            :         /* add this to our known aliases */
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :         opal_argv_append_nosize(&amp;orte_process_info.aliases, hostname);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     362 </span>            :     }
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span>            :     /* not me */
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     366 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

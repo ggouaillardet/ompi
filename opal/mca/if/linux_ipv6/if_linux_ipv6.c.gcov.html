@@ -1,0 +1,252 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/if/linux_ipv6/if_linux_ipv6.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/if/linux_ipv6</a> - if_linux_ipv6.c<span style="font-size: 80%;"> (source / <a href="if_linux_ipv6.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2010      Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2010      Oracle and/or its affiliates.  All rights reserved.
+<span class="lineNum">       4 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * Additional copyrights may follow
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * $HEADER$
+<span class="lineNum">       9 </span>            :  */
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      12 </span>            : 
+<span class="lineNum">      13 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      14 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      15 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      16 </span>            : #endif
+<span class="lineNum">      17 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      18 </span>            : #ifdef HAVE_SYS_TYPES_H
+<span class="lineNum">      19 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      20 </span>            : #endif
+<span class="lineNum">      21 </span>            : #ifdef HAVE_SYS_SOCKET_H
+<span class="lineNum">      22 </span>            : #include &lt;sys/socket.h&gt;
+<span class="lineNum">      23 </span>            : #endif
+<span class="lineNum">      24 </span>            : #ifdef HAVE_SYS_SOCKIO_H
+<span class="lineNum">      25 </span>            : #include &lt;sys/sockio.h&gt;
+<span class="lineNum">      26 </span>            : #endif
+<span class="lineNum">      27 </span>            : #ifdef HAVE_SYS_IOCTL_H
+<span class="lineNum">      28 </span>            : #include &lt;sys/ioctl.h&gt;
+<span class="lineNum">      29 </span>            : #endif
+<span class="lineNum">      30 </span>            : #ifdef HAVE_NETINET_IN_H
+<span class="lineNum">      31 </span>            : #include &lt;netinet/in.h&gt;
+<span class="lineNum">      32 </span>            : #endif
+<span class="lineNum">      33 </span>            : #ifdef HAVE_ARPA_INET_H
+<span class="lineNum">      34 </span>            : #include &lt;arpa/inet.h&gt;
+<span class="lineNum">      35 </span>            : #endif
+<span class="lineNum">      36 </span>            : #ifdef HAVE_NET_IF_H
+<span class="lineNum">      37 </span>            : #if defined(__APPLE__) &amp;&amp; defined(_LP64)
+<span class="lineNum">      38 </span>            : /* Apple engineering suggested using options align=power as a
+<span class="lineNum">      39 </span>            :    workaround for a bug in OS X 10.4 (Tiger) that prevented ioctl(...,
+<span class="lineNum">      40 </span>            :    SIOCGIFCONF, ...) from working properly in 64 bit mode on Power PC.
+<span class="lineNum">      41 </span>            :    It turns out that the underlying issue is the size of struct
+<span class="lineNum">      42 </span>            :    ifconf, which the kernel expects to be 12 and natural 64 bit
+<span class="lineNum">      43 </span>            :    alignment would make 16.  The same bug appears in 64 bit mode on
+<span class="lineNum">      44 </span>            :    Intel macs, but align=power is a no-op there, so instead, use the
+<span class="lineNum">      45 </span>            :    pack pragma to instruct the compiler to pack on 4 byte words, which
+<span class="lineNum">      46 </span>            :    has the same effect as align=power for our needs and works on both
+<span class="lineNum">      47 </span>            :    Intel and Power PC Macs. */
+<span class="lineNum">      48 </span>            : #pragma pack(push,4)
+<span class="lineNum">      49 </span>            : #endif
+<span class="lineNum">      50 </span>            : #include &lt;net/if.h&gt;
+<span class="lineNum">      51 </span>            : #if defined(__APPLE__) &amp;&amp; defined(_LP64)
+<span class="lineNum">      52 </span>            : #pragma pack(pop)
+<span class="lineNum">      53 </span>            : #endif
+<span class="lineNum">      54 </span>            : #endif
+<span class="lineNum">      55 </span>            : #ifdef HAVE_NETDB_H
+<span class="lineNum">      56 </span>            : #include &lt;netdb.h&gt;
+<span class="lineNum">      57 </span>            : #endif
+<span class="lineNum">      58 </span>            : #ifdef HAVE_IFADDRS_H
+<span class="lineNum">      59 </span>            : #include &lt;ifaddrs.h&gt;
+<span class="lineNum">      60 </span>            : #endif
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      63 </span>            : #include &quot;opal/util/if.h&quot;
+<span class="lineNum">      64 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      65 </span>            : #include &quot;opal/mca/if/if.h&quot;
+<span class="lineNum">      66 </span>            : #include &quot;opal/mca/if/base/base.h&quot;
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : static int if_linux_ipv6_open(void);
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : /* Discovers Linux IPv6 interfaces */
+<span class="lineNum">      71 </span>            : opal_if_base_component_t mca_if_linux_ipv6_component = {
+<span class="lineNum">      72 </span>            :     /* First, the mca_component_t struct containing meta information
+<span class="lineNum">      73 </span>            :        about the component itself */
+<span class="lineNum">      74 </span>            :     {
+<span class="lineNum">      75 </span>            :         OPAL_IF_BASE_VERSION_2_0_0,
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            :         /* Component name and version */
+<span class="lineNum">      78 </span>            :         &quot;linux_ipv6&quot;,
+<span class="lineNum">      79 </span>            :         OPAL_MAJOR_VERSION,
+<span class="lineNum">      80 </span>            :         OPAL_MINOR_VERSION,
+<span class="lineNum">      81 </span>            :         OPAL_RELEASE_VERSION,
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            :         /* Component open and close functions */
+<span class="lineNum">      84 </span>            :         if_linux_ipv6_open,
+<span class="lineNum">      85 </span>            :         NULL
+<span class="lineNum">      86 </span>            :     },
+<span class="lineNum">      87 </span>            :     {
+<span class="lineNum">      88 </span>            :         /* This component is checkpointable */
+<span class="lineNum">      89 </span>            :         MCA_BASE_METADATA_PARAM_CHECKPOINT
+<span class="lineNum">      90 </span>            :     },
+<span class="lineNum">      91 </span>            : };
+<a name="92"><span class="lineNum">      92 </span>            : </a>
+<span class="lineNum">      93 </span>            : /* configure using getifaddrs(3) */
+<span class="lineNum">      94 </span><span class="lineCov">          2 : static int if_linux_ipv6_open(void)</span>
+<span class="lineNum">      95 </span>            : {
+<span class="lineNum">      96 </span>            : #if OPAL_ENABLE_IPV6
+<span class="lineNum">      97 </span>            :     FILE *f;
+<span class="lineNum">      98 </span>            :     if ((f = fopen(&quot;/proc/net/if_inet6&quot;, &quot;r&quot;))) {
+<span class="lineNum">      99 </span>            :         char ifname[IF_NAMESIZE];
+<span class="lineNum">     100 </span>            :         unsigned int idx, pfxlen, scope, dadstat;
+<span class="lineNum">     101 </span>            :         struct in6_addr a6;
+<span class="lineNum">     102 </span>            :         int iter;
+<span class="lineNum">     103 </span>            :         uint32_t flag;
+<span class="lineNum">     104 </span>            :         unsigned int addrbyte[16];
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            :         while (fscanf(f, &quot;%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x %x %x %x %x %20s\n&quot;,
+<span class="lineNum">     107 </span>            :                       &amp;addrbyte[0], &amp;addrbyte[1], &amp;addrbyte[2], &amp;addrbyte[3],
+<span class="lineNum">     108 </span>            :                       &amp;addrbyte[4], &amp;addrbyte[5], &amp;addrbyte[6], &amp;addrbyte[7],
+<span class="lineNum">     109 </span>            :                       &amp;addrbyte[8], &amp;addrbyte[9], &amp;addrbyte[10], &amp;addrbyte[11],
+<span class="lineNum">     110 </span>            :                       &amp;addrbyte[12], &amp;addrbyte[13], &amp;addrbyte[14], &amp;addrbyte[15],
+<span class="lineNum">     111 </span>            :                       &amp;idx, &amp;pfxlen, &amp;scope, &amp;dadstat, ifname) != EOF) {
+<span class="lineNum">     112 </span>            :             opal_if_t *intf;
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :             opal_output_verbose(1, opal_if_base_framework.framework_output,
+<span class="lineNum">     115 </span>            :                                 &quot;found interface %2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x scope %x\n&quot;,
+<span class="lineNum">     116 </span>            :                                 addrbyte[0], addrbyte[1], addrbyte[2], addrbyte[3],
+<span class="lineNum">     117 </span>            :                                 addrbyte[4], addrbyte[5], addrbyte[6], addrbyte[7],
+<span class="lineNum">     118 </span>            :                                 addrbyte[8], addrbyte[9], addrbyte[10], addrbyte[11],
+<span class="lineNum">     119 </span>            :                                 addrbyte[12], addrbyte[13], addrbyte[14], addrbyte[15], scope);
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            :             /* we don't want any other scope less than link-local */
+<span class="lineNum">     122 </span>            :             if (scope &lt; 0x20) {
+<span class="lineNum">     123 </span>            :                 opal_output_verbose(1, opal_if_base_framework.framework_output,
+<span class="lineNum">     124 </span>            :                                     &quot;skipping interface %2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x scope %x\n&quot;,
+<span class="lineNum">     125 </span>            :                                     addrbyte[0], addrbyte[1], addrbyte[2], addrbyte[3],
+<span class="lineNum">     126 </span>            :                                     addrbyte[4], addrbyte[5], addrbyte[6], addrbyte[7],
+<span class="lineNum">     127 </span>            :                                     addrbyte[8], addrbyte[9], addrbyte[10], addrbyte[11],
+<span class="lineNum">     128 </span>            :                                     addrbyte[12], addrbyte[13], addrbyte[14], addrbyte[15], scope);
+<span class="lineNum">     129 </span>            :                 continue;
+<span class="lineNum">     130 </span>            :             }
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            :             intf = OBJ_NEW(opal_if_t);
+<span class="lineNum">     133 </span>            :             if (NULL == intf) {
+<span class="lineNum">     134 </span>            :                 opal_output(0, &quot;opal_ifinit: unable to allocate %lu bytes\n&quot;,
+<span class="lineNum">     135 </span>            :                             (unsigned long)sizeof(opal_if_t));
+<span class="lineNum">     136 </span>            :                 fclose(f);
+<span class="lineNum">     137 </span>            :                 return OPAL_ERR_OUT_OF_RESOURCE;
+<span class="lineNum">     138 </span>            :             }
+<span class="lineNum">     139 </span>            :             intf-&gt;af_family = AF_INET6;
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            :             for (iter = 0; iter &lt; 16; iter++) {
+<span class="lineNum">     142 </span>            :                 a6.s6_addr[iter] = addrbyte[iter];
+<span class="lineNum">     143 </span>            :             }
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            :             /* now construct the opal_if_t */
+<span class="lineNum">     146 </span>            :             strncpy(intf-&gt;if_name, ifname, IF_NAMESIZE);
+<span class="lineNum">     147 </span>            :             intf-&gt;if_index = opal_list_get_size(&amp;opal_if_list)+1;
+<span class="lineNum">     148 </span>            :             intf-&gt;if_kernel_index = (uint16_t) idx;
+<span class="lineNum">     149 </span>            :             ((struct sockaddr_in6*) &amp;intf-&gt;if_addr)-&gt;sin6_addr = a6;
+<span class="lineNum">     150 </span>            :             ((struct sockaddr_in6*) &amp;intf-&gt;if_addr)-&gt;sin6_family = AF_INET6;
+<span class="lineNum">     151 </span>            :             ((struct sockaddr_in6*) &amp;intf-&gt;if_addr)-&gt;sin6_scope_id = scope;
+<span class="lineNum">     152 </span>            :             intf-&gt;if_mask = pfxlen;
+<span class="lineNum">     153 </span>            :             if (OPAL_SUCCESS == opal_ifindextoflags(opal_ifnametoindex (ifname), &amp;flag)) {
+<span class="lineNum">     154 </span>            :                 intf-&gt;if_flags = flag;
+<span class="lineNum">     155 </span>            :             } else {
+<span class="lineNum">     156 </span>            :                 intf-&gt;if_flags = IFF_UP;
+<span class="lineNum">     157 </span>            :             }
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            :             /* copy new interface information to heap and append
+<span class="lineNum">     160 </span>            :                to list */
+<span class="lineNum">     161 </span>            :             opal_list_append(&amp;opal_if_list, &amp;(intf-&gt;super));
+<span class="lineNum">     162 </span>            :             opal_output_verbose(1, opal_if_base_framework.framework_output,
+<span class="lineNum">     163 </span>            :                                 &quot;added interface %2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x\n&quot;,
+<span class="lineNum">     164 </span>            :                                 addrbyte[0], addrbyte[1], addrbyte[2], addrbyte[3],
+<span class="lineNum">     165 </span>            :                                 addrbyte[4], addrbyte[5], addrbyte[6], addrbyte[7],
+<span class="lineNum">     166 </span>            :                                 addrbyte[8], addrbyte[9], addrbyte[10], addrbyte[11],
+<span class="lineNum">     167 </span>            :                                 addrbyte[12], addrbyte[13], addrbyte[14], addrbyte[15]);
+<span class="lineNum">     168 </span>            :         } /* of while */
+<span class="lineNum">     169 </span>            :         fclose(f);
+<span class="lineNum">     170 </span>            :     }
+<span class="lineNum">     171 </span>            : #endif  /* OPAL_ENABLE_IPV6 */
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     174 </span>            : }
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,796 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - orte/mca/rmaps/round_robin/rmaps_rr_mappers.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">orte/mca/rmaps/round_robin</a> - rmaps_rr_mappers.c<span style="font-size: 80%;"> (source / <a href="rmaps_rr_mappers.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">43</td>
+            <td class="headerCovTableEntry">271</td>
+            <td class="headerCovTableEntryLo">15.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryLo">25.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2011 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2009-2013 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2013-2014 Intel, Inc. All rights reserved.
+<span class="lineNum">      14 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * $HEADER$
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &quot;orte_config.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;orte/constants.h&quot;
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;opal/mca/hwloc/base/base.h&quot;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &quot;orte/util/show_help.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;orte/util/name_fns.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;orte/runtime/orte_globals.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;orte/mca/errmgr/errmgr.h&quot;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #include &quot;orte/mca/rmaps/base/rmaps_private.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;orte/mca/rmaps/base/base.h&quot;
+<a name="36"><span class="lineNum">      36 </span>            : #include &quot;rmaps_rr.h&quot;</a>
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 : int orte_rmaps_rr_byslot(orte_job_t *jdata,</span>
+<span class="lineNum">      39 </span>            :                          orte_app_context_t *app,
+<span class="lineNum">      40 </span>            :                          opal_list_t *node_list,
+<span class="lineNum">      41 </span>            :                          orte_std_cntr_t num_slots,
+<span class="lineNum">      42 </span>            :                          orte_vpid_t num_procs)
+<span class="lineNum">      43 </span>            : {
+<span class="lineNum">      44 </span>            :     int rc, i, nprocs_mapped;
+<span class="lineNum">      45 </span>            :     orte_node_t *node;
+<span class="lineNum">      46 </span>            :     orte_proc_t *proc;
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :     int num_procs_to_assign, extra_procs_to_assign=0, nxtra_nodes=0;</span>
+<span class="lineNum">      48 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :     hwloc_obj_t obj=NULL;</span>
+<span class="lineNum">      50 </span>            : #endif
+<span class="lineNum">      51 </span>            :     float balance;
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :     bool add_one=false;</span>
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">      55 </span>            :                         &quot;mca:rmaps:rr: mapping by slot for job %s slots %d num_procs %lu&quot;,
+<span class="lineNum">      56 </span>            :                         ORTE_JOBID_PRINT(jdata-&gt;jobid), (int)num_slots, (unsigned long)num_procs);
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            :     /* check to see if we can map all the procs */
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :     if (num_slots &lt; ((int)app-&gt;num_procs * orte_rmaps_base.cpus_per_rank)) {</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :         if (ORTE_MAPPING_NO_OVERSUBSCRIBE &amp; ORTE_GET_MAPPING_DIRECTIVE(jdata-&gt;map-&gt;mapping)) {</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-orte-rmaps-base.txt&quot;, &quot;orte-rmaps-base:alloc-error&quot;,</span>
+<span class="lineNum">      62 </span>            :                            true, app-&gt;num_procs, app-&gt;app);
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :             return ORTE_ERR_SILENT;</span>
+<span class="lineNum">      64 </span>            :         }
+<span class="lineNum">      65 </span>            :     }
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            :     /* first pass: map the number of procs to each node until we
+<span class="lineNum">      68 </span>            :      * map all specified procs or use all allocated slots
+<span class="lineNum">      69 </span>            :      */
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     nprocs_mapped = 0;</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :     OPAL_LIST_FOREACH(node, node_list, orte_node_t) {</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :         opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">      73 </span>            :                             &quot;mca:rmaps:rr:slot working node %s&quot;,
+<span class="lineNum">      74 </span>            :                             node-&gt;name);
+<span class="lineNum">      75 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">      76 </span>            :         /* get the root object as we are not assigning
+<span class="lineNum">      77 </span>            :          * locale here except at the node level
+<span class="lineNum">      78 </span>            :          */
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :         if (NULL != node-&gt;topology) {</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :             obj = hwloc_get_root_obj(node-&gt;topology);</span>
+<span class="lineNum">      81 </span>            :         }
+<span class="lineNum">      82 </span>            : #endif
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :         if (node-&gt;slots &lt;= node-&gt;slots_inuse) {</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :             opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">      85 </span>            :                                 &quot;mca:rmaps:rr:slot node %s is full - skipping&quot;,
+<span class="lineNum">      86 </span>            :                                 node-&gt;name);
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">      88 </span>            :         }
+<span class="lineNum">      89 </span>            :         /* assign a number of procs equal to the number of available
+<span class="lineNum">      90 </span>            :          * slots divided by the number of cpus/rank the user
+<span class="lineNum">      91 </span>            :          * requested
+<span class="lineNum">      92 </span>            :          */
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :         num_procs_to_assign = (node-&gt;slots - node-&gt;slots_inuse) / orte_rmaps_base.cpus_per_rank;</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :         opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">      95 </span>            :                             &quot;mca:rmaps:rr:slot assigning %d procs to node %s&quot;,
+<span class="lineNum">      96 </span>            :                             (int)num_procs_to_assign, node-&gt;name);
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         for (i=0; i &lt; num_procs_to_assign &amp;&amp; nprocs_mapped &lt; app-&gt;num_procs; i++) {</span>
+<span class="lineNum">      99 </span>            :             /* add this node to the map - do it only once */
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :             if (!ORTE_FLAG_TEST(node, ORTE_NODE_FLAG_MAPPED)) {</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :                 if (ORTE_SUCCESS &gt; (rc = opal_pointer_array_add(jdata-&gt;map-&gt;nodes, (void*)node))) {</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :                     return rc;</span>
+<span class="lineNum">     104 </span>            :                 }
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :                 ORTE_FLAG_SET(node, ORTE_NODE_FLAG_MAPPED);</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :                 OBJ_RETAIN(node);  /* maintain accounting on object */</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :                 ++(jdata-&gt;map-&gt;num_nodes);</span>
+<span class="lineNum">     108 </span>            :             }
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :             if (NULL == (proc = orte_rmaps_base_setup_proc(jdata, node, app-&gt;idx))) {</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     111 </span>            :             }
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :             nprocs_mapped++;</span>
+<span class="lineNum">     113 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :             orte_set_attribute(&amp;proc-&gt;attributes, ORTE_PROC_HWLOC_LOCALE, ORTE_ATTR_LOCAL, obj, OPAL_PTR);</span>
+<span class="lineNum">     115 </span>            : #endif
+<span class="lineNum">     116 </span>            :         }
+<span class="lineNum">     117 </span>            :     }
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     if (nprocs_mapped == app-&gt;num_procs) {</span>
+<span class="lineNum">     120 </span>            :         /* we are done */
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         return ORTE_SUCCESS;</span>
+<span class="lineNum">     122 </span>            :     }
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     125 </span>            :                         &quot;mca:rmaps:rr:slot job %s is oversubscribed - performing second pass&quot;,
+<span class="lineNum">     126 </span>            :                         ORTE_JOBID_PRINT(jdata-&gt;jobid));
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            :     /* second pass: if we haven't mapped everyone yet, it is
+<span class="lineNum">     129 </span>            :      * because we are oversubscribed. Figure out how many procs
+<span class="lineNum">     130 </span>            :      * to add
+<span class="lineNum">     131 </span>            :      */
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :     balance = (float)((int)app-&gt;num_procs - nprocs_mapped) / (float)opal_list_get_size(node_list);</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     extra_procs_to_assign = (int)balance;</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     if (0 &lt; (balance - (float)extra_procs_to_assign)) {</span>
+<span class="lineNum">     135 </span>            :         /* compute how many nodes need an extra proc */
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         nxtra_nodes = app-&gt;num_procs - nprocs_mapped - (extra_procs_to_assign * opal_list_get_size(node_list));</span>
+<span class="lineNum">     137 </span>            :         /* add one so that we add an extra proc to the first nodes
+<span class="lineNum">     138 </span>            :          * until all procs are mapped
+<span class="lineNum">     139 </span>            :          */
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :         extra_procs_to_assign++;</span>
+<span class="lineNum">     141 </span>            :         /* flag that we added one */
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         add_one = true;</span>
+<span class="lineNum">     143 </span>            :     }
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     OPAL_LIST_FOREACH(node, node_list, orte_node_t) {</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     147 </span>            :                             &quot;mca:rmaps:rr:slot working node %s&quot;,
+<span class="lineNum">     148 </span>            :                             node-&gt;name);
+<span class="lineNum">     149 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">     150 </span>            :         /* get the root object as we are not assigning
+<span class="lineNum">     151 </span>            :          * locale except at the node level
+<span class="lineNum">     152 </span>            :          */
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         if (NULL != node-&gt;topology) {</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :             obj = hwloc_get_root_obj(node-&gt;topology);</span>
+<span class="lineNum">     155 </span>            :         }
+<span class="lineNum">     156 </span>            : #endif
+<span class="lineNum">     157 </span>            :         /* add this node to the map - do it only once */
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :         if (!ORTE_FLAG_TEST(node, ORTE_NODE_FLAG_MAPPED)) {</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :             if (ORTE_SUCCESS &gt; (rc = opal_pointer_array_add(jdata-&gt;map-&gt;nodes, (void*)node))) {</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(rc);</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :                 return rc;</span>
+<span class="lineNum">     162 </span>            :             }
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :             ORTE_FLAG_SET(node, ORTE_NODE_FLAG_MAPPED);</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :             OBJ_RETAIN(node);  /* maintain accounting on object */</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :             ++(jdata-&gt;map-&gt;num_nodes);</span>
+<span class="lineNum">     166 </span>            :         }
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :         if (add_one) {</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :             if (0 == nxtra_nodes) {</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :                 --extra_procs_to_assign;</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :                 add_one = false;</span>
+<span class="lineNum">     171 </span>            :             } else {
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :                 --nxtra_nodes;</span>
+<span class="lineNum">     173 </span>            :             }
+<span class="lineNum">     174 </span>            :         }
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :         num_procs_to_assign = ((node-&gt;slots - node-&gt;slots_inuse)/orte_rmaps_base.cpus_per_rank) + extra_procs_to_assign;</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :         opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     177 </span>            :                             &quot;mca:rmaps:rr:slot adding up to %d procs to node %s&quot;,
+<span class="lineNum">     178 </span>            :                             num_procs_to_assign, node-&gt;name);
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         for (i=0; i &lt; num_procs_to_assign &amp;&amp; nprocs_mapped &lt; app-&gt;num_procs; i++) {</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :             if (NULL == (proc = orte_rmaps_base_setup_proc(jdata, node, app-&gt;idx))) {</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     182 </span>            :             }
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :             nprocs_mapped++;</span>
+<span class="lineNum">     184 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :             orte_set_attribute(&amp;proc-&gt;attributes, ORTE_PROC_HWLOC_LOCALE, ORTE_ATTR_LOCAL, obj, OPAL_PTR);</span>
+<span class="lineNum">     186 </span>            : #endif
+<span class="lineNum">     187 </span>            :         }
+<span class="lineNum">     188 </span>            :         /* not all nodes are equal, so only set oversubscribed for
+<span class="lineNum">     189 </span>            :          * this node if it is in that state
+<span class="lineNum">     190 </span>            :          */
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :         if (node-&gt;slots &lt; ((int)node-&gt;num_procs * orte_rmaps_base.cpus_per_rank)) {</span>
+<span class="lineNum">     192 </span>            :             /* flag the node as oversubscribed so that sched-yield gets
+<span class="lineNum">     193 </span>            :              * properly set
+<span class="lineNum">     194 </span>            :              */
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :             ORTE_FLAG_SET(node, ORTE_NODE_FLAG_OVERSUBSCRIBED);</span>
+<span class="lineNum">     196 </span>            :         }
+<span class="lineNum">     197 </span>            :         /* if we have mapped everything, then we are done */
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :         if (nprocs_mapped == app-&gt;num_procs) {</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     200 </span>            :         }
+<span class="lineNum">     201 </span>            :     }
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<a name="203"><span class="lineNum">     203 </span>            : }</a>
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 : int orte_rmaps_rr_bynode(orte_job_t *jdata,</span>
+<span class="lineNum">     206 </span>            :                          orte_app_context_t *app,
+<span class="lineNum">     207 </span>            :                          opal_list_t *node_list,
+<span class="lineNum">     208 </span>            :                          orte_std_cntr_t num_slots,
+<span class="lineNum">     209 </span>            :                          orte_vpid_t num_procs)
+<span class="lineNum">     210 </span>            : {
+<span class="lineNum">     211 </span>            :     int j, nprocs_mapped, nnodes;
+<span class="lineNum">     212 </span>            :     orte_node_t *node;
+<span class="lineNum">     213 </span>            :     orte_proc_t *proc;
+<span class="lineNum">     214 </span>            :     int num_procs_to_assign, navg, idx;
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     int extra_procs_to_assign=0, nxtra_nodes=0;</span>
+<span class="lineNum">     216 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     hwloc_obj_t obj=NULL;</span>
+<span class="lineNum">     218 </span>            : #endif
+<span class="lineNum">     219 </span>            :     float balance;
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :     bool add_one=false;</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :     bool oversubscribed=false;</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     224 </span>            :                         &quot;mca:rmaps:rr: mapping by node for job %s app %d slots %d num_procs %lu&quot;,
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :                         ORTE_JOBID_PRINT(jdata-&gt;jobid), (int)app-&gt;idx,</span>
+<span class="lineNum">     226 </span>            :                         (int)num_slots, (unsigned long)num_procs);
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span>            :     /* quick check to see if we can map all the procs */
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     if (num_slots &lt; ((int)app-&gt;num_procs * orte_rmaps_base.cpus_per_rank)) {</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         if (ORTE_MAPPING_NO_OVERSUBSCRIBE &amp; ORTE_GET_MAPPING_DIRECTIVE(jdata-&gt;map-&gt;mapping)) {</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-orte-rmaps-base.txt&quot;, &quot;orte-rmaps-base:alloc-error&quot;,</span>
+<span class="lineNum">     232 </span>            :                            true, app-&gt;num_procs, app-&gt;app);
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :             return ORTE_ERR_SILENT;</span>
+<span class="lineNum">     234 </span>            :         }
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         oversubscribed = true;</span>
+<span class="lineNum">     236 </span>            :     }
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     nnodes = opal_list_get_size(node_list);</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     nprocs_mapped = 0;</span>
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span>            :     do {
+<span class="lineNum">     242 </span>            :         /* divide the procs evenly across all nodes - this is the
+<span class="lineNum">     243 </span>            :          * average we have to maintain as we go, but we adjust
+<span class="lineNum">     244 </span>            :          * the number on each node to reflect its available slots.
+<span class="lineNum">     245 </span>            :          * Obviously, if all nodes have the same number of slots,
+<span class="lineNum">     246 </span>            :          * then the avg is what we get on each node - this is
+<span class="lineNum">     247 </span>            :          * the most common situation.
+<span class="lineNum">     248 </span>            :          */
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :         navg = ((int)app-&gt;num_procs - nprocs_mapped) / nnodes;</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         if (0 == navg) {</span>
+<span class="lineNum">     251 </span>            :             /* if there are less procs than nodes, we have to
+<span class="lineNum">     252 </span>            :              * place at least one/node
+<span class="lineNum">     253 </span>            :              */
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :             navg = 1;</span>
+<span class="lineNum">     255 </span>            :         }
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            :         /* compute how many extra procs to put on each node */
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         balance = (float)(((int)app-&gt;num_procs - nprocs_mapped) - (navg * nnodes)) / (float)nnodes;</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :         extra_procs_to_assign = (int)balance;</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         nxtra_nodes = 0;</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         add_one = false;</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         if (0 &lt; (balance - (float)extra_procs_to_assign)) {</span>
+<span class="lineNum">     263 </span>            :             /* compute how many nodes need an extra proc */
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             nxtra_nodes = ((int)app-&gt;num_procs - nprocs_mapped) - ((navg + extra_procs_to_assign) * nnodes);</span>
+<span class="lineNum">     265 </span>            :             /* add one so that we add an extra proc to the first nodes
+<span class="lineNum">     266 </span>            :              * until all procs are mapped
+<span class="lineNum">     267 </span>            :              */
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :             extra_procs_to_assign++;</span>
+<span class="lineNum">     269 </span>            :             /* flag that we added one */
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :             add_one = true;</span>
+<span class="lineNum">     271 </span>            :         }
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     274 </span>            :                             &quot;mca:rmaps:rr: mapping by node navg %d extra_procs %d extra_nodes %d&quot;,
+<span class="lineNum">     275 </span>            :                             navg, extra_procs_to_assign, nxtra_nodes);
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :         nnodes = 0;</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         OPAL_LIST_FOREACH(node, node_list, orte_node_t) {</span>
+<span class="lineNum">     279 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">     280 </span>            :             /* get the root object as we are not assigning
+<span class="lineNum">     281 </span>            :              * locale except at the node level
+<span class="lineNum">     282 </span>            :              */
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :             if (NULL != node-&gt;topology) {</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :                 obj = hwloc_get_root_obj(node-&gt;topology);</span>
+<span class="lineNum">     285 </span>            :             }
+<span class="lineNum">     286 </span>            : #endif
+<span class="lineNum">     287 </span>            :             /* add this node to the map, but only do so once */
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :             if (!ORTE_FLAG_TEST(node, ORTE_NODE_FLAG_MAPPED)) {</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :                 if (ORTE_SUCCESS &gt; (idx = opal_pointer_array_add(jdata-&gt;map-&gt;nodes, (void*)node))) {</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(idx);</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :                     return idx;</span>
+<span class="lineNum">     292 </span>            :                 }
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :                 ORTE_FLAG_SET(node, ORTE_NODE_FLAG_MAPPED);</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :                 OBJ_RETAIN(node);  /* maintain accounting on object */</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :                 ++(jdata-&gt;map-&gt;num_nodes);</span>
+<span class="lineNum">     296 </span>            :             }
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :             if (oversubscribed) {</span>
+<span class="lineNum">     298 </span>            :                 /* compute the number of procs to go on this node */
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :                 if (add_one) {</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :                     if (0 == nxtra_nodes) {</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :                         --extra_procs_to_assign;</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :                         add_one = false;</span>
+<span class="lineNum">     303 </span>            :                     } else {
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :                         --nxtra_nodes;</span>
+<span class="lineNum">     305 </span>            :                     }
+<span class="lineNum">     306 </span>            :                 }
+<span class="lineNum">     307 </span>            :                 /* everybody just takes their share */
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :                 num_procs_to_assign = navg + extra_procs_to_assign;</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :             } else if (node-&gt;slots &lt;= node-&gt;slots_inuse) {</span>
+<span class="lineNum">     310 </span>            :                 /* since we are not oversubcribed, ignore this node */
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     312 </span>            :             } else {
+<span class="lineNum">     313 </span>            :                 /* if we are not oversubscribed, then there are enough
+<span class="lineNum">     314 </span>            :                  * slots to handle all the procs. However, not every
+<span class="lineNum">     315 </span>            :                  * node will have the same number of slots, so we
+<span class="lineNum">     316 </span>            :                  * have to track how many procs to &quot;shift&quot; elsewhere
+<span class="lineNum">     317 </span>            :                  * to make up the difference
+<span class="lineNum">     318 </span>            :                  */
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            :                 /* compute the number of procs to go on this node */
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :                 if (add_one) {</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :                     if (0 == nxtra_nodes) {</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :                         --extra_procs_to_assign;</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :                         add_one = false;</span>
+<span class="lineNum">     325 </span>            :                     } else {
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :                         --nxtra_nodes;</span>
+<span class="lineNum">     327 </span>            :                     }
+<span class="lineNum">     328 </span>            :                 }
+<span class="lineNum">     329 </span>            :                 /* if slots &lt; avg + extra (adjusted for cpus/proc), then try to take all */
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :                 if ((node-&gt;slots - node-&gt;slots_inuse) &lt; ((navg + extra_procs_to_assign) * orte_rmaps_base.cpus_per_rank)) {</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :                     num_procs_to_assign = (node-&gt;slots - node-&gt;slots_inuse)/orte_rmaps_base.cpus_per_rank;</span>
+<span class="lineNum">     332 </span>            :                     /* if we can't take any proc, skip following steps */
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :                     if (num_procs_to_assign == 0) {</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     335 </span>            :                     }
+<span class="lineNum">     336 </span>            :                 } else {
+<span class="lineNum">     337 </span>            :                 /* take the avg + extra */
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :                     num_procs_to_assign = navg + extra_procs_to_assign;</span>
+<span class="lineNum">     339 </span>            :                 }
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :                 OPAL_OUTPUT_VERBOSE((20, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     341 </span>            :                                      &quot;%s NODE %s AVG %d ASSIGN %d EXTRA %d&quot;,
+<span class="lineNum">     342 </span>            :                                      ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), node-&gt;name,
+<span class="lineNum">     343 </span>            :                                      navg, num_procs_to_assign, extra_procs_to_assign));
+<span class="lineNum">     344 </span>            :             }
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :             nnodes++; // track how many nodes remain available</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :             OPAL_OUTPUT_VERBOSE((20, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     347 </span>            :                                  &quot;%s NODE %s ASSIGNING %d&quot;,
+<span class="lineNum">     348 </span>            :                                  ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), node-&gt;name,
+<span class="lineNum">     349 </span>            :                                  num_procs_to_assign));
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :             for (j=0; j &lt; num_procs_to_assign &amp;&amp; nprocs_mapped &lt; app-&gt;num_procs; j++) {</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :                 if (NULL == (proc = orte_rmaps_base_setup_proc(jdata, node, app-&gt;idx))) {</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :                     return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     353 </span>            :                 }
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :                 nprocs_mapped++;</span>
+<span class="lineNum">     355 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :             orte_set_attribute(&amp;proc-&gt;attributes, ORTE_PROC_HWLOC_LOCALE, ORTE_ATTR_LOCAL, obj, OPAL_PTR);</span>
+<span class="lineNum">     357 </span>            : #endif
+<span class="lineNum">     358 </span>            :             }
+<span class="lineNum">     359 </span>            :             /* not all nodes are equal, so only set oversubscribed for
+<span class="lineNum">     360 </span>            :              * this node if it is in that state
+<span class="lineNum">     361 </span>            :              */
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :             if (node-&gt;slots &lt; ((int)node-&gt;num_procs * orte_rmaps_base.cpus_per_rank)) {</span>
+<span class="lineNum">     363 </span>            :                 /* flag the node as oversubscribed so that sched-yield gets
+<span class="lineNum">     364 </span>            :                  * properly set
+<span class="lineNum">     365 </span>            :                  */
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :                 ORTE_FLAG_SET(node, ORTE_NODE_FLAG_OVERSUBSCRIBED);</span>
+<span class="lineNum">     367 </span>            :             }
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :             if (nprocs_mapped == app-&gt;num_procs) {</span>
+<span class="lineNum">     369 </span>            :                 /* we are done */
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     371 </span>            :             }
+<span class="lineNum">     372 </span>            :         }
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     } while (nprocs_mapped &lt; app-&gt;num_procs &amp;&amp; 0 &lt; nnodes);</span>
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span>            :     /* now fillin as required until fully mapped */
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     while (nprocs_mapped &lt; app-&gt;num_procs) {</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :         OPAL_LIST_FOREACH(node, node_list, orte_node_t) {</span>
+<span class="lineNum">     378 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">     379 </span>            :             /* get the root object as we are not assigning
+<span class="lineNum">     380 </span>            :              * locale except at the node level
+<span class="lineNum">     381 </span>            :              */
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :             if (NULL != node-&gt;topology) {</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :                 obj = hwloc_get_root_obj(node-&gt;topology);</span>
+<span class="lineNum">     384 </span>            :             }
+<span class="lineNum">     385 </span>            : #endif
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :            OPAL_OUTPUT_VERBOSE((20, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     387 </span>            :                                  &quot;%s ADDING PROC TO NODE %s&quot;,
+<span class="lineNum">     388 </span>            :                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), node-&gt;name));
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :             if (NULL == (proc = orte_rmaps_base_setup_proc(jdata, node, app-&gt;idx))) {</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     391 </span>            :             }
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :             nprocs_mapped++;</span>
+<span class="lineNum">     393 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :             orte_set_attribute(&amp;proc-&gt;attributes, ORTE_PROC_HWLOC_LOCALE, ORTE_ATTR_LOCAL, obj, OPAL_PTR);</span>
+<span class="lineNum">     395 </span>            : #endif
+<span class="lineNum">     396 </span>            :             /* not all nodes are equal, so only set oversubscribed for
+<span class="lineNum">     397 </span>            :              * this node if it is in that state
+<span class="lineNum">     398 </span>            :              */
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :             if (node-&gt;slots &lt; ((int)node-&gt;num_procs * orte_rmaps_base.cpus_per_rank)) {</span>
+<span class="lineNum">     400 </span>            :                 /* flag the node as oversubscribed so that sched-yield gets
+<span class="lineNum">     401 </span>            :                  * properly set
+<span class="lineNum">     402 </span>            :                  */
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :                 ORTE_FLAG_SET(node, ORTE_NODE_FLAG_OVERSUBSCRIBED);</span>
+<span class="lineNum">     404 </span>            :             }
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :             if (nprocs_mapped == app-&gt;num_procs) {</span>
+<span class="lineNum">     406 </span>            :                 /* we are done */
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     408 </span>            :             }
+<span class="lineNum">     409 </span>            :         }
+<span class="lineNum">     410 </span>            :     }
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     413 </span>            : }
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span>            : #if OPAL_HAVE_HWLOC
+<span class="lineNum">     416 </span>            : static  int byobj_span(orte_job_t *jdata,
+<span class="lineNum">     417 </span>            :                        orte_app_context_t *app,
+<span class="lineNum">     418 </span>            :                        opal_list_t *node_list,
+<span class="lineNum">     419 </span>            :                        orte_std_cntr_t num_slots,
+<span class="lineNum">     420 </span>            :                        orte_vpid_t num_procs,
+<span class="lineNum">     421 </span>            :                        hwloc_obj_type_t target, unsigned cache_level);
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span>            : /* mapping by hwloc object looks a lot like mapping by node,
+<span class="lineNum">     424 </span>            :  * but has the added complication of possibly having different
+<a name="425"><span class="lineNum">     425 </span>            :  * numbers of objects on each node</a>
+<span class="lineNum">     426 </span>            :  */
+<span class="lineNum">     427 </span><span class="lineCov">          3 : int orte_rmaps_rr_byobj(orte_job_t *jdata,</span>
+<span class="lineNum">     428 </span>            :                         orte_app_context_t *app,
+<span class="lineNum">     429 </span>            :                         opal_list_t *node_list,
+<span class="lineNum">     430 </span>            :                         orte_std_cntr_t num_slots,
+<span class="lineNum">     431 </span>            :                         orte_vpid_t num_procs,
+<span class="lineNum">     432 </span>            :                         hwloc_obj_type_t target, unsigned cache_level)
+<span class="lineNum">     433 </span>            : {
+<span class="lineNum">     434 </span>            :     int i, nmapped, nprocs_mapped;
+<span class="lineNum">     435 </span>            :     orte_node_t *node;
+<span class="lineNum">     436 </span>            :     orte_proc_t *proc;
+<span class="lineNum">     437 </span>            :     int nprocs, start;
+<span class="lineNum">     438 </span>            :     int idx;
+<span class="lineNum">     439 </span><span class="lineCov">          3 :     hwloc_obj_t obj=NULL;</span>
+<span class="lineNum">     440 </span>            :     unsigned int nobjs;
+<span class="lineNum">     441 </span>            :     bool add_one;
+<span class="lineNum">     442 </span>            :     bool second_pass;
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span>            :     /* there are two modes for mapping by object: span and not-span. The
+<span class="lineNum">     445 </span>            :      * span mode essentially operates as if there was just a single
+<span class="lineNum">     446 </span>            :      * &quot;super-node&quot; in the system - i.e., it balances the load across
+<span class="lineNum">     447 </span>            :      * all objects of the indicated type regardless of their location.
+<span class="lineNum">     448 </span>            :      * In essence, it acts as if we placed one proc on each object, cycling
+<span class="lineNum">     449 </span>            :      * across all objects on all nodes, and then wrapped around to place
+<span class="lineNum">     450 </span>            :      * another proc on each object, doing so until all procs were placed.
+<span class="lineNum">     451 </span>            :      *
+<span class="lineNum">     452 </span>            :      * In contrast, the non-span mode operates similar to byslot mapping.
+<span class="lineNum">     453 </span>            :      * All slots on each node are filled, assigning each proc to an object
+<span class="lineNum">     454 </span>            :      * on that node in a balanced fashion, and then the mapper moves on
+<span class="lineNum">     455 </span>            :      * to the next node. Thus, procs tend to be &quot;front loaded&quot; onto the
+<span class="lineNum">     456 </span>            :      * list of nodes, as opposed to being &quot;load balanced&quot; in the span mode
+<span class="lineNum">     457 </span>            :      */
+<span class="lineNum">     458 </span><span class="lineCov">          3 :     if (ORTE_MAPPING_SPAN &amp; ORTE_GET_MAPPING_DIRECTIVE(jdata-&gt;map-&gt;mapping)) {</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :         return byobj_span(jdata, app, node_list, num_slots,</span>
+<span class="lineNum">     460 </span>            :                           num_procs, target, cache_level);
+<span class="lineNum">     461 </span>            :     }
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span><span class="lineCov">          3 :     opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     464 </span>            :                         &quot;mca:rmaps:rr: mapping no-span by %s for job %s slots %d num_procs %lu&quot;,
+<span class="lineNum">     465 </span>            :                         hwloc_obj_type_string(target),
+<span class="lineNum">     466 </span>            :                         ORTE_JOBID_PRINT(jdata-&gt;jobid),
+<span class="lineNum">     467 </span>            :                         (int)num_slots, (unsigned long)num_procs);
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span>            :     /* quick check to see if we can map all the procs */
+<span class="lineNum">     470 </span><span class="lineCov">          3 :     if (num_slots &lt; (app-&gt;num_procs * orte_rmaps_base.cpus_per_rank)) {</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :         if (ORTE_MAPPING_NO_OVERSUBSCRIBE &amp; ORTE_GET_MAPPING_DIRECTIVE(jdata-&gt;map-&gt;mapping)) {</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-orte-rmaps-base.txt&quot;, &quot;orte-rmaps-base:alloc-error&quot;,</span>
+<span class="lineNum">     473 </span>            :                            true, app-&gt;num_procs, app-&gt;app);
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :             return ORTE_ERR_SILENT;</span>
+<span class="lineNum">     475 </span>            :         }
+<span class="lineNum">     476 </span>            :     }
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span>            :     /* we know we have enough slots, or that oversubscrption is allowed, so
+<span class="lineNum">     479 </span>            :      * start mapping procs onto objects, filling each object as we go until
+<span class="lineNum">     480 </span>            :      * all procs are mapped. If one pass doesn't catch all the required procs,
+<span class="lineNum">     481 </span>            :      * then loop thru the list again to handle the oversubscription
+<span class="lineNum">     482 </span>            :      */
+<span class="lineNum">     483 </span><span class="lineCov">          3 :     nprocs_mapped = 0;</span>
+<span class="lineNum">     484 </span><span class="lineCov">          3 :     second_pass = false;</span>
+<span class="lineNum">     485 </span>            :     do {
+<span class="lineNum">     486 </span><span class="lineCov">          3 :         add_one = false;</span>
+<span class="lineNum">     487 </span><span class="lineCov">          3 :         OPAL_LIST_FOREACH(node, node_list, orte_node_t) {</span>
+<span class="lineNum">     488 </span><span class="lineCov">          3 :             if (NULL == node-&gt;topology) {</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-orte-rmaps-ppr.txt&quot;, &quot;ppr-topo-missing&quot;,</span>
+<span class="lineNum">     490 </span>            :                                true, node-&gt;name);
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_SILENT;</span>
+<span class="lineNum">     492 </span>            :             }
+<span class="lineNum">     493 </span><span class="lineCov">          3 :             start = 0;</span>
+<span class="lineNum">     494 </span>            :             /* get the number of objects of this type on this node */
+<span class="lineNum">     495 </span><span class="lineCov">          3 :             nobjs = opal_hwloc_base_get_nbobjs_by_type(node-&gt;topology, target, cache_level, OPAL_HWLOC_AVAILABLE);</span>
+<span class="lineNum">     496 </span><span class="lineCov">          3 :             if (0 == nobjs) {</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     498 </span>            :             }
+<span class="lineNum">     499 </span><span class="lineCov">          3 :             opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     500 </span>            :                                 &quot;mca:rmaps:rr: found %u %s objects on node %s&quot;,
+<span class="lineNum">     501 </span>            :                                 nobjs, hwloc_obj_type_string(target), node-&gt;name);
+<span class="lineNum">     502 </span>            : 
+<span class="lineNum">     503 </span>            :             /* if this is a comm_spawn situation, start with the object
+<span class="lineNum">     504 </span>            :              * where the parent left off and increment */
+<span class="lineNum">     505 </span><span class="lineCov">          3 :             if (ORTE_JOBID_INVALID != jdata-&gt;originator.jobid) {</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :                 start = (jdata-&gt;bkmark_obj + 1) % nobjs;</span>
+<span class="lineNum">     507 </span>            :             }
+<span class="lineNum">     508 </span>            :             /* compute the number of procs to go on this node */
+<span class="lineNum">     509 </span><span class="lineCov">          3 :             nprocs = (node-&gt;slots - node-&gt;slots_inuse) / orte_rmaps_base.cpus_per_rank;</span>
+<span class="lineNum">     510 </span><span class="lineCov">          3 :             opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     511 </span>            :                                 &quot;mca:rmaps:rr: calculated nprocs %d&quot;, nprocs);
+<span class="lineNum">     512 </span><span class="lineCov">          3 :             if (nprocs &lt; 1) {</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :                 if (second_pass) {</span>
+<span class="lineNum">     514 </span>            :                     /* already checked for oversubscription permission, so at least put
+<span class="lineNum">     515 </span>            :                      * one proc on it
+<span class="lineNum">     516 </span>            :                      */
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :                     nprocs = 1;</span>
+<span class="lineNum">     518 </span>            :                     /* offset our starting object position to avoid always
+<span class="lineNum">     519 </span>            :                      * hitting the first one
+<span class="lineNum">     520 </span>            :                      */
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :                     start = node-&gt;num_procs % nobjs;</span>
+<span class="lineNum">     522 </span>            :                 } else {
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     524 </span>            :                 }
+<span class="lineNum">     525 </span>            :             }
+<span class="lineNum">     526 </span>            :             /* add this node to the map, if reqd */
+<span class="lineNum">     527 </span><span class="lineCov">          3 :             if (!ORTE_FLAG_TEST(node, ORTE_NODE_FLAG_MAPPED)) {</span>
+<span class="lineNum">     528 </span><span class="lineCov">          3 :                 if (ORTE_SUCCESS &gt; (idx = opal_pointer_array_add(jdata-&gt;map-&gt;nodes, (void*)node))) {</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :                     ORTE_ERROR_LOG(idx);</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :                     return idx;</span>
+<span class="lineNum">     531 </span>            :                 }
+<span class="lineNum">     532 </span><span class="lineCov">          3 :                 ORTE_FLAG_SET(node, ORTE_NODE_FLAG_MAPPED);</span>
+<span class="lineNum">     533 </span><span class="lineCov">          6 :                 OBJ_RETAIN(node);  /* maintain accounting on object */</span>
+<span class="lineNum">     534 </span><span class="lineCov">          3 :                 ++(jdata-&gt;map-&gt;num_nodes);</span>
+<span class="lineNum">     535 </span>            :             }
+<span class="lineNum">     536 </span><span class="lineCov">          3 :             nmapped = 0;</span>
+<span class="lineNum">     537 </span><span class="lineCov">          3 :             opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     538 </span>            :                                 &quot;mca:rmaps:rr: assigning nprocs %d&quot;, nprocs);
+<span class="lineNum">     539 </span>            :             do {
+<span class="lineNum">     540 </span>            :                 /* loop through the number of objects */
+<span class="lineNum">     541 </span><span class="lineCov">          9 :                 for (i=0; i &lt; (int)nobjs &amp;&amp; nmapped &lt; nprocs &amp;&amp; nprocs_mapped &lt; (int)app-&gt;num_procs; i++) {</span>
+<span class="lineNum">     542 </span><span class="lineCov">          6 :                     opal_output_verbose(20, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     543 </span><span class="lineCov">          6 :                                         &quot;mca:rmaps:rr: assigning proc to object %d&quot;, (i+start) % nobjs);</span>
+<span class="lineNum">     544 </span>            :                     /* get the hwloc object */
+<span class="lineNum">     545 </span><span class="lineCov">          6 :                     if (NULL == (obj = opal_hwloc_base_get_obj_by_type(node-&gt;topology, target, cache_level, (i+start) % nobjs, OPAL_HWLOC_AVAILABLE))) {</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :                         ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :                         return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     548 </span>            :                     }
+<span class="lineNum">     549 </span><span class="lineCov">          6 :                     if (orte_rmaps_base.cpus_per_rank &gt; (int)opal_hwloc_base_get_npus(node-&gt;topology, obj)) {</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :                         orte_show_help(&quot;help-orte-rmaps-base.txt&quot;, &quot;mapping-too-low&quot;, true,</span>
+<span class="lineNum">     551 </span>            :                                        orte_rmaps_base.cpus_per_rank, opal_hwloc_base_get_npus(node-&gt;topology, obj),
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :                                        orte_rmaps_base_print_mapping(orte_rmaps_base.mapping));</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :                         return ORTE_ERR_SILENT;</span>
+<span class="lineNum">     554 </span>            :                     }
+<span class="lineNum">     555 </span><span class="lineCov">          6 :                     if (NULL == (proc = orte_rmaps_base_setup_proc(jdata, node, app-&gt;idx))) {</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :                         return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     557 </span>            :                     }
+<span class="lineNum">     558 </span><span class="lineCov">          6 :                     nprocs_mapped++;</span>
+<span class="lineNum">     559 </span><span class="lineCov">          6 :                     nmapped++;</span>
+<span class="lineNum">     560 </span><span class="lineCov">          6 :                     orte_set_attribute(&amp;proc-&gt;attributes, ORTE_PROC_HWLOC_LOCALE, ORTE_ATTR_LOCAL, obj, OPAL_PTR);</span>
+<span class="lineNum">     561 </span>            :                 }
+<span class="lineNum">     562 </span><span class="lineCov">          3 :             } while (nmapped &lt; nprocs &amp;&amp; nprocs_mapped &lt; (int)app-&gt;num_procs);</span>
+<span class="lineNum">     563 </span><span class="lineCov">          3 :             add_one = true;</span>
+<span class="lineNum">     564 </span>            :             /* not all nodes are equal, so only set oversubscribed for
+<span class="lineNum">     565 </span>            :              * this node if it is in that state
+<span class="lineNum">     566 </span>            :              */
+<span class="lineNum">     567 </span><span class="lineCov">          3 :             if (node-&gt;slots &lt; (int)node-&gt;num_procs) {</span>
+<span class="lineNum">     568 </span>            :                 /* flag the node as oversubscribed so that sched-yield gets
+<span class="lineNum">     569 </span>            :                  * properly set
+<span class="lineNum">     570 </span>            :                  */
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :                 ORTE_FLAG_SET(node, ORTE_NODE_FLAG_OVERSUBSCRIBED);</span>
+<span class="lineNum">     572 </span>            :             }
+<span class="lineNum">     573 </span><span class="lineCov">          3 :             if (nprocs_mapped == app-&gt;num_procs) {</span>
+<span class="lineNum">     574 </span>            :                 /* we are done */
+<span class="lineNum">     575 </span><span class="lineCov">          3 :                 break;</span>
+<span class="lineNum">     576 </span>            :             }
+<span class="lineNum">     577 </span>            :         }
+<span class="lineNum">     578 </span><span class="lineCov">          3 :         second_pass = true;</span>
+<span class="lineNum">     579 </span><span class="lineCov">          3 :     } while (add_one &amp;&amp; nprocs_mapped &lt; app-&gt;num_procs);</span>
+<span class="lineNum">     580 </span>            : 
+<span class="lineNum">     581 </span><span class="lineCov">          3 :     if (nprocs_mapped &lt; app-&gt;num_procs) {</span>
+<span class="lineNum">     582 </span>            :         /* usually means there were no objects of the requested type */
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :         return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     584 </span>            :     }
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span><span class="lineCov">          3 :     return ORTE_SUCCESS;</span>
+<a name="587"><span class="lineNum">     587 </span>            : }</a>
+<span class="lineNum">     588 </span>            : 
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 : static int byobj_span(orte_job_t *jdata,</span>
+<span class="lineNum">     590 </span>            :                       orte_app_context_t *app,
+<span class="lineNum">     591 </span>            :                       opal_list_t *node_list,
+<span class="lineNum">     592 </span>            :                       orte_std_cntr_t num_slots,
+<span class="lineNum">     593 </span>            :                       orte_vpid_t num_procs,
+<span class="lineNum">     594 </span>            :                       hwloc_obj_type_t target, unsigned cache_level)
+<span class="lineNum">     595 </span>            : {
+<span class="lineNum">     596 </span>            :     int i, j, nprocs_mapped, navg;
+<span class="lineNum">     597 </span>            :     orte_node_t *node;
+<span class="lineNum">     598 </span>            :     orte_proc_t *proc;
+<span class="lineNum">     599 </span>            :     int nprocs, nxtra_objs;
+<span class="lineNum">     600 </span>            :     int idx;
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :     hwloc_obj_t obj=NULL;</span>
+<span class="lineNum">     602 </span>            :     unsigned int nobjs;
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     605 </span>            :                         &quot;mca:rmaps:rr: mapping span by %s for job %s slots %d num_procs %lu&quot;,
+<span class="lineNum">     606 </span>            :                         hwloc_obj_type_string(target),
+<span class="lineNum">     607 </span>            :                         ORTE_JOBID_PRINT(jdata-&gt;jobid),
+<span class="lineNum">     608 </span>            :                         (int)num_slots, (unsigned long)num_procs);
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span>            :     /* quick check to see if we can map all the procs */
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :     if (num_slots &lt; (int)app-&gt;num_procs * orte_rmaps_base.cpus_per_rank) {</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :         if (ORTE_MAPPING_NO_OVERSUBSCRIBE &amp; ORTE_GET_MAPPING_DIRECTIVE(jdata-&gt;map-&gt;mapping)) {</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-orte-rmaps-base.txt&quot;, &quot;orte-rmaps-base:alloc-error&quot;,</span>
+<span class="lineNum">     614 </span>            :                            true, app-&gt;num_procs, app-&gt;app);
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :             return ORTE_ERR_SILENT;</span>
+<span class="lineNum">     616 </span>            :         }
+<span class="lineNum">     617 </span>            :     }
+<span class="lineNum">     618 </span>            : 
+<span class="lineNum">     619 </span>            :     /* we know we have enough slots, or that oversubscrption is allowed, so
+<span class="lineNum">     620 </span>            :      * next determine how many total objects we have to work with
+<span class="lineNum">     621 </span>            :      */
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :     nobjs = 0;</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :     OPAL_LIST_FOREACH(node, node_list, orte_node_t) {</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :         if (NULL == node-&gt;topology) {</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :             orte_show_help(&quot;help-orte-rmaps-ppr.txt&quot;, &quot;ppr-topo-missing&quot;,</span>
+<span class="lineNum">     626 </span>            :                            true, node-&gt;name);
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :             return ORTE_ERR_SILENT;</span>
+<span class="lineNum">     628 </span>            :         }
+<span class="lineNum">     629 </span>            :         /* get the number of objects of this type on this node */
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :         nobjs += opal_hwloc_base_get_nbobjs_by_type(node-&gt;topology, target, cache_level, OPAL_HWLOC_AVAILABLE);</span>
+<span class="lineNum">     631 </span>            :     }
+<span class="lineNum">     632 </span>            : 
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :     if (0 == nobjs) {</span>
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :         return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     635 </span>            :     }
+<span class="lineNum">     636 </span>            : 
+<span class="lineNum">     637 </span>            :     /* divide the procs evenly across all objects */
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :     navg = app-&gt;num_procs / nobjs;</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :     if (0 == navg) {</span>
+<span class="lineNum">     640 </span>            :         /* if there are less procs than objects, we have to
+<span class="lineNum">     641 </span>            :          * place at least one/obj
+<span class="lineNum">     642 </span>            :          */
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :         navg = 1;</span>
+<span class="lineNum">     644 </span>            :     }
+<span class="lineNum">     645 </span>            : 
+<span class="lineNum">     646 </span>            :     /* compute how many objs need an extra proc */
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :     if (0 &gt; (nxtra_objs = app-&gt;num_procs - (navg * nobjs))) {</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :         nxtra_objs = 0;</span>
+<span class="lineNum">     649 </span>            :     }
+<span class="lineNum">     650 </span>            : 
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :     opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     652 </span>            :                         &quot;mca:rmaps:rr: mapping by %s navg %d extra_objs %d&quot;,
+<span class="lineNum">     653 </span>            :                         hwloc_obj_type_string(target),
+<span class="lineNum">     654 </span>            :                         navg, nxtra_objs);
+<span class="lineNum">     655 </span>            : 
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :     nprocs_mapped = 0;</span>
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :     OPAL_LIST_FOREACH(node, node_list, orte_node_t) {</span>
+<span class="lineNum">     658 </span>            :         /* add this node to the map, if reqd */
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :         if (!ORTE_FLAG_TEST(node, ORTE_NODE_FLAG_MAPPED)) {</span>
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :             if (ORTE_SUCCESS &gt; (idx = opal_pointer_array_add(jdata-&gt;map-&gt;nodes, (void*)node))) {</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(idx);</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :                 return idx;</span>
+<span class="lineNum">     663 </span>            :             }
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :             ORTE_FLAG_SET(node, ORTE_NODE_FLAG_MAPPED);</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :             OBJ_RETAIN(node);  /* maintain accounting on object */</span>
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :             ++(jdata-&gt;map-&gt;num_nodes);</span>
+<span class="lineNum">     667 </span>            :         }
+<span class="lineNum">     668 </span>            :         /* get the number of objects of this type on this node */
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :         nobjs = opal_hwloc_base_get_nbobjs_by_type(node-&gt;topology, target, cache_level, OPAL_HWLOC_AVAILABLE);</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :         opal_output_verbose(2, orte_rmaps_base_framework.framework_output,</span>
+<span class="lineNum">     671 </span>            :                             &quot;mca:rmaps:rr:byobj: found %d objs on node %s&quot;, nobjs, node-&gt;name);
+<span class="lineNum">     672 </span>            :         /* loop through the number of objects */
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :         for (i=0; i &lt; (int)nobjs &amp;&amp; nprocs_mapped &lt; (int)app-&gt;num_procs; i++) {</span>
+<span class="lineNum">     674 </span>            :             /* get the hwloc object */
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :             if (NULL == (obj = opal_hwloc_base_get_obj_by_type(node-&gt;topology, target, cache_level, i, OPAL_HWLOC_AVAILABLE))) {</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :                 ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_NOT_FOUND;</span>
+<span class="lineNum">     678 </span>            :             }
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :             if (orte_rmaps_base.cpus_per_rank &gt; (int)opal_hwloc_base_get_npus(node-&gt;topology, obj)) {</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :                 orte_show_help(&quot;help-orte-rmaps-base.txt&quot;, &quot;mapping-too-low&quot;, true,</span>
+<span class="lineNum">     681 </span>            :                                orte_rmaps_base.cpus_per_rank, opal_hwloc_base_get_npus(node-&gt;topology, obj),
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :                                orte_rmaps_base_print_mapping(orte_rmaps_base.mapping));</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :                 return ORTE_ERR_SILENT;</span>
+<span class="lineNum">     684 </span>            :             }
+<span class="lineNum">     685 </span>            :             /* determine how many to map */
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :             nprocs = navg;</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :             if (0 &lt; nxtra_objs) {</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :                 nprocs++;</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :                 nxtra_objs--;</span>
+<span class="lineNum">     690 </span>            :             }
+<span class="lineNum">     691 </span>            :             /* map the reqd number of procs */
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :             for (j=0; j &lt; nprocs &amp;&amp; nprocs_mapped &lt; app-&gt;num_procs; j++) {</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :                 if (NULL == (proc = orte_rmaps_base_setup_proc(jdata, node, app-&gt;idx))) {</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :                     return ORTE_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     695 </span>            :                 }
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :                 nprocs_mapped++;</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :                 orte_set_attribute(&amp;proc-&gt;attributes, ORTE_PROC_HWLOC_LOCALE, ORTE_ATTR_LOCAL, obj, OPAL_PTR);</span>
+<span class="lineNum">     698 </span>            :             }
+<span class="lineNum">     699 </span>            :             /* keep track of the node we last used */
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :             jdata-&gt;bookmark = node;</span>
+<span class="lineNum">     701 </span>            :         }
+<span class="lineNum">     702 </span>            :         /* not all nodes are equal, so only set oversubscribed for
+<span class="lineNum">     703 </span>            :          * this node if it is in that state
+<span class="lineNum">     704 </span>            :          */
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :         if (node-&gt;slots &lt; (int)node-&gt;num_procs * orte_rmaps_base.cpus_per_rank) {</span>
+<span class="lineNum">     706 </span>            :             /* flag the node as oversubscribed so that sched-yield gets
+<span class="lineNum">     707 </span>            :              * properly set
+<span class="lineNum">     708 </span>            :              */
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :             ORTE_FLAG_SET(node, ORTE_NODE_FLAG_OVERSUBSCRIBED);</span>
+<span class="lineNum">     710 </span>            :         }
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :         if (nprocs_mapped == app-&gt;num_procs) {</span>
+<span class="lineNum">     712 </span>            :             /* we are done */
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     714 </span>            :         }
+<span class="lineNum">     715 </span>            :     }
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :     return ORTE_SUCCESS;</span>
+<span class="lineNum">     718 </span>            : }
+<span class="lineNum">     719 </span>            : #endif
+<span class="lineNum">     720 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

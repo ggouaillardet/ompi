@@ -1,0 +1,595 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/btl/openib/connect/btl_openib_connect_base.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../index.html">top level</a> - <a href="index.html">opal/mca/btl/openib/connect</a> - btl_openib_connect_base.c<span style="font-size: 80%;"> (source / <a href="btl_openib_connect_base.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">30</td>
+            <td class="headerCovTableEntry">199</td>
+            <td class="headerCovTableEntryLo">15.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryLo">20.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2007-2013 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">       4 </span>            :  * Copyright (c) 2007      Mellanox Technologies, Inc.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2012-2015 Los Alamos National Security, LLC.  All rights
+<span class="lineNum">       6 </span>            :  *                         reserved.
+<span class="lineNum">       7 </span>            :  * Copyright (c) 2013-2014 Intel, Inc. All rights reserved
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">       9 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * $HEADER$
+<span class="lineNum">      16 </span>            :  */
+<span class="lineNum">      17 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &quot;btl_openib.h&quot;
+<span class="lineNum">      20 </span>            : #include &quot;btl_openib_proc.h&quot;
+<span class="lineNum">      21 </span>            : #include &quot;connect/base.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;connect/btl_openib_connect_empty.h&quot;
+<span class="lineNum">      23 </span>            : #if OPAL_HAVE_RDMACM
+<span class="lineNum">      24 </span>            : #include &quot;connect/btl_openib_connect_rdmacm.h&quot;
+<span class="lineNum">      25 </span>            : #endif
+<span class="lineNum">      26 </span>            : #if OPAL_HAVE_UDCM
+<span class="lineNum">      27 </span>            : #include &quot;connect/btl_openib_connect_udcm.h&quot;
+<span class="lineNum">      28 </span>            : #endif
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #include &quot;opal/util/argv.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;opal/util/proc.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;opal/util/show_help.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : /*
+<span class="lineNum">      36 </span>            :  * Array of all possible connection functions
+<span class="lineNum">      37 </span>            :  */
+<span class="lineNum">      38 </span>            : static opal_btl_openib_connect_base_component_t *all[] = {
+<span class="lineNum">      39 </span>            :     /* Always have an entry here so that the CP indexes will always be
+<span class="lineNum">      40 </span>            :        the same: OOB has been removed, so use the &quot;empty&quot; CPC */
+<span class="lineNum">      41 </span>            :     &amp;opal_btl_openib_connect_empty,
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            :     /* Always have an entry here so that the CP indexes will always be
+<span class="lineNum">      44 </span>            :        the same: XOOB has been removed, so use the &quot;empty&quot; CPC */
+<span class="lineNum">      45 </span>            :     &amp;opal_btl_openib_connect_empty,
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            :     /* Always have an entry here so that the CP indexes will always be
+<span class="lineNum">      48 </span>            :        the same: if RDMA CM is not available, use the &quot;empty&quot; CPC */
+<span class="lineNum">      49 </span>            : #if OPAL_HAVE_RDMACM
+<span class="lineNum">      50 </span>            :     &amp;opal_btl_openib_connect_rdmacm,
+<span class="lineNum">      51 </span>            : #else
+<span class="lineNum">      52 </span>            :     &amp;opal_btl_openib_connect_empty,
+<span class="lineNum">      53 </span>            : #endif
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            :     /* Always have an entry here so that the CP indexes will always be
+<span class="lineNum">      56 </span>            :        the same: if UD CM is not enabled, use the &quot;empty&quot; CPC */
+<span class="lineNum">      57 </span>            : #if OPAL_HAVE_UDCM
+<span class="lineNum">      58 </span>            :     &amp;opal_btl_openib_connect_udcm,
+<span class="lineNum">      59 </span>            : #else
+<span class="lineNum">      60 </span>            :     &amp;opal_btl_openib_connect_empty,
+<span class="lineNum">      61 </span>            : #endif
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            :     NULL
+<span class="lineNum">      64 </span>            : };
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : /* increase this count if any more cpcs are added */
+<span class="lineNum">      67 </span>            : static opal_btl_openib_connect_base_component_t *available[5];
+<span class="lineNum">      68 </span>            : static int num_available = 0;
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : static char *btl_openib_cpc_include;
+<span class="lineNum">      71 </span>            : static char *btl_openib_cpc_exclude;
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : /*
+<a name="74"><span class="lineNum">      74 </span>            :  * Register MCA parameters</a>
+<span class="lineNum">      75 </span>            :  */
+<span class="lineNum">      76 </span><span class="lineCov">          2 : int opal_btl_openib_connect_base_register(void)</span>
+<span class="lineNum">      77 </span>            : {
+<span class="lineNum">      78 </span>            :     int i, j, save;
+<span class="lineNum">      79 </span><span class="lineCov">          2 :     char **temp = NULL, *string = NULL, *all_cpc_names = NULL;</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            :     /* Make an MCA parameter to select which connect module to use */
+<span class="lineNum">      82 </span><span class="lineCov">         10 :     for (i = 0; NULL != all[i]; ++i) {</span>
+<span class="lineNum">      83 </span>            :         /* The CPC name &quot;empty&quot; is reserved for &quot;fake&quot; CPC modules */
+<span class="lineNum">      84 </span><span class="lineCov">          8 :         if (0 != strcmp(all[i]-&gt;cbc_name, &quot;empty&quot;)) {</span>
+<span class="lineNum">      85 </span><span class="lineCov">          2 :             opal_argv_append_nosize(&amp;temp, all[i]-&gt;cbc_name);</span>
+<span class="lineNum">      86 </span>            :         }
+<span class="lineNum">      87 </span>            :     }
+<span class="lineNum">      88 </span><span class="lineCov">          2 :     all_cpc_names = opal_argv_join(temp, ',');</span>
+<span class="lineNum">      89 </span><span class="lineCov">          2 :     opal_argv_free(temp);</span>
+<span class="lineNum">      90 </span><span class="lineCov">          2 :     asprintf(&amp;string,</span>
+<span class="lineNum">      91 </span>            :              &quot;Method used to select OpenFabrics connections (valid values: %s)&quot;,
+<span class="lineNum">      92 </span>            :              all_cpc_names);
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span><span class="lineCov">          2 :     btl_openib_cpc_include = NULL;</span>
+<span class="lineNum">      95 </span><span class="lineCov">          2 :     (void) mca_base_component_var_register(&amp;mca_btl_openib_component.super.btl_version,</span>
+<span class="lineNum">      96 </span>            :                                            &quot;cpc_include&quot;, string, MCA_BASE_VAR_TYPE_STRING,
+<span class="lineNum">      97 </span>            :                                            NULL, 0, 0, OPAL_INFO_LVL_9,
+<span class="lineNum">      98 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">      99 </span>            :                                            &amp;btl_openib_cpc_include);
+<span class="lineNum">     100 </span><span class="lineCov">          2 :     free(string);</span>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span><span class="lineCov">          2 :     asprintf(&amp;string,</span>
+<span class="lineNum">     103 </span>            :              &quot;Method used to exclude OpenFabrics connections (valid values: %s)&quot;,
+<span class="lineNum">     104 </span>            :              all_cpc_names);
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span><span class="lineCov">          2 :     btl_openib_cpc_exclude = NULL;</span>
+<span class="lineNum">     107 </span><span class="lineCov">          2 :     (void) mca_base_component_var_register(&amp;mca_btl_openib_component.super.btl_version,</span>
+<span class="lineNum">     108 </span>            :                                            &quot;cpc_exclude&quot;, string, MCA_BASE_VAR_TYPE_STRING,
+<span class="lineNum">     109 </span>            :                                            NULL, 0, 0, OPAL_INFO_LVL_9,
+<span class="lineNum">     110 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     111 </span>            :                                            &amp;btl_openib_cpc_exclude);
+<span class="lineNum">     112 </span><span class="lineCov">          2 :     free(string);</span>
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :     /* Parse the if_[in|ex]clude paramters to come up with a list of
+<span class="lineNum">     115 </span>            :        CPCs that are available */
+<span class="lineNum">     116 </span>            :     /* If we have an &quot;include&quot; list, then find all those CPCs and put
+<span class="lineNum">     117 </span>            :        them in available[] */
+<span class="lineNum">     118 </span><span class="lineCov">          2 :     if (NULL != btl_openib_cpc_include) {</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :         mca_btl_openib_component.cpc_explicitly_defined = true;</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :         temp = opal_argv_split(btl_openib_cpc_include, ',');</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         for (save = j = 0; NULL != temp[j]; ++j) {</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :             for (i = 0; NULL != all[i]; ++i) {</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :                 if (0 == strcmp(temp[j], all[i]-&gt;cbc_name)) {</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :                     opal_output(-1, &quot;include: saving %s&quot;, all[i]-&gt;cbc_name);</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :                     available[save++] = all[i];</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :                     ++num_available;</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     128 </span>            :                 }
+<span class="lineNum">     129 </span>            :             }
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :             if (NULL == all[i]) {</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :                 opal_show_help(&quot;help-mpi-btl-openib-cpc-base.txt&quot;,</span>
+<span class="lineNum">     132 </span>            :                                &quot;cpc name not found&quot;, true,
+<span class="lineNum">     133 </span>            :                                &quot;include&quot;, opal_process_info.nodename,
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :                                &quot;include&quot;, btl_openib_cpc_include, temp[j],</span>
+<span class="lineNum">     135 </span>            :                                all_cpc_names);
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :                 opal_argv_free(temp);</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :                 free(all_cpc_names);</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :                 return OPAL_ERR_NOT_FOUND;</span>
+<span class="lineNum">     139 </span>            :             }
+<span class="lineNum">     140 </span>            :         }
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         opal_argv_free(temp);</span>
+<span class="lineNum">     142 </span>            :     }
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            :     /* Otherwise, if we have an &quot;exclude&quot; list, take all the CPCs that
+<span class="lineNum">     145 </span>            :        are not in that list and put them in available[] */
+<span class="lineNum">     146 </span><span class="lineCov">          2 :     else if (NULL != btl_openib_cpc_exclude) {</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         mca_btl_openib_component.cpc_explicitly_defined = true;</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         temp = opal_argv_split(btl_openib_cpc_exclude, ',');</span>
+<span class="lineNum">     149 </span>            :         /* First: error check -- ensure that all the names are valid */
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         for (j = 0; NULL != temp[j]; ++j) {</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :             for (i = 0; NULL != all[i]; ++i) {</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :                 if (0 == strcmp(temp[j], all[i]-&gt;cbc_name)) {</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     154 </span>            :                 }
+<span class="lineNum">     155 </span>            :             }
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :             if (NULL == all[i]) {</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :                 opal_show_help(&quot;help-mpi-btl-openib-cpc-base.txt&quot;,</span>
+<span class="lineNum">     158 </span>            :                                &quot;cpc name not found&quot;, true,
+<span class="lineNum">     159 </span>            :                                &quot;exclude&quot;, opal_process_info.nodename,
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                                &quot;exclude&quot;, btl_openib_cpc_exclude, temp[j],</span>
+<span class="lineNum">     161 </span>            :                                all_cpc_names);
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                 opal_argv_free(temp);</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :                 free(all_cpc_names);</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :                 return OPAL_ERR_NOT_FOUND;</span>
+<span class="lineNum">     165 </span>            :             }
+<span class="lineNum">     166 </span>            :         }
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            :         /* Now do the exclude */
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         for (save = i = 0; NULL != all[i]; ++i) {</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :             for (j = 0; NULL != temp[j]; ++j) {</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :                 if (0 == strcmp(temp[j], all[i]-&gt;cbc_name)) {</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     173 </span>            :                 }
+<span class="lineNum">     174 </span>            :             }
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :             if (NULL == temp[j]) {</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :                 opal_output(-1, &quot;exclude: saving %s&quot;, all[i]-&gt;cbc_name);</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :                 available[save++] = all[i];</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :                 ++num_available;</span>
+<span class="lineNum">     179 </span>            :             }
+<span class="lineNum">     180 </span>            :         }
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         opal_argv_free(temp);</span>
+<span class="lineNum">     182 </span>            :     }
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            :     /* If there's no include/exclude list, copy all[] into available[] */
+<span class="lineNum">     185 </span>            :     else {
+<span class="lineNum">     186 </span><span class="lineCov">          2 :         opal_output(-1, &quot;no include or exclude: saving all&quot;);</span>
+<span class="lineNum">     187 </span><span class="lineCov">          2 :         memcpy(available, all, sizeof(all));</span>
+<span class="lineNum">     188 </span><span class="lineCov">          2 :         num_available = (sizeof(all) /</span>
+<span class="lineNum">     189 </span>            :                          sizeof(opal_btl_openib_connect_base_module_t *)) - 1;
+<span class="lineNum">     190 </span>            :     }
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            :     /* Call the register function on all the CPCs so that they may
+<span class="lineNum">     193 </span>            :        setup any MCA params specific to the connection type */
+<span class="lineNum">     194 </span><span class="lineCov">         10 :     for (i = 0; NULL != available[i]; ++i) {</span>
+<span class="lineNum">     195 </span><span class="lineCov">          8 :         if (NULL != available[i]-&gt;cbc_register) {</span>
+<span class="lineNum">     196 </span><span class="lineCov">          8 :             available[i]-&gt;cbc_register();</span>
+<span class="lineNum">     197 </span>            :         }
+<span class="lineNum">     198 </span>            :     }
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineCov">          2 :     free (all_cpc_names);</span>
+<span class="lineNum">     201 </span><span class="lineCov">          2 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     202 </span>            : }
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : /*
+<span class="lineNum">     205 </span>            :  * Called once during openib BTL component initialization to allow CPC
+<a name="206"><span class="lineNum">     206 </span>            :  * components to initialize.</a>
+<span class="lineNum">     207 </span>            :  */
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 : int opal_btl_openib_connect_base_init(void)</span>
+<span class="lineNum">     209 </span>            : {
+<span class="lineNum">     210 </span>            :     int i, rc;
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            :     /* Call each available CPC component's open function, if it has
+<span class="lineNum">     213 </span>            :        one.  If the CPC component open function returns OPAL_SUCCESS,
+<span class="lineNum">     214 </span>            :        keep it.  If it returns ERR_NOT_SUPPORTED, remove it from the
+<span class="lineNum">     215 </span>            :        available[] array.  If it returns something else, return that
+<span class="lineNum">     216 </span>            :        error upward. */
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     for (i = num_available = 0; NULL != available[i]; ++i) {</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         if (NULL == available[i]-&gt;cbc_init) {</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :             available[num_available++] = available[i];</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :             opal_output(-1, &quot;found available cpc (NULL init): %s&quot;,</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :                         all[i]-&gt;cbc_name);</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     223 </span>            :         }
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :         rc = available[i]-&gt;cbc_init();</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS == rc) {</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :             available[num_available++] = available[i];</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :             opal_output(-1, &quot;found available cpc (SUCCESS init): %s&quot;,</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :                         all[i]-&gt;cbc_name);</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         } else if (OPAL_ERR_NOT_SUPPORTED == rc) {</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     233 </span>            :         } else {
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     235 </span>            :         }
+<span class="lineNum">     236 </span>            :     }
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     available[num_available] = NULL;</span>
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     return (num_available &gt; 0) ? OPAL_SUCCESS : OPAL_ERR_NOT_AVAILABLE;</span>
+<span class="lineNum">     240 </span>            : }
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            : /*
+<span class="lineNum">     244 </span>            :  * Find all the CPCs that are eligible for a single local port (i.e.,
+<a name="245"><span class="lineNum">     245 </span>            :  * openib module).</a>
+<span class="lineNum">     246 </span>            :  */
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 : int opal_btl_openib_connect_base_select_for_local_port(mca_btl_openib_module_t *btl)</span>
+<span class="lineNum">     248 </span>            : {
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :     char *msg = NULL;</span>
+<span class="lineNum">     250 </span>            :     int i, rc, cpc_index, len;
+<span class="lineNum">     251 </span>            :     opal_btl_openib_connect_base_module_t **cpcs;
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     cpcs = (opal_btl_openib_connect_base_module_t **) calloc(num_available,</span>
+<span class="lineNum">     254 </span>            :                   sizeof(opal_btl_openib_connect_base_module_t *));
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     if (NULL == cpcs) {</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     257 </span>            :     }
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            :     /* Go through all available CPCs and query them to see if they
+<span class="lineNum">     260 </span>            :        want to run on this module.  If they do, save them to a running
+<span class="lineNum">     261 </span>            :        array. */
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     for (len = 1, i = 0; NULL != available[i]; ++i) {</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         len += strlen(available[i]-&gt;cbc_name) + 2;</span>
+<span class="lineNum">     264 </span>            :     }
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     msg = (char *) malloc(len);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     if (NULL == msg) {</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         free(cpcs);</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     269 </span>            :     }
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     msg[0] = '\0';</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :     for (cpc_index = i = 0; NULL != available[i]; ++i) {</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :         if (i &gt; 0) {</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :             strcat(msg, &quot;, &quot;);</span>
+<span class="lineNum">     274 </span>            :         }
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :         strcat(msg, available[i]-&gt;cbc_name);</span>
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :         rc = available[i]-&gt;cbc_query(btl, &amp;cpcs[cpc_index]);</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         if (OPAL_ERR_NOT_SUPPORTED == rc || OPAL_ERR_UNREACH == rc) {</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         } else if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :             free(cpcs);</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :             free(msg);</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     284 </span>            :         }
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :         opal_output(-1, &quot;match cpc for local port: %s&quot;,</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :                     available[i]-&gt;cbc_name);</span>
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span>            :         /* If the CPC wants to use the CTS protocol, check to ensure
+<span class="lineNum">     289 </span>            :            that QP 0 is PP; if it's not, we can't use this CPC (or the
+<span class="lineNum">     290 </span>            :            CTS protocol) */
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         if (cpcs[cpc_index]-&gt;cbm_uses_cts &amp;&amp;</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :             !BTL_OPENIB_QP_TYPE_PP(0)) {</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :             BTL_VERBOSE((&quot;this CPC only supports when the first btl_openib_receive_queues QP is a PP QP&quot;));</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     295 </span>            :         }
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            :         /* This CPC has indicated that it wants to run on this openib
+<span class="lineNum">     298 </span>            :            BTL module.  Woo hoo! */
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :         ++cpc_index;</span>
+<span class="lineNum">     300 </span>            :     }
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            :     /* If we got an empty array, then no CPCs were eligible.  Doh! */
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     if (0 == cpc_index) {</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         opal_show_help(&quot;help-mpi-btl-openib-cpc-base.txt&quot;,</span>
+<span class="lineNum">     305 </span>            :                        &quot;no cpcs for port&quot;, true,
+<span class="lineNum">     306 </span>            :                        opal_process_info.nodename,
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :                        ibv_get_device_name(btl-&gt;device-&gt;ib_dev),</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :                        btl-&gt;port_num, msg);</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :         free(cpcs);</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :         free(msg);</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :         return OPAL_ERR_NOT_SUPPORTED;</span>
+<span class="lineNum">     312 </span>            :     }
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     free(msg);</span>
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span>            :     /* We got at least one eligible CPC; save the array into the
+<span class="lineNum">     316 </span>            :        module's port_info */
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     btl-&gt;cpcs = cpcs;</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     btl-&gt;num_cpcs = cpc_index;</span>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     321 </span>            : }
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            : /*
+<span class="lineNum">     324 </span>            :  * This function is invoked when determining whether we have a CPC in
+<span class="lineNum">     325 </span>            :  * common with a specific remote port.  We already know that the
+<span class="lineNum">     326 </span>            :  * subnet ID is the same between a specific local port and the target
+<span class="lineNum">     327 </span>            :  * remote port; now we need to know if we can find a CPC in common
+<span class="lineNum">     328 </span>            :  * between the two.
+<span class="lineNum">     329 </span>            :  *
+<span class="lineNum">     330 </span>            :  * If yes, be sure to find the *same* CPC on both sides.  We know
+<span class="lineNum">     331 </span>            :  * which CPCs are available on each side, and we know the priorities
+<span class="lineNum">     332 </span>            :  * that were assigned on both sides.  So find a CPC that is common to
+<span class="lineNum">     333 </span>            :  * both sides and has the highest overall priority (between both
+<span class="lineNum">     334 </span>            :  * sides).
+<span class="lineNum">     335 </span>            :  *
+<span class="lineNum">     336 </span>            :  * Return the matching CPC, or NULL if not found.
+<a name="337"><span class="lineNum">     337 </span>            :  */</a>
+<span class="lineNum">     338 </span>            : int
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 : opal_btl_openib_connect_base_find_match(mca_btl_openib_module_t *btl,</span>
+<span class="lineNum">     340 </span>            :                                         mca_btl_openib_proc_modex_t *peer_port,
+<span class="lineNum">     341 </span>            :                                         opal_btl_openib_connect_base_module_t **ret_local_cpc,
+<span class="lineNum">     342 </span>            :                                         opal_btl_openib_connect_base_module_data_t **ret_remote_cpc_data)
+<span class="lineNum">     343 </span>            : {
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     int i, j, max = -1;</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     opal_btl_openib_connect_base_module_t *local_cpc, *local_selected = NULL;</span>
+<span class="lineNum">     346 </span>            :     opal_btl_openib_connect_base_module_data_t *local_cpcd, *remote_cpcd,
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :         *remote_selected = NULL;</span>
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            :     /* Iterate over all the CPCs on the local module */
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; btl-&gt;num_cpcs; ++i) {</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :         local_cpc = btl-&gt;cpcs[i];</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :         local_cpcd = &amp;(local_cpc-&gt;data);</span>
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span>            :         /* Iterate over all the CPCs on the remote port */
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :         for (j = 0; j &lt; peer_port-&gt;pm_cpc_data_count; ++j) {</span>
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :             remote_cpcd = &amp;(peer_port-&gt;pm_cpc_data[j]);</span>
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            :             /* Are the components the same? */
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :             if (local_cpcd-&gt;cbm_component == remote_cpcd-&gt;cbm_component) {</span>
+<span class="lineNum">     360 </span>            :                 /* If so, update the max priority found so far */
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :                 if (max &lt; local_cpcd-&gt;cbm_priority) {</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :                     max = local_cpcd-&gt;cbm_priority;</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :                     local_selected = local_cpc;</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :                     remote_selected = remote_cpcd;</span>
+<span class="lineNum">     365 </span>            :                 }
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :                 if (max &lt; remote_cpcd-&gt;cbm_priority) {</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :                     max = remote_cpcd-&gt;cbm_priority;</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :                     local_selected = local_cpc;</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :                     remote_selected = remote_cpcd;</span>
+<span class="lineNum">     370 </span>            :                 }
+<span class="lineNum">     371 </span>            :             }
+<span class="lineNum">     372 </span>            :         }
+<span class="lineNum">     373 </span>            :     }
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span>            :     /* All done! */
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     if (NULL != local_selected) {</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :         *ret_local_cpc = local_selected;</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :         *ret_remote_cpc_data = remote_selected;</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :         opal_output(-1, &quot;find_match: found match!&quot;);</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :         return OPAL_SUCCESS;</span>
+<span class="lineNum">     381 </span>            :     } else {
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :         opal_output(-1, &quot;find_match: did NOT find match!&quot;);</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :         return OPAL_ERR_NOT_FOUND;</span>
+<span class="lineNum">     384 </span>            :     }
+<span class="lineNum">     385 </span>            : }
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span>            : /*
+<span class="lineNum">     388 </span>            :  * Lookup a CPC component's index in the all[] array so that we can
+<a name="389"><span class="lineNum">     389 </span>            :  * send it int the modex</a>
+<span class="lineNum">     390 </span>            :  */
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 : int opal_btl_openib_connect_base_get_cpc_index(opal_btl_openib_connect_base_component_t *cpc)</span>
+<span class="lineNum">     392 </span>            : {
+<span class="lineNum">     393 </span>            :     int i;
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :     for (i = 0; NULL != all[i]; ++i) {</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :         if (all[i] == cpc) {</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :             return i;</span>
+<span class="lineNum">     397 </span>            :         }
+<span class="lineNum">     398 </span>            :     }
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            :     /* Not found */
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     402 </span>            : }
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span>            : /*
+<span class="lineNum">     405 </span>            :  * Lookup a CPC by its index (received from the modex)
+<a name="406"><span class="lineNum">     406 </span>            :  */</a>
+<span class="lineNum">     407 </span>            : opal_btl_openib_connect_base_component_t *
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 : opal_btl_openib_connect_base_get_cpc_byindex(uint8_t index)</span>
+<span class="lineNum">     409 </span>            : {
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     return (index &gt;= (sizeof(all) /</span>
+<span class="lineNum">     411 </span>            :                       sizeof(opal_btl_openib_connect_base_module_t *))) ?
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         NULL : all[index];</span>
+<a name="413"><span class="lineNum">     413 </span>            : }</a>
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 : int opal_btl_openib_connect_base_alloc_cts(mca_btl_base_endpoint_t *endpoint)</span>
+<span class="lineNum">     416 </span>            : {
+<span class="lineNum">     417 </span>            :     opal_free_list_item_t *fli;
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :     int length = sizeof(mca_btl_openib_header_t) +</span>
+<span class="lineNum">     419 </span>            :         sizeof(mca_btl_openib_header_coalesced_t) +
+<span class="lineNum">     420 </span>            :         sizeof(mca_btl_openib_control_header_t) +
+<span class="lineNum">     421 </span>            :         sizeof(mca_btl_openib_footer_t) +
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :         mca_btl_openib_component.qp_infos[mca_btl_openib_component.credits_qp].size;</span>
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span>            :     /* Explicitly don't use the mpool registration */
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     fli = &amp;(endpoint-&gt;endpoint_cts_frag.super.super.base.super);</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     fli-&gt;registration = NULL;</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     fli-&gt;ptr = malloc(length);</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :     if (NULL == fli-&gt;ptr) {</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;malloc failed&quot;));</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     431 </span>            :     }
+<span class="lineNum">     432 </span>            : 
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     endpoint-&gt;endpoint_cts_mr =</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         ibv_reg_mr(endpoint-&gt;endpoint_btl-&gt;device-&gt;ib_pd,</span>
+<span class="lineNum">     435 </span>            :                    fli-&gt;ptr, length,
+<span class="lineNum">     436 </span>            :                    IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE |
+<span class="lineNum">     437 </span>            :                    IBV_ACCESS_REMOTE_READ);
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((-1, &quot;registered memory %p, length %d&quot;, fli-&gt;ptr, length));</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :     if (NULL == endpoint-&gt;endpoint_cts_mr) {</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :         free(fli-&gt;ptr);</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :         BTL_ERROR((&quot;Failed to reg mr!&quot;));</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     443 </span>            :     }
+<span class="lineNum">     444 </span>            :     /* NOTE: We do not need to register this memory with the
+<span class="lineNum">     445 </span>            :        opal_memory subsystem, because this is OMPI-controlled memory
+<span class="lineNum">     446 </span>            :        -- we do not need to worry about this memory being freed out
+<span class="lineNum">     447 </span>            :        from underneath us. */
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span>            :     /* Copy the lkey where it needs to go */
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     endpoint-&gt;endpoint_cts_frag.super.sg_entry.lkey =</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :         endpoint-&gt;endpoint_cts_mr-&gt;lkey;</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     endpoint-&gt;endpoint_cts_frag.super.sg_entry.length = length;</span>
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span>            :     /* Construct the rest of the recv_frag_t */
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;(endpoint-&gt;endpoint_cts_frag), mca_btl_openib_recv_frag_t);</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :     endpoint-&gt;endpoint_cts_frag.super.super.base.order =</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :         mca_btl_openib_component.credits_qp;</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :     endpoint-&gt;endpoint_cts_frag.super.endpoint = endpoint;</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :     OPAL_OUTPUT((-1, &quot;Got a CTS frag for peer %s, addr %p, length %d, lkey %d&quot;,</span>
+<span class="lineNum">     460 </span>            :                  opal_get_proc_hostname(endpoint-&gt;endpoint_proc-&gt;proc_opal),
+<span class="lineNum">     461 </span>            :                  (void*) endpoint-&gt;endpoint_cts_frag.super.sg_entry.addr,
+<span class="lineNum">     462 </span>            :                  endpoint-&gt;endpoint_cts_frag.super.sg_entry.length,
+<span class="lineNum">     463 </span>            :                  endpoint-&gt;endpoint_cts_frag.super.sg_entry.lkey));
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<a name="466"><span class="lineNum">     466 </span>            : }</a>
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 : int opal_btl_openib_connect_base_free_cts(mca_btl_base_endpoint_t *endpoint)</span>
+<span class="lineNum">     469 </span>            : {
+<span class="lineNum">     470 </span>            :     /* NOTE: We don't need to deregister this memory with opal_memory
+<span class="lineNum">     471 </span>            :        because it was not registered there in the first place (see
+<span class="lineNum">     472 </span>            :        comment above, near call to ibv_reg_mr). */
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :     if (NULL != endpoint-&gt;endpoint_cts_mr) {</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :         ibv_dereg_mr(endpoint-&gt;endpoint_cts_mr);</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :         endpoint-&gt;endpoint_cts_mr = NULL;</span>
+<span class="lineNum">     476 </span>            :     }
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     if (NULL != endpoint-&gt;endpoint_cts_frag.super.super.base.super.ptr) {</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :         free(endpoint-&gt;endpoint_cts_frag.super.super.base.super.ptr);</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :         endpoint-&gt;endpoint_cts_frag.super.super.base.super.ptr = NULL;</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :         OPAL_OUTPUT((-1, &quot;Freeing CTS frag&quot;));</span>
+<span class="lineNum">     481 </span>            :     }
+<span class="lineNum">     482 </span>            : 
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     484 </span>            : }
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span>            : /*
+<a name="487"><span class="lineNum">     487 </span>            :  * Called to start a connection</a>
+<span class="lineNum">     488 </span>            :  */
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 : int opal_btl_openib_connect_base_start(</span>
+<span class="lineNum">     490 </span>            :         opal_btl_openib_connect_base_module_t *cpc,
+<span class="lineNum">     491 </span>            :         mca_btl_base_endpoint_t *endpoint)
+<span class="lineNum">     492 </span>            : {
+<span class="lineNum">     493 </span>            :     /* If the CPC uses the CTS protocol, provide a frag buffer for the
+<span class="lineNum">     494 </span>            :        CPC to post.  Must allocate these frags up here in the main
+<span class="lineNum">     495 </span>            :        thread because the FREE_LIST_WAIT is not thread safe. */
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :     if (cpc-&gt;cbm_uses_cts) {</span>
+<span class="lineNum">     497 </span>            :         int rc;
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :         rc = opal_btl_openib_connect_base_alloc_cts(endpoint);</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :         if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     501 </span>            :         }
+<span class="lineNum">     502 </span>            :     }
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :     return cpc-&gt;cbm_start_connect(cpc, endpoint);</span>
+<span class="lineNum">     505 </span>            : }
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span>            : /*
+<a name="508"><span class="lineNum">     508 </span>            :  * Called during openib btl component close</a>
+<span class="lineNum">     509 </span>            :  */
+<span class="lineNum">     510 </span><span class="lineCov">          2 : void opal_btl_openib_connect_base_finalize(void)</span>
+<span class="lineNum">     511 </span>            : {
+<span class="lineNum">     512 </span>            :     int i;
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span><span class="lineCov">         10 :     for (i = 0 ; i &lt; num_available ; ++i) {</span>
+<span class="lineNum">     515 </span><span class="lineCov">          8 :         if (NULL != available[i]-&gt;cbc_finalize) {</span>
+<span class="lineNum">     516 </span><span class="lineCov">          2 :             available[i]-&gt;cbc_finalize();</span>
+<span class="lineNum">     517 </span>            :         }
+<span class="lineNum">     518 </span>            :     }
+<span class="lineNum">     519 </span><span class="lineCov">          2 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

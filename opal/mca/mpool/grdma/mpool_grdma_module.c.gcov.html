@@ -1,0 +1,644 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - ompi.info - opal/mca/mpool/grdma/mpool_grdma_module.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">opal/mca/mpool/grdma</a> - mpool_grdma_module.c<span style="font-size: 80%;"> (source / <a href="mpool_grdma_module.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">ompi.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">190</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 14:35:26</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2013 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2006-2014 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2006      Voltaire. All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2007      Mellanox Technologies. All rights reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2010      IBM Corporation.  All rights reserved.
+<span class="lineNum">      17 </span>            :  * Copyright (c) 2011-2015 Los Alamos National Security, LLC. All rights
+<span class="lineNum">      18 </span>            :  *                         reserved.
+<span class="lineNum">      19 </span>            :  * Copyright (c) 2013      NVIDIA Corporation.  All rights reserved.
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      22 </span>            :  *
+<span class="lineNum">      23 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      24 </span>            :  *
+<span class="lineNum">      25 </span>            :  * $HEADER$
+<span class="lineNum">      26 </span>            :  */
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #define OPAL_DISABLE_ENABLE_MEM_DEBUG 1
+<span class="lineNum">      29 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &quot;opal/align.h&quot;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : #include &quot;opal/util/proc.h&quot;
+<span class="lineNum">      38 </span>            : #if OPAL_CUDA_GDR_SUPPORT
+<span class="lineNum">      39 </span>            : #include &quot;opal/mca/common/cuda/common_cuda.h&quot;
+<span class="lineNum">      40 </span>            : #endif /* OPAL_CUDA_GDR_SUPPORT */
+<span class="lineNum">      41 </span>            : #include &quot;opal/mca/rcache/rcache.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;opal/mca/rcache/base/base.h&quot;
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : #include &quot;opal/mca/mpool/base/base.h&quot;
+<span class="lineNum">      45 </span>            : #include &quot;mpool_grdma.h&quot;
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : #if OPAL_CUDA_GDR_SUPPORT
+<a name="48"><span class="lineNum">      48 </span>            : static int check_for_cuda_freed_memory(mca_mpool_base_module_t *mpool, void *addr, size_t size);</a>
+<span class="lineNum">      49 </span>            : #endif /* OPAL_CUDA_GDR_SUPPORT */
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 : static void mca_mpool_grdma_pool_contructor (mca_mpool_grdma_pool_t *pool)</span>
+<span class="lineNum">      51 </span>            : {
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :     memset ((void *)((uintptr_t)pool + sizeof (pool-&gt;super)), 0, sizeof (*pool) - sizeof (pool-&gt;super));</span>
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;pool-&gt;lru_list, opal_list_t);</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;pool-&gt;gc_list, opal_list_t);</span>
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     pool-&gt;rcache = mca_rcache_base_module_create(mca_mpool_grdma_component.rcache_name);</span>
+<a name="58"><span class="lineNum">      58 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 : static void mca_mpool_grdma_pool_destructor (mca_mpool_grdma_pool_t *pool)</span>
+<span class="lineNum">      61 </span>            : {
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;pool-&gt;lru_list);</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;pool-&gt;gc_list);</span>
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     free (pool-&gt;pool_name);</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : OBJ_CLASS_INSTANCE(mca_mpool_grdma_pool_t, opal_list_item_t,
+<span class="lineNum">      69 </span>            :                    mca_mpool_grdma_pool_contructor,
+<span class="lineNum">      70 </span>            :                    mca_mpool_grdma_pool_destructor);
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : /*
+<a name="73"><span class="lineNum">      73 </span>            :  *  Initializes the mpool module.</a>
+<span class="lineNum">      74 </span>            :  */
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 : void mca_mpool_grdma_module_init(mca_mpool_grdma_module_t* mpool, mca_mpool_grdma_pool_t *pool)</span>
+<span class="lineNum">      76 </span>            : {
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :     OBJ_RETAIN(pool);</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     mpool-&gt;pool = pool;</span>
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :     mpool-&gt;super.mpool_component = &amp;mca_mpool_grdma_component.super;</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     mpool-&gt;super.mpool_base = NULL; /* no base .. */</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     mpool-&gt;super.mpool_alloc = mca_mpool_grdma_alloc;</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     mpool-&gt;super.mpool_realloc = mca_mpool_grdma_realloc;</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     mpool-&gt;super.mpool_free = mca_mpool_grdma_free;</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :     mpool-&gt;super.mpool_register = mca_mpool_grdma_register;</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :     mpool-&gt;super.mpool_find = mca_mpool_grdma_find;</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     mpool-&gt;super.mpool_deregister = mca_mpool_grdma_deregister;</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     mpool-&gt;super.mpool_release_memory = mca_mpool_grdma_release_memory;</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     mpool-&gt;super.mpool_finalize = mca_mpool_grdma_finalize;</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     mpool-&gt;super.mpool_ft_event = mca_mpool_grdma_ft_event;</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     mpool-&gt;super.flags = MCA_MPOOL_FLAGS_MPI_ALLOC_MEM;</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :     mpool-&gt;super.rcache = pool-&gt;rcache;</span>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :     mpool-&gt;stat_cache_hit = mpool-&gt;stat_cache_miss = mpool-&gt;stat_evicted = 0;</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     mpool-&gt;stat_cache_found = mpool-&gt;stat_cache_notfound = 0;</span>
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;mpool-&gt;reg_list, opal_free_list_t);</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     opal_free_list_init (&amp;mpool-&gt;reg_list, mpool-&gt;resources.sizeof_reg,</span>
+<span class="lineNum">      99 </span>            :                          opal_cache_line_size,
+<span class="lineNum">     100 </span>            :                          OBJ_CLASS(mca_mpool_base_registration_t),
+<span class="lineNum">     101 </span>            :                          0, opal_cache_line_size, 0, -1, 32, NULL, 0,
+<span class="lineNum">     102 </span>            :                          NULL, NULL, NULL);
+<a name="103"><span class="lineNum">     103 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 : static inline int dereg_mem(mca_mpool_base_registration_t *reg)</span>
+<span class="lineNum">     106 </span>            : {
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     mca_mpool_grdma_module_t *mpool_grdma = (mca_mpool_grdma_module_t *) reg-&gt;mpool;</span>
+<span class="lineNum">     108 </span>            :     int rc;
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     if(!(reg-&gt;flags &amp; MCA_MPOOL_FLAGS_CACHE_BYPASS))</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :         reg-&gt;mpool-&gt;rcache-&gt;rcache_delete(reg-&gt;mpool-&gt;rcache, reg);</span>
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            :     /* Drop the rcache lock before deregistring the memory */
+<span class="lineNum">     114 </span>            :     OPAL_THREAD_UNLOCK(&amp;reg-&gt;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     rc = mpool_grdma-&gt;resources.deregister_mem(mpool_grdma-&gt;resources.reg_data,</span>
+<span class="lineNum">     116 </span>            :                                                reg);
+<span class="lineNum">     117 </span>            :     OPAL_THREAD_LOCK(&amp;reg-&gt;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     if (OPAL_LIKELY(OPAL_SUCCESS == rc)) {</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :         opal_free_list_return (&amp;mpool_grdma-&gt;reg_list,</span>
+<span class="lineNum">     121 </span>            :                                (opal_free_list_item_t *) reg);
+<span class="lineNum">     122 </span>            :     }
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     125 </span>            : }
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            : /**
+<a name="128"><span class="lineNum">     128 </span>            :   * allocate function</a>
+<span class="lineNum">     129 </span>            :   */
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 : void* mca_mpool_grdma_alloc(mca_mpool_base_module_t *mpool, size_t size,</span>
+<span class="lineNum">     131 </span>            :         size_t align, uint32_t flags, mca_mpool_base_registration_t **reg)
+<span class="lineNum">     132 </span>            : {
+<span class="lineNum">     133 </span>            :     void *base_addr, *addr;
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     if(0 == align)</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         align = mca_mpool_base_page_size;</span>
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            : #if OPAL_CUDA_SUPPORT
+<span class="lineNum">     139 </span>            :     /* CUDA cannot handle registering overlapping regions, so make
+<span class="lineNum">     140 </span>            :      * sure each region is page sized and page aligned. */
+<span class="lineNum">     141 </span>            :     align = mca_mpool_base_page_size;
+<span class="lineNum">     142 </span>            :     size = OPAL_ALIGN(size, mca_mpool_base_page_size, size_t);
+<span class="lineNum">     143 </span>            : #endif
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            : #ifdef HAVE_POSIX_MEMALIGN
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     if((errno = posix_memalign(&amp;base_addr, align, size)) != 0)</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     addr = base_addr;</span>
+<span class="lineNum">     150 </span>            : #else
+<span class="lineNum">     151 </span>            :     base_addr = malloc(size + align);
+<span class="lineNum">     152 </span>            :     if(NULL == base_addr)
+<span class="lineNum">     153 </span>            :         return NULL;
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            :     addr = (void*)OPAL_ALIGN((uintptr_t)base_addr, align, uintptr_t);
+<span class="lineNum">     156 </span>            : #endif
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :     if(OPAL_SUCCESS != mca_mpool_grdma_register(mpool, addr, size, flags, reg)) {</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :         free(base_addr);</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     161 </span>            :     }
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     (*reg)-&gt;alloc_base = (unsigned char *) base_addr;</span>
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     return addr;</span>
+<span class="lineNum">     165 </span>            : }
+<a name="166"><span class="lineNum">     166 </span>            : </a>
+<span class="lineNum">     167 </span>            : /* This function must be called with the rcache lock held */
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 : static inline void do_unregistration_gc(struct mca_mpool_base_module_t *mpool)</span>
+<span class="lineNum">     169 </span>            : {
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     mca_mpool_grdma_module_t *mpool_grdma = (mca_mpool_grdma_module_t*)mpool;</span>
+<span class="lineNum">     171 </span>            :     opal_list_item_t *item;
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            :     /* Remove registration from garbage collection list
+<span class="lineNum">     174 </span>            :        before deregistering it */
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     while (NULL !=</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :            (item = opal_list_remove_first(&amp;mpool_grdma-&gt;pool-&gt;gc_list))) {</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :         dereg_mem((mca_mpool_base_registration_t *) item);</span>
+<span class="lineNum">     178 </span>            :     }
+<a name="179"><span class="lineNum">     179 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 : static inline bool mca_mpool_grdma_evict_lru_local (mca_mpool_grdma_pool_t *pool)</span>
+<span class="lineNum">     182 </span>            : {
+<span class="lineNum">     183 </span>            :     mca_mpool_grdma_module_t *mpool_grdma;
+<span class="lineNum">     184 </span>            :     mca_mpool_base_registration_t *old_reg;
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     old_reg = (mca_mpool_base_registration_t *)</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :         opal_list_remove_first (&amp;pool-&gt;lru_list);</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :     if (NULL == old_reg) {</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     190 </span>            :     }
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     mpool_grdma = (mca_mpool_grdma_module_t *) old_reg-&gt;mpool;</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     (void) dereg_mem (old_reg);</span>
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :     mpool_grdma-&gt;stat_evicted++;</span>
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     199 </span>            : }
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            : enum {
+<span class="lineNum">     202 </span>            :     MCA_MPOOL_GRDMA_MSG_EMPTY      = 0,
+<span class="lineNum">     203 </span>            :     MCA_MPOOL_GRDMA_MSG_NEED_DEREG = 1,
+<span class="lineNum">     204 </span>            :     MCA_MPOOL_GRDMA_MSG_BUSY       = 2,
+<span class="lineNum">     205 </span>            :     MCA_MPOOL_GRDMA_MSG_COMPLETE   = 3
+<a name="206"><span class="lineNum">     206 </span>            : };</a>
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 : bool mca_mpool_grdma_evict (struct mca_mpool_base_module_t *mpool)</span>
+<span class="lineNum">     209 </span>            : {
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :     return mca_mpool_grdma_evict_lru_local (((mca_mpool_grdma_module_t *) mpool)-&gt;pool);</span>
+<span class="lineNum">     211 </span>            : }
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            : /*
+<a name="214"><span class="lineNum">     214 </span>            :  * register memory</a>
+<span class="lineNum">     215 </span>            :  */
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 : int mca_mpool_grdma_register(mca_mpool_base_module_t *mpool, void *addr,</span>
+<span class="lineNum">     217 </span>            :                               size_t size, uint32_t flags,
+<span class="lineNum">     218 </span>            :                               mca_mpool_base_registration_t **reg)
+<span class="lineNum">     219 </span>            : {
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :     mca_mpool_grdma_module_t *mpool_grdma = (mca_mpool_grdma_module_t*)mpool;</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :     const bool bypass_cache = !!(flags &amp; MCA_MPOOL_FLAGS_CACHE_BYPASS);</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :     const bool persist = !!(flags &amp; MCA_MPOOL_FLAGS_PERSIST);</span>
+<span class="lineNum">     223 </span>            :     mca_mpool_base_registration_t *grdma_reg;
+<span class="lineNum">     224 </span>            :     opal_free_list_item_t *item;
+<span class="lineNum">     225 </span>            :     unsigned char *base, *bound;
+<span class="lineNum">     226 </span>            :     int rc;
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span>            :     OPAL_THREAD_LOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span>            :     /* if cache bypass is requested don't use the cache */
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     base = (unsigned char *) down_align_addr(addr, mca_mpool_base_page_size_log);</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     bound = (unsigned char *) up_align_addr((void*)((char*) addr + size - 1),</span>
+<span class="lineNum">     233 </span>            :                                             mca_mpool_base_page_size_log);
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     if (!opal_list_is_empty (&amp;mpool_grdma-&gt;pool-&gt;gc_list))</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         do_unregistration_gc(mpool);</span>
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span>            : #if OPAL_CUDA_GDR_SUPPORT
+<span class="lineNum">     238 </span>            :     if (flags &amp; MCA_MPOOL_FLAGS_CUDA_GPU_MEM) {
+<span class="lineNum">     239 </span>            :         size_t psize;
+<span class="lineNum">     240 </span>            :         mca_common_cuda_get_address_range(&amp;base, &amp;psize, addr);
+<span class="lineNum">     241 </span>            :         bound = base + psize - 1;
+<span class="lineNum">     242 </span>            :         /* Check to see if this memory is in the cache and if it has been freed. If so,
+<span class="lineNum">     243 </span>            :          * this call will boot it out of the cache. */
+<span class="lineNum">     244 </span>            :         check_for_cuda_freed_memory(mpool, base, psize);
+<span class="lineNum">     245 </span>            :     }
+<span class="lineNum">     246 </span>            : #endif /* OPAL_CUDA_GDR_SUPPORT */
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span>            :     /* look through existing regs if not persistent registration requested.
+<span class="lineNum">     249 </span>            :      * Persistent registration are always registered and placed in the cache */
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     if(!(bypass_cache || persist)) {</span>
+<span class="lineNum">     251 </span>            :         /* check to see if memory is registered */
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         mpool-&gt;rcache-&gt;rcache_find(mpool-&gt;rcache, base, bound - base + 1, reg);</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         if (*reg &amp;&amp; !(flags &amp; MCA_MPOOL_FLAGS_INVALID)) {</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :             if (0 == (*reg)-&gt;ref_count) {</span>
+<span class="lineNum">     255 </span>            :                 /* Leave pinned must be set for this to still be in the rcache. */
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;mpool_grdma-&gt;pool-&gt;lru_list,</span>
+<span class="lineNum">     257 </span>            :                                       (opal_list_item_t *)(*reg));
+<span class="lineNum">     258 </span>            :             }
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span>            :             /* This segment fits fully within an existing segment. */
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :             mpool_grdma-&gt;stat_cache_hit++;</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :             (*reg)-&gt;ref_count++;</span>
+<span class="lineNum">     263 </span>            :             OPAL_THREAD_UNLOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             return OPAL_SUCCESS;</span>
+<span class="lineNum">     265 </span>            :         }
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         mpool_grdma-&gt;stat_cache_miss++;</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         *reg = NULL; /* in case previous find found something */</span>
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span>            :         /* Unless explicitly requested by the caller always store the
+<span class="lineNum">     271 </span>            :          * registration in the rcache. This will speed up the case where
+<span class="lineNum">     272 </span>            :          * no leave pinned protocol is in use but the same segment is in
+<span class="lineNum">     273 </span>            :          * use in multiple simultaneous transactions. We used to set bypass_cache
+<span class="lineNum">     274 </span>            :          * here is !mca_mpool_grdma_component.leave_pinned. */
+<span class="lineNum">     275 </span>            :     }
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     item = opal_free_list_get (&amp;mpool_grdma-&gt;reg_list);</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     if(NULL == item) {</span>
+<span class="lineNum">     279 </span>            :         OPAL_THREAD_UNLOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     281 </span>            :     }
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :     grdma_reg = (mca_mpool_base_registration_t*)item;</span>
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     grdma_reg-&gt;mpool = mpool;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     grdma_reg-&gt;base = base;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     grdma_reg-&gt;bound = bound;</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     grdma_reg-&gt;flags = flags;</span>
+<span class="lineNum">     288 </span>            : #if OPAL_CUDA_GDR_SUPPORT
+<span class="lineNum">     289 </span>            :     if (flags &amp; MCA_MPOOL_FLAGS_CUDA_GPU_MEM) {
+<span class="lineNum">     290 </span>            :         mca_common_cuda_get_buffer_id(grdma_reg);
+<span class="lineNum">     291 </span>            :     }
+<span class="lineNum">     292 </span>            : #endif /* OPAL_CUDA_GDR_SUPPORT */
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     if (false == bypass_cache) {</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :         rc = mpool-&gt;rcache-&gt;rcache_insert(mpool-&gt;rcache, grdma_reg, 0);</span>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :         if (OPAL_UNLIKELY(rc != OPAL_SUCCESS)) {</span>
+<span class="lineNum">     298 </span>            :             OPAL_THREAD_UNLOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :             opal_free_list_return (&amp;mpool_grdma-&gt;reg_list, item);</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :             return rc;</span>
+<span class="lineNum">     301 </span>            :         }
+<span class="lineNum">     302 </span>            :     }
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     while (OPAL_ERR_OUT_OF_RESOURCE ==</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :            (rc = mpool_grdma-&gt;resources.register_mem(mpool_grdma-&gt;resources.reg_data,</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :                                                      base, bound - base + 1, grdma_reg))) {</span>
+<span class="lineNum">     307 </span>            :         /* try to remove one unused reg and retry */
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         if (!mca_mpool_grdma_evict (mpool)) {</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     310 </span>            :         }
+<span class="lineNum">     311 </span>            :     }
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     if (OPAL_UNLIKELY(rc != OPAL_SUCCESS)) {</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         if (false == bypass_cache) {</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :             mpool-&gt;rcache-&gt;rcache_delete(mpool-&gt;rcache, grdma_reg);</span>
+<span class="lineNum">     316 </span>            :         }
+<span class="lineNum">     317 </span>            :         OPAL_THREAD_UNLOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :         opal_free_list_return (&amp;mpool_grdma-&gt;reg_list, item);</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :         return rc;</span>
+<span class="lineNum">     320 </span>            :     }
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :     *reg = grdma_reg;</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     (*reg)-&gt;ref_count++;</span>
+<span class="lineNum">     324 </span>            :     OPAL_THREAD_UNLOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span>            :     /* Cleanup any vmas that we have deferred deletion on */
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     mpool-&gt;rcache-&gt;rcache_clean(mpool-&gt;rcache);</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     329 </span>            : }
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span>            : /**
+<a name="333"><span class="lineNum">     333 </span>            :   * realloc function</a>
+<span class="lineNum">     334 </span>            :   */
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 : void* mca_mpool_grdma_realloc(mca_mpool_base_module_t *mpool, void *addr,</span>
+<span class="lineNum">     336 </span>            :     size_t size, mca_mpool_base_registration_t **reg)
+<span class="lineNum">     337 </span>            : {
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     mca_mpool_base_registration_t *old_reg  = *reg;</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     void *new_mem = mca_mpool_grdma_alloc(mpool, size, 0, old_reg-&gt;flags, reg);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     memcpy(new_mem, addr, old_reg-&gt;bound - old_reg-&gt;base + 1);</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     mca_mpool_grdma_free(mpool, addr, old_reg);</span>
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :     return new_mem;</span>
+<span class="lineNum">     344 </span>            : }
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            : /**
+<a name="347"><span class="lineNum">     347 </span>            :   * free function</a>
+<span class="lineNum">     348 </span>            :   */
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 : void mca_mpool_grdma_free(mca_mpool_base_module_t *mpool, void *addr,</span>
+<span class="lineNum">     350 </span>            :                          mca_mpool_base_registration_t *registration)
+<span class="lineNum">     351 </span>            : {
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     void *alloc_base = registration-&gt;alloc_base;</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     mca_mpool_grdma_deregister(mpool, registration);</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     free(alloc_base);</span>
+<a name="355"><span class="lineNum">     355 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 : int mca_mpool_grdma_find(struct mca_mpool_base_module_t *mpool, void *addr,</span>
+<span class="lineNum">     358 </span>            :         size_t size, mca_mpool_base_registration_t **reg)
+<span class="lineNum">     359 </span>            : {
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     mca_mpool_grdma_module_t *mpool_grdma = (mca_mpool_grdma_module_t*)mpool;</span>
+<span class="lineNum">     361 </span>            :     unsigned char *base, *bound;
+<span class="lineNum">     362 </span>            :     int rc;
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     base = (unsigned char *) down_align_addr(addr, mca_mpool_base_page_size_log);</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     bound = (unsigned char *) up_align_addr((void*)((char*) addr + size - 1),</span>
+<span class="lineNum">     366 </span>            :              mca_mpool_base_page_size_log);
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            :     OPAL_THREAD_LOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     rc = mpool-&gt;rcache-&gt;rcache_find(mpool-&gt;rcache, base, bound - base + 1, reg);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     if(NULL != *reg &amp;&amp;</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :             (mca_mpool_grdma_component.leave_pinned ||</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :              ((*reg)-&gt;flags &amp; MCA_MPOOL_FLAGS_PERSIST) ||</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :              ((*reg)-&gt;base == base &amp;&amp; (*reg)-&gt;bound == bound))) {</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :         assert(((void*)(*reg)-&gt;bound) &gt;= addr);</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :         if(0 == (*reg)-&gt;ref_count &amp;&amp;</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                 mca_mpool_grdma_component.leave_pinned) {</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :             opal_list_remove_item(&amp;mpool_grdma-&gt;pool-&gt;lru_list,</span>
+<span class="lineNum">     379 </span>            :                                   (opal_list_item_t*)(*reg));
+<span class="lineNum">     380 </span>            :         }
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :         mpool_grdma-&gt;stat_cache_found++;</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :         (*reg)-&gt;ref_count++;</span>
+<span class="lineNum">     383 </span>            :     } else {
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         mpool_grdma-&gt;stat_cache_notfound++;</span>
+<span class="lineNum">     385 </span>            :     }
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span>            :     OPAL_THREAD_UNLOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     return rc;</span>
+<a name="390"><span class="lineNum">     390 </span>            : }</a>
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 : static inline bool registration_is_cacheable(mca_mpool_base_registration_t *reg)</span>
+<span class="lineNum">     393 </span>            : {
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :     return (mca_mpool_grdma_component.leave_pinned &amp;&amp;</span>
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :             !(reg-&gt;flags &amp;</span>
+<span class="lineNum">     396 </span>            :               (MCA_MPOOL_FLAGS_CACHE_BYPASS |
+<span class="lineNum">     397 </span>            :                MCA_MPOOL_FLAGS_PERSIST |
+<span class="lineNum">     398 </span>            :                MCA_MPOOL_FLAGS_INVALID)));
+<a name="399"><span class="lineNum">     399 </span>            : }</a>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 : int mca_mpool_grdma_deregister(struct mca_mpool_base_module_t *mpool,</span>
+<span class="lineNum">     402 </span>            :                                mca_mpool_base_registration_t *reg)
+<span class="lineNum">     403 </span>            : {
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     mca_mpool_grdma_module_t *mpool_grdma = (mca_mpool_grdma_module_t *) mpool;</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     int rc = OPAL_SUCCESS;</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :     assert(reg-&gt;ref_count &gt; 0);</span>
+<span class="lineNum">     407 </span>            : 
+<span class="lineNum">     408 </span>            :     OPAL_THREAD_LOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :     reg-&gt;ref_count--;</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     if(reg-&gt;ref_count &gt; 0) {</span>
+<span class="lineNum">     411 </span>            :         OPAL_THREAD_UNLOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         return OPAL_SUCCESS;</span>
+<span class="lineNum">     413 </span>            :     }
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :     if(registration_is_cacheable(reg)) {</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :         opal_list_append(&amp;mpool_grdma-&gt;pool-&gt;lru_list, (opal_list_item_t *) reg);</span>
+<span class="lineNum">     417 </span>            :     } else {
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :         rc = dereg_mem (reg);</span>
+<span class="lineNum">     419 </span>            :     }
+<span class="lineNum">     420 </span>            :     OPAL_THREAD_UNLOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span>            :     /* Cleanup any vmas that we have deferred deletion on */
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     mpool-&gt;rcache-&gt;rcache_clean(mpool-&gt;rcache);</span>
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     426 </span>            : }
+<span class="lineNum">     427 </span>            : 
+<a name="428"><span class="lineNum">     428 </span>            : #define GRDMA_MPOOL_NREGS 100</a>
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 : int mca_mpool_grdma_release_memory(struct mca_mpool_base_module_t *mpool,</span>
+<span class="lineNum">     431 </span>            :                                    void *base, size_t size)
+<span class="lineNum">     432 </span>            : {
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     mca_mpool_grdma_module_t *mpool_grdma = (mca_mpool_grdma_module_t *) mpool;</span>
+<span class="lineNum">     434 </span>            :     mca_mpool_base_registration_t *regs[GRDMA_MPOOL_NREGS];
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :     int reg_cnt, i, rc = OPAL_SUCCESS;</span>
+<span class="lineNum">     436 </span>            : 
+<span class="lineNum">     437 </span>            :     OPAL_THREAD_LOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     438 </span>            :     do {
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :         reg_cnt = mpool-&gt;rcache-&gt;rcache_find_all(mpool-&gt;rcache, base, size,</span>
+<span class="lineNum">     440 </span>            :                                                  regs, GRDMA_MPOOL_NREGS);
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :         for(i = 0 ; i &lt; reg_cnt ; ++i) {</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :             regs[i]-&gt;flags |= MCA_MPOOL_FLAGS_INVALID;</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :             if (regs[i]-&gt;ref_count) {</span>
+<span class="lineNum">     445 </span>            :                 /* memory is being freed, but there are registration in use that
+<span class="lineNum">     446 </span>            :                  * covers the memory. This can happen even in a correct program,
+<span class="lineNum">     447 </span>            :                  * but may also be an user error. We can't tell. Mark the
+<span class="lineNum">     448 </span>            :                  * registration as invalid. It will not be used any more and
+<span class="lineNum">     449 </span>            :                  * will be unregistered when ref_count will become zero */
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :                 rc = OPAL_ERROR; /* tell caller that something was wrong */</span>
+<span class="lineNum">     451 </span>            :             } else {
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;mpool_grdma-&gt;pool-&gt;lru_list,(opal_list_item_t *) regs[i]);</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :                 opal_list_append(&amp;mpool_grdma-&gt;pool-&gt;gc_list, (opal_list_item_t *) regs[i]);</span>
+<span class="lineNum">     454 </span>            :             }
+<span class="lineNum">     455 </span>            :         }
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :     } while(reg_cnt == GRDMA_MPOOL_NREGS);</span>
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span>            :     OPAL_THREAD_UNLOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     461 </span>            : }
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span>            : /* Make sure this registration request is not stale.  In other words, ensure
+<span class="lineNum">     464 </span>            :  * that we do not have a cuMemAlloc, cuMemFree, cuMemAlloc state.  If we do
+<span class="lineNum">     465 </span>            :  * kick out the regisrations and deregister.  This function needs to be called
+<span class="lineNum">     466 </span>            :  * with the mpool-&gt;rcache-&gt;lock held. */
+<span class="lineNum">     467 </span>            : #if OPAL_CUDA_GDR_SUPPORT
+<span class="lineNum">     468 </span>            : static int check_for_cuda_freed_memory(mca_mpool_base_module_t *mpool, void *addr, size_t size)
+<span class="lineNum">     469 </span>            : {
+<span class="lineNum">     470 </span>            :     mca_mpool_grdma_module_t *mpool_grdma = (mca_mpool_grdma_module_t *) mpool;
+<span class="lineNum">     471 </span>            :     mca_mpool_base_registration_t *regs[GRDMA_MPOOL_NREGS];
+<span class="lineNum">     472 </span>            :     int reg_cnt, i, rc = OPAL_SUCCESS;
+<span class="lineNum">     473 </span>            :     mca_mpool_base_registration_t *reg;
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span>            :     mpool-&gt;rcache-&gt;rcache_find(mpool-&gt;rcache, addr, size, &amp;reg);
+<span class="lineNum">     476 </span>            :     if (NULL == reg) {
+<span class="lineNum">     477 </span>            :         return OPAL_SUCCESS;
+<span class="lineNum">     478 </span>            :     }
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span>            :     /* If not previously freed memory, just return 0 */
+<span class="lineNum">     481 </span>            :     if (!(mca_common_cuda_previously_freed_memory(reg))) {
+<span class="lineNum">     482 </span>            :         return OPAL_SUCCESS;
+<span class="lineNum">     483 </span>            :     }
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span>            :     /* mpool-&gt;rcache-&gt;rcache_dump_range(mpool-&gt;rcache, 0, (size_t)-1, &quot;Before free&quot;); */
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span>            :     /* This memory has been freed.  Find all registrations and delete */
+<span class="lineNum">     488 </span>            :     do {
+<span class="lineNum">     489 </span>            :         reg_cnt = mpool-&gt;rcache-&gt;rcache_find_all(mpool-&gt;rcache, reg-&gt;base, reg-&gt;bound - reg-&gt;base + 1,
+<span class="lineNum">     490 </span>            :                                                  regs, GRDMA_MPOOL_NREGS);
+<span class="lineNum">     491 </span>            :         for(i = 0 ; i &lt; reg_cnt ; ++i) {
+<span class="lineNum">     492 </span>            :             regs[i]-&gt;flags |= MCA_MPOOL_FLAGS_INVALID;
+<span class="lineNum">     493 </span>            :             if (regs[i]-&gt;ref_count) {
+<span class="lineNum">     494 </span>            :                 opal_output(0, &quot;Release FAILED: ref_count=%d, base=%p, bound=%p, size=%d&quot;,
+<span class="lineNum">     495 </span>            :                             regs[i]-&gt;ref_count, regs[i]-&gt;base, regs[i]-&gt;bound,
+<span class="lineNum">     496 </span>            :                             (int) (regs[i]-&gt;bound - regs[i]-&gt;base + 1));
+<span class="lineNum">     497 </span>            :                 /* memory is being freed, but there are registration in use that
+<span class="lineNum">     498 </span>            :                  * covers the memory. This can happen even in a correct program,
+<span class="lineNum">     499 </span>            :                  * but may also be an user error. We can't tell. Mark the
+<span class="lineNum">     500 </span>            :                  * registration as invalid. It will not be used any more and
+<span class="lineNum">     501 </span>            :                  * will be unregistered when ref_count will become zero */
+<span class="lineNum">     502 </span>            :                 rc = OPAL_ERROR; /* tell caller that something was wrong */
+<span class="lineNum">     503 </span>            :             } else {
+<span class="lineNum">     504 </span>            :                 opal_list_remove_item(&amp;mpool_grdma-&gt;pool-&gt;lru_list,(opal_list_item_t *) regs[i]);
+<span class="lineNum">     505 </span>            :                 /* Now deregister.  Do not use gc_list as we need to kick this out now. */
+<span class="lineNum">     506 </span>            :                 dereg_mem(regs[i]);
+<span class="lineNum">     507 </span>            :             }
+<span class="lineNum">     508 </span>            :         }
+<span class="lineNum">     509 </span>            :     } while(reg_cnt == GRDMA_MPOOL_NREGS);
+<span class="lineNum">     510 </span>            : 
+<span class="lineNum">     511 </span>            :     OPAL_THREAD_UNLOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     512 </span>            :     /* mpool-&gt;rcache-&gt;rcache_dump_range(mpool-&gt;rcache, 0, (size_t)-1, &quot;After free&quot;);*/
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span>            :     return rc;
+<span class="lineNum">     515 </span>            : }
+<a name="516"><span class="lineNum">     516 </span>            : #endif /* OPAL_CUDA_GDR_SUPPORT */</a>
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 : void mca_mpool_grdma_finalize(struct mca_mpool_base_module_t *mpool)</span>
+<span class="lineNum">     519 </span>            : {
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :     mca_mpool_grdma_module_t *mpool_grdma = (mca_mpool_grdma_module_t*)mpool;</span>
+<span class="lineNum">     521 </span>            :     mca_mpool_base_registration_t *regs[GRDMA_MPOOL_NREGS];
+<span class="lineNum">     522 </span>            :     int reg_cnt, i;
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span>            :     /* Statistic */
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :     if (true == mca_mpool_grdma_component.print_stats) {</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;%s grdma: stats &quot;</span>
+<span class="lineNum">     527 </span>            :                 &quot;(hit/miss/found/not found/evicted): %d/%d/%d/%d/%d\n&quot;,
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :                 OPAL_NAME_PRINT(OPAL_PROC_MY_NAME),</span>
+<span class="lineNum">     529 </span>            :                 mpool_grdma-&gt;stat_cache_hit, mpool_grdma-&gt;stat_cache_miss,
+<span class="lineNum">     530 </span>            :                 mpool_grdma-&gt;stat_cache_found, mpool_grdma-&gt;stat_cache_notfound,
+<span class="lineNum">     531 </span>            :                 mpool_grdma-&gt;stat_evicted);
+<span class="lineNum">     532 </span>            :     }
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span>            :     OPAL_THREAD_LOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     535 </span>            : 
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :     do_unregistration_gc(mpool);</span>
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span>            :     do {
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :         reg_cnt = mpool-&gt;rcache-&gt;rcache_find_all(mpool-&gt;rcache, 0, (size_t)-1,</span>
+<span class="lineNum">     540 </span>            :                                                  regs, GRDMA_MPOOL_NREGS);
+<span class="lineNum">     541 </span>            : 
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :         for (i = 0 ; i &lt; reg_cnt ; ++i) {</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :             if (regs[i]-&gt;ref_count) {</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :                 regs[i]-&gt;ref_count = 0; /* otherwise dereg will fail on assert */</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :             } else if (mca_mpool_grdma_component.leave_pinned) {</span>
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :                 opal_list_remove_item(&amp;mpool_grdma-&gt;pool-&gt;lru_list,</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :                                       (opal_list_item_t *) regs[i]);</span>
+<span class="lineNum">     548 </span>            :             }
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :             (void) dereg_mem(regs[i]);</span>
+<span class="lineNum">     551 </span>            :         }
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     } while (reg_cnt == GRDMA_MPOOL_NREGS);</span>
+<span class="lineNum">     553 </span>            : 
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(mpool_grdma-&gt;pool);</span>
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;mpool_grdma-&gt;reg_list);</span>
+<span class="lineNum">     557 </span>            :     OPAL_THREAD_UNLOCK(&amp;mpool-&gt;rcache-&gt;lock);
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span>            :     /* Cleanup any vmas that we have deferred deletion on */
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :     mpool-&gt;rcache-&gt;rcache_clean(mpool-&gt;rcache);</span>
+<span class="lineNum">     561 </span>            : 
+<span class="lineNum">     562 </span>            :     /* this mpool was allocated by grdma_init in mpool_grdma_component.c */
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :     free(mpool);</span>
+<a name="564"><span class="lineNum">     564 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 : int mca_mpool_grdma_ft_event(int state) {</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     568 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
