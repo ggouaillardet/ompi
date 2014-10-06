@@ -9,6 +9,8 @@ dnl                         University of Stuttgart.  All rights reserved.
 dnl Copyright (c) 2004-2005 The Regents of the University of California.
 dnl                         All rights reserved.
 dnl Copyright (c) 2011-2012 Cisco Systems, Inc.  All rights reserved.
+dnl Copyright (c) 2014      Research Organization for Information Science
+dnl                         and Technology (RIST). All rights reserved.
 dnl $COPYRIGHT$
 dnl 
 dnl Additional copyrights may follow
@@ -22,7 +24,9 @@ AC_DEFUN([OMPI_FORTRAN_CHECK_LOGICAL_ARRAY],[
 
     AC_CACHE_CHECK([for correct handling of Fortran logical arrays],
         logical_array_var,
-        [if test "$1" = "none" -o $OMPI_WANT_FORTRAN_BINDINGS -eq 0 -o $ompi_fortran_happy -eq 0; then
+        [if test "$1" = "none" || \
+            test $OMPI_TRY_FORTRAN_BINDINGS -eq $OMPI_FORTRAN_NO_BINDINGS  || \
+            test $ompi_fortran_happy -eq 0; then
              value=skipped
          else
              # Fortran module
@@ -105,7 +109,7 @@ EOF
                       [value=no])])
          fi
          AS_VAR_SET(logical_array_var, [$value])
-         ])
+        ])
 
     AS_VAR_COPY([ompi_fortran_logical_array_correct], [logical_array_var])
     if test "$ompi_fortran_logical_array_correct" = "no" ; then
