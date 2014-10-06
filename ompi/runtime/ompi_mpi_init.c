@@ -383,7 +383,7 @@ static int ompi_register_mca_variables(void)
 
 int ompi_mpi_init(int argc, char **argv, int requested, int *provided)
 {
-    int ret;
+    int i, ret;
     ompi_proc_t** procs;
     size_t nprocs;
     char *error = NULL;
@@ -629,6 +629,7 @@ int ompi_mpi_init(int argc, char **argv, int requested, int *provided)
      * in our job, so no proc array is passed. If a barrier is required,
      * the "fence" function will perform it internally
      */
+for (i=0; i<10; i++)
     OPAL_FENCE(NULL, 0, NULL, NULL);
 
     OPAL_TIMING_EVENT((&tm,"End modex"));

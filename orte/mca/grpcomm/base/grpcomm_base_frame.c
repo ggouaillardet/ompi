@@ -12,6 +12,8 @@
  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.
  *                         All rights reserved.
  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+ * Copyright (c) 2014      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -115,8 +117,12 @@ static void ccon(orte_grpcomm_coll_t *p)
     p->dmns = NULL;
     p->ndmns = 0;
     p->nreported = 0;
+    p->nreceived = 0;
+    p->next_nreceived = 0;
     p->cbfunc = NULL;
     p->cbdata = NULL;
+    p->buffers = NULL;
+    p->next_buffers = NULL;
 }
 static void cdes(orte_grpcomm_coll_t *p)
 {
