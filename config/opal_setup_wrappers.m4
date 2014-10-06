@@ -12,6 +12,8 @@ dnl Copyright (c) 2004-2005 The Regents of the University of California.
 dnl                         All rights reserved.
 dnl Copyright (c) 2006-2010 Oracle and/or its affiliates.  All rights reserved.
 dnl Copyright (c) 2009-2013 Cisco Systems, Inc.  All rights reserved.
+dnl Copyright (c) 2014      Research Organization for Information Science
+dnl                         and Technology (RIST). All rights reserved.
 dnl $COPYRIGHT$
 dnl 
 dnl Additional copyrights may follow
@@ -412,7 +414,7 @@ AC_DEFUN([OPAL_SETUP_WRAPPER_FINAL],[
        AC_SUBST([OMPI_WRAPPER_CXX_LIB])
        AC_SUBST([OMPI_WRAPPER_CXX_REQUIRED_FILE])
 
-       if test "$OMPI_WANT_FORTRAN_BINDINGS" = "1" ; then
+       if test "$OMPI_TRY_FORTRAN_BINDINGS" -gt "$OMPI_FORTRAN_NO_BINDINGS" ; then
           OMPI_WRAPPER_FORTRAN_REQUIRED_FILE=""
        else
           OMPI_WRAPPER_FORTRAN_REQUIRED_FILE="not supported"

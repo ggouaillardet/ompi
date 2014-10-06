@@ -12,6 +12,8 @@ dnl                         University of Stuttgart.  All rights reserved.
 dnl Copyright © 2006-2013 Cisco Systems, Inc.  All rights reserved.
 dnl Copyright © 2012  Blue Brain Project, BBP/EPFL. All rights reserved.
 dnl Copyright © 2012       Oracle and/or its affiliates.  All rights reserved.
+dnl Copyright (c) 2014      Research Organization for Information Science
+dnl                         and Technology (RIST). All rights reserved.
 dnl See COPYING in top-level directory.
 
 # Main hwloc m4 macro, to be invoked by the user
@@ -1306,8 +1308,8 @@ AC_DEFUN([_HWLOC_CHECK_DECL], [
   AC_REQUIRE([AC_PROG_CC])
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
        [AC_INCLUDES_DEFAULT([$4])
-       $1(int,long,int,long,int,long,int,long,int,long);],
-       [$1(1,2,3,4,5,6,7,8,9,10);])],
+       void * $1;],
+       )],
     [AC_MSG_RESULT([no])
      $3],
     [AC_MSG_RESULT([yes])

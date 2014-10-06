@@ -11,6 +11,8 @@ dnl                         University of Stuttgart.  All rights reserved.
 dnl Copyright (c) 2004-2005 The Regents of the University of California.
 dnl                         All rights reserved.
 dnl Copyright (c) 2011-2012 Cisco Systems, Inc.  All rights reserved.
+dnl Copyright (c) 2014      Research Organization for Information Science
+dnl                         and Technology (RIST). All rights reserved.
 dnl $COPYRIGHT$
 dnl 
 dnl Additional copyrights may follow
@@ -45,7 +47,7 @@ AC_DEFUN([OMPI_FORTRAN_CHECK], [
     # Fortran compiler.  This allows us to call this macro, even if
     # there is no Fortran compiler.  If we have no Fortran compiler,
     # then just set a bunch of defaults.
-    if test $OMPI_WANT_FORTRAN_BINDINGS -eq 1; then
+    if test $OMPI_TRY_FORTRAN_BINDINGS -gt $OMPI_FORTRAN_NO_BINDINGS; then
         OMPI_FORTRAN_CHECK_TYPE([$1], [ofc_have_type=1], [ofc_have_type=0])
     else
         AC_MSG_CHECKING([if Fortran compiler supports $1])
