@@ -1,6 +1,8 @@
 /********************** BEGIN OMPI CHANGES *****************************/
 /*
  * Copyright (c) 2009-2010 Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2014      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  *
  * Additional copyrights may follow.
  */
@@ -3330,7 +3332,6 @@ munmap_chunk(p) mchunkptr p;
 #endif
 {
   INTERNAL_SIZE_T size = chunksize(p);
-  int ret;
 
   assert (chunk_is_mmapped(p));
 #if 0
@@ -3342,10 +3343,12 @@ munmap_chunk(p) mchunkptr p;
   mp_.n_mmaps--;
   mp_.mmapped_mem -= (size + p->prev_size);
 
-  ret = munmap((char *)p - p->prev_size, size + p->prev_size);
-
+#if MALLOC_DEBUG
   /* munmap returns non-zero on failure */
-  assert(ret == 0);
+  assert(0 == munmap((char *)p - p->prev_size, size + p->prev_size));
+#else
+  munmap((char *)p - p->prev_size, size + p->prev_size);
+#endif
 }
 
 #if HAVE_MREMAP
@@ -4479,13 +4482,15 @@ _int_free(mstate av, Void_t* mem)
 
     else {
 #if HAVE_MMAP
-      int ret;
       INTERNAL_SIZE_T offset = p->prev_size;
       mp_.n_mmaps--;
       mp_.mmapped_mem -= (size + offset);
-      ret = munmap((char*)p - offset, size + offset);
+#if MALLOC_DEBUG
       /* munmap returns non-zero on failure */
-      assert(ret == 0);
+      assert(0 == munmap((char*)p - offset, size + offset));
+#else
+      munmap((char*)p - offset, size + offset);
+#endif
 #endif
     }
   }

@@ -3,6 +3,8 @@
  * Copyright (c) 2009-2010 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012-2013 Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2014      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  *
  * Additional copyrights may follow.
  */
@@ -423,13 +425,16 @@ memalign_check(alignment, bytes, caller)
      size_t alignment; size_t bytes; const Void_t *caller;
 #endif
 {
-  INTERNAL_SIZE_T nb;
   Void_t* mem;
 
   if (alignment <= MALLOC_ALIGNMENT) return malloc_check(bytes, NULL);
   if (alignment <  MINSIZE) alignment = MINSIZE;
 
-  checked_request2size(bytes+1, nb);
+  // checked_request2size(bytes+1, nb);
+  if (REQUEST_OUT_OF_RANGE(bytes+1)) {
+    MALLOC_FAILURE_ACTION;
+    return 0;
+  }
   (void)mutex_lock(&main_arena.mutex);
   mem = (top_check() >= 0) ? _int_memalign(&main_arena, alignment, bytes+1) :
     NULL;
