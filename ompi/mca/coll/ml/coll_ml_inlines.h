@@ -5,6 +5,8 @@
  * Copyright (c) 2013      The University of Tennessee and The University
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
+ * Copyright (c) 2014      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -192,7 +194,7 @@ static inline  __opal_attribute_always_inline__ int coll_ml_fragment_completion_
                 !out_of_resource) {
                 */
         if (((&coll_op->full_message != coll_op->fragment_data.message_descriptor) &&
-	     !out_of_resource) || IS_COLL_SYNCMEM(coll_op)) {
+	     !out_of_resource)) {
             /* non-zero offset ==> this is not fragment 0 */
             CHECK_AND_RECYCLE(coll_op);
         }
