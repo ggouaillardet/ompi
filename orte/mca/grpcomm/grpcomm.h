@@ -11,6 +11,8 @@
  *                         All rights reserved.
  * Copyright (c) 2011-2012 Los Alamos National Security, LLC.
  *                         All rights reserved.
+ * Copyright (c) 2014      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -77,6 +79,11 @@ typedef struct {
     orte_grpcomm_cbfunc_t cbfunc;
     /* user-provided callback data */
     void *cbdata;
+    /* for rcd to store buffers received out of order */
+    opal_buffer_t ** buffers;
+    opal_buffer_t ** next_buffers;
+    size_t next_nreceived;
+    size_t nreceived;
 } orte_grpcomm_coll_t;
 OBJ_CLASS_DECLARATION(orte_grpcomm_coll_t);
 
