@@ -1,7 +1,10 @@
 #!/bin/sh
-
+#
 # Copyright (c) 2015      Research Organization for Information Science
 #                         and Technology (RIST). All rights reserved.
+# Copyright (c) 2015 Cisco Systems, Inc.  All rights reserved.
+# $COPYRIGHT$
+#
 
 if [ $# -ne 4 ]; then
     echo "usage: $0 <OMPI_FORTRAN_CAPS> <OMPI_FORTRAN_PLAIN> <OMPI_FORTRAN_SINGLE_UNDERSCORE> <OMPI_FORTRAN_DOUBLE_UNDERSCORE>"
@@ -13,10 +16,17 @@ OMPI_FORTRAN_PLAIN=$2
 OMPI_FORTRAN_SINGLE_UNDERSCORE=$3
 OMPI_FORTRAN_DOUBLE_UNDERSCORE=$4
 
+file_mpi_constants=mpif-constants-decl.h
+file_mpi_symbols=mpif-ompi-symbols.h
+file_mpi_f08_types=mpif-f08-types.h
+file_oshmem_symbols=mpif-oshmem-symbols.h
+
 if [ "X$OMPI_FORTRAN_CAPS" = X0 ] && [ "X$OMPI_FORTRAN_PLAIN" = X0 ] && [ "X$OMPI_FORTRAN_SINGLE_UNDERSCORE" = X0 ] && [ "X$OMPI_FORTRAN_DOUBLE_UNDERSCORE" = X0 ]; then
     # no fortran ...
-    touch mpif-ompi-symbols.h
-    touch mpif-oshmem-symbols.h
+    touch $file_mpi_constants
+    touch $file_mpi_symbols
+    touch $file_mpi_f08_types
+    touch $file_oshmem_symbols
     exit 0
 fi
 
@@ -32,7 +42,7 @@ mangle() {
     fi
 }
 
-file=mpif-constants-decl.h
+file=$file_mpi_constants
 cat > $file << EOF
 /* WARNING: This is a generated file!  Edits will be lost! */
 /*
@@ -74,7 +84,7 @@ cat $tmp | while read type symbol; do
     make_constant $type $symbol $file 
 done
 
-file=mpif-ompi-symbols.h
+file=$file_mpi_symbols
 cat > $file << EOF
 /* WARNING: This is a generated file!  Edits will be lost! */
 /*
@@ -105,7 +115,7 @@ cat > $tmp << EOF
     int* mpi_fortran_statuses_ignore
 EOF
 
-file=mpif-oshmem-symbols.h
+file=$file_oshmem_symbols
 cat > $file << EOF
 /* WARNING: This is a generated file!  Edits will be lost! */
 /*
@@ -138,7 +148,7 @@ cat > $tmp << EOF
   integer MPI_WEIGHTS_EMPTY
 EOF
 
-file=mpif-f08-types.h
+file=$file_mpi_f08_types
 cat > $file << EOF
 ! WARNING: This is a generated file!  Edits will be lost! */
 !
