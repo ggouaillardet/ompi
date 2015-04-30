@@ -17,6 +17,11 @@ OMPI_FORTRAN_SINGLE_UNDERSCORE=$3
 OMPI_FORTRAN_DOUBLE_UNDERSCORE=$4
 project=$5
 
+if test "$project" != "ompi" && test "$project" != "oshmem"; then
+    echo "ERROR: Unknown project ($project)";
+    exit 1
+fi
+
 file_mpi_constants=mpif-constants-decl.h
 file_mpi_symbols=mpif-ompi-symbols.h
 file_mpi_f08_types=mpif-f08-types.h
@@ -30,9 +35,6 @@ if [ "X$OMPI_FORTRAN_CAPS" = X0 ] && [ "X$OMPI_FORTRAN_PLAIN" = X0 ] && [ "X$OMP
         touch $file_mpi_f08_types
     elif test "$project" = "oshmem"; then
         touch $file_oshmem_symbols
-    else
-        echo "ERROR: Unknown project ($project)";
-        exit 1
     fi
     exit 0
 fi
@@ -73,19 +75,6 @@ gen_mpi_constants() {
    without also changing ompi/runtime/ompi_mpi_init.c and
    ompi/include/mpif-common.h. */
 
-EOF
-
-    tmp=$(mktemp /tmp/ompi_symbols_XXXXXX)
-    cat > $tmp << EOF
-    int mpi_fortran_bottom
-    int mpi_fortran_in_place
-    int mpi_fortran_unweighted
-    int mpi_fortran_weights_empty
-    char* mpi_fortran_argv_null
-    char* mpi_fortran_argvs_null
-    int* mpi_fortran_errcodes_ignore
-    int* mpi_fortran_status_ignore
-    int* mpi_fortran_statuses_ignore
 EOF
 
     cat $tmp | while read type symbol; do
@@ -180,11 +169,23 @@ gen_mpi_f08_types() {
 EOF
 
     cat $tmp | while read type symbol; do
-        make_f08 $type $symbol $file
+        make_f08 integer $symbol $file
     done
 
-    rm -f $tmp
 }
+
+tmp=$(mktemp /tmp/ompi_symbols_XXXXXX)
+cat > $tmp << EOF
+    int mpi_fortran_bottom
+    int mpi_fortran_in_place
+    int mpi_fortran_unweighted
+    int mpi_fortran_weights_empty
+    char* mpi_fortran_argv_null
+    char* mpi_fortran_argvs_null
+    int* mpi_fortran_errcodes_ignore
+    int* mpi_fortran_status_ignore
+    int* mpi_fortran_statuses_ignore
+EOF
 
 if test "$project" = "ompi"; then
     gen_mpi_constants
@@ -192,9 +193,8 @@ if test "$project" = "ompi"; then
     gen_mpi_f08_types
 elif test "$project" = "oshmem"; then
     gen_oshmem_symbols
-else
-    echo "ERROR: Unknown project ($project)";
-    exit 1
 fi
+
+rm -f $tmp
 
 exit 0

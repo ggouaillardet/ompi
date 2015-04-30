@@ -100,9 +100,6 @@ mpif-constants-decl.h: $(mpif_mangling_sh)
 mpif-constants-decl.h:
 	$(OMPI_V_GEN) $(mpif_mangling_sh) $(OMPI_FORTRAN_CAPS) $(OMPI_FORTRAN_PLAIN) $(OMPI_FORTRAN_SINGLE_UNDERSCORE) $(OMPI_FORTRAN_DOUBLE_UNDERSCORE) ompi
 
-mpif-f08-types.h: mpif-constants.decl.h
-mpif-ompi-symbols: mpif-constants.decl.h
-
 if WANT_INSTALL_HEADERS 
 ompidir = $(ompiincludedir)
 nobase_dist_ompi_HEADERS = $(headers)
