@@ -9,7 +9,7 @@
  *                         University of Stuttgart.  All rights reserved.
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
- * Copyright (c) 2006-2012 Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2006-2015 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2011-2013 Inria.  All rights reserved.
  * Copyright (c) 2011-2012 Universite Bordeaux 1
  * Copyright (c) 2015      Research Organization for Information Science
@@ -88,7 +88,7 @@
  * file.
  */
 
-#include "mpif-constants-decl.h"
+#include "mpif-c-constants-decl.h"
 
 /* Convert between Fortran and C MPI_BOTTOM */
 #define OMPI_F2C_BOTTOM(addr)      (OMPI_IS_FORTRAN_BOTTOM(addr) ? MPI_BOTTOM : (addr))
