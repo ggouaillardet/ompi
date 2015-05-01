@@ -4,6 +4,7 @@
  * Copyright (c) 2014-2015 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  *
+ * Copyright (c) 2015 Cisco Systems, Inc.  All rights reserved.
  * $COPYRIGHT$
  * 
  * Additional copyrights may follow
@@ -106,33 +107,6 @@ int shmem_api_logger_output = -1;
 MPI_Comm oshmem_comm_world;
 
 opal_thread_t *oshmem_mpi_main_thread = NULL;
-
-/* Constants for the Fortran layer.  These values are referred to via
- common blocks in the Fortran equivalents.  See
- ompi/mpi/f77/constants.h for a more detailed explanation.
-
- The values are *NOT* initialized.  We do not use the values of
- these constants; only their addresses (because they're always
- passed by reference by Fortran).  
-
- Initializing upon instantiation these can reveal size and/or
- alignment differences between Fortran and C (!) which can cause
- warnings or errors upon linking (e.g., making static libraries with
- the intel 9.0 compilers on 64 bit platforms shows alignment
- differences between libmpi.a and the user's application, resulting
- in a linker warning).  FWIW, if you initialize these variables in
- functions (i.e., not at the instantiation in the global scope), the
- linker somehow "figures it all out" (w.r.t. different alignments
- between fortan common blocks and the corresponding C variables) and
- no linker warnings occur.
-
- Note that the rationale for the types of each of these variables is
- discussed in ompi/include/mpif-common.h.  Do not change the types
- without also modifying ompi/mpi/f77/constants.h and
- ompi/include/mpif-common.h.
- */
-
-#include "mpif-oshmem-symbols.h"
 
 /*
  * Hash tables for MPI_Type_create_f90* functions
