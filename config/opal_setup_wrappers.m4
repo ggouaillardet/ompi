@@ -74,6 +74,12 @@ AC_DEFUN([OPAL_WRAPPER_FLAGS_ADD], [
 #     <flag>_prefix, configure is not.  There's no known use case for
 #     doing so, and we'd like to force the issue.
 AC_DEFUN([OPAL_SETUP_WRAPPER_INIT],[
+    AC_ARG_WITH([wrapper-cc],
+                [AC_HELP_STRING([--with-wrapper-cc],
+                                [Alternate C compiler when using mpicc])])
+    AS_IF([test "$with_wrapper_cc" = "yes" || test "$with_wrapper_cc" = "no"],
+          [AC_MSG_ERROR([--with-wrapper-cc must have an argument.])])
+
     AC_ARG_WITH([wrapper-cflags],
                 [AC_HELP_STRING([--with-wrapper-cflags],
                                 [Extra flags to add to CFLAGS when using mpicc])])
@@ -85,6 +91,12 @@ AC_DEFUN([OPAL_SETUP_WRAPPER_INIT],[
                                 [Extra flags (before user flags) to add to CFLAGS when using mpicc])])
     AS_IF([test "$with_wrapper_cflags_prefix" = "yes" || test "$with_wrapper_cflags_prefix" = "no"],
           [AC_MSG_ERROR([--with-wrapper-cflags-prefix must have an argument.])])
+
+    AC_ARG_WITH([wrapper-cxx],
+                [AC_HELP_STRING([--with-wrapper-cxx],
+                                [Alternate CXX compiler when using mpicxx])])
+    AS_IF([test "$with_wrapper_cxx" = "yes" || test "$with_wrapper_cxx" = "no"],
+          [AC_MSG_ERROR([--with-wrapper-cxx must have an argument.])])
 
     AC_ARG_WITH([wrapper-cxxflags],
         [AC_HELP_STRING([--with-wrapper-cxxflags],
@@ -99,6 +111,12 @@ AC_DEFUN([OPAL_SETUP_WRAPPER_INIT],[
           [AC_MSG_ERROR([--with-wrapper-cxxflags-prefix must have an argument.])])
 
     m4_ifdef([project_ompi], [
+            AC_ARG_WITH([wrapper-fc],
+                        [AC_HELP_STRING([--with-wrapper-fc],
+                                        [Alternate FC compiler when using mpifort])])
+            AS_IF([test "$with_wrapper_fc" = "yes" || test "$with_wrapper_fc" = "no"],
+                  [AC_MSG_ERROR([--with-wrapper-fc must have an argument.])])
+
             AC_ARG_WITH([wrapper-fcflags],
                 [AC_HELP_STRING([--with-wrapper-fcflags],
                         [Extra flags to add to FCFLAGS when using mpifort])])
@@ -394,6 +412,13 @@ AC_DEFUN([OPAL_SETUP_WRAPPER_FINAL],[
        AC_SUBST([ORTE_WRAPPER_EXTRA_CPPFLAGS])
        AC_MSG_RESULT([$ORTE_WRAPPER_EXTRA_CPPFLAGS])
 
+       AC_MSG_CHECKING([for CC WRAPPER])
+       if test -n "$with_wrapper_cc"; then
+           WRAPPER_CC=$with_wrapper_cc
+       fi
+       AC_SUBST([WRAPPER_CC])
+       AC_MSG_RESULT([$WRAPPER_CC])
+
        AC_MSG_CHECKING([for ORTE CFLAGS])
        ORTE_WRAPPER_EXTRA_CFLAGS="$wrapper_extra_cflags $with_wrapper_cflags"
        AC_SUBST([ORTE_WRAPPER_EXTRA_CFLAGS])
@@ -442,6 +467,9 @@ AC_DEFUN([OPAL_SETUP_WRAPPER_FINAL],[
        AC_SUBST([OMPI_WRAPPER_EXTRA_CPPFLAGS])
        AC_MSG_RESULT([$OMPI_WRAPPER_EXTRA_CPPFLAGS])
 
+       OMPI_WRAPPER_EXTRA_CFLAGS="$wrapper_extra_cflags $with_wrapper_cflags"
+       AC_SUBST([OMPI_WRAPPER_EXTRA_CFLAGS])
+       AC_MSG_RESULT([$OMPI_WRAPPER_EXTRA_CFLAGS])
        AC_MSG_CHECKING([for OMPI CFLAGS])
        OMPI_WRAPPER_EXTRA_CFLAGS="$wrapper_extra_cflags $with_wrapper_cflags"
        AC_SUBST([OMPI_WRAPPER_EXTRA_CFLAGS])
@@ -452,6 +480,15 @@ AC_DEFUN([OPAL_SETUP_WRAPPER_FINAL],[
        AC_SUBST([OMPI_WRAPPER_EXTRA_CFLAGS_PREFIX])
        AC_MSG_RESULT([$OMPI_WRAPPER_EXTRA_CFLAGS_PREFIX])
 
+       AC_MSG_CHECKING([for CXX WRAPPER])
+       if test -n "$with_wrapper_cxx"; then
+           WRAPPER_CXX="$with_wrapper_cxx"
+       else
+           WRAPPER_CXX="$CXX"
+       fi
+       AC_SUBST([WRAPPER_CXX])
+       AC_MSG_RESULT([$WRAPPER_CXX])
+
        AC_MSG_CHECKING([for OMPI CXXFLAGS])
        OMPI_WRAPPER_EXTRA_CXXFLAGS="$wrapper_extra_cxxflags $with_wrapper_cxxflags"
        AC_SUBST([OMPI_WRAPPER_EXTRA_CXXFLAGS])
@@ -461,6 +498,15 @@ AC_DEFUN([OPAL_SETUP_WRAPPER_FINAL],[
        OMPI_WRAPPER_EXTRA_CXXFLAGS_PREFIX="$with_wrapper_cxxflags_prefix"
        AC_SUBST([OMPI_WRAPPER_EXTRA_CXXFLAGS_PREFIX])
        AC_MSG_RESULT([$OMPI_WRAPPER_EXTRA_CXXFLAGS_PREFIX])
+
+       AC_MSG_CHECKING([for FC WRAPPER])
+       if test -n "$with_wrapper_fc"; then
+           WRAPPER_FC="$with_wrapper_fc"
+       else
+           WRAPPER_FC="$FC"
+       fi
+       AC_SUBST([WRAPPER_FC])
+       AC_MSG_RESULT([$WRAPPER_FC])
 
        AC_MSG_CHECKING([for OMPI FCFLAGS])
        OMPI_WRAPPER_EXTRA_FCFLAGS="$wrapper_extra_fcflags $with_wrapper_fcflags"

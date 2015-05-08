@@ -39,7 +39,6 @@ AC_DEFUN([OPAL_SETUP_CC],[
     # AC_PROG_CC_C99 changes CC (instead of CFLAGS) so save CC (without c99
     # flags) for use in our wrappers.
     WRAPPER_CC="$CC"
-    AC_SUBST([WRAPPER_CC])
 
     # From Open MPI 1.7 on we require a C99 compiant compiler
     AC_PROG_CC_C99
