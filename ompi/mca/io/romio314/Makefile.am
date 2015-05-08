@@ -22,6 +22,9 @@ EXTRA_DIST = autogen.subdirs
 sources =
 include src/Makefile.extra
 
+nodist_headers = src/io_romio_version.h
+
+
 if MCA_io_romio314_SHOULD_BUILD
 # Need to set both SUBDIRS and DIST_SUBDIRS due to oddities with AM
 SUBDIRS = romio

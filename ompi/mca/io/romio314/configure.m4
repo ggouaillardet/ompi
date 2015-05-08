@@ -29,6 +29,9 @@ AC_DEFUN([MCA_ompi_io_romio314_POST_CONFIG], [
 # -----------------------------------------------------------
 AC_DEFUN([MCA_ompi_io_romio314_CONFIG],[
     AC_CONFIG_FILES([ompi/mca/io/romio314/Makefile])
+    ROMIO_VERSION=314
+    AC_SUBST([ROMIO_VERSION])
+    AC_CONFIG_FILES([ompi/mca/io/romio314/src/io_romio_version.h])
 
     OPAL_VAR_SCOPE_PUSH([io_romio314_flags io_romio314_flags_define io_romio314_happy io_romio314_save_LIBS])
     AC_ARG_ENABLE([io-romio],
