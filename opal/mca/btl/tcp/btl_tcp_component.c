@@ -208,8 +208,12 @@ static int mca_btl_tcp_component_register(void)
     mca_btl_tcp_param_register_uint("links", NULL, 1, OPAL_INFO_LVL_4, &mca_btl_tcp_component.tcp_num_links);
     mca_btl_tcp_param_register_string("if_include", "Comma-delimited list of devices and/or CIDR notation of networks to use for MPI communication (e.g., \"eth0,192.168.0.0/16\").  Mutually exclusive with btl_tcp_if_exclude.", "", OPAL_INFO_LVL_1, &mca_btl_tcp_component.tcp_if_include);
     mca_btl_tcp_param_register_string("if_exclude", "Comma-delimited list of devices and/or CIDR notation of networks to NOT use for MPI communication -- all devices not matching these specifications will be used (e.g., \"eth0,192.168.0.0/16\").  If set to a non-default value, it is mutually exclusive with btl_tcp_if_include.", 
-                                      "127.0.0.1/8,sppp",
+                                      "127.0.0.1/8,fe80::/10,sppp",
                                       OPAL_INFO_LVL_1, &mca_btl_tcp_component.tcp_if_exclude);
+#if OPAL_ENABLE_IPV6
+    mca_btl_tcp_component.tcp6_if_include = NULL;
+    mca_btl_tcp_component.tcp6_if_exclude = NULL;
+#endif
 
     mca_btl_tcp_param_register_int ("free_list_num", NULL, 8, OPAL_INFO_LVL_5,  &mca_btl_tcp_component.tcp_free_list_num);
     mca_btl_tcp_param_register_int ("free_list_max", NULL, -1, OPAL_INFO_LVL_5,  &mca_btl_tcp_component.tcp_free_list_max);
@@ -418,49 +422,79 @@ static int mca_btl_tcp_create(int if_kindex, const char* if_name)
  * (a.b.c.d/e), resolve them to an interface name (Currently only
  * supporting IPv4).  If unresolvable, warn and remove.
  */
-static char **split_and_resolve(char **orig_str, char *name, bool reqd)
+static void split_and_resolve(int af, char **orig_str, char *** p_argv, char *name, bool reqd)
 {
     int i, ret, save, if_index;
-    char **argv, *str, *tmp;
+    char ** argv, *str, *tmp;
     char if_name[IF_NAMESIZE];
     struct sockaddr_storage argv_inaddr, if_inaddr;
     uint32_t argv_prefix;
 
     /* Sanity check */
-    if (NULL == orig_str || NULL == *orig_str) {
-        return NULL;
+    if (NULL == orig_str) {
+        *p_argv = NULL;
+        return;
     }
 
     argv = opal_argv_split(*orig_str, ',');
     if (NULL == argv) {
-        return NULL;
+        *p_argv = NULL;
+        return;
     }
-    for (save = i = 0; NULL != argv[i]; ++i) {
-        if (isalpha(argv[i][0])) {
-            argv[save++] = argv[i];
-            continue;
-        }
 
+    for (i = save = 0; NULL != argv[i]; ++i) {
+        int family = AF_INET;
+        bool found = false;
+        char *c;
         /* Found a subnet notation.  Convert it to an IP
            address/netmask.  Get the prefix first. */
         argv_prefix = 0;
         tmp = strdup(argv[i]);
         str = strchr(argv[i], '/');
         if (NULL == str) {
-            opal_show_help("help-mpi-btl-tcp.txt", "invalid if_inexclude",
-                           true, name, opal_process_info.nodename, 
-                           tmp, "Invalid specification (missing \"/\")");
-            free(argv[i]);
-            free(tmp);
+            if (isalpha(argv[i][0])) {
+                argv[save++] = argv[i];
+            } else {
+                opal_show_help("help-mpi-btl-tcp.txt", "invalid if_inexclude",
+                               true, name, opal_process_info.nodename, 
+                               tmp, "Invalid specification (missing \"/\")");
+                free(argv[i]);
+                free(tmp);
+            }
             continue;
         }
         *str = '\0';
         argv_prefix = atoi(str + 1);
+#if OPAL_ENABLE_IPV6
+        c = argv[i];
+        while (*c) {
+            if (*c++ == ':') {
+                family = AF_INET6;
+                break;
+            }
+        }
+#endif
+        if (family != af) {
+            continue;
+        }
 
-        /* Now convert the IPv4 address */
-        ((struct sockaddr*) &argv_inaddr)->sa_family = AF_INET;
-        ret = inet_pton(AF_INET, argv[i], 
-                        &((struct sockaddr_in*) &argv_inaddr)->sin_addr);
+
+        /* Now convert the IP address */
+        ((struct sockaddr*) &argv_inaddr)->sa_family = family;
+        switch (family) {
+            case AF_INET:
+                ret = inet_pton(family, argv[i], 
+                                &((struct sockaddr_in*) &argv_inaddr)->sin_addr);
+                break;
+#if OPAL_ENABLE_IPV6
+            case AF_INET6:
+                ret = inet_pton(family, argv[i], 
+                                &((struct sockaddr_in6*) &argv_inaddr)->sin6_addr);
+                break;
+#endif
+            default:
+                break;
+        }
         free(argv[i]);
 
         if (1 != ret) {
@@ -485,29 +519,24 @@ static char **split_and_resolve(char **orig_str, char *name, bool reqd)
             if (opal_net_samenetwork((struct sockaddr*) &argv_inaddr,
                                      (struct sockaddr*) &if_inaddr,
                                      argv_prefix)) {
-                break;
+                /* We found a match; get the name and replace it in the
+                   argv */
+                found = true;
+                opal_ifindextoname(if_index, if_name, sizeof(if_name));
+                opal_output_verbose(20, opal_btl_base_framework.framework_output, 
+                                    "btl: tcp: Found match: %s (%s)",
+                                    opal_net_get_hostname((struct sockaddr*) &if_inaddr),
+                                    if_name);
+                argv[save++] = strdup(if_name);
             }
         }
         
         /* If we didn't find a match, keep trying */
-        if (if_index < 0) {
-            if (reqd || mca_btl_tcp_component.report_all_unfound_interfaces) {
-                opal_show_help("help-mpi-btl-tcp.txt", "invalid if_inexclude",
-                               true, name, opal_process_info.nodename, tmp,
-                               "Did not find interface matching this subnet");
-            }
-            free(tmp);
-            continue;
+        if (!found && (reqd || mca_btl_tcp_component.report_all_unfound_interfaces)) {
+            opal_show_help("help-mpi-btl-tcp.txt", "invalid if_inexclude",
+                           true, name, opal_process_info.nodename, tmp,
+                           "Did not find interface matching this subnet");
         }
-
-        /* We found a match; get the name and replace it in the
-           argv */
-        opal_ifindextoname(if_index, if_name, sizeof(if_name));
-        opal_output_verbose(20, opal_btl_base_framework.framework_output, 
-                            "btl: tcp: Found match: %s (%s)",
-                            opal_net_get_hostname((struct sockaddr*) &if_inaddr),
-                            if_name);
-        argv[save++] = strdup(if_name);
         free(tmp);
     }
 
@@ -516,7 +545,7 @@ static char **split_and_resolve(char **orig_str, char *name, bool reqd)
     argv[save] = NULL;
     free(*orig_str);
     *orig_str = opal_argv_join(argv, ',');
-    return argv;
+    *p_argv = argv;
 }
 
 
@@ -533,9 +562,10 @@ static int mca_btl_tcp_component_create_instances(void)
     int if_index;
     int kif_count = 0;
     int *kindexes; /* this array is way too large, but never too small */
-    char **include = NULL;
-    char **exclude = NULL;
-    char **argv;
+    char **include = NULL, **exclude = NULL, **argv;
+#if OPAL_ENABLE_IPV6
+    char **include6 = NULL, **exclude6 = NULL, **argv6;
+#endif
     int ret = OPAL_SUCCESS;
 
     if(if_count <= 0) {
@@ -588,8 +618,16 @@ static int mca_btl_tcp_component_create_instances(void)
     mca_btl_tcp_component.tcp_addr_count = if_count;
 
     /* if the user specified an interface list - use these exclusively */
-    argv = include = split_and_resolve(&mca_btl_tcp_component.tcp_if_include,
-                                       "include", true);
+#if OPAL_ENABLE_IPV6
+    if (NULL != mca_btl_tcp_component.tcp_if_include) {
+        mca_btl_tcp_component.tcp6_if_include = strdup(mca_btl_tcp_component.tcp_if_include);
+    } else {
+        mca_btl_tcp_component.tcp6_if_include = NULL;
+    }
+    split_and_resolve(AF_INET6, &mca_btl_tcp_component.tcp6_if_include, &include6, "include", true);
+#endif
+    split_and_resolve(AF_INET, &mca_btl_tcp_component.tcp_if_include, &include, "include", true);
+    argv = include;
     while(argv && *argv) {
         char* if_name = *argv;
         int if_index = opal_ifnametokindex(if_name);
@@ -601,6 +639,29 @@ static int mca_btl_tcp_component_create_instances(void)
         mca_btl_tcp_create(if_index, if_name);
         argv++;
     }
+#if OPAL_ENABLE_IPV6
+    argv6 = include6;
+    while(argv6 && *argv6) {
+        char* if_name = *argv6;
+        argv = include;
+        while (argv && *argv) {
+            if (0 == strcmp(*argv, *argv6)) {
+                break;
+            }
+        }
+        if (!argv || !*argv) {
+            continue;
+        }
+        int if_index = opal_ifnametokindex(if_name);
+        if(if_index < 0) {
+            BTL_ERROR(("invalid interface \"%s\"", if_name));
+            ret = OPAL_ERR_NOT_FOUND;
+            goto cleanup;
+        }
+        mca_btl_tcp_create(if_index, if_name);
+        argv6++;
+    }
+#endif
 
     /* If we made any modules, then the "include" list was non-empty,
        and therefore we're done. */
@@ -612,8 +673,15 @@ static int mca_btl_tcp_component_create_instances(void)
     /* if the interface list was not specified by the user, create 
      * a BTL for each interface that was not excluded.
     */
-    exclude = split_and_resolve(&mca_btl_tcp_component.tcp_if_exclude,
-                                "exclude", false);
+#if OPAL_ENABLE_IPV6
+    if (NULL != mca_btl_tcp_component.tcp_if_exclude) {
+        mca_btl_tcp_component.tcp6_if_exclude = strdup(mca_btl_tcp_component.tcp_if_exclude);
+    } else {
+        mca_btl_tcp_component.tcp6_if_include = NULL;
+    }
+    split_and_resolve(AF_INET6, &mca_btl_tcp_component.tcp6_if_exclude, &exclude6, "exclude", false);
+#endif
+    split_and_resolve(AF_INET, &mca_btl_tcp_component.tcp_if_exclude, &exclude, "exclude", false);
     {
         int i;
         for(i = 0; i < kif_count; i++) {
@@ -630,8 +698,20 @@ static int mca_btl_tcp_component_create_instances(void)
                     break;
                 argv++;
             }
+#if OPAL_ENABLE_IPV6
+            argv6 = exclude6;
+            while(argv6 && *argv6) {
+                if(strncmp(*argv6,if_name,strlen(*argv6)) == 0)
+                    break;
+                argv6++;
+            }
+#endif
             /* if this interface was not found in the excluded list, create a BTL */
-            if(argv == 0 || *argv == 0) {
+            if(argv == 0 || *argv == 0 
+#if OPAL_ENABLE_IPV6
+               || argv6 == 0 || *argv6 == 0
+#endif
+              ) {
                 mca_btl_tcp_create(if_index, if_name);
             }
         }
@@ -644,6 +724,14 @@ static int mca_btl_tcp_component_create_instances(void)
     if (NULL != exclude) {
         opal_argv_free(exclude);
     }
+#if OPAL_ENABLE_IPV6
+    if (NULL != include6) {
+        opal_argv_free(include6);
+    }
+    if (NULL != exclude6) {
+        opal_argv_free(exclude6);
+    }
+#endif
     if (NULL != kindexes) {
         free(kindexes);
     }

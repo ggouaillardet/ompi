@@ -13,6 +13,8 @@
  *                         reserved. 
  * Copyright (c) 2009-2015 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2013      Intel, Inc.  All rights reserved.
+ * Copyright (c) 2015      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  * 
  * Additional copyrights may follow
@@ -295,7 +297,13 @@ opal_net_samenetwork(const struct sockaddr *addr1,
             } else {
                 prefixlen = plen;
             }
-            if (64 == prefixlen) {
+            if (10 == prefixlen) {
+                /* special case for link-local addresses */
+                if ((((__const uint32_t *) (a6_1))[0] & htonl (0xffc00000)) ==
+                    (((__const uint32_t *) (a6_2))[0] & htonl (0xffc00000))) {
+                    return true;
+                }
+            } else if (64 == prefixlen) {
                 /* prefixlen is always /64, any other case would be routing.
                    Compare the first eight bytes (64 bits) and hope that
                    endianess is not an issue on any system as long as

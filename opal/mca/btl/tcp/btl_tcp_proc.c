@@ -244,7 +244,11 @@ static mca_btl_tcp_interface_t** mca_btl_tcp_retrieve_local_interfaces(void)
 {
     struct sockaddr_storage local_addr;
     char local_if_name[IF_NAMESIZE];
-    char **include, **exclude, **argv;
+    char **include, **include4, **exclude, **exclude4, **argv;
+#if OPAL_ENABLE_IPV6
+    char **include6, **exclude6;
+    char * null = NULL;
+#endif
     int idx;
 
     if( NULL != local_interfaces )
@@ -259,8 +263,22 @@ static mca_btl_tcp_interface_t** mca_btl_tcp_retrieve_local_interfaces(void)
     memset(local_kindex_to_index, -1, sizeof(int)*MAX_KERNEL_INTERFACE_INDEX);
 
     /* Collect up the list of included and excluded interfaces, if any */
-    include = opal_argv_split(mca_btl_tcp_component.tcp_if_include,',');
-    exclude = opal_argv_split(mca_btl_tcp_component.tcp_if_exclude,',');
+    include4 = opal_argv_split(mca_btl_tcp_component.tcp_if_include,',');
+    exclude4 = opal_argv_split(mca_btl_tcp_component.tcp_if_exclude,',');
+#if OPAL_ENABLE_IPV6
+    include6 = opal_argv_split(mca_btl_tcp_component.tcp6_if_include,',');
+    if (NULL != include4 && NULL == include6) {
+        include6 = &null;
+    } else if (NULL != include6 && NULL == include4) {
+        include4 = &null;
+    }
+    exclude6 = opal_argv_split(mca_btl_tcp_component.tcp6_if_exclude,',');
+    if (NULL != exclude4 && NULL == exclude6) {
+        exclude6 = &null;
+    } else if (NULL != exclude6 && NULL == exclude4) {
+        exclude4 = &null;
+    }
+#endif
 
     /*
      * identify all kernel interfaces and the associated addresses of
@@ -281,8 +299,21 @@ static mca_btl_tcp_interface_t** mca_btl_tcp_retrieve_local_interfaces(void)
          * mutually exclusive.  This matches how it works in
          * mca_btl_tcp_component_create_instances() which is the function
          * that exports the interfaces.  */
+        switch(local_addr.ss_family) {
+            case AF_INET:
+                argv = include = include4;
+                exclude = exclude4;
+                break;
+#if OPAL_ENABLE_IPV6
+            case AF_INET6:
+                argv = include = include6;
+                exclude = exclude6;
+                break;
+#endif
+            default:
+                assert(0);
+        }
         if(NULL != include) {
-            argv = include;
             skip = true;
             while(argv && *argv) {
                 /* When comparing included interfaces, we look for exact matches.
@@ -370,12 +401,20 @@ static mca_btl_tcp_interface_t** mca_btl_tcp_retrieve_local_interfaces(void)
         }
     }
 cleanup:
-    if (NULL != include) {
-        opal_argv_free(include);
+    if (NULL != include4 && NULL != *include4) {
+        opal_argv_free(include4);
     }
-    if (NULL != exclude) {
-        opal_argv_free(exclude);
+    if (NULL != exclude4 && NULL != *exclude4) {
+        opal_argv_free(exclude4);
     }
+#if OPAL_ENABLE_IPV6
+    if (NULL != include6 && NULL != *include6) {
+        opal_argv_free(include6);
+    }
+    if (NULL != exclude6 && NULL != *exclude6) {
+        opal_argv_free(exclude6);
+    }
+#endif
 
     return local_interfaces;
 }
