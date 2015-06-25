@@ -58,7 +58,20 @@ sub EmitMPI_F08 {
     $args->{suffix} = "_f08";
     $args->{handle_type} = HandleDerived;
 
-    return _emit_interfaces($args);
+    return _emit_interfaces($args, "");
+}
+
+# Expecting same values in args as EmitMPI
+sub EmitPMPI_F08 {
+    my $args = shift;
+
+    $args->{define} = "OMPI_PMPI_F08_MODULE_INTERFACES_H";
+    $args->{filename} = "ompi/mpi/fortran/use-mpi-f08/pmpi-f08-module-interfaces.h";
+    $args->{module_name} = "mpi";
+    $args->{suffix} = "_f08";
+    $args->{handle_type} = HandleDerived;
+
+    return _emit_interfaces($args, "P");
 }
 
 #----------------------------------------------------------------------------
@@ -70,7 +83,7 @@ my $async;
 my $optional;
 
 sub _emit_interfaces {
-    my $args = shift;
+    my ($args, $prefix) = @_;
 
     my $filename = $args->{filename};
     my $module_name = $args->{module_name};
@@ -79,7 +92,8 @@ sub _emit_interfaces {
 
     $choice_pragma = $args->{choice_pragma};
     $choice_type = $args->{choice_type};
-    $choice_rank = $args->{choice_rank};
+    $choice_rank = $args->{choice_rank}
+        if (defined($args->{choice_rank})) ;
     $async = $args->{async};
     $optional = $args->{optional};
 
@@ -87,7 +101,11 @@ sub _emit_interfaces {
 
     my $output;
     foreach my $name (sort(keys(%{$FortranMPI::Interfaces::interfaces}))) {
-        $output .= _emit_interface($name, $suffix, $types_module_name);
+        if (defined($prefix)) {
+            $output .= _emit_one_interface($name, $prefix, $suffix, $types_module_name);
+        } else {
+            $output .= _emit_interface($name, $suffix, $types_module_name);
+        }
     }
 
     return $output;
@@ -97,30 +115,25 @@ sub _emit_interface {
     my ($name, $suffix, $types_module_name) = @_;
 
     my $output;
-    $output = _emit_one_interface($name, $suffix, $types_module_name, 0) .
-        _emit_one_interface($name, $suffix, $types_module_name, 1);
+    $output = _emit_one_interface($name, "", $suffix, $types_module_name) .
+        _emit_one_interface($name, "P", $suffix, $types_module_name);
 
     return $output;
 }
 
 sub _emit_one_interface {
-    my ($name, $suffix, $types_module_name, $which) = @_;
-
-    # Select MPI or PMPI
-    my $key = $name;
-    $name = "P$name"
-        if (1 == $which);
+    my ($name, $prefix, $suffix, $types_module_name) = @_;
 
     my $output;
-    $output = "interface $name\n" .
-        _emit_procedure($key, $suffix, $types_module_name) .
-        "end interface $name\n\n";
+    $output = "interface $prefix$name\n" .
+        _emit_procedure($name, $prefix, $suffix, $types_module_name) .
+        "end interface $prefix$name\n\n";
 
     return $output;
 }
 
 sub _emit_procedure {
-    my ($name, $suffix, $types_module_name) = @_;
+    my ($name, $prefix, $suffix, $types_module_name) = @_;
 
     # Print function/subroutine
     my $api = $FortranMPI::Interfaces::interfaces->{$name};
@@ -128,7 +141,7 @@ sub _emit_procedure {
     if (ReturnDouble == $api->{return}) {
         $proc_type = "function";
     }
-    my $output = "$proc_type $name$suffix(";
+    my $output = "$proc_type $prefix$name$suffix(";
 
     # Print each of the args
     my $sep = "";
@@ -178,7 +191,7 @@ sub _emit_procedure {
     }
 
     # Done
-    $output .= "end $proc_type $name$suffix\n";
+    $output .= "end $proc_type $prefix$name$suffix\n";
 
     return $output;
 }
@@ -192,7 +205,11 @@ sub _emit_arg {
     if ($arg->{type} == TypeChoice) {
         $output .= "$choice_pragma :: $arg->{name}\n"
             if (defined($choice_pragma));
-        $output .= "    $choice_type, dimension($choice_rank)";
+        if (defined($choice_rank)) {
+            $output .= "    $choice_type, dimension($choice_rank)";
+        } else {
+            $output .= "    $choice_type";
+        }
     } elsif (&ArgIsHandle($arg)) {
         $output .= "    type($FortranMPI::Utils::type_map->{$arg->{type}})";
     } elsif (&ArgIsKind($arg)) {

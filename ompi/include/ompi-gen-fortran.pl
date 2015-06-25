@@ -51,9 +51,9 @@ my $mpi_module_arg = 0;
 my $mpi_f08_module_arg = 1;
 my $async_arg = 0;
 my $optional_arg = 1;
-my $choice_pragma_arg;
-my $choice_type_arg = 'xyz';
-my $choice_rank_arg = 'abc';
+my $choice_pragma_arg = '    !GCC$ ATTRIBUTES NO_ARG_CHECK';
+my $choice_type_arg = 'OMPI_FORTRAN_IGNORE_TKR_TYPE';
+my $choice_rank_arg;
 my $ompi_arg;
 my $help_arg;
 
@@ -93,9 +93,9 @@ Valid options:
 }
 
 if ($mpi_module_arg || $mpi_f08_module_arg) {
-    if (!defined($choice_type_arg) || !defined($choice_rank_arg)) {
-        print "Cannot generate mpi or mpi_f08 modules without both 
---choice-type and --choice-rank\n";
+    if (!defined($choice_type_arg)) {
+        print "Cannot generate mpi or mpi_f08 modules without 
+--choice-type\n";
         exit(1);
     }
 }
