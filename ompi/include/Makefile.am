@@ -62,7 +62,7 @@ endif
 
 include ompi/Makefile.am
 
-# This is complicated, but mpif-values.pl generates
+# This is complicated, but ompi-gen-fortran.pl generates
 # several mpif-*.h files in this directory (during autogen.pl).
 # Hence, if any of those files change, it's safer to just force the
 # user to re-autogen.
@@ -71,7 +71,21 @@ include ompi/Makefile.am
 #	@ echo "ERROR: you must re-run autogen.pl (sorry!)"
 #	@ exit 1
 
-EXTRA_DIST = $(headers) mpif-values.pl
+EXTRA_DIST = $(headers) \
+        ompi-gen-fortran.pl \
+        FortranMPI/Constants.pm \
+        FortranMPI/Emit/Declarations.pm \
+        FortranMPI/Emit/Interfaces.pm \
+        FortranMPI/Handles.pm \
+        FortranMPI/Interfaces.pm \
+        FortranMPI/Types.pm \
+        FortranMPI/Utils.pm \
+        NOTES.txt \
+        OMPI/Constants.pm \
+        OMPI/Handles.pm \
+        OMPI/Interfaces.pm \
+        OMPI/Utils.pm \
+        OMPI/Headers.pm
 
 #
 # mpif-sizeof.h is generated based on some results from configure tests.

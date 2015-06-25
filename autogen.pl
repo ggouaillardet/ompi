@@ -1176,7 +1176,7 @@ verbose "\n$step. Running template-generating scripts\n\n";
 # sync).
 
 my @scripts;
-push(@scripts, "ompi/include/mpif-values.pl");
+push(@scripts, "ompi/include/ompi-gen-fortran.pl");
 
 foreach my $s (@scripts) {
     verbose "=== $s\n";
