@@ -20,6 +20,8 @@
 
 module pmpi_f08_interfaces
 
+#include "ompi/mpi/fortran/use-mpi-f08/pmpi-f08-module-interfaces.h"
+
 interface  PMPI_Bsend
 subroutine PMPI_Bsend_f08(buf,count,datatype,dest,tag,comm,ierror)
    use :: mpi_f08_types, only : MPI_Datatype, MPI_Comm
@@ -169,24 +171,6 @@ subroutine PMPI_Irsend_f08(buf,count,datatype,dest,tag,comm,request,ierror)
 end subroutine PMPI_Irsend_f08
 end interface  PMPI_Irsend
 
-interface  PMPI_Isend
-subroutine PMPI_Isend_f08(buf,count,datatype,dest,tag,comm,request,ierror)
-   use :: mpi_f08_types, only : MPI_Datatype, MPI_Comm, MPI_Request
-   implicit none
-   !DEC$ ATTRIBUTES NO_ARG_CHECK :: buf
-   !GCC$ ATTRIBUTES NO_ARG_CHECK :: buf
-   !$PRAGMA IGNORE_TKR buf
-   !DIR$ IGNORE_TKR buf
-   !IBM* IGNORE_TKR buf
-   OMPI_FORTRAN_IGNORE_TKR_TYPE, INTENT(IN) OMPI_ASYNCHRONOUS :: buf
-   INTEGER, INTENT(IN) :: count, dest, tag
-   TYPE(MPI_Datatype), INTENT(IN) :: datatype
-   TYPE(MPI_Comm), INTENT(IN) :: comm
-   TYPE(MPI_Request), INTENT(OUT) :: request
-   INTEGER, OPTIONAL, INTENT(OUT) :: ierror
-end subroutine PMPI_Isend_f08
-end interface  PMPI_Isend
-
 interface  PMPI_Issend
 subroutine PMPI_Issend_f08(buf,count,datatype,dest,tag,comm,request,ierror)
    use :: mpi_f08_types, only : MPI_Datatype, MPI_Comm, MPI_Request
@@ -306,23 +290,6 @@ subroutine PMPI_Rsend_init_f08(buf,count,datatype,dest,tag,comm,request,ierror)
    INTEGER, OPTIONAL, INTENT(OUT) :: ierror
 end subroutine PMPI_Rsend_init_f08
 end interface  PMPI_Rsend_init
-
-interface  PMPI_Send
-subroutine PMPI_Send_f08(buf,count,datatype,dest,tag,comm,ierror)
-   use :: mpi_f08_types, only : MPI_Datatype, MPI_Comm
-   implicit none
-   !DEC$ ATTRIBUTES NO_ARG_CHECK :: buf
-   !GCC$ ATTRIBUTES NO_ARG_CHECK :: buf
-   !$PRAGMA IGNORE_TKR buf
-   !DIR$ IGNORE_TKR buf
-   !IBM* IGNORE_TKR buf
-   OMPI_FORTRAN_IGNORE_TKR_TYPE, INTENT(IN) :: buf
-   INTEGER, INTENT(IN) :: count, dest, tag
-   TYPE(MPI_Datatype), INTENT(IN) :: datatype
-   TYPE(MPI_Comm), INTENT(IN) :: comm
-   INTEGER, OPTIONAL, INTENT(OUT) :: ierror
-end subroutine PMPI_Send_f08
-end interface  PMPI_Send
 
 interface  PMPI_Sendrecv
 subroutine PMPI_Sendrecv_f08(sendbuf,sendcount,sendtype,dest,sendtag,recvbuf, &
@@ -539,21 +506,6 @@ subroutine PMPI_Waitsome_f08(incount,array_of_requests,outcount, &
    INTEGER, OPTIONAL, INTENT(OUT) :: ierror
 end subroutine PMPI_Waitsome_f08
 end interface  PMPI_Waitsome
-
-interface  PMPI_Get_address
-subroutine PMPI_Get_address_f08(location,address,ierror)
-   use :: mpi_f08_types, only : MPI_ADDRESS_KIND
-   implicit none
-   !DEC$ ATTRIBUTES NO_ARG_CHECK :: location
-   !GCC$ ATTRIBUTES NO_ARG_CHECK :: location
-   !$PRAGMA IGNORE_TKR location
-   !DIR$ IGNORE_TKR location
-   !IBM* IGNORE_TKR location
-   OMPI_FORTRAN_IGNORE_TKR_TYPE OMPI_ASYNCHRONOUS :: location
-   INTEGER(MPI_ADDRESS_KIND), INTENT(OUT) :: address
-   INTEGER, OPTIONAL, INTENT(OUT) :: ierror
-end subroutine PMPI_Get_address_f08
-end interface  PMPI_Get_address
 
 interface  PMPI_Get_elements
 subroutine PMPI_Get_elements_f08(status,datatype,count,ierror)
@@ -2890,22 +2842,6 @@ subroutine PMPI_Comm_spawn_f08(command,argv,maxprocs,info,root,comm,intercomm, &
    INTEGER, OPTIONAL, INTENT(OUT) :: ierror
 end subroutine PMPI_Comm_spawn_f08
 end interface  PMPI_Comm_spawn
-
-interface  PMPI_Comm_spawn_multiple
-subroutine PMPI_Comm_spawn_multiple_f08(count,array_of_commands,array_of_argv,array_of_maxprocs, &
-                                       array_of_info,root,comm,intercomm, &
-                                       array_of_errcodes,ierror)
-   use :: mpi_f08_types, only : MPI_Info, MPI_Comm
-   implicit none
-   INTEGER, INTENT(IN) :: count, array_of_maxprocs(*), root
-   CHARACTER(LEN=*), INTENT(IN) :: array_of_commands(*), array_of_argv(count,*)
-   TYPE(MPI_Info), INTENT(IN) :: array_of_info(*)
-   TYPE(MPI_Comm), INTENT(IN) :: comm
-   TYPE(MPI_Comm), INTENT(OUT) :: intercomm
-   INTEGER :: array_of_errcodes(*)
-   INTEGER, OPTIONAL, INTENT(OUT) :: ierror
-end subroutine PMPI_Comm_spawn_multiple_f08
-end interface  PMPI_Comm_spawn_multiple
 
 interface  PMPI_Lookup_name
 subroutine PMPI_Lookup_name_f08(service_name,info,port_name,ierror)

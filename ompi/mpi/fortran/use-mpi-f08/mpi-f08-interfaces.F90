@@ -20,6 +20,8 @@
 
 module mpi_f08_interfaces
 
+#include "ompi/mpi/fortran/use-mpi-f08/mpi-f08-module-interfaces.h"
+
 interface  MPI_Bsend
 subroutine MPI_Bsend_f08(buf,count,datatype,dest,tag,comm,ierror)
    use :: mpi_f08_types, only : MPI_Datatype, MPI_Comm
@@ -165,24 +167,6 @@ subroutine MPI_Irsend_f08(buf,count,datatype,dest,tag,comm,request,ierror)
 end subroutine MPI_Irsend_f08
 end interface  MPI_Irsend
 
-interface  MPI_Isend
-subroutine MPI_Isend_f08(buf,count,datatype,dest,tag,comm,request,ierror)
-   use :: mpi_f08_types, only : MPI_Datatype, MPI_Comm, MPI_Request
-   implicit none
-   !DEC$ ATTRIBUTES NO_ARG_CHECK :: buf
-   !GCC$ ATTRIBUTES NO_ARG_CHECK :: buf
-   !$PRAGMA IGNORE_TKR buf
-   !DIR$ IGNORE_TKR buf
-   !IBM* IGNORE_TKR buf
-   OMPI_FORTRAN_IGNORE_TKR_TYPE, INTENT(IN) :: buf
-   INTEGER, INTENT(IN) :: count, dest, tag
-   TYPE(MPI_Datatype), INTENT(IN) :: datatype
-   TYPE(MPI_Comm), INTENT(IN) :: comm
-   TYPE(MPI_Request), INTENT(OUT) :: request
-   INTEGER, OPTIONAL, INTENT(OUT) :: ierror
-end subroutine MPI_Isend_f08
-end interface  MPI_Isend
-
 interface  MPI_Issend
 subroutine MPI_Issend_f08(buf,count,datatype,dest,tag,comm,request,ierror)
    use :: mpi_f08_types, only : MPI_Datatype, MPI_Comm, MPI_Request
@@ -302,23 +286,6 @@ subroutine MPI_Rsend_init_f08(buf,count,datatype,dest,tag,comm,request,ierror)
    INTEGER, OPTIONAL, INTENT(OUT) :: ierror
 end subroutine MPI_Rsend_init_f08
 end interface  MPI_Rsend_init
-
-interface  MPI_Send
-subroutine MPI_Send_f08(buf,count,datatype,dest,tag,comm,ierror)
-   use :: mpi_f08_types, only : MPI_Datatype, MPI_Comm
-   implicit none
-   !DEC$ ATTRIBUTES NO_ARG_CHECK :: buf
-   !GCC$ ATTRIBUTES NO_ARG_CHECK :: buf
-   !$PRAGMA IGNORE_TKR buf
-   !DIR$ IGNORE_TKR buf
-   !IBM* IGNORE_TKR buf
-   OMPI_FORTRAN_IGNORE_TKR_TYPE, INTENT(IN) :: buf
-   INTEGER, INTENT(IN) :: count, dest, tag
-   TYPE(MPI_Datatype), INTENT(IN) :: datatype
-   TYPE(MPI_Comm), INTENT(IN) :: comm
-   INTEGER, OPTIONAL, INTENT(OUT) :: ierror
-end subroutine MPI_Send_f08
-end interface  MPI_Send
 
 interface  MPI_Sendrecv
 subroutine MPI_Sendrecv_f08(sendbuf,sendcount,sendtype,dest,sendtag,recvbuf, &
@@ -535,21 +502,6 @@ subroutine MPI_Waitsome_f08(incount,array_of_requests,outcount, &
    INTEGER, OPTIONAL, INTENT(OUT) :: ierror
 end subroutine MPI_Waitsome_f08
 end interface  MPI_Waitsome
-
-interface  MPI_Get_address
-subroutine MPI_Get_address_f08(location,address,ierror)
-   use :: mpi_f08_types, only : MPI_ADDRESS_KIND
-   implicit none
-   !DEC$ ATTRIBUTES NO_ARG_CHECK :: location
-   !GCC$ ATTRIBUTES NO_ARG_CHECK :: location
-   !$PRAGMA IGNORE_TKR location
-   !DIR$ IGNORE_TKR location
-   !IBM* IGNORE_TKR location
-   OMPI_FORTRAN_IGNORE_TKR_TYPE :: location
-   INTEGER(MPI_ADDRESS_KIND), INTENT(OUT) :: address
-   INTEGER, OPTIONAL, INTENT(OUT) :: ierror
-end subroutine MPI_Get_address_f08
-end interface  MPI_Get_address
 
 interface  MPI_Get_elements
 subroutine MPI_Get_elements_f08(status,datatype,count,ierror)
@@ -2937,22 +2889,6 @@ subroutine MPI_Comm_spawn_f08(command,argv,maxprocs,info,root,comm,intercomm, &
    INTEGER, OPTIONAL, INTENT(OUT) :: ierror
 end subroutine MPI_Comm_spawn_f08
 end interface  MPI_Comm_spawn
-
-interface  MPI_Comm_spawn_multiple
-subroutine MPI_Comm_spawn_multiple_f08(count,array_of_commands,array_of_argv,array_of_maxprocs, &
-                                       array_of_info,root,comm,intercomm, &
-                                       array_of_errcodes,ierror)
-   use :: mpi_f08_types, only : MPI_Info, MPI_Comm
-   implicit none
-   INTEGER, INTENT(IN) :: count, array_of_maxprocs(*), root
-   CHARACTER(LEN=*), INTENT(IN) :: array_of_commands(*), array_of_argv(count,*)
-   TYPE(MPI_Info), INTENT(IN) :: array_of_info(*)
-   TYPE(MPI_Comm), INTENT(IN) :: comm
-   TYPE(MPI_Comm), INTENT(OUT) :: intercomm
-   INTEGER :: array_of_errcodes(*)
-   INTEGER, OPTIONAL, INTENT(OUT) :: ierror
-end subroutine MPI_Comm_spawn_multiple_f08
-end interface  MPI_Comm_spawn_multiple
 
 interface  MPI_Lookup_name
 subroutine MPI_Lookup_name_f08(service_name,info,port_name,ierror)

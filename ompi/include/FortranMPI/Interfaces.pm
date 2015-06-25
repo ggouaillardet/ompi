@@ -53,12 +53,6 @@ APIArg($api, "request",  IntentOUT, TypeRequest);
 APIArg($api, "ierror",   IntentOUT, TypeInteger);
 
 #----------------------------------------------------------------------------
-# MPI_Wtick
-$api = newAPI("MPI_Wtick");
-# MPI_Wtick is actually a Fortran function, not a subroutine
-APIReturnDouble($api);
-
-#----------------------------------------------------------------------------
 # MPI_Comm_spawn_multiple
 $api = newAPI("MPI_Comm_spawn_multiple");
 APIArg     ($api, "count",             IntentIN,  TypeInteger);

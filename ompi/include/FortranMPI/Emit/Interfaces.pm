@@ -141,12 +141,12 @@ sub _emit_procedure {
     if (ReturnDouble == $api->{return}) {
         $proc_type = "function";
     }
-    my $output = "$proc_type $prefix$name$suffix(";
+    my $output = "$proc_type $prefix$name$suffix(&\n";
 
     # Print each of the args
     my $sep = "";
     foreach my $arg (@{$api->{dummy_args}}) {
-        $output .= "$sep$arg->{name}";
+        $output .= "$sep$arg->{name}&\n";
         $sep = ",";
     }
     $output .= ")\n";
