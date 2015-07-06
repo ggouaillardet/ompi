@@ -29,6 +29,9 @@ AM_FCFLAGS = -I$(top_builddir)/ompi/include \
              $(OMPI_FC_MODULE_FLAG). \
              -I$(top_srcdir) $(FCFLAGS_f90)
 
+AM_CPPFLAGS = -DOMPI_COMPILING_FORTRAN_WRAPPERS=1
+
+
 MOSTLYCLEANFILES = *.mod
 
 CLEANFILES += *.i90
@@ -803,7 +806,8 @@ libmpi_usempif08_la_SOURCES = \
         attr-fn-f08-callback-interfaces.h \
         conversion-fn-null-f08-interface.h \
         constants.h \
-        constants.c
+        constants.c \
+        ompi_buffer_detach_f08.c
 
 # These are generated; do not ship them
 nodist_libmpi_usempif08_la_SOURCES =

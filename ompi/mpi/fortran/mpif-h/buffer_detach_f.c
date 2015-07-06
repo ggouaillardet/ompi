@@ -29,7 +29,6 @@
 #pragma weak pmpi_buffer_detach__ = ompi_buffer_detach_f
 
 #pragma weak PMPI_Buffer_detach_f = ompi_buffer_detach_f
-#pragma weak PMPI_Buffer_detach_f08 = ompi_buffer_detach_f
 #elif OMPI_PROFILE_LAYER
 OMPI_GENERATE_F77_BINDINGS (PMPI_BUFFER_DETACH,
                            pmpi_buffer_detach,
@@ -47,7 +46,6 @@ OMPI_GENERATE_F77_BINDINGS (PMPI_BUFFER_DETACH,
 #pragma weak mpi_buffer_detach__ = ompi_buffer_detach_f
 
 #pragma weak MPI_Buffer_detach_f = ompi_buffer_detach_f
-#pragma weak MPI_Buffer_detach_f08 = ompi_buffer_detach_f
 #endif
 
 #if ! OPAL_HAVE_WEAK_SYMBOLS && ! OMPI_PROFILE_LAYER
@@ -72,7 +70,7 @@ OMPI_GENERATE_F77_BINDINGS (MPI_BUFFER_DETACH,
  * variable and leave the value handed in alone.
  *
  * The mpi_f08 implementation for MPI_BUFFER_DETACH is a separate
- * routine -- see below.
+ * routine.
  */
 void ompi_buffer_detach_f(char *buffer, MPI_Fint *size, MPI_Fint *ierr)
 {
@@ -84,26 +82,6 @@ void ompi_buffer_detach_f(char *buffer, MPI_Fint *size, MPI_Fint *ierr)
     if (NULL != ierr) *ierr = OMPI_INT_2_FINT(c_ierr);
 
     if (MPI_SUCCESS == c_ierr) {
-        OMPI_SINGLE_INT_2_FINT(size);
-    }
-}
-
-/*
- * Per above, this is the mpi_f08 module implementation of
- * MPI_BUFFER_DETACH.  It handles the buffer arugment just like the C
- * binding.
- */
-void ompi_buffer_detach_f08(char *buffer, MPI_Fint *size, MPI_Fint *ierr)
-{
-    int c_ierr;
-    void *dummy;
-    OMPI_SINGLE_NAME_DECL(size);
-
-    c_ierr = MPI_Buffer_detach(&dummy, OMPI_SINGLE_NAME_CONVERT(size));
-    if (NULL != ierr) *ierr = OMPI_INT_2_FINT(c_ierr);
-
-    if (MPI_SUCCESS == c_ierr) {
-        *(void **)buffer = dummy;
         OMPI_SINGLE_INT_2_FINT(size);
     }
 }
