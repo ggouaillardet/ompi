@@ -1,82 +1,3 @@
-#!/usr/bin/env perl
-#
-# Copyright (c) 2013 Cisco Systems, Inc.  All rights reserved.
-#
-# $COPYRIGHT$
-# 
-# Additional copyrights may follow
-# 
-# $HEADER$
-#
-
-#
-# Generated interfaces
-#
-
-package FortranMPI::Interfaces;
-
-use strict;
-
-use FortranMPI::Utils;
-use FortranMPI::Types;
-
-#============================================================================
-# MPI interfaces
-
-our $interfaces;
-my $api;
-
-##----------------------------------------------------------------------------
-## MPI_Send
-#$api = newAPI("MPI_Send");
-## No need to specify the "use" statement types -- they can be inferred
-## from the dummy argument types, below.
-#APIArg($api, "buf",      IntentIN,  TypeChoice);
-#APIArg($api, "count",    IntentIN,  TypeInteger);
-#APIArg($api, "datatype", IntentIN,  TypeDatatype);
-#APIArg($api, "dest",     IntentIN,  TypeInteger);
-#APIArg($api, "tags",     IntentIN,  TypeInteger);
-#APIArg($api, "comm",     IntentIN,  TypeComm);
-#APIArg($api, "ierror",   IntentOUT, TypeInteger);
-#${$api}->{autobody} = 1;
-#
-##----------------------------------------------------------------------------
-## MPI_Isend
-#$api = newAPI("MPI_Isend");
-#APIArg($api, "buf",      IntentIN,  TypeChoice);
-#APIArgAsync($api, "buf");
-#APIArg($api, "count",    IntentIN,  TypeInteger);
-#APIArg($api, "datatype", IntentIN,  TypeDatatype);
-#APIArg($api, "dest",     IntentIN,  TypeInteger);
-#APIArg($api, "tags",     IntentIN,  TypeInteger);
-#APIArg($api, "comm",     IntentIN,  TypeComm);
-#APIArg($api, "request",  IntentOUT, TypeRequest);
-#APIArg($api, "ierror",   IntentOUT, TypeInteger);
-#
-##----------------------------------------------------------------------------
-## MPI_Comm_spawn_multiple
-#$api = newAPI("MPI_Comm_spawn_multiple");
-#APIArg     ($api, "count",             IntentIN,  TypeInteger);
-#APIArgArray($api, "array_of_maxprocs", IntentIN,  TypeInteger,   "count");
-#APIArgArray($api, "array_of_commands", IntentIN,  TypeCharacter, "*");
-#APIArgModify($api, "array_of_commands", "LEN=*");
-#APIArgArray($api, "array_of_argv",     IntentIN,  TypeCharacter, "count,*");
-#APIArgModify($api, "array_of_argv", "LEN=*");
-#APIArgArray($api, "array_of_info",     IntentIN,  TypeInfo,      "count");
-#APIArg     ($api, "root",              IntentIN,  TypeInteger);
-#APIArg     ($api, "comm",              IntentIN,  TypeComm);
-#APIArg     ($api, "intercomm",         IntentOUT, TypeComm);
-#APIArgArray($api, "array_of_errcodes", IntentOUT, TypeInteger,   "*");
-#APIArg     ($api, "ierror",            IntentOUT, TypeInteger);
-##
-##----------------------------------------------------------------------------
-## MPI_Address
-#$api = newAPI("MPI_Get_address");
-#APIArg($api, "location", 0,      TypeChoice);
-#APIArg($api, "address",  IntentOUT, TypeAint);
-#APIArg($api, "ierror",   IntentOUT, TypeInteger);
-#
-
 #----------------------------------------------------------------------------
 # MPI_Bsend
 $api = newAPI("MPI_Bsend");
@@ -130,6 +51,7 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Buffer_detach
 $api = newAPI("MPI_Buffer_detach");
+APIAuto     ($api);
 # TYPE(C_PTR), INTENT(OUT) :: buffer_addr
 APIArg      ($api, "buffer_addr", IntentOUT, TypeC);
 # INTEGER, INTENT(OUT) :: size
@@ -147,7 +69,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Get_count
 $api = newAPI("MPI_Get_count");
-APIAuto     ($api);
 # TYPE(MPI_Status), INTENT(IN) :: status
 APIArg      ($api, "status", IntentIN, TypeStatus);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
@@ -159,7 +80,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ibsend
 $api = newAPI("MPI_Ibsend");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
 APIArg      ($api, "buf", IntentIN, TypeChoice);
 APIArgAsync ($api, "buf");
@@ -198,7 +118,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Imrecv
 $api = newAPI("MPI_Imrecv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: buf
 APIArg      ($api, "buf", IntentNONE, TypeChoice);
 APIArgAsync ($api, "buf");
@@ -231,7 +150,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Irecv
 $api = newAPI("MPI_Irecv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: buf
 APIArg      ($api, "buf", IntentNONE, TypeChoice);
 APIArgAsync ($api, "buf");
@@ -252,7 +170,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Irsend
 $api = newAPI("MPI_Irsend");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
 APIArg      ($api, "buf", IntentIN, TypeChoice);
 APIArgAsync ($api, "buf");
@@ -273,7 +190,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Isend
 $api = newAPI("MPI_Isend");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
 APIArg      ($api, "buf", IntentIN, TypeChoice);
 APIArgAsync ($api, "buf");
@@ -294,7 +210,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Issend
 $api = newAPI("MPI_Issend");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
 APIArg      ($api, "buf", IntentIN, TypeChoice);
 APIArgAsync ($api, "buf");
@@ -345,7 +260,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Probe
 $api = newAPI("MPI_Probe");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: source
 APIArg      ($api, "source", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: tag
@@ -359,7 +273,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Recv
 $api = newAPI("MPI_Recv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..) :: buf
 APIArg      ($api, "buf", IntentNONE, TypeChoice);
 # INTEGER, INTENT(IN) :: count
@@ -379,7 +292,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Recv_init
 $api = newAPI("MPI_Recv_init");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: buf
 APIArg      ($api, "buf", IntentNONE, TypeChoice);
 APIArgAsync ($api, "buf");
@@ -400,7 +312,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Request_free
 $api = newAPI("MPI_Request_free");
-APIAuto     ($api);
 # TYPE(MPI_Request), INTENT(INOUT) :: request
 APIArg      ($api, "request", IntentINOUT, TypeRequest);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -420,7 +331,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Rsend
 $api = newAPI("MPI_Rsend");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: buf
 APIArg      ($api, "buf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: count
@@ -438,7 +348,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Rsend_init
 $api = newAPI("MPI_Rsend_init");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
 APIArg      ($api, "buf", IntentIN, TypeChoice);
 APIArgAsync ($api, "buf");
@@ -459,7 +368,7 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Send
 $api = newAPI("MPI_Send");
-APIAuto     ($api);
+grep: ../../mpi/fortran/use-mpi-f08/send_f08.F90: No such file or directory
 # TYPE(*), DIMENSION(..), INTENT(IN) :: buf
 APIArg      ($api, "buf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: count
@@ -477,7 +386,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Send_init
 $api = newAPI("MPI_Send_init");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
 APIArg      ($api, "buf", IntentIN, TypeChoice);
 APIArgAsync ($api, "buf");
@@ -498,7 +406,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Sendrecv
 $api = newAPI("MPI_Sendrecv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: sendcount
@@ -528,7 +435,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Sendrecv_replace
 $api = newAPI("MPI_Sendrecv_replace");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..) :: buf
 APIArg      ($api, "buf", IntentNONE, TypeChoice);
 # INTEGER, INTENT(IN) :: count
@@ -552,7 +458,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ssend
 $api = newAPI("MPI_Ssend");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: buf
 APIArg      ($api, "buf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: count
@@ -570,7 +475,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ssend_init
 $api = newAPI("MPI_Ssend_init");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
 APIArg      ($api, "buf", IntentIN, TypeChoice);
 APIArgAsync ($api, "buf");
@@ -675,7 +579,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Wait
 $api = newAPI("MPI_Wait");
-APIAuto     ($api);
 # TYPE(MPI_Request), INTENT(INOUT) :: request
 APIArg      ($api, "request", IntentINOUT, TypeRequest);
 # TYPE(MPI_Status) :: status
@@ -685,7 +588,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Waitall
 $api = newAPI("MPI_Waitall");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: count
 APIArg      ($api, "count", IntentIN, TypeInteger);
 # TYPE(MPI_Request), INTENT(INOUT) :: array_of_requests
@@ -697,7 +599,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Waitany
 $api = newAPI("MPI_Waitany");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: count
 APIArg      ($api, "count", IntentIN, TypeInteger);
 # TYPE(MPI_Request), INTENT(INOUT) :: array_of_requests
@@ -711,7 +612,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Waitsome
 $api = newAPI("MPI_Waitsome");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: incount
 APIArg      ($api, "incount", IntentIN, TypeInteger);
 # TYPE(MPI_Request), INTENT(INOUT) :: array_of_requests
@@ -727,7 +627,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Get_address
 $api = newAPI("MPI_Get_address");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: location
 APIArg      ($api, "location", IntentNONE, TypeChoice);
 APIArgAsync ($api, "location");
@@ -738,7 +637,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Get_elements
 $api = newAPI("MPI_Get_elements");
-APIAuto     ($api);
 # TYPE(MPI_Status), INTENT(IN) :: status
 APIArg      ($api, "status", IntentIN, TypeStatus);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
@@ -750,7 +648,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Get_elements_x
 $api = newAPI("MPI_Get_elements_x");
-APIAuto     ($api);
 # TYPE(MPI_Status), INTENT(IN) :: status
 APIArg      ($api, "status", IntentIN, TypeStatus);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
@@ -762,7 +659,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Pack
 $api = newAPI("MPI_Pack");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: inbuf
 APIArg      ($api, "inbuf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: incount
@@ -782,7 +678,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Pack_external
 $api = newAPI("MPI_Pack_external");
-APIAuto     ($api);
 # CHARACTER(LEN=*), INTENT(IN) :: datarep
 APIArg      ($api, "datarep", IntentIN, TypeCharacter);
 APIArgModify($api, "datarep", "LEN=*");
@@ -803,7 +698,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Pack_external_size
 $api = newAPI("MPI_Pack_external_size");
-APIAuto     ($api);
 # CHARACTER(LEN=*), INTENT(IN) :: datarep
 APIArg      ($api, "datarep", IntentIN, TypeCharacter);
 APIArgModify($api, "datarep", "LEN=*");
@@ -818,7 +712,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Pack_size
 $api = newAPI("MPI_Pack_size");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: incount
 APIArg      ($api, "incount", IntentIN, TypeInteger);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
@@ -832,7 +725,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_commit
 $api = newAPI("MPI_Type_commit");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(INOUT) :: datatype
 APIArg      ($api, "datatype", IntentINOUT, TypeDatatype);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -840,7 +732,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_contiguous
 $api = newAPI("MPI_Type_contiguous");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: count
 APIArg      ($api, "count", IntentIN, TypeInteger);
 # TYPE(MPI_Datatype), INTENT(IN) :: oldtype
@@ -852,7 +743,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_create_darray
 $api = newAPI("MPI_Type_create_darray");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: size
 APIArg      ($api, "size", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: rank
@@ -878,7 +768,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_create_hindexed
 $api = newAPI("MPI_Type_create_hindexed");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: count
 APIArg      ($api, "count", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: array_of_blocklengths
@@ -894,7 +783,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_create_hindexed_block
 $api = newAPI("MPI_Type_create_hindexed_block");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: count
 APIArg      ($api, "count", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: blocklength
@@ -910,7 +798,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_create_hvector
 $api = newAPI("MPI_Type_create_hvector");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: count
 APIArg      ($api, "count", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: blocklength
@@ -926,7 +813,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_create_indexed_block
 $api = newAPI("MPI_Type_create_indexed_block");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: count
 APIArg      ($api, "count", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: blocklength
@@ -942,7 +828,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_create_resized
 $api = newAPI("MPI_Type_create_resized");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: oldtype
 APIArg      ($api, "oldtype", IntentIN, TypeDatatype);
 # INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: lb
@@ -956,7 +841,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_create_struct
 $api = newAPI("MPI_Type_create_struct");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: count
 APIArg      ($api, "count", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: array_of_blocklengths
@@ -972,7 +856,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_create_subarray
 $api = newAPI("MPI_Type_create_subarray");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: ndims
 APIArg      ($api, "ndims", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: array_of_sizes
@@ -992,7 +875,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_dup
 $api = newAPI("MPI_Type_dup");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: oldtype
 APIArg      ($api, "oldtype", IntentIN, TypeDatatype);
 # TYPE(MPI_Datatype), INTENT(OUT) :: newtype
@@ -1002,7 +884,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_free
 $api = newAPI("MPI_Type_free");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(INOUT) :: datatype
 APIArg      ($api, "datatype", IntentINOUT, TypeDatatype);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -1010,7 +891,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_get_contents
 $api = newAPI("MPI_Type_get_contents");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
 APIArg      ($api, "datatype", IntentIN, TypeDatatype);
 # INTEGER, INTENT(IN) :: max_integers
@@ -1030,7 +910,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_get_envelope
 $api = newAPI("MPI_Type_get_envelope");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
 APIArg      ($api, "datatype", IntentIN, TypeDatatype);
 # INTEGER, INTENT(OUT) :: num_integers
@@ -1046,7 +925,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_get_extent
 $api = newAPI("MPI_Type_get_extent");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
 APIArg      ($api, "datatype", IntentIN, TypeDatatype);
 # INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(OUT) :: lb
@@ -1058,7 +936,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_get_extent_x
 $api = newAPI("MPI_Type_get_extent_x");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
 APIArg      ($api, "datatype", IntentIN, TypeDatatype);
 # INTEGER(KIND=MPI_COUNT_KIND), INTENT(OUT) :: lb
@@ -1070,7 +947,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_get_true_extent
 $api = newAPI("MPI_Type_get_true_extent");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
 APIArg      ($api, "datatype", IntentIN, TypeDatatype);
 # INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(OUT) :: true_lb
@@ -1082,7 +958,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_get_true_extent_x
 $api = newAPI("MPI_Type_get_true_extent_x");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
 APIArg      ($api, "datatype", IntentIN, TypeDatatype);
 # INTEGER(KIND=MPI_COUNT_KIND), INTENT(OUT) :: true_lb
@@ -1094,7 +969,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_indexed
 $api = newAPI("MPI_Type_indexed");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: count
 APIArg      ($api, "count", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: array_of_blocklengths
@@ -1110,7 +984,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_size
 $api = newAPI("MPI_Type_size");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
 APIArg      ($api, "datatype", IntentIN, TypeDatatype);
 # INTEGER, INTENT(OUT) :: size
@@ -1120,7 +993,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_size_x
 $api = newAPI("MPI_Type_size_x");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
 APIArg      ($api, "datatype", IntentIN, TypeDatatype);
 # INTEGER(KIND=MPI_COUNT_KIND), INTENT(OUT) :: size
@@ -1130,7 +1002,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_vector
 $api = newAPI("MPI_Type_vector");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: count
 APIArg      ($api, "count", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: blocklength
@@ -1146,7 +1017,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Unpack
 $api = newAPI("MPI_Unpack");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: inbuf
 APIArg      ($api, "inbuf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: insize
@@ -1166,7 +1036,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Unpack_external
 $api = newAPI("MPI_Unpack_external");
-APIAuto     ($api);
 # CHARACTER(LEN=*), INTENT(IN) :: datarep
 APIArg      ($api, "datarep", IntentIN, TypeCharacter);
 APIArgModify($api, "datarep", "LEN=*");
@@ -1356,7 +1225,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Gather
 $api = newAPI("MPI_Gather");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: sendcount
@@ -1378,7 +1246,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Gatherv
 $api = newAPI("MPI_Gatherv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: sendcount
@@ -1402,7 +1269,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Iallgather
 $api = newAPI("MPI_Iallgather");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1426,7 +1292,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Iallgatherv
 $api = newAPI("MPI_Iallgatherv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1454,7 +1319,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Iallreduce
 $api = newAPI("MPI_Iallreduce");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1476,7 +1340,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ialltoall
 $api = newAPI("MPI_Ialltoall");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1500,7 +1363,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ialltoallv
 $api = newAPI("MPI_Ialltoallv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1565,7 +1427,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ibarrier
 $api = newAPI("MPI_Ibarrier");
-APIAuto     ($api);
 # TYPE(MPI_Comm), INTENT(IN) :: comm
 APIArg      ($api, "comm", IntentIN, TypeComm);
 # TYPE(MPI_Request), INTENT(OUT) :: request
@@ -1575,7 +1436,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ibcast
 $api = newAPI("MPI_Ibcast");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: buffer
 APIArg      ($api, "buffer", IntentNONE, TypeChoice);
 APIArgAsync ($api, "buffer");
@@ -1594,7 +1454,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Iexscan
 $api = newAPI("MPI_Iexscan");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1616,7 +1475,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Igather
 $api = newAPI("MPI_Igather");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1642,7 +1500,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Igatherv
 $api = newAPI("MPI_Igatherv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1672,7 +1529,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ireduce
 $api = newAPI("MPI_Ireduce");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1696,7 +1552,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ireduce_scatter
 $api = newAPI("MPI_Ireduce_scatter");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1719,7 +1574,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ireduce_scatter_block
 $api = newAPI("MPI_Ireduce_scatter_block");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1741,7 +1595,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Iscan
 $api = newAPI("MPI_Iscan");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1763,7 +1616,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Iscatter
 $api = newAPI("MPI_Iscatter");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1789,7 +1641,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Iscatterv
 $api = newAPI("MPI_Iscatterv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -1819,7 +1670,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Op_commutative
 $api = newAPI("MPI_Op_commutative");
-APIAuto     ($api);
 APIPMPI     ($api);
 # TYPE(MPI_Op), INTENT(IN) :: op
 APIArg      ($api, "op", IntentIN, TypeOp);
@@ -1830,11 +1680,9 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Op_create
 $api = newAPI("MPI_Op_create");
-APIAuto     ($api);
 APIPMPI     ($api);
 # PROCEDURE(MPI_User_function) :: user_fn
-APIArg      ($api, "user_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "user_fn", "MPI_User_function");
+APIArg      ($api, "user_fn", IntentNONE, TypeProcedureUserFunction);
 # LOGICAL, INTENT(IN) :: commute
 APIArg      ($api, "commute", IntentIN, TypeLogical);
 # TYPE(MPI_Op), INTENT(OUT) :: op
@@ -1844,7 +1692,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Op_free
 $api = newAPI("MPI_Op_free");
-APIAuto     ($api);
 # TYPE(MPI_Op), INTENT(INOUT) :: op
 APIArg      ($api, "op", IntentINOUT, TypeOp);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -1852,7 +1699,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Reduce
 $api = newAPI("MPI_Reduce");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 # TYPE(*), DIMENSION(..) :: recvbuf
@@ -1872,7 +1718,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Reduce_local
 $api = newAPI("MPI_Reduce_local");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: inbuf
 APIArg      ($api, "inbuf", IntentIN, TypeChoice);
 # TYPE(*), DIMENSION(..) :: inoutbuf
@@ -1888,7 +1733,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Reduce_scatter
 $api = newAPI("MPI_Reduce_scatter");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 # TYPE(*), DIMENSION(..) :: recvbuf
@@ -1906,7 +1750,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Reduce_scatter_block
 $api = newAPI("MPI_Reduce_scatter_block");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 # TYPE(*), DIMENSION(..) :: recvbuf
@@ -1924,7 +1767,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Scan
 $api = newAPI("MPI_Scan");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 # TYPE(*), DIMENSION(..) :: recvbuf
@@ -1942,7 +1784,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Scatter
 $api = newAPI("MPI_Scatter");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: sendcount
@@ -1964,7 +1805,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Scatterv
 $api = newAPI("MPI_Scatterv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: sendcounts
@@ -2027,11 +1867,9 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 # MPI_Comm_create_keyval
 $api = newAPI("MPI_Comm_create_keyval");
 # PROCEDURE(MPI_Comm_copy_attr_function) :: comm_copy_attr_fn
-APIArg      ($api, "comm_copy_attr_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "comm_copy_attr_fn", "MPI_Comm_copy_attr_function");
+APIArg      ($api, "comm_copy_attr_fn", IntentNONE, TypeProcedureCommCopyAttr);
 # PROCEDURE(MPI_Comm_delete_attr_function) :: comm_delete_attr_fn
-APIArg      ($api, "comm_delete_attr_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "comm_delete_attr_fn", "MPI_Comm_delete_attr_function");
+APIArg      ($api, "comm_delete_attr_fn", IntentNONE, TypeProcedureCommDeleteAttr);
 # INTEGER, INTENT(OUT) :: comm_keyval
 APIArg      ($api, "comm_keyval", IntentOUT, TypeInteger);
 # INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: extra_state
@@ -2263,7 +2101,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Group_compare
 $api = newAPI("MPI_Group_compare");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(IN) :: group1
 APIArg      ($api, "group1", IntentIN, TypeGroup);
 # TYPE(MPI_Group), INTENT(IN) :: group2
@@ -2275,7 +2112,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Group_difference
 $api = newAPI("MPI_Group_difference");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(IN) :: group1
 APIArg      ($api, "group1", IntentIN, TypeGroup);
 # TYPE(MPI_Group), INTENT(IN) :: group2
@@ -2287,7 +2123,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Group_excl
 $api = newAPI("MPI_Group_excl");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(IN) :: group
 APIArg      ($api, "group", IntentIN, TypeGroup);
 # INTEGER, INTENT(IN) :: n
@@ -2301,7 +2136,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Group_free
 $api = newAPI("MPI_Group_free");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(INOUT) :: group
 APIArg      ($api, "group", IntentINOUT, TypeGroup);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -2309,7 +2143,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Group_incl
 $api = newAPI("MPI_Group_incl");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(IN) :: group
 APIArg      ($api, "group", IntentIN, TypeGroup);
 # INTEGER, INTENT(IN) :: n
@@ -2323,7 +2156,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Group_intersection
 $api = newAPI("MPI_Group_intersection");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(IN) :: group1
 APIArg      ($api, "group1", IntentIN, TypeGroup);
 # TYPE(MPI_Group), INTENT(IN) :: group2
@@ -2335,7 +2167,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Group_range_excl
 $api = newAPI("MPI_Group_range_excl");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(IN) :: group
 APIArg      ($api, "group", IntentIN, TypeGroup);
 # INTEGER, INTENT(IN) :: n
@@ -2349,7 +2180,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Group_range_incl
 $api = newAPI("MPI_Group_range_incl");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(IN) :: group
 APIArg      ($api, "group", IntentIN, TypeGroup);
 # INTEGER, INTENT(IN) :: n
@@ -2363,7 +2193,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Group_rank
 $api = newAPI("MPI_Group_rank");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(IN) :: group
 APIArg      ($api, "group", IntentIN, TypeGroup);
 # INTEGER, INTENT(OUT) :: rank
@@ -2373,7 +2202,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Group_size
 $api = newAPI("MPI_Group_size");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(IN) :: group
 APIArg      ($api, "group", IntentIN, TypeGroup);
 # INTEGER, INTENT(OUT) :: size
@@ -2383,7 +2211,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Group_translate_ranks
 $api = newAPI("MPI_Group_translate_ranks");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(IN) :: group1
 APIArg      ($api, "group1", IntentIN, TypeGroup);
 # INTEGER, INTENT(IN) :: n
@@ -2399,7 +2226,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Group_union
 $api = newAPI("MPI_Group_union");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(IN) :: group1
 APIArg      ($api, "group1", IntentIN, TypeGroup);
 # TYPE(MPI_Group), INTENT(IN) :: group2
@@ -2411,7 +2237,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Intercomm_create
 $api = newAPI("MPI_Intercomm_create");
-APIAuto     ($api);
 # TYPE(MPI_Comm), INTENT(IN) :: local_comm
 APIArg      ($api, "local_comm", IntentIN, TypeComm);
 # INTEGER, INTENT(IN) :: local_leader
@@ -2429,7 +2254,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Intercomm_merge
 $api = newAPI("MPI_Intercomm_merge");
-APIAuto     ($api);
 APIPMPI     ($api);
 # TYPE(MPI_Comm), INTENT(IN) :: intercomm
 APIArg      ($api, "intercomm", IntentIN, TypeComm);
@@ -2443,11 +2267,9 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 # MPI_Type_create_keyval
 $api = newAPI("MPI_Type_create_keyval");
 # PROCEDURE(MPI_Type_copy_attr_function) :: type_copy_attr_fn
-APIArg      ($api, "type_copy_attr_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "type_copy_attr_fn", "MPI_Type_copy_attr_function");
+APIArg      ($api, "type_copy_attr_fn", IntentNONE, TypeProcedureCopyAttr);
 # PROCEDURE(MPI_Type_delete_attr_function) :: type_delete_attr_fn
-APIArg      ($api, "type_delete_attr_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "type_delete_attr_fn", "MPI_Type_delete_attr_function");
+APIArg      ($api, "type_delete_attr_fn", IntentNONE, TypeProcedureDeleteAttr);
 # INTEGER, INTENT(OUT) :: type_keyval
 APIArg      ($api, "type_keyval", IntentOUT, TypeInteger);
 # INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: extra_state
@@ -2457,7 +2279,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_delete_attr
 $api = newAPI("MPI_Type_delete_attr");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
 APIArg      ($api, "datatype", IntentIN, TypeDatatype);
 # INTEGER, INTENT(IN) :: type_keyval
@@ -2467,7 +2288,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_free_keyval
 $api = newAPI("MPI_Type_free_keyval");
-APIAuto     ($api);
 # INTEGER, INTENT(INOUT) :: type_keyval
 APIArg      ($api, "type_keyval", IntentINOUT, TypeInteger);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -2475,7 +2295,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_get_attr
 $api = newAPI("MPI_Type_get_attr");
-APIAuto     ($api);
 APIPMPI     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
 APIArg      ($api, "datatype", IntentIN, TypeDatatype);
@@ -2490,7 +2309,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_get_name
 $api = newAPI("MPI_Type_get_name");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
 APIArg      ($api, "datatype", IntentIN, TypeDatatype);
 # CHARACTER(LEN=MPI_MAX_OBJECT_NAME), INTENT(OUT) :: type_name
@@ -2503,7 +2321,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_set_attr
 $api = newAPI("MPI_Type_set_attr");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
 APIArg      ($api, "datatype", IntentIN, TypeDatatype);
 # INTEGER, INTENT(IN) :: type_keyval
@@ -2515,7 +2332,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_set_name
 $api = newAPI("MPI_Type_set_name");
-APIAuto     ($api);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
 APIArg      ($api, "datatype", IntentIN, TypeDatatype);
 # CHARACTER(LEN=*), INTENT(IN) :: type_name
@@ -2527,11 +2343,9 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 # MPI_Win_create_keyval
 $api = newAPI("MPI_Win_create_keyval");
 # PROCEDURE(MPI_Win_copy_attr_function) :: win_copy_attr_fn
-APIArg      ($api, "win_copy_attr_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "win_copy_attr_fn", "MPI_Win_copy_attr_function");
+APIArg      ($api, "win_copy_attr_fn", IntentNONE, TypeProcedureWinCopyAttr);
 # PROCEDURE(MPI_Win_delete_attr_function) :: win_delete_attr_fn
-APIArg      ($api, "win_delete_attr_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "win_delete_attr_fn", "MPI_Win_delete_attr_function");
+APIArg      ($api, "win_delete_attr_fn", IntentNONE, TypeProcedureWinDeleteAttr);
 # INTEGER, INTENT(OUT) :: win_keyval
 APIArg      ($api, "win_keyval", IntentOUT, TypeInteger);
 # INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: extra_state
@@ -2541,7 +2355,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_delete_attr
 $api = newAPI("MPI_Win_delete_attr");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # INTEGER, INTENT(IN) :: win_keyval
@@ -2551,7 +2364,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_free_keyval
 $api = newAPI("MPI_Win_free_keyval");
-APIAuto     ($api);
 # INTEGER, INTENT(INOUT) :: win_keyval
 APIArg      ($api, "win_keyval", IntentINOUT, TypeInteger);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -2559,7 +2371,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_get_attr
 $api = newAPI("MPI_Win_get_attr");
-APIAuto     ($api);
 APIPMPI     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
@@ -2574,7 +2385,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_get_name
 $api = newAPI("MPI_Win_get_name");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # CHARACTER(LEN=MPI_MAX_OBJECT_NAME), INTENT(OUT) :: win_name
@@ -2587,7 +2397,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_set_attr
 $api = newAPI("MPI_Win_set_attr");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # INTEGER, INTENT(IN) :: win_keyval
@@ -2599,7 +2408,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_set_name
 $api = newAPI("MPI_Win_set_name");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # CHARACTER(LEN=*), INTENT(IN) :: win_name
@@ -2827,7 +2635,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Graph_create
 $api = newAPI("MPI_Graph_create");
-APIAuto     ($api);
 APIPMPI     ($api);
 # TYPE(MPI_Comm), INTENT(IN) :: comm_old
 APIArg      ($api, "comm_old", IntentIN, TypeComm);
@@ -2846,7 +2653,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Graph_get
 $api = newAPI("MPI_Graph_get");
-APIAuto     ($api);
 # TYPE(MPI_Comm), INTENT(IN) :: comm
 APIArg      ($api, "comm", IntentIN, TypeComm);
 # INTEGER, INTENT(IN) :: maxindex
@@ -2862,7 +2668,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Graph_map
 $api = newAPI("MPI_Graph_map");
-APIAuto     ($api);
 # TYPE(MPI_Comm), INTENT(IN) :: comm
 APIArg      ($api, "comm", IntentIN, TypeComm);
 # INTEGER, INTENT(IN) :: nnodes
@@ -2878,7 +2683,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Graph_neighbors
 $api = newAPI("MPI_Graph_neighbors");
-APIAuto     ($api);
 # TYPE(MPI_Comm), INTENT(IN) :: comm
 APIArg      ($api, "comm", IntentIN, TypeComm);
 # INTEGER, INTENT(IN) :: rank
@@ -2892,7 +2696,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Graph_neighbors_count
 $api = newAPI("MPI_Graph_neighbors_count");
-APIAuto     ($api);
 # TYPE(MPI_Comm), INTENT(IN) :: comm
 APIArg      ($api, "comm", IntentIN, TypeComm);
 # INTEGER, INTENT(IN) :: rank
@@ -2904,7 +2707,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Graphdims_get
 $api = newAPI("MPI_Graphdims_get");
-APIAuto     ($api);
 # TYPE(MPI_Comm), INTENT(IN) :: comm
 APIArg      ($api, "comm", IntentIN, TypeComm);
 # INTEGER, INTENT(OUT) :: nnodes
@@ -2916,7 +2718,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ineighbor_allgather
 $api = newAPI("MPI_Ineighbor_allgather");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -2940,7 +2741,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ineighbor_allgatherv
 $api = newAPI("MPI_Ineighbor_allgatherv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -2968,7 +2768,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ineighbor_alltoall
 $api = newAPI("MPI_Ineighbor_alltoall");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -2992,7 +2791,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Ineighbor_alltoallv
 $api = newAPI("MPI_Ineighbor_alltoallv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 APIArgAsync ($api, "sendbuf");
@@ -3057,7 +2855,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Neighbor_allgather
 $api = newAPI("MPI_Neighbor_allgather");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: sendcount
@@ -3077,7 +2874,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Neighbor_allgatherv
 $api = newAPI("MPI_Neighbor_allgatherv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: sendcount
@@ -3099,7 +2895,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Neighbor_alltoall
 $api = newAPI("MPI_Neighbor_alltoall");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: sendcount
@@ -3119,7 +2914,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Neighbor_alltoallv
 $api = newAPI("MPI_Neighbor_alltoallv");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
 APIArg      ($api, "sendbuf", IntentIN, TypeChoice);
 # INTEGER, INTENT(IN) :: sendcounts
@@ -3166,7 +2960,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Topo_test
 $api = newAPI("MPI_Topo_test");
-APIAuto     ($api);
 # TYPE(MPI_Comm), INTENT(IN) :: comm
 APIArg      ($api, "comm", IntentIN, TypeComm);
 # INTEGER, INTENT(OUT) :: status
@@ -3238,8 +3031,7 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 # MPI_Comm_create_errhandler
 $api = newAPI("MPI_Comm_create_errhandler");
 # PROCEDURE(MPI_Comm_errhandler_function) :: comm_errhandler_fn
-APIArg      ($api, "comm_errhandler_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "comm_errhandler_fn", "MPI_Comm_errhandler_function");
+APIArg      ($api, "comm_errhandler_fn", IntentNONE, TypeProcedureCommErrhandler);
 # TYPE(MPI_Errhandler), INTENT(OUT) :: errhandler
 APIArg      ($api, "errhandler", IntentOUT, TypeErrhandler);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -3298,7 +3090,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_call_errhandler
 $api = newAPI("MPI_File_call_errhandler");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER, INTENT(IN) :: errorcode
@@ -3309,8 +3100,7 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 # MPI_File_create_errhandler
 $api = newAPI("MPI_File_create_errhandler");
 # PROCEDURE(MPI_File_errhandler_function) :: file_errhandler_fn
-APIArg      ($api, "file_errhandler_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "file_errhandler_fn", "MPI_File_errhandler_function");
+APIArg      ($api, "file_errhandler_fn", IntentNONE, TypeFileErrhandler);
 # TYPE(MPI_Errhandler), INTENT(OUT) :: errhandler
 APIArg      ($api, "errhandler", IntentOUT, TypeErrhandler);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -3318,7 +3108,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_get_errhandler
 $api = newAPI("MPI_File_get_errhandler");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: file
 APIArg      ($api, "file", IntentIN, TypeFile);
 # TYPE(MPI_Errhandler), INTENT(OUT) :: errhandler
@@ -3328,7 +3117,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_set_errhandler
 $api = newAPI("MPI_File_set_errhandler");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: file
 APIArg      ($api, "file", IntentIN, TypeFile);
 # TYPE(MPI_Errhandler), INTENT(IN) :: errhandler
@@ -3338,13 +3126,11 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Finalize
 $api = newAPI("MPI_Finalize");
-APIAuto     ($api);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
 APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Finalized
 $api = newAPI("MPI_Finalized");
-APIAuto     ($api);
 APIPMPI     ($api);
 # LOGICAL, INTENT(OUT) :: flag
 APIArg      ($api, "flag", IntentOUT, TypeLogical);
@@ -3353,16 +3139,14 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Free_mem
 $api = newAPI("MPI_Free_mem");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: base
 APIArg      ($api, "base", IntentIN, TypeChoice);
-# we are not yet there ... APIArgAsync ($api, "base");
+APIArgAsync ($api, "base");
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
 APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Get_library_version
 $api = newAPI("MPI_Get_library_version");
-APIAuto     ($api);
 # CHARACTER(LEN=MPI_MAX_LIBRARY_VERSION_STRING), INTENT(OUT) :: version
 APIArg      ($api, "version", IntentOUT, TypeCharacter);
 APIArgModify($api, "version", "LEN=MPI_MAX_LIBRARY_VERSION_STRING");
@@ -3373,7 +3157,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Get_processor_name
 $api = newAPI("MPI_Get_processor_name");
-APIAuto     ($api);
 # CHARACTER(LEN=MPI_MAX_PROCESSOR_NAME), INTENT(OUT) :: name
 APIArg      ($api, "name", IntentOUT, TypeCharacter);
 APIArgModify($api, "name", "LEN=MPI_MAX_PROCESSOR_NAME");
@@ -3384,7 +3167,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Get_version
 $api = newAPI("MPI_Get_version");
-APIAuto     ($api);
 # INTEGER, INTENT(OUT) :: version
 APIArg      ($api, "version", IntentOUT, TypeInteger);
 # INTEGER, INTENT(OUT) :: subversion
@@ -3394,13 +3176,11 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Init
 $api = newAPI("MPI_Init");
-APIAuto     ($api);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
 APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Initialized
 $api = newAPI("MPI_Initialized");
-APIAuto     ($api);
 APIPMPI     ($api);
 # LOGICAL, INTENT(OUT) :: flag
 APIArg      ($api, "flag", IntentOUT, TypeLogical);
@@ -3409,7 +3189,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_call_errhandler
 $api = newAPI("MPI_Win_call_errhandler");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # INTEGER, INTENT(IN) :: errorcode
@@ -3420,8 +3199,7 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 # MPI_Win_create_errhandler
 $api = newAPI("MPI_Win_create_errhandler");
 # PROCEDURE(MPI_Win_errhandler_function) :: win_errhandler_fn
-APIArg      ($api, "win_errhandler_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "win_errhandler_fn", "MPI_Win_errhandler_function");
+APIArg      ($api, "win_errhandler_fn", IntentNONE, TypeProcedureWinErrhandler);
 # TYPE(MPI_Errhandler), INTENT(OUT) :: errhandler
 APIArg      ($api, "errhandler", IntentOUT, TypeErrhandler);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -3429,7 +3207,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_get_errhandler
 $api = newAPI("MPI_Win_get_errhandler");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # TYPE(MPI_Errhandler), INTENT(OUT) :: errhandler
@@ -3439,7 +3216,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_set_errhandler
 $api = newAPI("MPI_Win_set_errhandler");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # TYPE(MPI_Errhandler), INTENT(IN) :: errhandler
@@ -3449,7 +3225,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Info_create
 $api = newAPI("MPI_Info_create");
-APIAuto     ($api);
 # TYPE(MPI_Info), INTENT(OUT) :: info
 APIArg      ($api, "info", IntentOUT, TypeInfo);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -3457,7 +3232,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Info_delete
 $api = newAPI("MPI_Info_delete");
-APIAuto     ($api);
 # TYPE(MPI_Info), INTENT(IN) :: info
 APIArg      ($api, "info", IntentIN, TypeInfo);
 # CHARACTER(LEN=*), INTENT(IN) :: key
@@ -3468,7 +3242,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Info_dup
 $api = newAPI("MPI_Info_dup");
-APIAuto     ($api);
 # TYPE(MPI_Info), INTENT(IN) :: info
 APIArg      ($api, "info", IntentIN, TypeInfo);
 # TYPE(MPI_Info), INTENT(OUT) :: newinfo
@@ -3478,7 +3251,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Info_free
 $api = newAPI("MPI_Info_free");
-APIAuto     ($api);
 # TYPE(MPI_Info), INTENT(INOUT) :: info
 APIArg      ($api, "info", IntentINOUT, TypeInfo);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -3504,7 +3276,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Info_get_nkeys
 $api = newAPI("MPI_Info_get_nkeys");
-APIAuto     ($api);
 # TYPE(MPI_Info), INTENT(IN) :: info
 APIArg      ($api, "info", IntentIN, TypeInfo);
 # INTEGER, INTENT(OUT) :: nkeys
@@ -3514,7 +3285,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Info_get_nthkey
 $api = newAPI("MPI_Info_get_nthkey");
-APIAuto     ($api);
 # TYPE(MPI_Info), INTENT(IN) :: info
 APIArg      ($api, "info", IntentIN, TypeInfo);
 # INTEGER, INTENT(IN) :: n
@@ -3542,7 +3312,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Info_set
 $api = newAPI("MPI_Info_set");
-APIAuto     ($api);
 # TYPE(MPI_Info), INTENT(IN) :: info
 APIArg      ($api, "info", IntentIN, TypeInfo);
 # CHARACTER(LEN=*), INTENT(IN) :: key
@@ -3675,7 +3444,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Lookup_name
 $api = newAPI("MPI_Lookup_name");
-APIAuto     ($api);
 # CHARACTER(LEN=*), INTENT(IN) :: service_name
 APIArg      ($api, "service_name", IntentIN, TypeCharacter);
 APIArgModify($api, "service_name", "LEN=*");
@@ -3689,7 +3457,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Open_port
 $api = newAPI("MPI_Open_port");
-APIAuto     ($api);
 # TYPE(MPI_Info), INTENT(IN) :: info
 APIArg      ($api, "info", IntentIN, TypeInfo);
 # CHARACTER(LEN=MPI_MAX_PORT_NAME), INTENT(OUT) :: port_name
@@ -3700,7 +3467,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Publish_name
 $api = newAPI("MPI_Publish_name");
-APIAuto     ($api);
 # CHARACTER(LEN=*), INTENT(IN) :: service_name
 APIArg      ($api, "service_name", IntentIN, TypeCharacter);
 APIArgModify($api, "service_name", "LEN=*");
@@ -3714,7 +3480,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Unpublish_name
 $api = newAPI("MPI_Unpublish_name");
-APIAuto     ($api);
 # CHARACTER(LEN=*), INTENT(IN) :: service_name
 APIArg      ($api, "service_name", IntentIN, TypeCharacter);
 APIArgModify($api, "service_name", "LEN=*");
@@ -3776,7 +3541,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Fetch_and_op
 $api = newAPI("MPI_Fetch_and_op");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: origin_addr
 APIArg      ($api, "origin_addr", IntentIN, TypeChoice);
 APIArgAsync ($api, "origin_addr");
@@ -3798,7 +3562,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Get
 $api = newAPI("MPI_Get");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: origin_addr
 APIArg      ($api, "origin_addr", IntentNONE, TypeChoice);
 APIArgAsync ($api, "origin_addr");
@@ -3821,7 +3584,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Get_accumulate
 $api = newAPI("MPI_Get_accumulate");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: origin_addr
 APIArg      ($api, "origin_addr", IntentIN, TypeChoice);
 APIArgAsync ($api, "origin_addr");
@@ -3853,7 +3615,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Put
 $api = newAPI("MPI_Put");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: origin_addr
 APIArg      ($api, "origin_addr", IntentIN, TypeChoice);
 APIArgAsync ($api, "origin_addr");
@@ -3876,7 +3637,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Raccumulate
 $api = newAPI("MPI_Raccumulate");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: origin_addr
 APIArg      ($api, "origin_addr", IntentIN, TypeChoice);
 APIArgAsync ($api, "origin_addr");
@@ -3903,7 +3663,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Rget
 $api = newAPI("MPI_Rget");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: origin_addr
 APIArg      ($api, "origin_addr", IntentNONE, TypeChoice);
 APIArgAsync ($api, "origin_addr");
@@ -3928,7 +3687,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Rget_accumulate
 $api = newAPI("MPI_Rget_accumulate");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: origin_addr
 APIArg      ($api, "origin_addr", IntentIN, TypeChoice);
 APIArgAsync ($api, "origin_addr");
@@ -3962,7 +3720,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Rput
 $api = newAPI("MPI_Rput");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: origin_addr
 APIArg      ($api, "origin_addr", IntentIN, TypeChoice);
 APIArgAsync ($api, "origin_addr");
@@ -3987,7 +3744,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_allocate
 $api = newAPI("MPI_Win_allocate");
-APIAuto     ($api);
 # INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: size
 APIArg      ($api, "size", IntentIN, TypeAint);
 # INTEGER, INTENT(IN) :: disp_unit
@@ -4005,7 +3761,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_allocate_shared
 $api = newAPI("MPI_Win_allocate_shared");
-APIAuto     ($api);
 # INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: size
 APIArg      ($api, "size", IntentIN, TypeAint);
 # INTEGER, INTENT(IN) :: disp_unit
@@ -4023,7 +3778,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_attach
 $api = newAPI("MPI_Win_attach");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: base
@@ -4036,7 +3790,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_complete
 $api = newAPI("MPI_Win_complete");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -4044,7 +3797,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_create
 $api = newAPI("MPI_Win_create");
-APIAuto     ($api);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: base
 APIArg      ($api, "base", IntentNONE, TypeChoice);
 APIArgAsync ($api, "base");
@@ -4063,7 +3815,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_create_dynamic
 $api = newAPI("MPI_Win_create_dynamic");
-APIAuto     ($api);
 # TYPE(MPI_Info), INTENT(IN) :: info
 APIArg      ($api, "info", IntentIN, TypeInfo);
 # TYPE(MPI_Comm), INTENT(IN) :: comm
@@ -4075,7 +3826,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_detach
 $api = newAPI("MPI_Win_detach");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: base
@@ -4086,7 +3836,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_fence
 $api = newAPI("MPI_Win_fence");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: assert
 APIArg      ($api, "assert", IntentIN, TypeInteger);
 # TYPE(MPI_Win), INTENT(IN) :: win
@@ -4096,7 +3845,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_flush
 $api = newAPI("MPI_Win_flush");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: rank
 APIArg      ($api, "rank", IntentIN, TypeInteger);
 # TYPE(MPI_Win), INTENT(IN) :: win
@@ -4106,7 +3854,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_flush_all
 $api = newAPI("MPI_Win_flush_all");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -4114,7 +3861,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_flush_local
 $api = newAPI("MPI_Win_flush_local");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: rank
 APIArg      ($api, "rank", IntentIN, TypeInteger);
 # TYPE(MPI_Win), INTENT(IN) :: win
@@ -4124,7 +3870,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_flush_local_all
 $api = newAPI("MPI_Win_flush_local_all");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -4132,7 +3877,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_free
 $api = newAPI("MPI_Win_free");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(INOUT) :: win
 APIArg      ($api, "win", IntentINOUT, TypeWin);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -4140,7 +3884,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_get_group
 $api = newAPI("MPI_Win_get_group");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # TYPE(MPI_Group), INTENT(OUT) :: group
@@ -4150,7 +3893,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_get_info
 $api = newAPI("MPI_Win_get_info");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # TYPE(MPI_Info), INTENT(OUT) :: info_used
@@ -4160,7 +3902,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_lock
 $api = newAPI("MPI_Win_lock");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: lock_type
 APIArg      ($api, "lock_type", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: rank
@@ -4174,7 +3915,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_lock_all
 $api = newAPI("MPI_Win_lock_all");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: assert
 APIArg      ($api, "assert", IntentIN, TypeInteger);
 # TYPE(MPI_Win), INTENT(IN) :: win
@@ -4184,7 +3924,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_post
 $api = newAPI("MPI_Win_post");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(IN) :: group
 APIArg      ($api, "group", IntentIN, TypeGroup);
 # INTEGER, INTENT(IN) :: assert
@@ -4196,7 +3935,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_set_info
 $api = newAPI("MPI_Win_set_info");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # TYPE(MPI_Info), INTENT(IN) :: info
@@ -4206,7 +3944,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_shared_query
 $api = newAPI("MPI_Win_shared_query");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # INTEGER, INTENT(IN) :: rank
@@ -4222,7 +3959,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_start
 $api = newAPI("MPI_Win_start");
-APIAuto     ($api);
 # TYPE(MPI_Group), INTENT(IN) :: group
 APIArg      ($api, "group", IntentIN, TypeGroup);
 # INTEGER, INTENT(IN) :: assert
@@ -4234,7 +3970,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_sync
 $api = newAPI("MPI_Win_sync");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -4242,7 +3977,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_test
 $api = newAPI("MPI_Win_test");
-APIAuto     ($api);
 APIPMPI     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
@@ -4253,7 +3987,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_unlock
 $api = newAPI("MPI_Win_unlock");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: rank
 APIArg      ($api, "rank", IntentIN, TypeInteger);
 # TYPE(MPI_Win), INTENT(IN) :: win
@@ -4263,7 +3996,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_unlock_all
 $api = newAPI("MPI_Win_unlock_all");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -4271,7 +4003,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Win_wait
 $api = newAPI("MPI_Win_wait");
-APIAuto     ($api);
 # TYPE(MPI_Win), INTENT(IN) :: win
 APIArg      ($api, "win", IntentIN, TypeWin);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -4279,7 +4010,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Grequest_complete
 $api = newAPI("MPI_Grequest_complete");
-APIAuto     ($api);
 # TYPE(MPI_Request), INTENT(IN) :: request
 APIArg      ($api, "request", IntentIN, TypeRequest);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -4288,14 +4018,11 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 # MPI_Grequest_start
 $api = newAPI("MPI_Grequest_start");
 # PROCEDURE(MPI_Grequest_query_function) :: query_fn
-APIArg      ($api, "query_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "query_fn", "MPI_Grequest_query_function");
+APIArg      ($api, "query_fn", IntentNONE, TypeProcedureGrequestQuery);
 # PROCEDURE(MPI_Grequest_free_function) :: free_fn
-APIArg      ($api, "free_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "free_fn", "MPI_Grequest_free_function");
+APIArg      ($api, "free_fn", IntentNONE, TypeProcedureGrequestFree);
 # PROCEDURE(MPI_Grequest_cancel_function) :: cancel_fn
-APIArg      ($api, "cancel_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "cancel_fn", "MPI_Grequest_cancel_function");
+APIArg      ($api, "cancel_fn", IntentNONE, TypeProcedureGrequestCancel);
 # INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: extra_state
 APIArg      ($api, "extra_state", IntentIN, TypeAint);
 # TYPE(MPI_Request), INTENT(OUT) :: request
@@ -4305,7 +4032,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Init_thread
 $api = newAPI("MPI_Init_thread");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: required
 APIArg      ($api, "required", IntentIN, TypeInteger);
 # INTEGER, INTENT(OUT) :: provided
@@ -4315,7 +4041,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Is_thread_main
 $api = newAPI("MPI_Is_thread_main");
-APIAuto     ($api);
 APIPMPI     ($api);
 # LOGICAL, INTENT(OUT) :: flag
 APIArg      ($api, "flag", IntentOUT, TypeLogical);
@@ -4324,7 +4049,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Query_thread
 $api = newAPI("MPI_Query_thread");
-APIAuto     ($api);
 # INTEGER, INTENT(OUT) :: provided
 APIArg      ($api, "provided", IntentOUT, TypeInteger);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -4342,7 +4066,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Status_set_elements
 $api = newAPI("MPI_Status_set_elements");
-APIAuto     ($api);
 # TYPE(MPI_Status), INTENT(INOUT) :: status
 APIArg      ($api, "status", IntentINOUT, TypeStatus);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
@@ -4354,7 +4077,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Status_set_elements_x
 $api = newAPI("MPI_Status_set_elements_x");
-APIAuto     ($api);
 # TYPE(MPI_Status), INTENT(INOUT) :: status
 APIArg      ($api, "status", IntentINOUT, TypeStatus);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
@@ -4366,7 +4088,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_close
 $api = newAPI("MPI_File_close");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(INOUT) :: fh
 APIArg      ($api, "fh", IntentINOUT, TypeFile);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -4374,7 +4095,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_delete
 $api = newAPI("MPI_File_delete");
-APIAuto     ($api);
 # CHARACTER(LEN=*), INTENT(IN) :: filename
 APIArg      ($api, "filename", IntentIN, TypeCharacter);
 APIArgModify($api, "filename", "LEN=*");
@@ -4385,7 +4105,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_get_amode
 $api = newAPI("MPI_File_get_amode");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER, INTENT(OUT) :: amode
@@ -4395,7 +4114,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_get_atomicity
 $api = newAPI("MPI_File_get_atomicity");
-APIAuto     ($api);
 APIPMPI     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
@@ -4406,7 +4124,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_get_byte_offset
 $api = newAPI("MPI_File_get_byte_offset");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: offset
@@ -4418,7 +4135,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_get_group
 $api = newAPI("MPI_File_get_group");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(MPI_Group), INTENT(OUT) :: group
@@ -4428,7 +4144,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_get_info
 $api = newAPI("MPI_File_get_info");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(MPI_Info), INTENT(OUT) :: info_used
@@ -4438,7 +4153,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_get_position
 $api = newAPI("MPI_File_get_position");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(OUT) :: offset
@@ -4448,7 +4162,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_get_position_shared
 $api = newAPI("MPI_File_get_position_shared");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(OUT) :: offset
@@ -4458,7 +4171,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_get_size
 $api = newAPI("MPI_File_get_size");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(OUT) :: size
@@ -4468,7 +4180,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_get_type_extent
 $api = newAPI("MPI_File_get_type_extent");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(MPI_Datatype), INTENT(IN) :: datatype
@@ -4480,7 +4191,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_get_view
 $api = newAPI("MPI_File_get_view");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(OUT) :: disp
@@ -4497,7 +4207,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_iread
 $api = newAPI("MPI_File_iread");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: buf
@@ -4514,7 +4223,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_iread_at
 $api = newAPI("MPI_File_iread_at");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: offset
@@ -4533,7 +4241,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_iread_shared
 $api = newAPI("MPI_File_iread_shared");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: buf
@@ -4550,7 +4257,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_iwrite
 $api = newAPI("MPI_File_iwrite");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
@@ -4567,7 +4273,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_iwrite_at
 $api = newAPI("MPI_File_iwrite_at");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: offset
@@ -4586,7 +4291,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_iwrite_shared
 $api = newAPI("MPI_File_iwrite_shared");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
@@ -4603,7 +4307,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_open
 $api = newAPI("MPI_File_open");
-APIAuto     ($api);
 # TYPE(MPI_Comm), INTENT(IN) :: comm
 APIArg      ($api, "comm", IntentIN, TypeComm);
 # CHARACTER(LEN=*), INTENT(IN) :: filename
@@ -4620,7 +4323,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_preallocate
 $api = newAPI("MPI_File_preallocate");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: size
@@ -4630,7 +4332,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_read
 $api = newAPI("MPI_File_read");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..) :: buf
@@ -4646,7 +4347,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_read_all
 $api = newAPI("MPI_File_read_all");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..) :: buf
@@ -4662,7 +4362,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_read_all_begin
 $api = newAPI("MPI_File_read_all_begin");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: buf
@@ -4677,7 +4376,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_read_all_end
 $api = newAPI("MPI_File_read_all_end");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: buf
@@ -4690,7 +4388,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_read_at
 $api = newAPI("MPI_File_read_at");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: offset
@@ -4708,7 +4405,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_read_at_all
 $api = newAPI("MPI_File_read_at_all");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: offset
@@ -4726,7 +4422,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_read_at_all_begin
 $api = newAPI("MPI_File_read_at_all_begin");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: offset
@@ -4743,7 +4438,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_read_at_all_end
 $api = newAPI("MPI_File_read_at_all_end");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: buf
@@ -4756,7 +4450,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_read_ordered
 $api = newAPI("MPI_File_read_ordered");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..) :: buf
@@ -4772,7 +4465,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_read_ordered_begin
 $api = newAPI("MPI_File_read_ordered_begin");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: buf
@@ -4787,7 +4479,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_read_ordered_end
 $api = newAPI("MPI_File_read_ordered_end");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), ASYNCHRONOUS :: buf
@@ -4800,7 +4491,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_read_shared
 $api = newAPI("MPI_File_read_shared");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..) :: buf
@@ -4816,7 +4506,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_seek
 $api = newAPI("MPI_File_seek");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: offset
@@ -4828,7 +4517,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_seek_shared
 $api = newAPI("MPI_File_seek_shared");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: offset
@@ -4840,7 +4528,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_set_atomicity
 $api = newAPI("MPI_File_set_atomicity");
-APIAuto     ($api);
 APIPMPI     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
@@ -4851,7 +4538,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_set_info
 $api = newAPI("MPI_File_set_info");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(MPI_Info), INTENT(IN) :: info
@@ -4861,7 +4547,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_set_size
 $api = newAPI("MPI_File_set_size");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: size
@@ -4871,7 +4556,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_set_view
 $api = newAPI("MPI_File_set_view");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
@@ -4890,7 +4574,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_sync
 $api = newAPI("MPI_File_sync");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -4898,7 +4581,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_write
 $api = newAPI("MPI_File_write");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: buf
@@ -4914,7 +4596,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_write_all
 $api = newAPI("MPI_File_write_all");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: buf
@@ -4930,7 +4611,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_write_all_begin
 $api = newAPI("MPI_File_write_all_begin");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
@@ -4945,7 +4625,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_write_all_end
 $api = newAPI("MPI_File_write_all_end");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
@@ -4958,7 +4637,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_write_at
 $api = newAPI("MPI_File_write_at");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: offset
@@ -4976,7 +4654,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_write_at_all
 $api = newAPI("MPI_File_write_at_all");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: offset
@@ -4994,7 +4671,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_write_at_all_begin
 $api = newAPI("MPI_File_write_at_all_begin");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: offset
@@ -5011,7 +4687,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_write_at_all_end
 $api = newAPI("MPI_File_write_at_all_end");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
@@ -5024,7 +4699,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_write_ordered
 $api = newAPI("MPI_File_write_ordered");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: buf
@@ -5040,7 +4714,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_write_ordered_begin
 $api = newAPI("MPI_File_write_ordered_begin");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
@@ -5055,7 +4728,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_write_ordered_end
 $api = newAPI("MPI_File_write_ordered_end");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: buf
@@ -5068,7 +4740,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_File_write_shared
 $api = newAPI("MPI_File_write_shared");
-APIAuto     ($api);
 # TYPE(MPI_File), INTENT(IN) :: fh
 APIArg      ($api, "fh", IntentIN, TypeFile);
 # TYPE(*), DIMENSION(..), INTENT(IN) :: buf
@@ -5088,14 +4759,11 @@ $api = newAPI("MPI_Register_datarep");
 APIArg      ($api, "datarep", IntentIN, TypeCharacter);
 APIArgModify($api, "datarep", "LEN=*");
 # PROCEDURE(MPI_Datarep_conversion_function) :: read_conversion_fn
-APIArg      ($api, "read_conversion_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "read_conversion_fn", "MPI_Datarep_conversion_function");
+APIArg      ($api, "read_conversion_fn", IntentNONE, TypeProcedureDatarepConversion);
 # PROCEDURE(MPI_Datarep_conversion_function) :: write_conversion_fn
-APIArg      ($api, "write_conversion_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "write_conversion_fn", "MPI_Datarep_conversion_function");
+APIArg      ($api, "write_conversion_fn", IntentNONE, TypeProcedureDatarepConversion);
 # PROCEDURE(MPI_Datarep_extent_function) :: dtype_file_extent_fn
 APIArg      ($api, "dtype_file_extent_fn", IntentNONE, TypeProcedure);
-APIArgModify($api, "dtype_file_extent_fn", "MPI_Datarep_extent_function");
 # INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: extra_state
 APIArg      ($api, "extra_state", IntentIN, TypeAint);
 # INTEGER, OPTIONAL, INTENT(OUT) :: ierror
@@ -5109,7 +4777,6 @@ APIArgAsync ($api, "buf");
 #----------------------------------------------------------------------------
 # MPI_Type_create_f90_complex
 $api = newAPI("MPI_Type_create_f90_complex");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: p
 APIArg      ($api, "p", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: r
@@ -5121,7 +4788,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_create_f90_integer
 $api = newAPI("MPI_Type_create_f90_integer");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: r
 APIArg      ($api, "r", IntentIN, TypeInteger);
 # TYPE(MPI_Datatype), INTENT(OUT) :: newtype
@@ -5131,7 +4797,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_create_f90_real
 $api = newAPI("MPI_Type_create_f90_real");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: p
 APIArg      ($api, "p", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: r
@@ -5143,7 +4808,6 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 #----------------------------------------------------------------------------
 # MPI_Type_match_size
 $api = newAPI("MPI_Type_match_size");
-APIAuto     ($api);
 # INTEGER, INTENT(IN) :: typeclass
 APIArg      ($api, "typeclass", IntentIN, TypeInteger);
 # INTEGER, INTENT(IN) :: size
@@ -5157,30 +4821,3 @@ APIArg      ($api, "ierror", IntentOUT, TypeInteger);
 $api = newAPI("MPI_Pcontrol");
 # INTEGER, INTENT(IN) :: level
 APIArg      ($api, "level", IntentIN, TypeInteger);
-#----------------------------------------------------------------------------
-# MPI_Aint_add
-$api = newAPI("MPI_Aint_add");
-APIReturnAint($api);
-# INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: base
-APIArg      ($api, "base", IntentIN, TypeAint);
-# INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: disp
-APIArg      ($api, "disp", IntentIN, TypeAint);
-#----------------------------------------------------------------------------
-# MPI_Aint_diff
-$api = newAPI("MPI_Aint_diff");
-APIReturnAint($api);
-# INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: addr1
-APIArg      ($api, "addr1", IntentIN, TypeAint);
-# INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: addr2
-APIArg      ($api, "addr2", IntentIN, TypeAint);
-#----------------------------------------------------------------------------
-# MPI_Wtick
-$api = newAPI("MPI_Wtick");
-APIReturnDouble($api);
-#----------------------------------------------------------------------------
-# MPI_Wtime
-$api = newAPI("MPI_Wtime");
-APIReturnDouble($api);
-
-# All done
-1;

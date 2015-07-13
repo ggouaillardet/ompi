@@ -23,6 +23,13 @@ use FortranMPI::Types;
 use FortranMPI::Interfaces;
 use FortranMPI::Utils;
 
+use vars qw/@EXPORT/;
+use base qw/Exporter/;
+
+@EXPORT = qw/_emit_procedure/;
+
+
+
 #============================================================================
 # These interfaces files are included by the mpi and mpi_f08 modules.
 
@@ -89,6 +96,7 @@ sub _emit_interfaces {
     my $module_name = $args->{module_name};
     my $suffix = $args->{suffix};
     my $types_module_name = $args->{types_module_name};
+    my $callbacks_module_name = $args->{callbacks_module_name};
 
     $choice_pragma = $args->{choice_pragma};
     $choice_type = $args->{choice_type};
@@ -102,9 +110,9 @@ sub _emit_interfaces {
     my $output;
     foreach my $name (sort(keys(%{$FortranMPI::Interfaces::interfaces}))) {
         if (defined($prefix)) {
-            $output .= _emit_one_interface($name, $prefix, $suffix, $types_module_name);
+            $output .= _emit_one_interface($name, $prefix, $suffix, $types_module_name, $callbacks_module_name);
         } else {
-            $output .= _emit_interface($name, $suffix, $types_module_name);
+            $output .= _emit_interface($name, $suffix, $types_module_name, $callbacks_module_name);
         }
     }
 
@@ -112,33 +120,42 @@ sub _emit_interfaces {
 }
 
 sub _emit_interface {
-    my ($name, $suffix, $types_module_name) = @_;
+    my ($name, $suffix, $types_module_name, $callbacks_module_name) = @_;
 
     my $output;
-    $output = _emit_one_interface($name, "", $suffix, $types_module_name) .
-        _emit_one_interface($name, "P", $suffix, $types_module_name);
+    $output = _emit_one_interface($name, "", $suffix, $types_module_name, $callbacks_module_name) .
+        _emit_one_interface($name, "P", $suffix, $types_module_name, $callbacks_module_name);
 
     return $output;
 }
 
 sub _emit_one_interface {
-    my ($name, $prefix, $suffix, $types_module_name) = @_;
+    my ($name, $prefix, $suffix, $types_module_name, $callbacks_module_name) = @_;
 
-    my $output;
-    $output = "interface $prefix$name\n" .
-        _emit_procedure($name, $prefix, $suffix, $types_module_name) .
+    my $output = "";
+    if ($name =~ "^MPI_File_") {
+        $output = "#if OMPI_PROVIDE_MPI_FILE_INTERFACE\n";
+    }
+    $output .= "interface $prefix$name\n" .
+        _emit_procedure($name, $prefix, $suffix, $types_module_name, $callbacks_module_name, 0) .
         "end interface $prefix$name\n\n";
+    if ($name =~ "^MPI_File_") {
+        $output .= "#endif /* OMPI_PROVIDE_MPI_FILE_INTERFACE */\n";
+    }
 
     return $output;
 }
 
 sub _emit_procedure {
-    my ($name, $prefix, $suffix, $types_module_name) = @_;
+    my ($name, $prefix, $suffix, $types_module_name, $callbacks_module_name, $body) = @_;
 
     # Print function/subroutine
     my $api = $FortranMPI::Interfaces::interfaces->{$name};
+    if ( $body && !$api->{autobody} ) {
+        return "";
+    }
     my $proc_type = "subroutine";
-    if (ReturnDouble == $api->{return}) {
+    if (APIIsFunction($api)) {
         $proc_type = "function";
     }
     my $output = "$proc_type $prefix$name$suffix(&\n";
@@ -152,29 +169,53 @@ sub _emit_procedure {
     $output .= ")\n";
 
     # If we have a types module, print the Use statements
-    my $h;
-    my $found = 0;
+    my $htypes; my $hmodifiers; my $hcallbacks;
+    my $typefound = 0; my $modifierfound; my $callbackfound = 0;
     # See if there are any MPI handles or KIND constants in the dummy
     # arguments
     foreach my $arg (@{$api->{dummy_args}}) {
         my $t = $arg->{type};
+        if (exists($arg->{type_modifier})) {
+            if ($arg->{type_modifier} =~ "^LEN=MPI_") {
+                $hmodifiers->{$t} = $arg->{type_modifier};
+                $modifierfound = 1;
+            }
+        }
         if (ArgIsHandle($arg) ||
             ArgIsKind($arg)) {
-            $h->{$t} = $FortranMPI::Utils::type_map->{$t};
-            $found = 1;
+                $htypes->{$t} = $FortranMPI::Utils::type_map->{$t};
+                $typefound = 1;
+        } elsif (ArgIsProcedure($arg)) {
+                $hcallbacks->{$arg->{type_modifier}} = $arg->{type_modifier};
+                $callbackfound = 1;
         }
     }
 
 # JMS Need to handle MPI constants, too -- might need those in the "use" statement
 
-    if ($found) {
-        $output .= "    use :: $types_module_name, only : ";
-        my $sep = "";
-        foreach my $k (sort(keys(%{$h}))) {
-            $output .= "$sep$h->{$k}";
-            $sep = ", ";
+    if ($typefound) {
+        foreach my $k (sort(keys(%{$htypes}))) {
+            $output .= "    use :: $types_module_name, only : $htypes->{$k}\n";
+        }
+    }
+    if ($modifierfound) {
+        foreach my $k (sort(keys(%{$hmodifiers}))) {
+            $output .= "    use :: $types_module_name, only : " . substr($hmodifiers->{$k}, 4) . "\n";
+        }
+    }
+    if ($callbackfound) {
+        foreach my $k (sort(keys(%{$hcallbacks}))) {
+            $output .= "    use :: $callbacks_module_name, only : $hcallbacks->{$k}\n";
         }
         $output .= "\n";
+    }
+
+    if ( $body ) {
+        if ( $api->{pmpi} ) {
+            $output .= "    use :: mpi, only : P" . $name . "\n";
+        } else {
+            $output .= "    use :: mpi_f08, only : ompi_" . lc(substr($name, 4)) . "_f\n";
+        }
     }
 
     # Do we ever wany anything other than "implicit none"?
@@ -187,12 +228,48 @@ sub _emit_procedure {
 
     # If this is a function, set the return type
     if (ReturnDouble == $api->{return}) {
-        $output .= "    double precision $name$suffix\n";
+        $output .= "    double precision $prefix$name$suffix\n";
+    } elsif (ReturnAint == $api->{return}) {
+        $output .= "    integer(KIND=MPI_ADDRESS_KIND) $prefix$name$suffix\n";
     }
 
     # Done
-    $output .= "end $proc_type $prefix$name$suffix\n";
 
+    if ($body) {
+        $output .= "    integer :: c_ierror\n";
+        $output .= "\n";
+        if ( $api->{pmpi} ) {
+            $output .= "    call P" . $name . "(&\n";
+        } else {
+            $output .= "    call ompi_" . lc(substr($name, 4)) . "_f(&\n";
+        }
+        $sep = "        ";
+        foreach my $arg (@{$api->{dummy_args}}) {
+            if ($arg->{name} eq "ierror") {
+                $output .= "$sep"."c_ierror&\n";
+            } elsif (ArgUsesVal($arg)) {
+                #if (ArgIsArray($arg)) {
+                    ## GG FIXME
+                    #$output .= "$sep$arg->{name}(1)%MPI_VAL&\n";
+                #} else {
+                    $output .= "$sep$arg->{name}%MPI_VAL&\n";
+                #}
+            } else {
+                $output .= "$sep$arg->{name}&\n";
+            }
+            $sep = "        ,";
+        }
+        foreach my $arg (@{$api->{dummy_args}}) {
+            if (ArgIsString($arg)) {
+                $output .= "$sep" . "len(" . $arg->{name} . ")&\n";
+                $sep = "        ,";
+            }
+        }
+        $output .= "    );\n";
+        $output .= "    if (present(ierror)) ierror = c_ierror\n";
+    }
+
+    $output .= "end $proc_type $prefix$name$suffix\n\n";
     return $output;
 }
 
@@ -214,6 +291,8 @@ sub _emit_arg {
         $output .= "    type($FortranMPI::Utils::type_map->{$arg->{type}})";
     } elsif (&ArgIsKind($arg)) {
         $output .= "    integer(kind=$FortranMPI::Utils::type_map->{$arg->{type}})";
+    } elsif (&ArgIsProcedure($arg)) {
+        $output .= "    procedure";
     } else {
         $output .= "    $FortranMPI::Utils::type_map->{$arg->{type}}";
     }

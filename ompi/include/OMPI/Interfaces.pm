@@ -24,6 +24,7 @@ use OMPI::Constants;
 use OMPI::Handles;
 
 my $types_module_name = "mpi_f08_types";
+my $callbacks_module_name = "mpi_f08_interfaces_callbacks";
 
 sub EmitMPI {
     my $args = shift;
@@ -46,6 +47,7 @@ sub EmitMPI {
 ";
 
     $args->{types_module_name} = $types_module_name;
+    $args->{callbacks_module_name} = $callbacks_module_name;
     $output .= FortranMPI::Emit::Interfaces::EmitMPI($args);
 
     $output .= "\n#endif\n";
@@ -75,6 +77,7 @@ sub EmitMPI_F08 {
 ";
 
     $args->{types_module_name} = $types_module_name;
+    $args->{callbacks_module_name} = $callbacks_module_name;
     $output .= FortranMPI::Emit::Interfaces::EmitMPI_F08($args);
 
     $output .= "\n#endif /* OMPI_MPI_F08_MODULE_INTERFACES */\n";
@@ -100,6 +103,7 @@ sub EmitMPI_F08 {
 ";
 
     $args->{types_module_name} = $types_module_name;
+    $args->{callbacks_module_name} = $callbacks_module_name;
     $output .= FortranMPI::Emit::Interfaces::EmitPMPI_F08($args);
 
     $output .= "\n#endif /* OMPI_PMPI_F08_MODULE_INTERFACES */\n";

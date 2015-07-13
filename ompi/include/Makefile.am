@@ -74,6 +74,7 @@ include ompi/Makefile.am
 EXTRA_DIST = $(headers) \
         ompi-gen-fortran.pl \
         FortranMPI/Constants.pm \
+        FortranMPI/Emit/Bodies.pm \
         FortranMPI/Emit/Declarations.pm \
         FortranMPI/Emit/Interfaces.pm \
         FortranMPI/Handles.pm \
@@ -81,6 +82,7 @@ EXTRA_DIST = $(headers) \
         FortranMPI/Types.pm \
         FortranMPI/Utils.pm \
         NOTES.txt \
+        OMPI/Bodies.pm \
         OMPI/Constants.pm \
         OMPI/Handles.pm \
         OMPI/Interfaces.pm \

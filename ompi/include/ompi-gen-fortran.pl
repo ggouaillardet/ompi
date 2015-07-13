@@ -43,6 +43,7 @@ use OMPI::Handles;
 use OMPI::Utils;
 use OMPI::Headers;
 use OMPI::Interfaces;
+use OMPI::Bodies;
 
 #----------------------------------------------------------------------------
 
@@ -185,6 +186,7 @@ $args->{choice_rank} = $choice_rank_arg
     if (defined($choice_rank_arg));
 
 # This interfaces file is included by the mpi module
+$mpi_module_arg = 1;
 if ($mpi_module_arg) {
     # Copy $args so that any changes are local
     my $args_copy;
@@ -198,6 +200,7 @@ if ($mpi_f08_module_arg) {
     my $args_copy;
     %{$args_copy} = %{$args};
     OMPI::Interfaces::EmitMPI_F08($args_copy);
+    OMPI::Bodies::EmitMPI_F08($args_copy);
 }
 
 #============================================================================
