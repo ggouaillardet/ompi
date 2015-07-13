@@ -35,11 +35,7 @@ pkginclude_HEADERS =
 
 if OMPI_BUILD_FORTRAN_MPIFH_BINDINGS
 include_HEADERS += \
-        mpif-constants.h \
         mpif-externals.h \
-        mpif-handles.h \
-        mpif-io-constants.h \
-        mpif-io-handles.h \
         mpif-sentinels.h
 
 endif

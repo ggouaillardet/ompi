@@ -1175,10 +1175,7 @@ verbose "\n$step. Running template-generating scripts\n\n";
 # maintain two sets of files, and potentially have values get out of
 # sync).
 
-my @scripts;
-push(@scripts, "ompi/include/ompi-gen-fortran.pl");
-
-foreach my $s (@scripts) {
+foreach my $s {
     verbose "=== $s\n";
     if (! -x $s) {
         print "Cannot find executable $s!\nAborting.\n";

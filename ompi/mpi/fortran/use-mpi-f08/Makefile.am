@@ -179,9 +179,6 @@ libmpi_usempif08_la_SOURCES = \
         mpi-f-interfaces-bind.h pmpi-f-interfaces-bind.h \
         attr-fn-f08-callback-interfaces.h \
         conversion-fn-null-f08-interface.h \
-        constants.h \
-        mpi-f08-module-interfaces.h \
-        pmpi-f08-module-interfaces.h \
         constants.c
 
 # These are generated; do not ship them

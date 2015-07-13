@@ -55,6 +55,7 @@ my $optional_arg = 1;
 my $choice_pragma_arg = '    !GCC$ ATTRIBUTES NO_ARG_CHECK';
 my $choice_type_arg = 'OMPI_FORTRAN_IGNORE_TKR_TYPE';
 my $choice_rank_arg;
+my $src_topdir_arg = '.';
 my $ompi_arg;
 my $help_arg;
 
@@ -68,6 +69,7 @@ my $ok = Getopt::Long::GetOptions("mpif!" => \$mpif_arg,
                                   "choice-type=s" => \$choice_type_arg,
                                   "choice-rank=s" => \$choice_rank_arg,
                                   "ompi=s" => \$ompi_arg,
+                                  "src_topdir=s" => \$src_topdir_arg,
                                   "help|h" => \$help_arg,
     );
 
@@ -108,11 +110,12 @@ chdir($ompi_arg)
 
 # Find the OMPI topdir.  It is likely the pwd.
 my $topdir;
-if (-r "ompi/include/mpi.h.in") {
+my $src_topdir = $src_topdir_arg;
+if (-r "$src_topdir/ompi/include/mpi.h.in") {
     $topdir = ".";
-} elsif (-r "include/mpi.h.in") {
+} elsif (-r "$src_topdir/include/mpi.h.in") {
     $topdir = "..";
-} elsif (-r "mpi.h.in") {
+} elsif (-r "$src_topdir/mpi.h.in") {
     $topdir = "../..";
 } else {
     print "Please run this script from the Open MPI topdir or topdir/include/mpi\n";

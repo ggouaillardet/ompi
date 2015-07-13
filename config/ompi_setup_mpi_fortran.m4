@@ -784,4 +784,6 @@ end type test_mpi_handle],
     AC_DEFINE_UNQUOTED(OMPI_BUILD_FORTRAN_BINDINGS,
                        $OMPI_BUILD_FORTRAN_BINDINGS,
                        [The level of fortran bindings to be built])
+
+    $srcdir/ompi/include/ompi-gen-fortran.pl
 ])
