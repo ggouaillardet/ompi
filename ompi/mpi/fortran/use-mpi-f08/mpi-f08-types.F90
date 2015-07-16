@@ -79,47 +79,47 @@ module mpi_f08_types
   ! Pre-defined handles
   !
 
-  type(MPI_Comm),       bind(C, name="ompi_f08_mpi_comm_world") OMPI_PROTECTED      :: MPI_COMM_WORLD
-  type(MPI_Comm),       bind(C, name="ompi_f08_mpi_comm_self") OMPI_PROTECTED        :: MPI_COMM_SELF
+  type(MPI_Comm),       bind(C, name="ompi_f08_mpi_comm_world") OMPI_PRIVATE      :: MPI_COMM_WORLD
+  type(MPI_Comm),       bind(C, name="ompi_f08_mpi_comm_self") OMPI_PRIVATE        :: MPI_COMM_SELF
 
-  type(MPI_Group),      bind(C, name="ompi_f08_mpi_group_empty") OMPI_PROTECTED      :: MPI_GROUP_EMPTY
+  type(MPI_Group),      bind(C, name="ompi_f08_mpi_group_empty") OMPI_PRIVATE      :: MPI_GROUP_EMPTY
 
-  type(MPI_Errhandler), bind(C, name="ompi_f08_mpi_errors_are_fatal") OMPI_PROTECTED :: MPI_ERRORS_ARE_FATAL
-  type(MPI_Errhandler), bind(C, name="ompi_f08_mpi_errors_return") OMPI_PROTECTED    :: MPI_ERRORS_RETURN
+  type(MPI_Errhandler), external, bind(C, name="ompi_f08_mpi_errors_are_fatal") OMPI_PRIVATE :: MPI_ERRORS_ARE_FATAL
+  type(MPI_Errhandler), external, bind(C, name="ompi_f08_mpi_errors_return") OMPI_PRIVATE    :: MPI_ERRORS_RETURN
 
-  type(MPI_Message),    bind(C, name="ompi_f08_mpi_message_no_proc") OMPI_PROTECTED  :: MPI_MESSAGE_NO_PROC
+  type(MPI_Message),    bind(C, name="ompi_f08_mpi_message_no_proc") OMPI_PRIVATE  :: MPI_MESSAGE_NO_PROC
 
-  type(MPI_Info),       bind(C, name="ompi_f08_mpi_info_env") OMPI_PROTECTED         :: MPI_INFO_ENV
+  type(MPI_Info),       bind(C, name="ompi_f08_mpi_info_env") OMPI_PRIVATE         :: MPI_INFO_ENV
 
-  type(MPI_Op), bind(C, name="ompi_f08_mpi_max"     ) OMPI_PROTECTED ::  MPI_MAX
-  type(MPI_Op), bind(C, name="ompi_f08_mpi_min"     ) OMPI_PROTECTED ::  MPI_MIN
-  type(MPI_Op), bind(C, name="ompi_f08_mpi_sum"     ) OMPI_PROTECTED ::  MPI_SUM
-  type(MPI_Op), bind(C, name="ompi_f08_mpi_prod"    ) OMPI_PROTECTED ::  MPI_PROD
-  type(MPI_Op), bind(C, name="ompi_f08_mpi_land"    ) OMPI_PROTECTED ::  MPI_LAND
-  type(MPI_Op), bind(C, name="ompi_f08_mpi_band"    ) OMPI_PROTECTED ::  MPI_BAND
-  type(MPI_Op), bind(C, name="ompi_f08_mpi_lor"     ) OMPI_PROTECTED ::  MPI_LOR
-  type(MPI_Op), bind(C, name="ompi_f08_mpi_bor"     ) OMPI_PROTECTED ::  MPI_BOR
-  type(MPI_Op), bind(C, name="ompi_f08_mpi_lxor"    ) OMPI_PROTECTED ::  MPI_LXOR
-  type(MPI_Op), bind(C, name="ompi_f08_mpi_bxor"    ) OMPI_PROTECTED ::  MPI_BXOR
-  type(MPI_Op), bind(C, name="ompi_f08_mpi_maxloc"  ) OMPI_PROTECTED ::  MPI_MAXLOC
-  type(MPI_Op), bind(C, name="ompi_f08_mpi_minloc"  ) OMPI_PROTECTED ::  MPI_MINLOC
-  type(MPI_Op), bind(C, name="ompi_f08_mpi_replace" ) OMPI_PROTECTED ::  MPI_REPLACE
+  type(MPI_Op), external, bind(C, name="ompi_f08_mpi_max"     ) OMPI_PRIVATE ::  MPI_MAX
+  type(MPI_Op), external, bind(C, name="ompi_f08_mpi_min"     ) OMPI_PRIVATE ::  MPI_MIN
+  type(MPI_Op), external, bind(C, name="ompi_f08_mpi_sum"     ) OMPI_PRIVATE ::  MPI_SUM
+  type(MPI_Op), external, bind(C, name="ompi_f08_mpi_prod"    ) OMPI_PRIVATE ::  MPI_PROD
+  type(MPI_Op), external, bind(C, name="ompi_f08_mpi_land"    ) OMPI_PRIVATE ::  MPI_LAND
+  type(MPI_Op), external, bind(C, name="ompi_f08_mpi_band"    ) OMPI_PRIVATE ::  MPI_BAND
+  type(MPI_Op), external, bind(C, name="ompi_f08_mpi_lor"     ) OMPI_PRIVATE ::  MPI_LOR
+  type(MPI_Op), external, bind(C, name="ompi_f08_mpi_bor"     ) OMPI_PRIVATE ::  MPI_BOR
+  type(MPI_Op), external, bind(C, name="ompi_f08_mpi_lxor"    ) OMPI_PRIVATE ::  MPI_LXOR
+  type(MPI_Op), external, bind(C, name="ompi_f08_mpi_bxor"    ) OMPI_PRIVATE ::  MPI_BXOR
+  type(MPI_Op), external, bind(C, name="ompi_f08_mpi_maxloc"  ) OMPI_PRIVATE ::  MPI_MAXLOC
+  type(MPI_Op), external, bind(C, name="ompi_f08_mpi_minloc"  ) OMPI_PRIVATE ::  MPI_MINLOC
+  type(MPI_Op), external, bind(C, name="ompi_f08_mpi_replace" ) OMPI_PRIVATE ::  MPI_REPLACE
 
   !
   !  NULL "handles" (indices)
   !
 
-  type(MPI_Comm),       bind(C, name="ompi_f08_mpi_comm_null") OMPI_PROTECTED       :: MPI_COMM_NULL;
-  type(MPI_Datatype),   bind(C, name="ompi_f08_mpi_datatype_null") OMPI_PROTECTED   :: MPI_DATATYPE_NULL;
-  type(MPI_Errhandler), bind(C, name="ompi_f08_mpi_errhandler_null") OMPI_PROTECTED :: MPI_ERRHANDLER_NULL;
-  type(MPI_Group),      bind(C, name="ompi_f08_mpi_group_null") OMPI_PROTECTED      :: MPI_GROUP_NULL;
-  type(MPI_Info),       bind(C, name="ompi_f08_mpi_info_null") OMPI_PROTECTED       :: MPI_INFO_NULL;
-  type(MPI_Message),    bind(C, name="ompi_f08_mpi_message_null") OMPI_PROTECTED    :: MPI_MESSAGE_NULL;
-  type(MPI_Op),         bind(C, name="ompi_f08_mpi_op_null") OMPI_PROTECTED         :: MPI_OP_NULL;
-  type(MPI_Request),    bind(C, name="ompi_f08_mpi_request_null") OMPI_PROTECTED    :: MPI_REQUEST_NULL;
-  type(MPI_Win),        bind(C, name="ompi_f08_mpi_win_null") OMPI_PROTECTED        :: MPI_WIN_NULL;
+  type(MPI_Comm),       bind(C, name="ompi_f08_mpi_comm_null") OMPI_PRIVATE       :: MPI_COMM_NULL;
+  type(MPI_Datatype),   bind(C, name="ompi_f08_mpi_datatype_null") OMPI_PRIVATE   :: MPI_DATATYPE_NULL;
+  type(MPI_Errhandler), external, bind(C, name="ompi_f08_mpi_errhandler_null") OMPI_PRIVATE :: MPI_ERRHANDLER_NULL;
+  type(MPI_Group),      bind(C, name="ompi_f08_mpi_group_null") OMPI_PRIVATE      :: MPI_GROUP_NULL;
+  type(MPI_Info),       bind(C, name="ompi_f08_mpi_info_null") OMPI_PRIVATE       :: MPI_INFO_NULL;
+  type(MPI_Message),    bind(C, name="ompi_f08_mpi_message_null") OMPI_PRIVATE    :: MPI_MESSAGE_NULL;
+  type(MPI_Op),         bind(C, name="ompi_f08_mpi_op_null") OMPI_PRIVATE         :: MPI_OP_NULL;
+  type(MPI_Request),    bind(C, name="ompi_f08_mpi_request_null") OMPI_PRIVATE    :: MPI_REQUEST_NULL;
+  type(MPI_Win),        bind(C, name="ompi_f08_mpi_win_null") OMPI_PRIVATE        :: MPI_WIN_NULL;
 #if OMPI_PROVIDE_MPI_FILE_INTERFACE
-  type(MPI_File),       bind(C, name="ompi_f08_mpi_file_null") OMPI_PROTECTED       :: MPI_FILE_NULL;
+  type(MPI_File),       bind(C, name="ompi_f08_mpi_file_null") OMPI_PRIVATE       :: MPI_FILE_NULL;
 #endif
 
   !
@@ -129,50 +129,50 @@ module mpi_f08_types
   !   They are defined in ompi/runtime/ompi_mpi_init.c
   !
 
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_byte") OMPI_PROTECTED              :: MPI_BYTE
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_packed") OMPI_PROTECTED            :: MPI_PACKED
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_ub") OMPI_PROTECTED                :: MPI_UB
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_lb") OMPI_PROTECTED                :: MPI_LB
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_character") OMPI_PROTECTED         :: MPI_CHARACTER
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_logical") OMPI_PROTECTED           :: MPI_LOGICAL
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_integer") OMPI_PROTECTED           :: MPI_INTEGER
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_integer1") OMPI_PROTECTED          :: MPI_INTEGER1
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_integer2") OMPI_PROTECTED          :: MPI_INTEGER2
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_integer4") OMPI_PROTECTED          :: MPI_INTEGER4
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_integer8") OMPI_PROTECTED          :: MPI_INTEGER8
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_integer16") OMPI_PROTECTED         :: MPI_INTEGER16
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_real") OMPI_PROTECTED              :: MPI_REAL
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_real4") OMPI_PROTECTED             :: MPI_REAL4
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_real8") OMPI_PROTECTED             :: MPI_REAL8
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_real16") OMPI_PROTECTED            :: MPI_REAL16
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_double_precision") OMPI_PROTECTED  :: MPI_DOUBLE_PRECISION
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_complex") OMPI_PROTECTED           :: MPI_COMPLEX
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_complex8") OMPI_PROTECTED          :: MPI_COMPLEX8
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_complex16") OMPI_PROTECTED         :: MPI_COMPLEX16
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_complex32") OMPI_PROTECTED         :: MPI_COMPLEX32
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_double_complex") OMPI_PROTECTED    :: MPI_DOUBLE_COMPLEX
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_2real") OMPI_PROTECTED             :: MPI_2REAL
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_2double_precision") OMPI_PROTECTED :: MPI_2DOUBLE_PRECISION
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_2integer") OMPI_PROTECTED          :: MPI_2INTEGER
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_2complex") OMPI_PROTECTED          :: MPI_2COMPLEX
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_2double_complex") OMPI_PROTECTED   :: MPI_2DOUBLE_COMPLEX
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_real2") OMPI_PROTECTED             :: MPI_REAL2
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_logical1") OMPI_PROTECTED          :: MPI_LOGICAL1
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_logical2") OMPI_PROTECTED          :: MPI_LOGICAL2
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_logical4") OMPI_PROTECTED          :: MPI_LOGICAL4
-  type(MPI_Datatype), bind(C, name="ompi_f08_mpi_logical8") OMPI_PROTECTED          :: MPI_LOGICAL8
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_byte") OMPI_PRIVATE              :: MPI_BYTE
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_packed") OMPI_PRIVATE            :: MPI_PACKED
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_ub") OMPI_PRIVATE                :: MPI_UB
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_lb") OMPI_PRIVATE                :: MPI_LB
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_character") OMPI_PRIVATE         :: MPI_CHARACTER
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_logical") OMPI_PRIVATE           :: MPI_LOGICAL
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_integer") OMPI_PRIVATE           :: MPI_INTEGER
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_integer1") OMPI_PRIVATE          :: MPI_INTEGER1
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_integer2") OMPI_PRIVATE          :: MPI_INTEGER2
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_integer4") OMPI_PRIVATE          :: MPI_INTEGER4
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_integer8") OMPI_PRIVATE          :: MPI_INTEGER8
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_integer16") OMPI_PRIVATE         :: MPI_INTEGER16
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_real") OMPI_PRIVATE              :: MPI_REAL
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_real4") OMPI_PRIVATE             :: MPI_REAL4
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_real8") OMPI_PRIVATE             :: MPI_REAL8
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_real16") OMPI_PRIVATE            :: MPI_REAL16
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_double_precision") OMPI_PRIVATE  :: MPI_DOUBLE_PRECISION
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_complex") OMPI_PRIVATE           :: MPI_COMPLEX
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_complex8") OMPI_PRIVATE          :: MPI_COMPLEX8
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_complex16") OMPI_PRIVATE         :: MPI_COMPLEX16
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_complex32") OMPI_PRIVATE         :: MPI_COMPLEX32
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_double_complex") OMPI_PRIVATE    :: MPI_DOUBLE_COMPLEX
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_2real") OMPI_PRIVATE             :: MPI_2REAL
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_2double_precision") OMPI_PRIVATE :: MPI_2DOUBLE_PRECISION
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_2integer") OMPI_PRIVATE          :: MPI_2INTEGER
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_2complex") OMPI_PRIVATE          :: MPI_2COMPLEX
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_2double_complex") OMPI_PRIVATE   :: MPI_2DOUBLE_COMPLEX
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_real2") OMPI_PRIVATE             :: MPI_REAL2
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_logical1") OMPI_PRIVATE          :: MPI_LOGICAL1
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_logical2") OMPI_PRIVATE          :: MPI_LOGICAL2
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_logical4") OMPI_PRIVATE          :: MPI_LOGICAL4
+  type(MPI_Datatype), external, bind(C, name="ompi_f08_mpi_logical8") OMPI_PRIVATE          :: MPI_LOGICAL8
 
 !... Special sentinel constants
 !------------------------------
-  type(MPI_STATUS), bind(C, name="mpi_fortran_status_ignore") :: MPI_STATUS_IGNORE
-  type(MPI_STATUS), bind(C, name="mpi_fortran_statuses_ignore") :: MPI_STATUSES_IGNORE(1)
-  integer, bind(C, name="mpi_fortran_bottom")          :: MPI_BOTTOM
-  integer, bind(C, name="mpi_fortran_in_place")        :: MPI_IN_PLACE
-  integer, bind(C, name="mpi_fortran_argv_null")       :: MPI_ARGV_NULL
-  integer, bind(C, name="mpi_fortran_argvs_null")      :: MPI_ARGVS_NULL
-  integer, bind(C, name="mpi_fortran_errcodes_ignore") :: MPI_ERRCODES_IGNORE
-  integer, bind(C, name="mpi_fortran_unweighted")      :: MPI_UNWEIGHTED
-  integer, bind(C, name="mpi_fortran_weights_empty")   :: MPI_WEIGHTS_EMPTY
+  type(MPI_STATUS), external, bind(C, name="mpi_fortran_status_ignore") :: MPI_STATUS_IGNORE
+  type(MPI_STATUS), external, bind(C, name="mpi_fortran_statuses_ignore") :: MPI_STATUSES_IGNORE(1)
+  integer, external, bind(C, name="mpi_fortran_bottom")          :: MPI_BOTTOM
+  integer, external, bind(C, name="mpi_fortran_in_place")        :: MPI_IN_PLACE
+  integer, external, bind(C, name="mpi_fortran_argv_null")       :: MPI_ARGV_NULL
+  integer, external, bind(C, name="mpi_fortran_argvs_null")      :: MPI_ARGVS_NULL
+  integer, external, bind(C, name="mpi_fortran_errcodes_ignore") :: MPI_ERRCODES_IGNORE
+  integer, external, bind(C, name="mpi_fortran_unweighted")      :: MPI_UNWEIGHTED
+  integer, external, bind(C, name="mpi_fortran_weights_empty")   :: MPI_WEIGHTS_EMPTY
 
 !... Interfaces for operators with handles
 !-----------------------------------------
