@@ -6,7 +6,7 @@
  *                         reserved.
  * Copyright (c) 2009      Oak Ridge National Labs.  All rights reserved.
  * Copyright (c) 2012-2013 Inria.  All rights reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2014      Intel, Inc. All rights reserved.
  *
@@ -44,6 +44,7 @@
 #endif /* OPAL_WANT_MEMCHECKER */
 
 
+#if OPAL_WANT_MEMCHECKER
 static inline int memchecker_convertor_call (int (*f)(void *, size_t), opal_convertor_t* pConvertor)
 {
     if (!opal_memchecker_base_runindebugger() ||
@@ -143,6 +144,7 @@ static inline int memchecker_call (int (*f)(void *, size_t), const void * addr,
 
     return OMPI_SUCCESS;
 }
+#endif /* OPAL_WANT_MEMCHECKER */
 
 
 
