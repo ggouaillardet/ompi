@@ -1,0 +1,563 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/bcol/basesmuma/bcol_basesmuma_bcast.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/bcol/basesmuma</a> - bcol_basesmuma_bcast.c<span style="font-size: 80%;"> (source / <a href="bcol_basesmuma_bcast.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">74</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2009-2012 Oak Ridge National Laboratory.  All rights reserved.
+<span class="lineNum">       4 </span>            :  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2014      Los Alamos National Security, LLC. All rights
+<span class="lineNum">       6 </span>            :  *                         reserved.
+<span class="lineNum">       7 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * $HEADER$
+<span class="lineNum">      12 </span>            :  */
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : #include &quot;ompi/constants.h&quot;
+<span class="lineNum">      18 </span>            : #include &quot;ompi/datatype/ompi_datatype.h&quot;
+<span class="lineNum">      19 </span>            : #include &quot;ompi/communicator/communicator.h&quot;
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &quot;ompi/mca/bcol/bcol.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;ompi/mca/bcol/base/base.h&quot;
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &quot;bcol_basesmuma.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #define __TEST_BLOCKING__   1
+<span class="lineNum">      27 </span>            : #define __TEST_WAIT__       0
+<span class="lineNum">      28 </span>            : #define __TEST_TEST__       0
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : /* debug
+<span class="lineNum">      31 </span>            :  *   #include &quot;opal/sys/timer.h&quot;
+<span class="lineNum">      32 </span>            :  *
+<span class="lineNum">      33 </span>            :  *   extern uint64_t timers[7];
+<span class="lineNum">      34 </span>            :  *   end debug */
+<span class="lineNum">      35 </span>            : 
+<a name="36"><span class="lineNum">      36 </span>            : /* debug */</a>
+<span class="lineNum">      37 </span>            : /* end debug */
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 : int bcol_basesmuma_bcast_init(mca_bcol_base_module_t *super)</span>
+<span class="lineNum">      39 </span>            : {
+<span class="lineNum">      40 </span>            :     mca_bcol_base_coll_fn_comm_attributes_t comm_attribs;
+<span class="lineNum">      41 </span>            :     mca_bcol_base_coll_fn_invoke_attributes_t inv_attribs;
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :     comm_attribs.bcoll_type = BCOL_BCAST;</span>
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :     comm_attribs.comm_size_min = 0;</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :     comm_attribs.comm_size_max = 1048576;</span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :     comm_attribs.data_src = DATA_SRC_KNOWN;</span>
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :     comm_attribs.waiting_semantics = NON_BLOCKING;</span>
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :     inv_attribs.bcol_msg_min = 0;</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :     inv_attribs.bcol_msg_max = 20000; /* range 1 */</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :     inv_attribs.datatype_bitmap = 0xffffffff;</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :     inv_attribs.op_types_bitmap = 0xffffffff;</span>
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :     mca_bcol_base_set_attributes(super, &amp;comm_attribs, &amp;inv_attribs,</span>
+<span class="lineNum">      55 </span>            :                                  bcol_basesmuma_bcast_k_nomial_knownroot,
+<span class="lineNum">      56 </span>            :                                  bcol_basesmuma_bcast_k_nomial_knownroot);
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :     inv_attribs.bcol_msg_min = 10000000;</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :     inv_attribs.bcol_msg_max = 10485760; /* range 4 */</span>
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     mca_bcol_base_set_attributes(super, &amp;comm_attribs, &amp;inv_attribs,</span>
+<span class="lineNum">      62 </span>            :                                  bcol_basesmuma_bcast_k_nomial_knownroot,
+<span class="lineNum">      63 </span>            :                                  bcol_basesmuma_bcast_k_nomial_knownroot);
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     comm_attribs.data_src = DATA_SRC_UNKNOWN;</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     inv_attribs.bcol_msg_min = 0;</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     inv_attribs.bcol_msg_max = 20000; /* range 1 */</span>
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     mca_bcol_base_set_attributes(super, &amp;comm_attribs, &amp;inv_attribs,</span>
+<span class="lineNum">      70 </span>            :                                  bcol_basesmuma_bcast_k_nomial_anyroot,
+<span class="lineNum">      71 </span>            :                                  bcol_basesmuma_bcast_k_nomial_anyroot);
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     comm_attribs.data_src = DATA_SRC_UNKNOWN;</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     inv_attribs.bcol_msg_min = 10000000;</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     inv_attribs.bcol_msg_max = 10485760; /* range 4 */</span>
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : #ifdef __PORTALS_AVAIL__
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            :     comm_attribs.waiting_semantics = BLOCKING;
+<span class="lineNum">      80 </span>            :     mca_bcol_base_set_attributes(super, &amp;comm_attribs, &amp;inv_attribs,
+<span class="lineNum">      81 </span>            :                                  bcol_basesmuma_lmsg_scatter_allgather_portals_bcast,
+<span class="lineNum">      82 </span>            :                                  bcol_basesmuma_lmsg_scatter_allgather_portals_bcast);
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            :     comm_attribs.waiting_semantics = NON_BLOCKING;
+<span class="lineNum">      86 </span>            :     mca_bcol_base_set_attributes(super, &amp;comm_attribs, &amp;inv_attribs,
+<span class="lineNum">      87 </span>            :                                  bcol_basesmuma_lmsg_scatter_allgather_portals_nb_bcast,
+<span class="lineNum">      88 </span>            :                                  bcol_basesmuma_lmsg_scatter_allgather_portals_nb_bcast);
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :     comm_attribs.data_src = DATA_SRC_KNOWN;
+<span class="lineNum">      91 </span>            :     mca_bcol_base_set_attributes(super, &amp;comm_attribs, &amp;inv_attribs,
+<span class="lineNum">      92 </span>            :                                  bcol_basesmuma_lmsg_scatter_allgather_portals_nb_knownroot_bcast,
+<span class="lineNum">      93 </span>            :                                  bcol_basesmuma_lmsg_scatter_allgather_portals_nb_knownroot_bcast);
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            : #else
+<span class="lineNum">      96 </span>            :     /*
+<span class="lineNum">      97 </span>            :       if (super-&gt;use_hdl) {
+<span class="lineNum">      98 </span>            :       mca_bcol_base_set_attributes(super, &amp;comm_attribs, &amp;inv_attribs,
+<span class="lineNum">      99 </span>            :       bcol_basesmuma_hdl_zerocopy_bcast,
+<span class="lineNum">     100 </span>            :       bcol_basesmuma_hdl_zerocopy_bcast);
+<span class="lineNum">     101 </span>            :       } else { */
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     mca_bcol_base_set_attributes(super, &amp;comm_attribs, &amp;inv_attribs, NULL, NULL);</span>
+<span class="lineNum">     103 </span>            :     /*
+<span class="lineNum">     104 </span>            :       bcol_basesmuma_binary_scatter_allgather_segment,
+<span class="lineNum">     105 </span>            :       bcol_basesmuma_binary_scatter_allgather_segment);
+<span class="lineNum">     106 </span>            :     */
+<span class="lineNum">     107 </span>            :     /*    } */
+<span class="lineNum">     108 </span>            : #endif
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     111 </span>            : }
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            : /* includes shared memory optimization */
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            : /**
+<span class="lineNum">     116 </span>            :  * Shared memory blocking Broadcast - fanin, for small data buffers.
+<span class="lineNum">     117 </span>            :  * This routine assumes that buf (the input buffer) is a single writer
+<span class="lineNum">     118 </span>            :  * multi reader (SWMR) shared memory buffer owned by the calling rank
+<span class="lineNum">     119 </span>            :  * which is the only rank that can write to this buffers.
+<span class="lineNum">     120 </span>            :  * It is also assumed that the buffers are registered and fragmented
+<span class="lineNum">     121 </span>            :  * at the ML level and that buf is sufficiently large to hold the data.
+<span class="lineNum">     122 </span>            :  *
+<span class="lineNum">     123 </span>            :  *
+<span class="lineNum">     124 </span>            :  * @param buf - SWMR shared buffer within a sbgp that the
+<span class="lineNum">     125 </span>            :  * executing rank can write to.
+<span class="lineNum">     126 </span>            :  * @param count - the number of elements in the shared buffer.
+<span class="lineNum">     127 </span>            :  * @param dtype - the datatype of a shared buffer element.
+<span class="lineNum">     128 </span>            :  * @param root - the index within the sbgp of the root.
+<a name="129"><span class="lineNum">     129 </span>            :  * @param module - basesmuma module.</a>
+<span class="lineNum">     130 </span>            :  */
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 : int bcol_basesmuma_bcast(bcol_function_args_t *input_args,</span>
+<span class="lineNum">     132 </span>            :                          mca_bcol_base_function_t *c_input_args)
+<span class="lineNum">     133 </span>            : {
+<span class="lineNum">     134 </span>            :     /* local variables */
+<span class="lineNum">     135 </span>            :     int group_size, process_shift, my_node_index;
+<span class="lineNum">     136 </span>            :     int my_rank;
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     int rc = OMPI_SUCCESS;</span>
+<span class="lineNum">     138 </span>            :     int my_fanout_parent;
+<span class="lineNum">     139 </span>            :     int leading_dim, buff_idx, idx;
+<span class="lineNum">     140 </span>            :     volatile int8_t ready_flag;
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     int count=input_args-&gt;count;</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     struct ompi_datatype_t* dtype=input_args-&gt;dtype;</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     int root=input_args-&gt;root;</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     int64_t sequence_number=input_args-&gt;sequence_num;</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     mca_bcol_basesmuma_module_t* bcol_module=</span>
+<span class="lineNum">     146 </span>            :         (mca_bcol_basesmuma_module_t *)c_input_args-&gt;bcol_module;
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :     int bcol_id = (int) bcol_module-&gt;super.bcol_id;</span>
+<span class="lineNum">     148 </span>            :     volatile mca_bcol_basesmuma_payload_t *data_buffs;
+<span class="lineNum">     149 </span>            :     volatile char* parent_data_pointer;
+<span class="lineNum">     150 </span>            :     mca_bcol_basesmuma_header_t *my_ctl_pointer;
+<span class="lineNum">     151 </span>            :     volatile mca_bcol_basesmuma_header_t *parent_ctl_pointer;
+<span class="lineNum">     152 </span>            :     netpatterns_tree_node_t* my_fanout_read_tree;
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :     size_t pack_len = 0, dt_size;</span>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     void *data_addr = (void *)((unsigned char *)input_args-&gt;src_desc-&gt;data_addr );</span>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            : #if 0
+<span class="lineNum">     158 </span>            :     fprintf(stderr,&quot;Entering sm broadcast input_args-&gt;sbuf_offset %d \n&quot;,input_args-&gt;sbuf_offset);
+<span class="lineNum">     159 </span>            :     fflush(stderr);
+<span class="lineNum">     160 </span>            : #endif
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            :     /* we will work only on packed data - so compute the length*/
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size(dtype, &amp;dt_size);</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     pack_len=count*dt_size;</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     buff_idx = input_args-&gt;src_desc-&gt;buffer_index;</span>
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            :     /* Get addressing information */
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     my_rank = bcol_module-&gt;super.sbgp_partner_module-&gt;my_index;</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     group_size = bcol_module-&gt;colls_no_user_data.size_of_group;</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     leading_dim=bcol_module-&gt;colls_no_user_data.size_of_group;</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     idx=SM_ARRAY_INDEX(leading_dim,buff_idx,0);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     data_buffs=(volatile mca_bcol_basesmuma_payload_t *)</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :         bcol_module-&gt;colls_with_user_data.data_buffs+idx;</span>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            :     /* Align node index to around sbgp root */
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :     process_shift = root;</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     my_node_index = my_rank - root;</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :     if(0 &gt; my_node_index ) {</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         my_node_index += group_size;</span>
+<span class="lineNum">     182 </span>            :     }
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            :     /* get my node for the bcast tree */
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     my_fanout_read_tree = &amp;(bcol_module-&gt;fanout_read_tree[my_node_index]);</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     my_fanout_parent = my_fanout_read_tree-&gt;parent_rank + process_shift;</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     if(group_size &lt;= my_fanout_parent){</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :         my_fanout_parent -= group_size;</span>
+<span class="lineNum">     189 </span>            :     }
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            :     /* Set pointer to current proc ctrl region */
+<span class="lineNum">     192 </span>            :     /*my_ctl_pointer = ctl_structs[my_rank]; */
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :     my_ctl_pointer = data_buffs[my_rank].ctl_struct;</span>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            :     /* setup resource recycling */
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :     BASESMUMA_HEADER_INIT(my_ctl_pointer, ready_flag, sequence_number, bcol_id);</span>
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span>            :     /*
+<span class="lineNum">     200 </span>            :      * Fan out from root
+<span class="lineNum">     201 </span>            :      */
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     if(ROOT_NODE == my_fanout_read_tree-&gt;my_node_type) {</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :         input_args-&gt;result_in_rbuf = false;</span>
+<span class="lineNum">     204 </span>            :         /* Root should only signal it is ready */
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :         my_ctl_pointer-&gt;flags[BCAST_FLAG][bcol_id] = ready_flag;</span>
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     }else if(LEAF_NODE == my_fanout_read_tree-&gt;my_node_type) {</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         input_args-&gt;result_in_rbuf = false;</span>
+<span class="lineNum">     209 </span>            :         /*
+<span class="lineNum">     210 </span>            :          * Get parent payload data and control data.
+<span class="lineNum">     211 </span>            :          * Get the pointer to the base address of the parent's payload buffer.
+<span class="lineNum">     212 </span>            :          * Get the parent's control buffer.
+<span class="lineNum">     213 </span>            :          */
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         parent_data_pointer = data_buffs[my_fanout_parent].payload;</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :         parent_ctl_pointer = data_buffs[my_fanout_parent].ctl_struct;</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            :         /* Wait until parent signals that data is ready */
+<span class="lineNum">     218 </span>            :         /* The order of conditions checked in this loop is important, as it can
+<span class="lineNum">     219 </span>            :          * result in a race condition.
+<span class="lineNum">     220 </span>            :          */
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         while (!IS_PEER_READY(parent_ctl_pointer, ready_flag, sequence_number, BCAST_FLAG, bcol_id)){</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :             opal_progress();</span>
+<span class="lineNum">     223 </span>            :         }
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span>            :         /* Copy the rank to a shared buffer writable by the current rank */
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         memcpy(data_addr, (void *)parent_data_pointer, pack_len);</span>
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :         if( 0 != rc ) {</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :             return OMPI_ERROR;</span>
+<span class="lineNum">     230 </span>            :         }
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            :     }else{
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         input_args-&gt;result_in_rbuf = false;</span>
+<span class="lineNum">     234 </span>            :         /* Interior node */
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            :         /* Get parent payload data and control data */
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         parent_data_pointer = data_buffs[my_fanout_parent].payload;</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         parent_ctl_pointer =  data_buffs[my_fanout_parent].ctl_struct;</span>
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span>            :         /* Wait until parent signals that data is ready */
+<span class="lineNum">     242 </span>            :         /* The order of conditions checked in this loop is important, as it can
+<span class="lineNum">     243 </span>            :          * result in a race condition.
+<span class="lineNum">     244 </span>            :          */
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :         while (!IS_PEER_READY(parent_ctl_pointer, ready_flag, sequence_number, BCAST_FLAG, bcol_id)){</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :             opal_progress();</span>
+<span class="lineNum">     247 </span>            :         }
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            :         /* Copy the rank to a shared buffer writable by the current rank */
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         memcpy(data_addr, (void *)parent_data_pointer,pack_len);</span>
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span>            :         /* Signal to children that they may read the data from my shared buffer */
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         opal_atomic_wmb ();</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         my_ctl_pointer-&gt;flags[BCAST_FLAG][bcol_id] = ready_flag;</span>
+<span class="lineNum">     255 </span>            :     }
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            :     /* if I am the last instance of a basesmuma function in this collectie,
+<span class="lineNum">     258 </span>            :      *   release the resrouces */
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     my_ctl_pointer-&gt;starting_flag_value[bcol_id]++;</span>
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     263 </span>            : }
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span>            : /*zero-copy large massage communication methods*/
+<span class="lineNum">     267 </span>            : #if 0
+<span class="lineNum">     268 </span>            : int bcol_basesmuma_hdl_zerocopy_bcast(bcol_function_args_t *input_args,
+<span class="lineNum">     269 </span>            :                                       mca_bcol_base_function_t   *c_input_args)
+<span class="lineNum">     270 </span>            : {
+<span class="lineNum">     271 </span>            :     /* local variables */
+<span class="lineNum">     272 </span>            :     int group_size, process_shift, my_node_index;
+<span class="lineNum">     273 </span>            :     int my_rank, first_instance=0, flag_offset;
+<span class="lineNum">     274 </span>            :     int rc = OMPI_SUCCESS;
+<span class="lineNum">     275 </span>            :     int my_fanout_parent;
+<span class="lineNum">     276 </span>            :     int leading_dim, buff_idx, idx;
+<span class="lineNum">     277 </span>            :     volatile int64_t ready_flag;
+<span class="lineNum">     278 </span>            :     int count=input_args-&gt;count;
+<span class="lineNum">     279 </span>            :     struct ompi_datatype_t* dtype=input_args-&gt;dtype;
+<span class="lineNum">     280 </span>            :     int root=input_args-&gt;root;
+<span class="lineNum">     281 </span>            :     int64_t sequence_number=input_args-&gt;sequence_num;
+<span class="lineNum">     282 </span>            :     mca_bcol_basesmuma_module_t* bcol_module=
+<span class="lineNum">     283 </span>            :         (mca_bcol_basesmuma_module_t *)c_input_args-&gt;bcol_module;
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            :     netpatterns_tree_node_t* my_fanout_read_tree;
+<span class="lineNum">     286 </span>            :     size_t pack_len = 0, dt_size;
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span>            :     void *data_addr = (void *)((unsigned char *)input_args-&gt;src_desc-&gt;data_addr);
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span>            :     struct mca_hdl_base_descriptor_t *hdl_desc;
+<span class="lineNum">     291 </span>            :     struct mca_hdl_base_segment_t *hdl_seg;
+<span class="lineNum">     292 </span>            :     int ret, completed, ridx/*remote rank index*/;
+<span class="lineNum">     293 </span>            :     bool status;
+<span class="lineNum">     294 </span>            :     volatile mca_bcol_basesmuma_ctl_struct_t **ctl_structs;
+<span class="lineNum">     295 </span>            :     mca_bcol_basesmuma_ctl_struct_t  *my_ctl_pointer= NULL;
+<span class="lineNum">     296 </span>            :     volatile mca_bcol_basesmuma_ctl_struct_t  *parent_ctl_pointer= NULL;
+<span class="lineNum">     297 </span>            :     volatile mca_bcol_basesmuma_ctl_struct_t  *child_ctl_pointer= NULL;
+<span class="lineNum">     298 </span>            :     struct mca_hdl_base_module_t* hdl = bcol_module-&gt;hdl_module[0];
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            :     /* we will work only on packed data - so compute the length*/
+<span class="lineNum">     302 </span>            :     ompi_datatype_type_size(dtype, &amp;dt_size);
+<span class="lineNum">     303 </span>            :     pack_len = count * dt_size;
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            :     buff_idx = input_args-&gt;src_desc-&gt;buffer_index;
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            :     /* Get addressing information */
+<span class="lineNum">     308 </span>            :     my_rank = bcol_module-&gt;super.sbgp_partner_module-&gt;my_index;
+<span class="lineNum">     309 </span>            :     group_size = bcol_module-&gt;colls_no_user_data.size_of_group;
+<span class="lineNum">     310 </span>            :     leading_dim=bcol_module-&gt;colls_no_user_data.size_of_group;
+<span class="lineNum">     311 </span>            :     idx=SM_ARRAY_INDEX(leading_dim,buff_idx,0);
+<span class="lineNum">     312 </span>            :     ctl_structs = (volatile mca_bcol_basesmuma_ctl_struct_t **)
+<span class="lineNum">     313 </span>            :         bcol_module-&gt;colls_with_user_data.ctl_buffs+idx;
+<span class="lineNum">     314 </span>            :     my_ctl_pointer = ctl_structs[my_rank];
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            :     /* Align node index to around sbgp root */
+<span class="lineNum">     317 </span>            :     process_shift = root;
+<span class="lineNum">     318 </span>            :     my_node_index = my_rank - root;
+<span class="lineNum">     319 </span>            :     if(0 &gt; my_node_index ) {
+<span class="lineNum">     320 </span>            :         my_node_index += group_size;
+<span class="lineNum">     321 </span>            :     }
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            :     /* get my node for the bcast tree */
+<span class="lineNum">     324 </span>            :     my_fanout_read_tree = &amp;(bcol_module-&gt;fanout_read_tree[my_node_index]);
+<span class="lineNum">     325 </span>            :     my_fanout_parent = my_fanout_read_tree-&gt;parent_rank + process_shift;
+<span class="lineNum">     326 </span>            :     if(group_size &lt;= my_fanout_parent){
+<span class="lineNum">     327 </span>            :         my_fanout_parent -= group_size;
+<span class="lineNum">     328 </span>            :     }
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span>            :     /* setup resource recycling */
+<span class="lineNum">     331 </span>            :     if( my_ctl_pointer-&gt;sequence_number &lt; sequence_number ) {
+<span class="lineNum">     332 </span>            :         first_instance = 1;
+<span class="lineNum">     333 </span>            :     }
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span>            :     if( first_instance ) {
+<span class="lineNum">     336 </span>            :         /* Signal arrival */
+<span class="lineNum">     337 </span>            :         my_ctl_pointer-&gt;flag  = -1;
+<span class="lineNum">     338 </span>            :         my_ctl_pointer-&gt;index = 1;
+<span class="lineNum">     339 </span>            :         /* this does not need to use any flag values , so only need to
+<span class="lineNum">     340 </span>            :          * set the value for subsequent values that may need this */
+<span class="lineNum">     341 </span>            :         my_ctl_pointer-&gt;starting_flag_value = 0;
+<span class="lineNum">     342 </span>            :         flag_offset = 0;
+<span class="lineNum">     343 </span>            :     } else {
+<span class="lineNum">     344 </span>            :         /* only one thread at a time will be making progress on this
+<span class="lineNum">     345 </span>            :          *   collective, so no need to make this atomic */
+<span class="lineNum">     346 </span>            :         my_ctl_pointer-&gt;index++;
+<span class="lineNum">     347 </span>            :     }
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span>            :     /* increment the starting flag by one and return */
+<span class="lineNum">     351 </span>            :     flag_offset = my_ctl_pointer-&gt;starting_flag_value;
+<span class="lineNum">     352 </span>            :     ready_flag = flag_offset + sequence_number + 1;
+<span class="lineNum">     353 </span>            :     my_ctl_pointer-&gt;sequence_number = sequence_number;
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span>            :     hdl_desc = (mca_hdl_base_descriptor_t *)
+<span class="lineNum">     356 </span>            :         malloc (sizeof (mca_hdl_base_descriptor_t) * 1);
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            :     /*prepare a hdl data segment*/
+<span class="lineNum">     359 </span>            :     hdl_seg = (mca_hdl_base_segment_t*)
+<span class="lineNum">     360 </span>            :         malloc ( sizeof (mca_hdl_base_segment_t) * 1);
+<span class="lineNum">     361 </span>            :     hdl_seg-&gt;seg_addr.pval = input_args-&gt;sbuf;
+<span class="lineNum">     362 </span>            :     hdl_seg-&gt;seg_len = pack_len;
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span>            :     hdl-&gt;endpoint-&gt;ready_flag = ready_flag;
+<span class="lineNum">     366 </span>            :     hdl-&gt;endpoint-&gt;local_ctrl  = my_ctl_pointer;
+<span class="lineNum">     367 </span>            :     hdl-&gt;endpoint-&gt;sbgp_contextid =
+<span class="lineNum">     368 </span>            :         bcol_module-&gt;super.sbgp_partner_module-&gt;group_comm-&gt;c_contextid;
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span>            :     /*
+<span class="lineNum">     371 </span>            :      * Fan out from root
+<span class="lineNum">     372 </span>            :      */
+<span class="lineNum">     373 </span>            :     if(ROOT_NODE == my_fanout_read_tree-&gt;my_node_type) {
+<span class="lineNum">     374 </span>            :         input_args-&gt;result_in_rbuf = false;
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            :         hdl_desc-&gt;des_src = hdl_seg;
+<span class="lineNum">     377 </span>            :         hdl_desc-&gt;des_src_cnt = 1;
+<span class="lineNum">     378 </span>            :         hdl_desc-&gt;isroot = true;
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span>            :         /*As the general semantics, there might multiple pairs of send/recv
+<span class="lineNum">     381 </span>            :          *on the topology tree*/
+<span class="lineNum">     382 </span>            :         for (ridx = 0; ridx &lt; my_fanout_read_tree-&gt;n_children; ridx++) {
+<span class="lineNum">     383 </span>            :             child_ctl_pointer =
+<span class="lineNum">     384 </span>            :                 ctl_structs[my_fanout_read_tree-&gt;children_ranks[ridx]];
+<span class="lineNum">     385 </span>            :             hdl-&gt;endpoint-&gt;remote_ctrl = child_ctl_pointer;
+<span class="lineNum">     386 </span>            :             ret = hdl-&gt;hdl_send(hdl, hdl-&gt;endpoint, hdl_desc);
+<span class="lineNum">     387 </span>            :             if (ret !=  OMPI_SUCCESS) {
+<span class="lineNum">     388 </span>            :                 BASESMUMA_VERBOSE(1, (&quot;send eror on rank %d ........&quot;, my_rank));
+<span class="lineNum">     389 </span>            :                 goto exit_ERROR;
+<span class="lineNum">     390 </span>            :             }
+<span class="lineNum">     391 </span>            :         }
+<span class="lineNum">     392 </span>            :     }else if(LEAF_NODE == my_fanout_read_tree-&gt;my_node_type) {
+<span class="lineNum">     393 </span>            :         input_args-&gt;result_in_rbuf = false;
+<span class="lineNum">     394 </span>            :         /*
+<span class="lineNum">     395 </span>            :          * Get parent payload data and control data.
+<span class="lineNum">     396 </span>            :          * Get the pointer to the base address of the parent's payload buffer.
+<span class="lineNum">     397 </span>            :          * Get the parent's control buffer.
+<span class="lineNum">     398 </span>            :          */
+<span class="lineNum">     399 </span>            :         parent_ctl_pointer = ctl_structs[my_fanout_parent];
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span>            :         hdl_desc-&gt;des_dst = hdl_seg;
+<span class="lineNum">     402 </span>            :         hdl_desc-&gt;des_dst_cnt = 1;
+<span class="lineNum">     403 </span>            :         hdl_desc-&gt;isroot = false;
+<span class="lineNum">     404 </span>            :         hdl-&gt;endpoint-&gt;remote_ctrl = parent_ctl_pointer;
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            : #if __TEST_BLOCKING__
+<span class="lineNum">     407 </span>            :         ret = hdl-&gt;hdl_recv(hdl, hdl-&gt;endpoint, hdl_desc);
+<span class="lineNum">     408 </span>            : #else
+<span class="lineNum">     409 </span>            :         ret = hdl-&gt;hdl_recvi(hdl, hdl-&gt;endpoint, NULL, 0, 0, &amp;hdl_desc);
+<span class="lineNum">     410 </span>            : #endif
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span>            : #if __TEST_WAIT__
+<span class="lineNum">     413 </span>            :         ret = hdl-&gt;hdl_wait(hdl, hdl-&gt;endpoint, hdl_desc);
+<span class="lineNum">     414 </span>            :         BASESMUMA_VERBOSE(1,(&quot;wait on rank %d is done!&quot;, my_rank));
+<span class="lineNum">     415 </span>            : #endif
+<span class="lineNum">     416 </span>            :         if (OMPI_SUCCESS != ret) {
+<span class="lineNum">     417 </span>            :             BASESMUMA_VERBOSE(1, (&quot;recvi eror on rank %d ........&quot;, my_rank));
+<span class="lineNum">     418 </span>            :             goto exit_ERROR;
+<span class="lineNum">     419 </span>            :         }
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span>            :         status = false;
+<span class="lineNum">     422 </span>            : #if __TEST_TEST__
+<span class="lineNum">     423 </span>            :         while (!status) {
+<span class="lineNum">     424 </span>            :             hdl-&gt;hdl_test(&amp;hdl_desc, &amp;completed, &amp;status);
+<span class="lineNum">     425 </span>            :             opal_progress();
+<span class="lineNum">     426 </span>            :             BASESMUMA_VERBOSE(1, (&quot;test on rank %d ........&quot;, my_rank));
+<span class="lineNum">     427 </span>            :         }
+<span class="lineNum">     428 </span>            : #endif
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span>            :         goto Release;
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span>            :     }else{
+<span class="lineNum">     433 </span>            :         input_args-&gt;result_in_rbuf = false;
+<span class="lineNum">     434 </span>            :         /* Interior node */
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span>            :         /* Get parent payload data and control data */
+<span class="lineNum">     437 </span>            :         parent_ctl_pointer = ctl_structs[my_fanout_parent];
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span>            :         hdl_desc-&gt;des_dst = hdl_seg;
+<span class="lineNum">     440 </span>            :         hdl_desc-&gt;des_dst_cnt = 1;
+<span class="lineNum">     441 </span>            :         hdl_desc-&gt;isroot = false;
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span>            :         hdl-&gt;endpoint-&gt;remote_ctrl = parent_ctl_pointer;
+<span class="lineNum">     444 </span>            : 
+<span class="lineNum">     445 </span>            :         ret = hdl-&gt;hdl_recv(hdl, hdl-&gt;endpoint, hdl_desc);
+<span class="lineNum">     446 </span>            :         if (OMPI_SUCCESS != ret) {
+<span class="lineNum">     447 </span>            :             goto exit_ERROR;
+<span class="lineNum">     448 </span>            :         }
+<span class="lineNum">     449 </span>            :         if (OMPI_SUCCESS != ret) {
+<span class="lineNum">     450 </span>            :             BASESMUMA_VERBOSE(1, (&quot;recvi eror on rank %d ........&quot;, my_rank));
+<span class="lineNum">     451 </span>            :             goto exit_ERROR;
+<span class="lineNum">     452 </span>            :         }
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span>            :         /* Signal to children that they may read the data from my shared buffer */
+<span class="lineNum">     455 </span>            :         opal_atomic_wmb ();
+<span class="lineNum">     456 </span>            :         hdl_desc-&gt;des_src = hdl_seg;
+<span class="lineNum">     457 </span>            :         hdl_desc-&gt;des_src_cnt = 1;
+<span class="lineNum">     458 </span>            :         for (ridx = 0; ridx &lt; my_fanout_read_tree-&gt;n_children; ridx++) {
+<span class="lineNum">     459 </span>            :             child_ctl_pointer =
+<span class="lineNum">     460 </span>            :                 ctl_structs[my_fanout_read_tree-&gt;children_ranks[ridx]];
+<span class="lineNum">     461 </span>            :             hdl-&gt;endpoint-&gt;remote_ctrl = child_ctl_pointer;
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span>            :             ret = hdl-&gt;hdl_send(hdl, hdl-&gt;endpoint, hdl_desc);
+<span class="lineNum">     464 </span>            :             if (ret !=  OMPI_SUCCESS) {
+<span class="lineNum">     465 </span>            :                 BASESMUMA_VERBOSE(1, (&quot;send eror on rank %d ........&quot;, my_rank));
+<span class="lineNum">     466 </span>            :                 goto exit_ERROR;
+<span class="lineNum">     467 </span>            :             }
+<span class="lineNum">     468 </span>            :         }
+<span class="lineNum">     469 </span>            :         goto Release;
+<span class="lineNum">     470 </span>            :     }
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span>            :  Release:
+<span class="lineNum">     473 </span>            :     /* if I am the last instance of a basesmuma function in this collectie,
+<span class="lineNum">     474 </span>            :      *   release the resrouces */
+<span class="lineNum">     475 </span>            :     if (IS_LAST_BCOL_FUNC(c_input_args)) {
+<span class="lineNum">     476 </span>            :         rc = bcol_basesmuma_free_buff(
+<span class="lineNum">     477 </span>            :                                       &amp;(bcol_module-&gt;colls_with_user_data),
+<span class="lineNum">     478 </span>            :                                       sequence_number);
+<span class="lineNum">     479 </span>            :     }
+<span class="lineNum">     480 </span>            : 
+<span class="lineNum">     481 </span>            :     my_ctl_pointer-&gt;starting_flag_value += 1;
+<span class="lineNum">     482 </span>            : 
+<span class="lineNum">     483 </span>            :     return BCOL_FN_COMPLETE;
+<span class="lineNum">     484 </span>            :  exit_ERROR:
+<span class="lineNum">     485 </span>            :     return OMPI_ERROR;
+<span class="lineNum">     486 </span>            : }
+<span class="lineNum">     487 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

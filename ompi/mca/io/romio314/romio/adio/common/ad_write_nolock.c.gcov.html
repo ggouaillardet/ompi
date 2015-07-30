@@ -1,0 +1,486 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/io/romio314/romio/adio/common/ad_write_nolock.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">ompi/mca/io/romio314/romio/adio/common</a> - ad_write_nolock.c<span style="font-size: 80%;"> (source / <a href="ad_write_nolock.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">166</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  *   Copyright (C) 1997 University of Chicago.
+<span class="lineNum">       5 </span>            :  *   See COPYRIGHT notice in top-level directory.
+<span class="lineNum">       6 </span>            :  */
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            : #include &quot;adio.h&quot;
+<span class="lineNum">      11 </span>            : #include &quot;adio_extern.h&quot;
+<span class="lineNum">      12 </span>            : 
+<a name="13"><span class="lineNum">      13 </span>            : </a>
+<span class="lineNum">      14 </span>            : /* #define IO_DEBUG 1 */
+<span class="lineNum">      15 </span><span class="lineNoCov">          0 : void ADIOI_NOLOCK_WriteStrided(ADIO_File fd, const void *buf, int count,</span>
+<span class="lineNum">      16 </span>            :                              MPI_Datatype datatype, int file_ptr_type,
+<span class="lineNum">      17 </span>            :                              ADIO_Offset offset, ADIO_Status *status, int
+<span class="lineNum">      18 </span>            :                              *error_code)
+<span class="lineNum">      19 </span>            : {
+<span class="lineNum">      20 </span>            : /* borrowed from old-school PVFS (v1) code. A driver for file systems that
+<span class="lineNum">      21 </span>            :  * cannot or do not support client-side buffering
+<span class="lineNum">      22 </span>            :  * Does not do data sieving optimization
+<span class="lineNum">      23 </span>            :  * Does contain write-combining optimization for noncontig in memory, contig in
+<span class="lineNum">      24 </span>            :  * file
+<span class="lineNum">      25 </span>            :  */
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : /* offset is in units of etype relative to the filetype. */
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            :     ADIOI_Flatlist_node *flat_buf, *flat_file;
+<span class="lineNum">      30 </span><span class="lineNoCov">          0 :     int j, k, st_index=0;</span>
+<span class="lineNum">      31 </span><span class="lineNoCov">          0 :     off_t err_lseek=-1;</span>
+<span class="lineNum">      32 </span><span class="lineNoCov">          0 :     ssize_t err=-1;</span>
+<span class="lineNum">      33 </span><span class="lineNoCov">          0 :     ADIO_Offset fwr_size=0, bwr_size, new_bwr_size, new_fwr_size, i_offset, num;</span>
+<span class="lineNum">      34 </span>            :     ADIO_Offset bufsize, n_etypes_in_filetype;
+<span class="lineNum">      35 </span>            :     ADIO_Offset n_filetypes, etype_in_filetype, size, sum;
+<span class="lineNum">      36 </span><span class="lineNoCov">          0 :     ADIO_Offset abs_off_in_filetype=0, size_in_filetype;</span>
+<span class="lineNum">      37 </span>            :     MPI_Count filetype_size, etype_size, buftype_size;
+<span class="lineNum">      38 </span>            :     MPI_Aint filetype_extent, buftype_extent, indx;
+<span class="lineNum">      39 </span>            :     int buf_count, buftype_is_contig, filetype_is_contig;
+<span class="lineNum">      40 </span>            :     ADIO_Offset off, disp;
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 :     int flag, err_flag=0;</span>
+<span class="lineNum">      42 </span>            :     static char myname[] = &quot;ADIOI_NOLOCK_WRITESTRIDED&quot;;
+<span class="lineNum">      43 </span>            : #ifdef IO_DEBUG
+<span class="lineNum">      44 </span>            :     int rank,nprocs;
+<span class="lineNum">      45 </span>            : #endif
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            :     /* --BEGIN ERROR HANDLING-- */
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :     if (fd-&gt;atomicity) {</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">      50 </span>            :                                            myname, __LINE__,
+<span class="lineNum">      51 </span>            :                                            MPI_ERR_INTERN,
+<span class="lineNum">      52 </span>            :                                            &quot;Atomic mode set in I/O function&quot;, 0);
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">      54 </span>            :     }
+<span class="lineNum">      55 </span>            :     /* --END ERROR HANDLING-- */
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     ADIOI_Datatype_iscontig(datatype, &amp;buftype_is_contig);</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :     ADIOI_Datatype_iscontig(fd-&gt;filetype, &amp;filetype_is_contig);</span>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :     MPI_Type_size_x(fd-&gt;filetype, &amp;filetype_size);</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     if ( ! filetype_size ) {</span>
+<span class="lineNum">      62 </span>            : #ifdef HAVE_STATUS_SET_BYTES
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :         MPIR_Status_set_bytes(status, datatype, 0);</span>
+<span class="lineNum">      64 </span>            : #endif
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :         *error_code = MPI_SUCCESS;</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">      67 </span>            :     }
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : #ifdef IO_DEBUG
+<span class="lineNum">      70 </span>            :     MPI_Comm_rank(fd-&gt;comm, &amp;rank);
+<span class="lineNum">      71 </span>            :     MPI_Comm_size(fd-&gt;comm, &amp;nprocs);
+<span class="lineNum">      72 </span>            : #endif
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     MPI_Type_extent(fd-&gt;filetype, &amp;filetype_extent);</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     MPI_Type_size_x(datatype, &amp;buftype_size);</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     MPI_Type_extent(datatype, &amp;buftype_extent);</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :     etype_size = fd-&gt;etype_size;</span>
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     ADIOI_Assert((buftype_size * count) == ((ADIO_Offset)(unsigned)buftype_size * (ADIO_Offset)count));</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :     bufsize = buftype_size * count;</span>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     if (!buftype_is_contig &amp;&amp; filetype_is_contig) {</span>
+<span class="lineNum">      83 </span>            :         char *combine_buf, *combine_buf_ptr;
+<span class="lineNum">      84 </span>            :         ADIO_Offset combine_buf_remain;
+<span class="lineNum">      85 </span>            : /* noncontiguous in memory, contiguous in file. use writev */
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :         ADIOI_Flatten_datatype(datatype);</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :         flat_buf = ADIOI_Flatlist;</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :         while (flat_buf-&gt;type != datatype) flat_buf = flat_buf-&gt;next;</span>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            :         /* allocate our &quot;combine buffer&quot; to pack data into before writing */
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         combine_buf = (char *) ADIOI_Malloc(fd-&gt;hints-&gt;ind_wr_buffer_size);</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :         combine_buf_ptr = combine_buf;</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :         combine_buf_remain = fd-&gt;hints-&gt;ind_wr_buffer_size;</span>
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            :         /* seek to the right spot in the file */
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :         if (file_ptr_type == ADIO_EXPLICIT_OFFSET) {</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :             off = fd-&gt;disp + etype_size * offset;</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :             lseek(fd-&gt;fd_sys, off, SEEK_SET);</span>
+<span class="lineNum">     100 </span>            :         }
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :         else off = lseek(fd-&gt;fd_sys, fd-&gt;fp_ind, SEEK_SET);</span>
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            :         /* loop through all the flattened pieces.  combine into buffer until
+<span class="lineNum">     104 </span>            :          * no more will fit, then write.
+<span class="lineNum">     105 </span>            :          *
+<span class="lineNum">     106 </span>            :          * special case of a given piece being bigger than the combine buffer
+<span class="lineNum">     107 </span>            :          * is also handled.
+<span class="lineNum">     108 </span>            :          */
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         for (j=0; j&lt;count; j++) {</span>
+<span class="lineNum">     110 </span>            :     int i;
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :             for (i=0; i&lt;flat_buf-&gt;count; i++) {</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :                 if (flat_buf-&gt;blocklens[i] &gt; combine_buf_remain &amp;&amp; combine_buf != combine_buf_ptr) {</span>
+<span class="lineNum">     113 </span>            :                     /* there is data in the buffer; write out the buffer so far */
+<span class="lineNum">     114 </span>            : #ifdef IO_DEBUG
+<span class="lineNum">     115 </span>            :                     printf(&quot;[%d/%d] nc mem c file (0) writing loc = %Ld sz = %Ld\n&quot;,
+<span class="lineNum">     116 </span>            :                                     rank, nprocs, off,
+<span class="lineNum">     117 </span>            :                                     fd-&gt;hints-&gt;ind_wr_buffer_size-combine_buf_remain);
+<span class="lineNum">     118 </span>            : #endif
+<span class="lineNum">     119 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     120 </span>            :                     MPE_Log_event( ADIOI_MPE_write_a, 0, NULL );
+<span class="lineNum">     121 </span>            : #endif
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :                     err = write(fd-&gt;fd_sys,</span>
+<span class="lineNum">     123 </span>            :                                      combine_buf,
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :                                      fd-&gt;hints-&gt;ind_wr_buffer_size - combine_buf_remain);</span>
+<span class="lineNum">     125 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     126 </span>            :                     MPE_Log_event( ADIOI_MPE_write_b, 0, NULL );
+<span class="lineNum">     127 </span>            : #endif
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :                     if (err == -1) err_flag = 1;</span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            :                     /* reset our buffer info */
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :                     combine_buf_ptr = combine_buf;</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :                     combine_buf_remain = fd-&gt;hints-&gt;ind_wr_buffer_size;</span>
+<span class="lineNum">     133 </span>            :                 }
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            :                 /* TODO: heuristic for when to not bother to use combine buffer? */
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :                 if (flat_buf-&gt;blocklens[i] &gt;= combine_buf_remain) {</span>
+<span class="lineNum">     137 </span>            :                     /* special case: blocklen is as big as or bigger than the combine buf;
+<span class="lineNum">     138 </span>            :                      * write directly
+<span class="lineNum">     139 </span>            :                      */
+<span class="lineNum">     140 </span>            : #ifdef IO_DEBUG
+<span class="lineNum">     141 </span>            :                     printf(&quot;[%d/%d] nc mem c file (1) writing loc = %Ld sz = %d\n&quot;,
+<span class="lineNum">     142 </span>            :                                     rank, nprocs, off,
+<span class="lineNum">     143 </span>            :                                     flat_buf-&gt;blocklens[i]);
+<span class="lineNum">     144 </span>            : #endif
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         ADIOI_Assert(flat_buf-&gt;blocklens[i] == (unsigned)flat_buf-&gt;blocklens[i]);</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         ADIOI_Assert((((ADIO_Offset)(MPIR_Upint)buf) + (ADIO_Offset)j*(ADIO_Offset)buftype_extent + flat_buf-&gt;indices[i]) == (ADIO_Offset)((MPIR_Upint)buf + (ADIO_Offset)j*(ADIO_Offset)buftype_extent + flat_buf-&gt;indices[i]));</span>
+<span class="lineNum">     147 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     148 </span>            :                     MPE_Log_event( ADIOI_MPE_write_a, 0, NULL );
+<span class="lineNum">     149 </span>            : #endif
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :                     err = write(fd-&gt;fd_sys,</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :                                      ((char *) buf) + (ADIO_Offset)j*(ADIO_Offset)buftype_extent + flat_buf-&gt;indices[i],</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :                                      (unsigned)flat_buf-&gt;blocklens[i]);</span>
+<span class="lineNum">     153 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     154 </span>            :                     MPE_Log_event( ADIOI_MPE_write_b, 0, NULL );
+<span class="lineNum">     155 </span>            : #endif
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :                     if (err == -1) err_flag = 1;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :                     off += flat_buf-&gt;blocklens[i]; /* keep up with the final file offset too */</span>
+<span class="lineNum">     158 </span>            :                 }
+<span class="lineNum">     159 </span>            :                 else {
+<span class="lineNum">     160 </span>            :                     /* copy more data into combine buffer */
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :                     memcpy(combine_buf_ptr,</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                            ((char *) buf) + j*buftype_extent + flat_buf-&gt;indices[i],</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :                            flat_buf-&gt;blocklens[i]);</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :                     combine_buf_ptr += flat_buf-&gt;blocklens[i];</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :                     combine_buf_remain -= flat_buf-&gt;blocklens[i];</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :                     off += flat_buf-&gt;blocklens[i]; /* keep up with the final file offset too */</span>
+<span class="lineNum">     167 </span>            :                 }
+<span class="lineNum">     168 </span>            :             }
+<span class="lineNum">     169 </span>            :         }
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :         if (combine_buf_ptr != combine_buf) {</span>
+<span class="lineNum">     172 </span>            :             /* data left in buffer to write */
+<span class="lineNum">     173 </span>            : #ifdef IO_DEBUG
+<span class="lineNum">     174 </span>            :             printf(&quot;[%d/%d] nc mem c file (2) writing loc = %Ld sz = %Ld\n&quot;,
+<span class="lineNum">     175 </span>            :                             rank, nprocs, off,
+<span class="lineNum">     176 </span>            :                              fd-&gt;hints-&gt;ind_wr_buffer_size-combine_buf_remain);
+<span class="lineNum">     177 </span>            : #endif
+<span class="lineNum">     178 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     179 </span>            :             MPE_Log_event( ADIOI_MPE_write_a, 0, NULL );
+<span class="lineNum">     180 </span>            : #endif
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :             err = write(fd-&gt;fd_sys,</span>
+<span class="lineNum">     182 </span>            :                              combine_buf,
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :                              fd-&gt;hints-&gt;ind_wr_buffer_size - combine_buf_remain);</span>
+<span class="lineNum">     184 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     185 </span>            :             MPE_Log_event( ADIOI_MPE_write_b, 0, NULL );
+<span class="lineNum">     186 </span>            : #endif
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :             if (err == -1) err_flag = 1;</span>
+<span class="lineNum">     188 </span>            :         }
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :         if (file_ptr_type == ADIO_INDIVIDUAL) fd-&gt;fp_ind = off;</span>
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         ADIOI_Free(combine_buf);</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         if (err_flag) {</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :             *error_code = MPIO_Err_create_code(MPI_SUCCESS,</span>
+<span class="lineNum">     196 </span>            :                                                MPIR_ERR_RECOVERABLE, myname,
+<span class="lineNum">     197 </span>            :                                                __LINE__, MPI_ERR_IO, &quot;**io&quot;,
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :                                                &quot;**io %s&quot;, strerror(errno));</span>
+<span class="lineNum">     199 </span>            :         }
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :         else *error_code = MPI_SUCCESS;</span>
+<span class="lineNum">     201 </span>            :     } /* if (!buftype_is_contig &amp;&amp; filetype_is_contig)  ... */
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span>            :     else {  /* noncontiguous in file */
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            : /* split up into several contiguous writes */
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            : /* find starting location in the file */
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            : /* filetype already flattened in ADIO_Open */
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :         flat_file = ADIOI_Flatlist;</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :         while (flat_file-&gt;type != fd-&gt;filetype) flat_file = flat_file-&gt;next;</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :         disp = fd-&gt;disp;</span>
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         if (file_ptr_type == ADIO_INDIVIDUAL) {</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :             offset = fd-&gt;fp_ind; /* in bytes */</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :             n_filetypes = -1;</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :             flag = 0;</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :             while (!flag) {</span>
+<span class="lineNum">     219 </span>            :                 int i;
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :                 n_filetypes++;</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :                 for (i=0; i&lt;flat_file-&gt;count; i++) {</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :                     if (disp + flat_file-&gt;indices[i] +</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :                         n_filetypes*(ADIO_Offset)filetype_extent + flat_file-&gt;blocklens[i]</span>
+<span class="lineNum">     224 </span>            :                             &gt;= offset) {
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :                         st_index = i;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :                         fwr_size = disp + flat_file-&gt;indices[i] +</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :                                 n_filetypes*(ADIO_Offset)filetype_extent</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :                                  + flat_file-&gt;blocklens[i] - offset;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :                         flag = 1;</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     231 </span>            :                     }
+<span class="lineNum">     232 </span>            :                 }
+<span class="lineNum">     233 </span>            :             }
+<span class="lineNum">     234 </span>            :         }
+<span class="lineNum">     235 </span>            :         else {
+<span class="lineNum">     236 </span>            :             int i;
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :             n_etypes_in_filetype = filetype_size/etype_size;</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :             n_filetypes = offset / n_etypes_in_filetype;</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :             etype_in_filetype = offset % n_etypes_in_filetype;</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :             size_in_filetype = etype_in_filetype * etype_size;</span>
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :             sum = 0;</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :             for (i=0; i&lt;flat_file-&gt;count; i++) {</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :                 sum += flat_file-&gt;blocklens[i];</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :                 if (sum &gt; size_in_filetype) {</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :                     st_index = i;</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :                     fwr_size = sum - size_in_filetype;</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :                     abs_off_in_filetype = flat_file-&gt;indices[i] +</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :                         size_in_filetype - (sum - flat_file-&gt;blocklens[i]);</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     251 </span>            :                 }
+<span class="lineNum">     252 </span>            :             }
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            :             /* abs. offset in bytes in the file */
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :             offset = disp + n_filetypes*(ADIO_Offset)filetype_extent + abs_off_in_filetype;</span>
+<span class="lineNum">     256 </span>            :         }
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         if (buftype_is_contig &amp;&amp; !filetype_is_contig) {</span>
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span>            : /* contiguous in memory, noncontiguous in file. should be the most
+<span class="lineNum">     261 </span>            :    common case. */
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :             i_offset = 0;</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             j = st_index;</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :             off = offset;</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :             fwr_size = ADIOI_MIN(fwr_size, bufsize);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :             while (i_offset &lt; bufsize) {</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :                 if (fwr_size) {</span>
+<span class="lineNum">     269 </span>            :                     /* TYPE_UB and TYPE_LB can result in
+<span class="lineNum">     270 </span>            :                        fwr_size = 0. save system call in such cases */
+<span class="lineNum">     271 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     272 </span>            :                     MPE_Log_event(ADIOI_MPE_lseek_a, 0, NULL);
+<span class="lineNum">     273 </span>            : #endif
+<span class="lineNum">     274 </span>            : #ifdef IO_DEBUG
+<span class="lineNum">     275 </span>            :                     printf(&quot;[%d/%d] c mem nc file writing loc = %Ld sz = %d\n&quot;,
+<span class="lineNum">     276 </span>            :                             rank, nprocs, off, fwr_size);
+<span class="lineNum">     277 </span>            : #endif
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :                     err_lseek = lseek(fd-&gt;fd_sys, off, SEEK_SET);</span>
+<span class="lineNum">     279 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     280 </span>            :                     MPE_Log_event(ADIOI_MPE_lseek_b, 0, NULL);
+<span class="lineNum">     281 </span>            : #endif
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :                     if (err_lseek == -1) err_flag = 1;</span>
+<span class="lineNum">     283 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     284 </span>            :                     MPE_Log_event(ADIOI_MPE_write_a, 0, NULL);
+<span class="lineNum">     285 </span>            : #endif
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :                     err = write(fd-&gt;fd_sys, ((char *) buf) + i_offset, fwr_size);</span>
+<span class="lineNum">     287 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     288 </span>            :                     MPE_Log_event(ADIOI_MPE_write_b, 0, NULL);
+<span class="lineNum">     289 </span>            : #endif
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :                     if (err == -1) err_flag = 1;</span>
+<span class="lineNum">     291 </span>            :                 }
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                 i_offset += fwr_size;</span>
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :                 if (off + fwr_size &lt; disp + flat_file-&gt;indices[j] +</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :                    flat_file-&gt;blocklens[j] + n_filetypes*(ADIO_Offset)filetype_extent)</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :                        off += fwr_size;</span>
+<span class="lineNum">     297 </span>            :                 /* did not reach end of contiguous block in filetype.
+<span class="lineNum">     298 </span>            :                    no more I/O needed. off is incremented by fwr_size. */
+<span class="lineNum">     299 </span>            :                 else {
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :                     if (j &lt; (flat_file-&gt;count - 1)) j++;</span>
+<span class="lineNum">     301 </span>            :                     else {
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :                         j = 0;</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :                         n_filetypes++;</span>
+<span class="lineNum">     304 </span>            :                     }
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :                     off = disp + flat_file-&gt;indices[j] +</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :                                         n_filetypes*(ADIO_Offset)filetype_extent;</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :                     fwr_size = ADIOI_MIN(flat_file-&gt;blocklens[j], bufsize-i_offset);</span>
+<span class="lineNum">     308 </span>            :                 }
+<span class="lineNum">     309 </span>            :             }
+<span class="lineNum">     310 </span>            :         }
+<span class="lineNum">     311 </span>            :         else {
+<span class="lineNum">     312 </span>            : /* noncontiguous in memory as well as in file */
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :             ADIOI_Flatten_datatype(datatype);</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :             flat_buf = ADIOI_Flatlist;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :             while (flat_buf-&gt;type != datatype) flat_buf = flat_buf-&gt;next;</span>
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :             k = num = buf_count = 0;</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :             indx = flat_buf-&gt;indices[0];</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :             j = st_index;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :             off = offset;</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :             bwr_size = flat_buf-&gt;blocklens[0];</span>
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :             while (num &lt; bufsize) {</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :                 size = ADIOI_MIN(fwr_size, bwr_size);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :                 if (size) {</span>
+<span class="lineNum">     327 </span>            : #ifdef IO_DEBUG
+<span class="lineNum">     328 </span>            :                     printf(&quot;[%d/%d] nc mem nc file writing loc = %Ld sz = %d\n&quot;,
+<span class="lineNum">     329 </span>            :                                     rank, nprocs, off, size);
+<span class="lineNum">     330 </span>            : #endif
+<span class="lineNum">     331 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     332 </span>            :                     MPE_Log_event( ADIOI_MPE_lseek_a, 0, NULL );
+<span class="lineNum">     333 </span>            : #endif
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :                     lseek(fd-&gt;fd_sys, off, SEEK_SET);</span>
+<span class="lineNum">     335 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     336 </span>            :                     MPE_Log_event( ADIOI_MPE_lseek_b, 0, NULL );
+<span class="lineNum">     337 </span>            : #endif
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :                     if (err == -1) err_flag = 1;</span>
+<span class="lineNum">     339 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     340 </span>            :                     MPE_Log_event( ADIOI_MPE_write_a, 0, NULL );
+<span class="lineNum">     341 </span>            : #endif
+<span class="lineNum">     342 </span>            :                     ADIOI_Assert(size == (size_t) size);
+<span class="lineNum">     343 </span>            :                     ADIOI_Assert(off == (off_t) off);
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :                     err = write(fd-&gt;fd_sys, ((char *) buf) + indx, size);</span>
+<span class="lineNum">     345 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">     346 </span>            :                     MPE_Log_event( ADIOI_MPE_write_b, 0, NULL );
+<span class="lineNum">     347 </span>            : #endif
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :                     if (err == -1) err_flag = 1;</span>
+<span class="lineNum">     349 </span>            :                 }
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :                 new_fwr_size = fwr_size;</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :                 new_bwr_size = bwr_size;</span>
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :                 if (size == fwr_size) {</span>
+<span class="lineNum">     355 </span>            : /* reached end of contiguous block in file */
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :                     if (j &lt; (flat_file-&gt;count - 1)) j++;</span>
+<span class="lineNum">     357 </span>            :                     else {
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :                         j = 0;</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :                         n_filetypes++;</span>
+<span class="lineNum">     360 </span>            :                     }
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :                     off = disp + flat_file-&gt;indices[j] +</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :                                    n_filetypes*(ADIO_Offset)filetype_extent;</span>
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :                     new_fwr_size = flat_file-&gt;blocklens[j];</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :                     if (size != bwr_size) {</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :                         indx += size;</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :                         new_bwr_size -= size;</span>
+<span class="lineNum">     369 </span>            :                     }
+<span class="lineNum">     370 </span>            :                 }
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :                 if (size == bwr_size) {</span>
+<span class="lineNum">     373 </span>            : /* reached end of contiguous block in memory */
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :                     k = (k + 1)%flat_buf-&gt;count;</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :                     buf_count++;</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                     indx = buftype_extent*(buf_count/flat_buf-&gt;count) +</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                         flat_buf-&gt;indices[k];</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :                     new_bwr_size = flat_buf-&gt;blocklens[k];</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :                     if (size != fwr_size) {</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :                         off += size;</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :                         new_fwr_size -= size;</span>
+<span class="lineNum">     383 </span>            :                     }
+<span class="lineNum">     384 </span>            :                 }
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :                 num += size;</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :                 fwr_size = new_fwr_size;</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :                 bwr_size = new_bwr_size;</span>
+<span class="lineNum">     388 </span>            :             }
+<span class="lineNum">     389 </span>            :         }
+<span class="lineNum">     390 </span>            : 
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :         if (file_ptr_type == ADIO_INDIVIDUAL) fd-&gt;fp_ind = off;</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :         if (err_flag) {</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :             *error_code = MPIO_Err_create_code(MPI_SUCCESS,</span>
+<span class="lineNum">     394 </span>            :                                                MPIR_ERR_RECOVERABLE, myname,
+<span class="lineNum">     395 </span>            :                                                __LINE__, MPI_ERR_IO, &quot;**io&quot;,
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :                                                &quot;**io %s&quot;, strerror(errno));</span>
+<span class="lineNum">     397 </span>            :         }
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :         else *error_code = MPI_SUCCESS;</span>
+<span class="lineNum">     399 </span>            :     }
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :     fd-&gt;fp_sys_posn = -1;   /* set it to null. */</span>
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span>            : #ifdef HAVE_STATUS_SET_BYTES
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     MPIR_Status_set_bytes(status, datatype, bufsize);</span>
+<span class="lineNum">     405 </span>            : /* This is a temporary way of filling in status. The right way is to
+<span class="lineNum">     406 </span>            :    keep track of how much data was actually written by ADIOI_BUFFERED_WRITE. */
+<span class="lineNum">     407 </span>            : #endif
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :     if (!buftype_is_contig) ADIOI_Delete_flattened(datatype);</span>
+<span class="lineNum">     410 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

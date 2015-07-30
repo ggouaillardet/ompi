@@ -1,0 +1,836 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/bcol/ptpcoll/bcol_ptpcoll_module.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/bcol/ptpcoll</a> - bcol_ptpcoll_module.c<span style="font-size: 80%;"> (source / <a href="bcol_ptpcoll_module.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">363</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2009-2013 Oak Ridge National Laboratory.  All rights reserved.
+<span class="lineNum">       4 </span>            :  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2012-2015 Los Alamos National Security, LLC. All rights
+<span class="lineNum">       6 </span>            :  *                         reserved.
+<span class="lineNum">       7 </span>            :  * Copyright (c) 2014-2015 Research Organization for Information Science
+<span class="lineNum">       8 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">       9 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * $HEADER$
+<span class="lineNum">      14 </span>            :  */
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /**
+<span class="lineNum">      17 </span>            :  * @file
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      22 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;sys/mman.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &quot;ompi/constants.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;ompi/communicator/communicator.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;ompi/mca/bcol/bcol.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;opal/util/show_help.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;ompi/mca/bcol/base/base.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;ompi/mca/pml/pml.h&quot;  /* need this for the max tag size */
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &quot;bcol_ptpcoll.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;bcol_ptpcoll_utils.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;bcol_ptpcoll_bcast.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;bcol_ptpcoll_allreduce.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;bcol_ptpcoll_reduce.h&quot;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : #define BCOL_PTP_CACHE_LINE_SIZE 128
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : /*
+<a name="44"><span class="lineNum">      44 </span>            :  * Local functions</a>
+<span class="lineNum">      45 </span>            :  */
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 : static int alloc_allreduce_offsets_array(mca_bcol_ptpcoll_module_t *ptpcoll_module)</span>
+<span class="lineNum">      47 </span>            : {
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :     int rc = OMPI_SUCCESS, i = 0;</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :     netpatterns_k_exchange_node_t *k_node = &amp;ptpcoll_module-&gt;knomial_exchange_tree;</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :     int n_exchanges = k_node-&gt;n_exchanges;</span>
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            :     /* Precalculate the allreduce offsets */
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :     if (0 &lt; k_node-&gt;n_exchanges) {</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;allgather_offsets = (int **) calloc (n_exchanges, sizeof(int *));</span>
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :         if (!ptpcoll_module-&gt;allgather_offsets) {</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :             return OMPI_ERROR;</span>
+<span class="lineNum">      58 </span>            :         }
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; n_exchanges ; i++) {</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :             ptpcoll_module-&gt;allgather_offsets[i] = (int *) calloc (NOFFSETS, sizeof(int));</span>
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :             if (!ptpcoll_module-&gt;allgather_offsets[i]){</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :                 return OMPI_ERROR;</span>
+<span class="lineNum">      65 </span>            :             }
+<span class="lineNum">      66 </span>            :         }
+<span class="lineNum">      67 </span>            :     }
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     return rc;</span>
+<a name="70"><span class="lineNum">      70 </span>            : }</a>
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 : static int free_allreduce_offsets_array(mca_bcol_ptpcoll_module_t *ptpcoll_module)</span>
+<span class="lineNum">      73 </span>            : {
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     int rc = OMPI_SUCCESS, i = 0;</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     netpatterns_k_exchange_node_t *k_node = &amp;ptpcoll_module-&gt;knomial_exchange_tree;</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     int n_exchanges = k_node-&gt;n_exchanges;</span>
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     if (ptpcoll_module-&gt;allgather_offsets) {</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :         for (i=0; i &lt; n_exchanges; i++) {</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :             free (ptpcoll_module-&gt;allgather_offsets[i]);</span>
+<span class="lineNum">      81 </span>            :         }
+<span class="lineNum">      82 </span>            :     }
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     free(ptpcoll_module-&gt;allgather_offsets);</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;allgather_offsets = NULL;</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">      87 </span>            : }
+<a name="88"><span class="lineNum">      88 </span>            : </a>
+<span class="lineNum">      89 </span>            : static void
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 : mca_bcol_ptpcoll_module_construct(mca_bcol_ptpcoll_module_t *ptpcoll_module)</span>
+<span class="lineNum">      91 </span>            : {
+<span class="lineNum">      92 </span>            :     uint64_t i;
+<span class="lineNum">      93 </span>            :     /* Pointer to component */
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;narray_node = NULL;</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;allgather_offsets = NULL;</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.bcol_component = (mca_bcol_base_component_t *) &amp;mca_bcol_ptpcoll_component;</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.list_n_connected = NULL;</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.hier_scather_offset = 0;</span>
+<span class="lineNum">      99 </span>            :     /* no header support in ptp */
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.header_size = 0;</span>
+<span class="lineNum">     101 </span>            :     /* No network context */
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.network_context = NULL;</span>
+<span class="lineNum">     103 </span>            :     /* set the upper limit on the tag */
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     i = 2;</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;tag_mask = 1;</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     while ( i &lt;= (uint64_t) mca_pml.pml_max_tag &amp;&amp; i &gt; 0) {</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :         i &lt;&lt;= 1;</span>
+<span class="lineNum">     108 </span>            :     }
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;ml_mem.ml_buf_desc = NULL;</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;tag_mask = i - 1;</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 : }</span>
+<a name="112"><span class="lineNum">     112 </span>            : </a>
+<span class="lineNum">     113 </span>            : static void
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 : mca_bcol_ptpcoll_module_destruct(mca_bcol_ptpcoll_module_t *ptpcoll_module)</span>
+<span class="lineNum">     115 </span>            : {
+<span class="lineNum">     116 </span>            :     int i;
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     mca_bcol_ptpcoll_local_mlmem_desc_t *ml_mem = &amp;ptpcoll_module-&gt;ml_mem;</span>
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     if (NULL != ml_mem-&gt;ml_buf_desc) {</span>
+<span class="lineNum">     120 </span>            :         /* Release the memory structs that were cache ML memory data */
+<span class="lineNum">     121 </span>            :         uint32_t i, j, ci;
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; ml_mem-&gt;num_banks; i++) {</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :             for (j = 0; j &lt; ml_mem-&gt;num_buffers_per_bank; j++) {</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :                 ci = i * ml_mem-&gt;num_buffers_per_bank + j;</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :                 if (NULL != ml_mem-&gt;ml_buf_desc[ci].requests) {</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :                     free(ml_mem-&gt;ml_buf_desc[ci].requests);</span>
+<span class="lineNum">     127 </span>            :                 }
+<span class="lineNum">     128 </span>            :             }
+<span class="lineNum">     129 </span>            :         }
+<span class="lineNum">     130 </span>            :         /* release the buffer descriptor */
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         free(ml_mem-&gt;ml_buf_desc);</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :         ml_mem-&gt;ml_buf_desc = NULL;</span>
+<span class="lineNum">     133 </span>            :     }
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     if (NULL != ptpcoll_module-&gt;allgather_offsets) {</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         free_allreduce_offsets_array(ptpcoll_module);</span>
+<span class="lineNum">     137 </span>            :     }
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     if (NULL != ptpcoll_module-&gt;narray_node) {</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; ptpcoll_module-&gt;group_size; i++) {</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :             if (NULL != ptpcoll_module-&gt;narray_node[i].children_ranks) {</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :                 free(ptpcoll_module-&gt;narray_node[i].children_ranks);</span>
+<span class="lineNum">     143 </span>            :             }
+<span class="lineNum">     144 </span>            :         }
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         free(ptpcoll_module-&gt;narray_node);</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;narray_node = NULL;</span>
+<span class="lineNum">     148 </span>            :     }
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     OBJ_DESTRUCT(&amp;ptpcoll_module-&gt;collreqs_free);</span>
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     if (NULL != ptpcoll_module-&gt;super.list_n_connected) {</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         free(ptpcoll_module-&gt;super.list_n_connected);</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;super.list_n_connected = NULL;</span>
+<span class="lineNum">     155 </span>            :     }
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; BCOL_NUM_OF_FUNCTIONS; i++){</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :         OPAL_LIST_DESTRUCT((&amp;ptpcoll_module-&gt;super.bcol_fns_table[i]));</span>
+<span class="lineNum">     159 </span>            :     }
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     if (NULL != ptpcoll_module-&gt;kn_proxy_extra_index) {</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :         free(ptpcoll_module-&gt;kn_proxy_extra_index);</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;kn_proxy_extra_index = NULL;</span>
+<span class="lineNum">     165 </span>            :     }
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     if (NULL != ptpcoll_module-&gt;alltoall_iovec) {</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :         free(ptpcoll_module-&gt;alltoall_iovec);</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;alltoall_iovec = NULL;</span>
+<span class="lineNum">     170 </span>            :     }
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     if (NULL != ptpcoll_module-&gt;narray_knomial_proxy_extra_index) {</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :         free(ptpcoll_module-&gt;narray_knomial_proxy_extra_index);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;narray_knomial_proxy_extra_index = NULL;</span>
+<span class="lineNum">     175 </span>            :     }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     if (NULL != ptpcoll_module-&gt;narray_knomial_node) {</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :         for(i = 0; i &lt; ptpcoll_module-&gt;full_narray_tree_size; i++) {</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :             netpatterns_cleanup_narray_knomial_tree (ptpcoll_module-&gt;narray_knomial_node + i);</span>
+<span class="lineNum">     180 </span>            :         }
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         free(ptpcoll_module-&gt;narray_knomial_node);</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;narray_knomial_node = NULL;</span>
+<span class="lineNum">     183 </span>            :     }
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     netpatterns_cleanup_recursive_knomial_allgather_tree_node(&amp;ptpcoll_module-&gt;knomial_allgather_tree);</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     netpatterns_cleanup_recursive_knomial_tree_node(&amp;ptpcoll_module-&gt;knomial_exchange_tree);</span>
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            : OBJ_CLASS_INSTANCE(mca_bcol_ptpcoll_module_t,
+<span class="lineNum">     191 </span>            :                    mca_bcol_base_module_t,
+<span class="lineNum">     192 </span>            :                    mca_bcol_ptpcoll_module_construct,
+<a name="193"><span class="lineNum">     193 </span>            :                    mca_bcol_ptpcoll_module_destruct);</a>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 : static int init_ml_buf_desc(mca_bcol_ptpcoll_ml_buffer_desc_t **desc, void *base_addr, uint32_t num_banks,</span>
+<span class="lineNum">     196 </span>            :                             uint32_t num_buffers_per_bank, uint32_t size_buffer, uint32_t header_size, int group_size, int pow_k)
+<span class="lineNum">     197 </span>            : {
+<span class="lineNum">     198 </span>            :     uint32_t i, j, ci;
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :     mca_bcol_ptpcoll_ml_buffer_desc_t *tmp_desc = NULL;</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     int k_nomial_radix = mca_bcol_ptpcoll_component.k_nomial_radix;</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     int pow_k_val = (0 == pow_k) ? 1 : pow_k;</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     int num_to_alloc =</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :         ((k_nomial_radix - 1) * pow_k_val * 2 + 1 &gt; mca_bcol_ptpcoll_component.narray_radix) ?</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :         (k_nomial_radix - 1) * pow_k_val * 2 + 1 :</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :         mca_bcol_ptpcoll_component.narray_radix * 2;</span>
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :     *desc = (mca_bcol_ptpcoll_ml_buffer_desc_t *)calloc(num_banks * num_buffers_per_bank,</span>
+<span class="lineNum">     209 </span>            :                                                         sizeof(mca_bcol_ptpcoll_ml_buffer_desc_t));
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :     if (NULL == *desc) {</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :         PTPCOLL_ERROR((&quot;Failed to allocate memory&quot;));</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :         return OMPI_ERROR;</span>
+<span class="lineNum">     213 </span>            :     }
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     tmp_desc = *desc;</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; num_banks; i++) {</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         for (j = 0; j &lt; num_buffers_per_bank; j++) {</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :             ci = i * num_buffers_per_bank + j;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :             tmp_desc[ci].bank_index = i;</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :             tmp_desc[ci].buffer_index = j;</span>
+<span class="lineNum">     222 </span>            :             /* *2  is for gather session  +1 for extra peer */
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :             tmp_desc[ci].requests = (ompi_request_t **)</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :                 calloc(num_to_alloc, sizeof(ompi_request_t *));</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :             if (NULL == tmp_desc[ci].requests) {</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :                 PTPCOLL_ERROR((&quot;Failed to allocate memory for requests&quot;));</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :                 return OMPI_ERROR;</span>
+<span class="lineNum">     228 </span>            :             }
+<span class="lineNum">     229 </span>            :             /*
+<span class="lineNum">     230 </span>            :              * ptpcoll don't have any header, but other bcols may to have. So
+<span class="lineNum">     231 </span>            :              * we need to take it in account.
+<span class="lineNum">     232 </span>            :              */
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :             tmp_desc[ci].data_addr = (void *)</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :                 ((unsigned char*)base_addr + ci * size_buffer + header_size);</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :             PTPCOLL_VERBOSE(10, (&quot;ml memory cache setup %d %d - %p&quot;, i, j, tmp_desc[ci].data_addr));</span>
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span>            :             /* init reduce implementation flags */
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :             tmp_desc[ci].reduce_init_called = false;</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :             tmp_desc[ci].reduction_status = 0;</span>
+<span class="lineNum">     240 </span>            :         }
+<span class="lineNum">     241 </span>            :     }
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<a name="244"><span class="lineNum">     244 </span>            : }</a>
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 : static void mca_bcol_ptpcoll_set_small_msg_thresholds(struct mca_bcol_base_module_t *super)</span>
+<span class="lineNum">     247 </span>            : {
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     mca_bcol_ptpcoll_module_t *ptpcoll_module =</span>
+<span class="lineNum">     249 </span>            :         (mca_bcol_ptpcoll_module_t *) super;
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     mca_bcol_ptpcoll_component_t *cm = &amp;mca_bcol_ptpcoll_component;</span>
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span>            :     /* Subtract out the maximum header size when calculating the thresholds. This
+<span class="lineNum">     253 </span>            :      * will account for the headers used by the basesmuma component. If we do not
+<span class="lineNum">     254 </span>            :      * take these headers into account we may overrun our buffer. */
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            :     /* Set the Allgather threshold equals to a ML buff size */
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     super-&gt;small_message_thresholds[BCOL_ALLGATHER] =</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         (ptpcoll_module-&gt;ml_mem.size_buffer - BCOL_HEADER_MAX) /</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :         ompi_comm_size(ptpcoll_module-&gt;super.sbgp_partner_module-&gt;group_comm);</span>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            :     /* Set the Bcast threshold, all Bcast algths have the same threshold */
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :     super-&gt;small_message_thresholds[BCOL_BCAST] =</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         (ptpcoll_module-&gt;ml_mem.size_buffer - BCOL_HEADER_MAX);</span>
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span>            :     /* Set the Alltoall threshold, the Ring algth sets some limitation */
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     super-&gt;small_message_thresholds[BCOL_ALLTOALL] =</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         (ptpcoll_module-&gt;ml_mem.size_buffer - BCOL_HEADER_MAX) / 2;</span>
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span>            :     /* Set the Allreduce threshold, NARRAY algth sets some limitation */
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :     super-&gt;small_message_thresholds[BCOL_ALLREDUCE] =</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :         (ptpcoll_module-&gt;ml_mem.size_buffer - BCOL_HEADER_MAX) / ptpcoll_module-&gt;k_nomial_radix;</span>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span>            :     /* Set the Reduce threshold, NARRAY algth sets some limitation */
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     super-&gt;small_message_thresholds[BCOL_REDUCE] =</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :         (ptpcoll_module-&gt;ml_mem.size_buffer - BCOL_HEADER_MAX) / cm-&gt;narray_radix;</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span>            : /*
+<a name="279"><span class="lineNum">     279 </span>            :  * Cache information about ML memory</a>
+<span class="lineNum">     280 </span>            :  */
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 : static int mca_bcol_ptpcoll_cache_ml_memory_info(struct mca_bcol_base_memory_block_desc_t *payload_block,</span>
+<span class="lineNum">     282 </span>            :                                                  uint32_t data_offset,
+<span class="lineNum">     283 </span>            :                                                  struct mca_bcol_base_module_t *bcol,
+<span class="lineNum">     284 </span>            :                                                  void *reg_data)
+<span class="lineNum">     285 </span>            : {
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     mca_bcol_ptpcoll_module_t *ptpcoll_module = (mca_bcol_ptpcoll_module_t *) bcol;</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     mca_bcol_ptpcoll_local_mlmem_desc_t *ml_mem = &amp;ptpcoll_module-&gt;ml_mem;</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     struct mca_bcol_base_memory_block_desc_t *desc = payload_block;</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     int group_size = ptpcoll_module-&gt;super.sbgp_partner_module-&gt;group_size;</span>
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :     PTPCOLL_VERBOSE(10, (&quot;mca_bcol_ptpcoll_init_buffer_memory was called&quot;));</span>
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            :     /* cache ml mem desc tunings localy */
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     ml_mem-&gt;num_banks = desc-&gt;num_banks;</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     ml_mem-&gt;num_buffers_per_bank = desc-&gt;num_buffers_per_bank;</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     ml_mem-&gt;size_buffer = desc-&gt;size_buffer;</span>
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     PTPCOLL_VERBOSE(10, (&quot;ML buffer configuration num banks %d num_per_bank %d size %d base addr %p&quot;,</span>
+<span class="lineNum">     299 </span>            :                          desc-&gt;num_banks, desc-&gt;num_buffers_per_bank, desc-&gt;size_buffer, desc-&gt;block-&gt;base_addr));
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            :     /* Set first bank index for release */
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     ml_mem-&gt;bank_index_for_release = 0;</span>
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != init_ml_buf_desc(&amp;ml_mem-&gt;ml_buf_desc,</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :                                          desc-&gt;block-&gt;base_addr,</span>
+<span class="lineNum">     306 </span>            :                                          ml_mem-&gt;num_banks,
+<span class="lineNum">     307 </span>            :                                          ml_mem-&gt;num_buffers_per_bank,
+<span class="lineNum">     308 </span>            :                                          ml_mem-&gt;size_buffer,
+<span class="lineNum">     309 </span>            :                                          data_offset,
+<span class="lineNum">     310 </span>            :                                          group_size,
+<span class="lineNum">     311 </span>            :                                          ptpcoll_module-&gt;pow_k)) {
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :         PTPCOLL_VERBOSE(10, (&quot;Failed to allocate rdma memory descriptor\n&quot;));</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :         return OMPI_ERROR;</span>
+<span class="lineNum">     314 </span>            :     }
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     PTPCOLL_VERBOSE(10, (&quot;ptpcoll_module = %p, ml_mem_desc = %p.\n&quot;,</span>
+<span class="lineNum">     317 </span>            :                          ptpcoll_module));
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     320 </span>            : }
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span>            : /*
+<a name="323"><span class="lineNum">     323 </span>            :  * Load ptpcoll bcol functions</a>
+<span class="lineNum">     324 </span>            :  */
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 : static void load_func(mca_bcol_ptpcoll_module_t *ptpcoll_module)</span>
+<span class="lineNum">     326 </span>            : {
+<span class="lineNum">     327 </span>            :     int fnc;
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span>            :     /* reset everything to NULL */
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     for (fnc = 0; fnc &lt; BCOL_NUM_OF_FUNCTIONS; fnc++) {</span>
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span>            :         /*ptpcoll_module-&gt;super.bcol_function_table[fnc] = NULL;*/
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;super.bcol_function_table[fnc] = NULL;</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;super.bcol_function_init_table[fnc] = NULL;</span>
+<span class="lineNum">     335 </span>            :     }
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.bcol_function_init_table[BCOL_BARRIER] = bcol_ptpcoll_barrier_init;</span>
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.bcol_function_init_table[BCOL_BCAST] = bcol_ptpcoll_bcast_init;</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.bcol_function_init_table[BCOL_ALLREDUCE] = bcol_ptpcoll_allreduce_init;</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.bcol_function_init_table[BCOL_ALLGATHER] = bcol_ptpcoll_allgather_init;</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.bcol_function_table[BCOL_BCAST] = bcol_ptpcoll_bcast_k_nomial_anyroot;</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.bcol_function_init_table[BCOL_ALLTOALL] = NULL;</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.bcol_function_init_table[BCOL_SYNC] = mca_bcol_ptpcoll_memsync_init;</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.bcol_function_init_table[BCOL_REDUCE] = bcol_ptpcoll_reduce_init;</span>
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span>            :     /* ML memory cacher */
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.bcol_memory_init = mca_bcol_ptpcoll_cache_ml_memory_info;</span>
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span>            :     /* Set thresholds */
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.set_small_msg_thresholds = mca_bcol_ptpcoll_set_small_msg_thresholds;</span>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span>            :     /* setup recursive k-ing tree */
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.k_nomial_tree = mca_bcol_ptpcoll_setup_knomial_tree;</span>
+<a name="355"><span class="lineNum">     355 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 : int mca_bcol_ptpcoll_setup_knomial_tree(mca_bcol_base_module_t *super)</span>
+<span class="lineNum">     358 </span>            : {
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     mca_bcol_ptpcoll_module_t *p2p_module = (mca_bcol_ptpcoll_module_t *) super;</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     int rc = 0;</span>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :     rc = netpatterns_setup_recursive_knomial_allgather_tree_node(</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :         p2p_module-&gt;super.sbgp_partner_module-&gt;group_size,</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :         p2p_module-&gt;super.sbgp_partner_module-&gt;my_index,</span>
+<span class="lineNum">     365 </span>            :         mca_bcol_ptpcoll_component.k_nomial_radix,
+<span class="lineNum">     366 </span>            :         super-&gt;list_n_connected,
+<span class="lineNum">     367 </span>            :         &amp;p2p_module-&gt;knomial_allgather_tree);
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">     370 </span>            : }
+<a name="371"><span class="lineNum">     371 </span>            : </a>
+<span class="lineNum">     372 </span>            : /* The function used to calculate size */
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 : static int calc_full_tree_size(int radix, int group_size, int *num_leafs)</span>
+<span class="lineNum">     374 </span>            : {
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :     int level_cnt = 1;</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     int total_cnt = 0;</span>
+<span class="lineNum">     377 </span>            : 
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :     while( total_cnt &lt; group_size ) {</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :         total_cnt += level_cnt;</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :         level_cnt *= radix;</span>
+<span class="lineNum">     381 </span>            :     }
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     if (total_cnt &gt; group_size) {</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         *num_leafs = level_cnt / radix;</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :         return total_cnt - level_cnt / radix;</span>
+<span class="lineNum">     386 </span>            :     } else {
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :         *num_leafs = level_cnt;</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         return group_size;</span>
+<span class="lineNum">     389 </span>            :     }
+<span class="lineNum">     390 </span>            : }
+<a name="391"><span class="lineNum">     391 </span>            : </a>
+<span class="lineNum">     392 </span>            : /* Setup N-array scatter Knomial-gather static information */
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 : static int load_narray_knomial_tree (mca_bcol_ptpcoll_module_t *ptpcoll_module)</span>
+<span class="lineNum">     394 </span>            : {
+<span class="lineNum">     395 </span>            :     int rc, i, peer;
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     mca_bcol_ptpcoll_component_t *cm = &amp;mca_bcol_ptpcoll_component;</span>
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;full_narray_tree_size = calc_full_tree_size(</span>
+<span class="lineNum">     399 </span>            :         cm-&gt;narray_knomial_radix,
+<span class="lineNum">     400 </span>            :         ptpcoll_module-&gt;group_size,
+<span class="lineNum">     401 </span>            :         &amp;ptpcoll_module-&gt;full_narray_tree_num_leafs);
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;narray_knomial_proxy_extra_index = (int *)</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         malloc(sizeof(int) * (cm-&gt;narray_knomial_radix));</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     if (NULL == ptpcoll_module-&gt;narray_knomial_proxy_extra_index) {</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :         PTPCOLL_ERROR((&quot;Failed to allocate memory&quot;));</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :         goto Error;</span>
+<span class="lineNum">     408 </span>            :     }
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;narray_knomial_node = calloc(</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;full_narray_tree_size,</span>
+<span class="lineNum">     412 </span>            :         sizeof(netpatterns_narray_knomial_tree_node_t));
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     if(NULL == ptpcoll_module-&gt;narray_knomial_node) {</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         goto Error;</span>
+<span class="lineNum">     415 </span>            :     }
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :     PTPCOLL_VERBOSE(10 ,(&quot;My type is proxy, full tree size = %d [%d]&quot;,</span>
+<span class="lineNum">     418 </span>            :                          ptpcoll_module-&gt;full_narray_tree_size,
+<span class="lineNum">     419 </span>            :                          cm-&gt;narray_knomial_radix
+<span class="lineNum">     420 </span>            :                         ));
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     if (ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index &lt;</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;full_narray_tree_size) {</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :         if (ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index &lt;</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :             ptpcoll_module-&gt;group_size - ptpcoll_module-&gt;full_narray_tree_size) {</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :             ptpcoll_module-&gt;narray_type = PTPCOLL_PROXY;</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :             for (i = 0; i &lt; cm-&gt;narray_knomial_radix; i++) {</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :                 peer =</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :                     ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index *</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :                     cm-&gt;narray_knomial_radix + i +</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :                     ptpcoll_module-&gt;full_narray_tree_size;</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :                 if (peer &gt;= ptpcoll_module-&gt;group_size) {</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     434 </span>            :                 }
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :                 ptpcoll_module-&gt;narray_knomial_proxy_extra_index[i] = peer;</span>
+<span class="lineNum">     436 </span>            :             }
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :             ptpcoll_module-&gt;narray_knomial_proxy_num = i;</span>
+<span class="lineNum">     438 </span>            :         } else {
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :             ptpcoll_module-&gt;narray_type = PTPCOLL_IN_GROUP;;</span>
+<span class="lineNum">     440 </span>            :         }
+<span class="lineNum">     441 </span>            :         /* Setting node info */
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :         for(i = 0; i &lt; ptpcoll_module-&gt;full_narray_tree_size; i++) {</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :             rc = netpatterns_setup_narray_knomial_tree(</span>
+<span class="lineNum">     444 </span>            :                 cm-&gt;narray_knomial_radix,
+<span class="lineNum">     445 </span>            :                 i,
+<span class="lineNum">     446 </span>            :                 ptpcoll_module-&gt;full_narray_tree_size,
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :                 &amp;ptpcoll_module-&gt;narray_knomial_node[i]);</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :             if(OMPI_SUCCESS != rc) {</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :                 goto Error;</span>
+<span class="lineNum">     450 </span>            :             }
+<span class="lineNum">     451 </span>            :         }
+<span class="lineNum">     452 </span>            :     } else {
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;narray_type = PTPCOLL_EXTRA;</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;narray_knomial_proxy_extra_index[0] =</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :             (ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index -</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :              ptpcoll_module-&gt;full_narray_tree_size) /</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :             cm-&gt;narray_knomial_radix;</span>
+<span class="lineNum">     458 </span>            :     }
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span>            : Error:
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :     if (NULL != ptpcoll_module-&gt;narray_knomial_node) {</span>
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :         free(ptpcoll_module-&gt;narray_knomial_node);</span>
+<span class="lineNum">     465 </span>            :     }
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :     if (NULL != ptpcoll_module-&gt;narray_knomial_proxy_extra_index) {</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :         free(ptpcoll_module-&gt;narray_knomial_proxy_extra_index);</span>
+<span class="lineNum">     468 </span>            :     }
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :     return OMPI_ERROR;</span>
+<span class="lineNum">     470 </span>            : }
+<a name="471"><span class="lineNum">     471 </span>            : </a>
+<span class="lineNum">     472 </span>            : /* Setup N-array static information */
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 : static int load_narray_tree(mca_bcol_ptpcoll_module_t *ptpcoll_module)</span>
+<span class="lineNum">     474 </span>            : {
+<span class="lineNum">     475 </span>            :     int rc, i;
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     mca_bcol_ptpcoll_component_t *cm = &amp;mca_bcol_ptpcoll_component;</span>
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;narray_node = calloc(ptpcoll_module-&gt;group_size,</span>
+<span class="lineNum">     479 </span>            :                                          sizeof(netpatterns_tree_node_t));
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :     if(NULL == ptpcoll_module-&gt;narray_node ) {</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :         goto Error;</span>
+<span class="lineNum">     482 </span>            :     }
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     for(i = 0; i &lt; ptpcoll_module-&gt;group_size; i++) {</span>
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :         rc = netpatterns_setup_narray_tree(</span>
+<span class="lineNum">     486 </span>            :             cm-&gt;narray_radix,
+<span class="lineNum">     487 </span>            :             i,
+<span class="lineNum">     488 </span>            :             ptpcoll_module-&gt;group_size,
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :             &amp;ptpcoll_module-&gt;narray_node[i]);</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :         if(OMPI_SUCCESS != rc) {</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :             goto Error;</span>
+<span class="lineNum">     492 </span>            :         }
+<span class="lineNum">     493 </span>            :     }
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     496 </span>            : 
+<span class="lineNum">     497 </span>            : Error:
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     if (NULL != ptpcoll_module-&gt;narray_node) {</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :         free(ptpcoll_module-&gt;narray_node);</span>
+<span class="lineNum">     500 </span>            :     }
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :     return OMPI_ERROR;</span>
+<a name="502"><span class="lineNum">     502 </span>            : }</a>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 : static int load_knomial_info(mca_bcol_ptpcoll_module_t *ptpcoll_module)</span>
+<span class="lineNum">     505 </span>            : {
+<span class="lineNum">     506 </span>            :     int i;
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :     mca_bcol_ptpcoll_component_t *cm = &amp;mca_bcol_ptpcoll_component;</span>
+<span class="lineNum">     508 </span>            : 
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;k_nomial_radix =</span>
+<span class="lineNum">     510 </span>            :         cm-&gt;k_nomial_radix &gt; ptpcoll_module-&gt;group_size ?
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;group_size :</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :         cm-&gt;k_nomial_radix;</span>
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;pow_k = pow_k_calc(ptpcoll_module-&gt;k_nomial_radix,</span>
+<span class="lineNum">     515 </span>            :                                        ptpcoll_module-&gt;group_size,
+<span class="lineNum">     516 </span>            :                                        &amp;ptpcoll_module-&gt;pow_knum);
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;kn_proxy_extra_index = (int *)</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :         malloc(sizeof(int) * (ptpcoll_module-&gt;k_nomial_radix - 1));</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :     if (NULL == ptpcoll_module-&gt;kn_proxy_extra_index) {</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :         PTPCOLL_ERROR((&quot;Failed to allocate memory&quot;));</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :         goto Error;</span>
+<span class="lineNum">     523 </span>            :     }
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span>            :     /* Setting peer type for K-nomial algorithm*/
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :     if (ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index &lt; ptpcoll_module-&gt;pow_knum ) {</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :         if (ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index &lt;</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :             ptpcoll_module-&gt;group_size - ptpcoll_module-&gt;pow_knum) {</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :             for (i = 0;</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :                  i &lt; (ptpcoll_module-&gt;k_nomial_radix - 1) &amp;&amp;</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :                      ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index *</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :                      (ptpcoll_module-&gt;k_nomial_radix - 1)  +</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :                      i + ptpcoll_module-&gt;pow_knum &lt; ptpcoll_module-&gt;group_size</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :                      ; i++) {</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :                 ptpcoll_module-&gt;pow_ktype = PTPCOLL_KN_PROXY;</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :                 ptpcoll_module-&gt;kn_proxy_extra_index[i] =</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :                     ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index *</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :                     (ptpcoll_module-&gt;k_nomial_radix - 1) +</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :                     i + ptpcoll_module-&gt;pow_knum;</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :                 PTPCOLL_VERBOSE(10 ,(&quot;My type is proxy, pow_knum = %d [%d] my extra %d&quot;,</span>
+<span class="lineNum">     541 </span>            :                                      ptpcoll_module-&gt;pow_knum,
+<span class="lineNum">     542 </span>            :                                      ptpcoll_module-&gt;pow_k,
+<span class="lineNum">     543 </span>            :                                      ptpcoll_module-&gt;kn_proxy_extra_index[i]));
+<span class="lineNum">     544 </span>            :             }
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :             ptpcoll_module-&gt;kn_proxy_extra_num = i;</span>
+<span class="lineNum">     546 </span>            :         } else {
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :             PTPCOLL_VERBOSE(10 ,(&quot;My type is in group, pow_knum = %d [%d]&quot;, ptpcoll_module-&gt;pow_knum,</span>
+<span class="lineNum">     548 </span>            :                                  ptpcoll_module-&gt;pow_k));
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :             ptpcoll_module-&gt;pow_ktype = PTPCOLL_KN_IN_GROUP;</span>
+<span class="lineNum">     550 </span>            :         }
+<span class="lineNum">     551 </span>            :     } else {
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;pow_ktype = PTPCOLL_KN_EXTRA;</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;kn_proxy_extra_index[0] = (ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index -</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :                                                    ptpcoll_module-&gt;pow_knum) / (ptpcoll_module-&gt;k_nomial_radix - 1);</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :         PTPCOLL_VERBOSE(10 ,(&quot;My type is extra , pow_knum = %d [%d] my proxy %d&quot;,</span>
+<span class="lineNum">     556 </span>            :                              ptpcoll_module-&gt;pow_knum,
+<span class="lineNum">     557 </span>            :                              ptpcoll_module-&gt;pow_k,
+<span class="lineNum">     558 </span>            :                              ptpcoll_module-&gt;kn_proxy_extra_index[0]));
+<span class="lineNum">     559 </span>            :     }
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span>            : Error:
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :     if (NULL == ptpcoll_module-&gt;kn_proxy_extra_index) {</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :         free(ptpcoll_module-&gt;kn_proxy_extra_index);</span>
+<span class="lineNum">     566 </span>            :     }
+<span class="lineNum">     567 </span>            : 
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     return OMPI_ERROR;</span>
+<a name="569"><span class="lineNum">     569 </span>            : }</a>
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 : static int load_binomial_info(mca_bcol_ptpcoll_module_t *ptpcoll_module)</span>
+<span class="lineNum">     572 </span>            : {
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;pow_2 = pow_k_calc(2,</span>
+<span class="lineNum">     574 </span>            :                                        ptpcoll_module-&gt;group_size,
+<span class="lineNum">     575 </span>            :                                        &amp;ptpcoll_module-&gt;pow_2num);
+<span class="lineNum">     576 </span>            : 
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :     assert(ptpcoll_module-&gt;pow_2num == 1 &lt;&lt; ptpcoll_module-&gt;pow_2);</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :     assert(ptpcoll_module-&gt;pow_2num  &lt;= ptpcoll_module-&gt;group_size);</span>
+<span class="lineNum">     579 </span>            : 
+<span class="lineNum">     580 </span>            :     /* Setting peer type for binary algorithm*/
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :     if (ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index &lt; ptpcoll_module-&gt;pow_2num ) {</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :         if (ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index &lt;</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :             ptpcoll_module-&gt;group_size - ptpcoll_module-&gt;pow_2num) {</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :             PTPCOLL_VERBOSE(10 ,(&quot;My type is proxy, pow_2num = %d [%d]&quot;, ptpcoll_module-&gt;pow_2num,</span>
+<span class="lineNum">     585 </span>            :                                  ptpcoll_module-&gt;pow_2));
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :             ptpcoll_module-&gt;pow_2type = PTPCOLL_PROXY;</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :             ptpcoll_module-&gt;proxy_extra_index = ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index +</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :                 ptpcoll_module-&gt;pow_2num;</span>
+<span class="lineNum">     589 </span>            :         } else {
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :             PTPCOLL_VERBOSE(10 ,(&quot;My type is in group, pow_2num = %d [%d]&quot;, ptpcoll_module-&gt;pow_2num,</span>
+<span class="lineNum">     591 </span>            :                                  ptpcoll_module-&gt;pow_2));
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :             ptpcoll_module-&gt;pow_2type = PTPCOLL_IN_GROUP;</span>
+<span class="lineNum">     593 </span>            :         }
+<span class="lineNum">     594 </span>            :     } else {
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :         PTPCOLL_VERBOSE(10 ,(&quot;My type is extra , pow_2num = %d [%d]&quot;, ptpcoll_module-&gt;pow_2num,</span>
+<span class="lineNum">     596 </span>            :                              ptpcoll_module-&gt;pow_2));
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;pow_2type = PTPCOLL_EXTRA;</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;proxy_extra_index = ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index -</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :             ptpcoll_module-&gt;pow_2num;</span>
+<span class="lineNum">     600 </span>            :     }
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<a name="602"><span class="lineNum">     602 </span>            : }</a>
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 : static int load_recursive_knomial_info(mca_bcol_ptpcoll_module_t *ptpcoll_module)</span>
+<span class="lineNum">     605 </span>            : {
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :     int rc = OMPI_SUCCESS;</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :     rc = netpatterns_setup_recursive_knomial_tree_node(</span>
+<span class="lineNum">     608 </span>            :         ptpcoll_module-&gt;group_size,
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;super.sbgp_partner_module-&gt;my_index,</span>
+<span class="lineNum">     610 </span>            :         mca_bcol_ptpcoll_component.k_nomial_radix,
+<span class="lineNum">     611 </span>            :         &amp;ptpcoll_module-&gt;knomial_exchange_tree);
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :     return rc;</span>
+<a name="613"><span class="lineNum">     613 </span>            : }</a>
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 : static int bcol_ptpcoll_collreq_init(opal_free_list_item_t *item, void* ctx)</span>
+<span class="lineNum">     616 </span>            : {
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :     mca_bcol_ptpcoll_module_t *ptpcoll_module= (mca_bcol_ptpcoll_module_t *) ctx;</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :     mca_bcol_ptpcoll_collreq_t *collreq = (mca_bcol_ptpcoll_collreq_t *) item;</span>
+<span class="lineNum">     619 </span>            : 
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :     switch(mca_bcol_ptpcoll_component.barrier_alg) {</span>
+<span class="lineNum">     621 </span>            :     case 1:
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :         collreq-&gt;requests = (ompi_request_t **)</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :             calloc(2, sizeof(ompi_request_t *));</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     625 </span>            :     case 2:
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :         collreq-&gt;requests = (ompi_request_t **)</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :             calloc(2 * ptpcoll_module-&gt;k_nomial_radix, sizeof(ompi_request_t *));</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     629 </span>            :     }
+<span class="lineNum">     630 </span>            : 
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :     if (NULL == collreq-&gt;requests) {</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :         return OPAL_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     633 </span>            :     }
+<span class="lineNum">     634 </span>            : 
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :     return OPAL_SUCCESS;</span>
+<span class="lineNum">     636 </span>            : }
+<span class="lineNum">     637 </span>            : 
+<span class="lineNum">     638 </span>            : /* query to see if the module is available for use on the given
+<span class="lineNum">     639 </span>            :  * communicator, and if so, what it's priority is.  This is where
+<a name="640"><span class="lineNum">     640 </span>            :  * the backing shared-memory file is created.</a>
+<span class="lineNum">     641 </span>            :  */
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 : mca_bcol_base_module_t **mca_bcol_ptpcoll_comm_query(mca_sbgp_base_module_t *sbgp,</span>
+<span class="lineNum">     643 </span>            :                                                      int *num_modules)
+<span class="lineNum">     644 </span>            : {
+<span class="lineNum">     645 </span>            :     int rc;
+<span class="lineNum">     646 </span>            :     /* local variables */
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :     struct ompi_communicator_t *comm = sbgp-&gt;group_comm;</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :     mca_bcol_ptpcoll_module_t *ptpcoll_module = NULL;</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :     mca_bcol_base_module_t **ptpcoll_modules = NULL;</span>
+<span class="lineNum">     650 </span>            :     int iovec_size;
+<span class="lineNum">     651 </span>            : 
+<span class="lineNum">     652 </span>            :     /* initialize local variables */
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :     *num_modules = 0;</span>
+<span class="lineNum">     654 </span>            : 
+<span class="lineNum">     655 </span>            :     /*
+<span class="lineNum">     656 </span>            :      * This is activated only for intra-communicators
+<span class="lineNum">     657 </span>            :      */
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :     if (OMPI_COMM_IS_INTER(comm) ) {</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     660 </span>            :     }
+<span class="lineNum">     661 </span>            : 
+<span class="lineNum">     662 </span>            :     /* allocate and initialize an sm-v2  module */
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :     ptpcoll_modules = (mca_bcol_base_module_t **) malloc(sizeof(mca_bcol_base_module_t *));</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :     if (NULL == ptpcoll_modules) {</span>
+<span class="lineNum">     665 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     666 </span>            :     }
+<span class="lineNum">     667 </span>            : 
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :     ptpcoll_module = OBJ_NEW(mca_bcol_ptpcoll_module_t);</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :     if (NULL == ptpcoll_module) {</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :         free(ptpcoll_modules);</span>
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     672 </span>            :     }
+<span class="lineNum">     673 </span>            : 
+<span class="lineNum">     674 </span>            :     /* On this stage we support only one single module */
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :     ptpcoll_modules[*num_modules] = &amp;(ptpcoll_module-&gt;super);</span>
+<span class="lineNum">     676 </span>            : 
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :     (*num_modules)++;</span>
+<span class="lineNum">     678 </span>            :     /* set the subgroup */
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.sbgp_partner_module = sbgp;</span>
+<span class="lineNum">     680 </span>            :     /* caching some useful information */
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;group_size =</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :         ptpcoll_module-&gt;super.sbgp_partner_module-&gt;group_size;</span>
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :     rc = load_binomial_info(ptpcoll_module);</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != rc) {</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :         PTPCOLL_VERBOSE(10, (&quot;Failed to load knomial info&quot;));</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     688 </span>            :     }
+<span class="lineNum">     689 </span>            : 
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :     rc = load_knomial_info(ptpcoll_module);</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != rc) {</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :         PTPCOLL_VERBOSE(10, (&quot;Failed to load knomial info&quot;));</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     694 </span>            :     }
+<span class="lineNum">     695 </span>            : 
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :     rc = load_narray_tree(ptpcoll_module);</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != rc) {</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :         PTPCOLL_VERBOSE(10, (&quot;Failed to load narray tree&quot;));</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     700 </span>            :     }
+<span class="lineNum">     701 </span>            : 
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :     rc = load_narray_knomial_tree(ptpcoll_module);</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != rc) {</span>
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :         PTPCOLL_VERBOSE(10, (&quot;Failed to load narray-knomila tree&quot;));</span>
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     706 </span>            :     }
+<span class="lineNum">     707 </span>            : 
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :     rc = load_recursive_knomial_info(ptpcoll_module);</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != rc) {</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :         PTPCOLL_VERBOSE(10, (&quot;Failed to load recursive knomial tree&quot;));</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     712 </span>            :     }
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span>            :     /* creating collfrag free list */
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :     OBJ_CONSTRUCT(&amp;ptpcoll_module-&gt;collreqs_free, opal_free_list_t);</span>
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :     rc = opal_free_list_init (&amp;ptpcoll_module-&gt;collreqs_free,</span>
+<span class="lineNum">     717 </span>            :                               sizeof(mca_bcol_ptpcoll_collreq_t),
+<span class="lineNum">     718 </span>            :                               BCOL_PTP_CACHE_LINE_SIZE,
+<span class="lineNum">     719 </span>            :                               OBJ_CLASS(mca_bcol_ptpcoll_collreq_t),
+<span class="lineNum">     720 </span>            :                               0, BCOL_PTP_CACHE_LINE_SIZE,
+<span class="lineNum">     721 </span>            :                               256 /* free_list_num */,
+<span class="lineNum">     722 </span>            :                               -1  /* free_list_max, -1 = infinite */,
+<span class="lineNum">     723 </span>            :                               32  /* free_list_inc */,
+<span class="lineNum">     724 </span>            :                               NULL, 0, NULL,
+<span class="lineNum">     725 </span>            :                               bcol_ptpcoll_collreq_init,
+<span class="lineNum">     726 </span>            :                               ptpcoll_module);
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != rc) {</span>
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     729 </span>            :     }
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :     load_func(ptpcoll_module);</span>
+<span class="lineNum">     732 </span>            : 
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :     rc = alloc_allreduce_offsets_array(ptpcoll_module);</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != rc) {</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     736 </span>            :     }
+<span class="lineNum">     737 </span>            : 
+<span class="lineNum">     738 </span>            :     /* Allocating iovec for PTP alltoall */
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :     iovec_size = ptpcoll_module-&gt;group_size / 2 + ptpcoll_module-&gt;group_size % 2;</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;alltoall_iovec = (struct iovec *) malloc(sizeof(struct iovec)</span>
+<span class="lineNum">     741 </span>            :                                                              * iovec_size);
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;log_group_size = lognum(ptpcoll_module-&gt;group_size);</span>
+<span class="lineNum">     743 </span>            : 
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :     rc = mca_bcol_base_bcol_fns_table_init(&amp;(ptpcoll_module-&gt;super));</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :     if (OMPI_SUCCESS != rc) {</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :         goto CLEANUP;</span>
+<span class="lineNum">     747 </span>            :     }
+<span class="lineNum">     748 </span>            : 
+<span class="lineNum">     749 </span>            :     /* Zero copy is supported */
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :     ptpcoll_module-&gt;super.supported_mode = MCA_BCOL_BASE_ZERO_COPY;</span>
+<span class="lineNum">     751 </span>            : 
+<span class="lineNum">     752 </span>            :     /* return */
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :     return ptpcoll_modules;</span>
+<span class="lineNum">     754 </span>            : 
+<span class="lineNum">     755 </span>            : CLEANUP:
+<span class="lineNum">     756 </span>            : 
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :     OBJ_RELEASE(ptpcoll_module);</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :     free(ptpcoll_modules);</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     760 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

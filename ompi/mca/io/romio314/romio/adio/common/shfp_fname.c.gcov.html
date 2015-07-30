@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/io/romio314/romio/adio/common/shfp_fname.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">ompi/mca/io/romio314/romio/adio/common</a> - shfp_fname.c<span style="font-size: 80%;"> (source / <a href="shfp_fname.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">19</td>
+            <td class="headerCovTableEntry">38</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  *   Copyright (C) 1997 University of Chicago.
+<span class="lineNum">       5 </span>            :  *   See COPYRIGHT notice in top-level directory.
+<span class="lineNum">       6 </span>            :  */
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : #include &quot;adio.h&quot;
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      11 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      12 </span>            : #endif
+<span class="lineNum">      13 </span>            : #ifdef HAVE_SYS_TYPES_H
+<span class="lineNum">      14 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      15 </span>            : #endif
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : #ifdef HAVE_TIME_H
+<span class="lineNum">      18 </span>            : #include &lt;time.h&gt;
+<span class="lineNum">      19 </span>            : #endif
+<span class="lineNum">      20 </span>            : /* The following function selects the name of the file to be used to
+<span class="lineNum">      21 </span>            :    store the shared file pointer. The shared-file-pointer file is a
+<span class="lineNum">      22 </span>            :    hidden file in the same directory as the real file being accessed.
+<span class="lineNum">      23 </span>            :    If the real file is /tmp/thakur/testfile, the shared-file-pointer
+<span class="lineNum">      24 </span>            :    file will be /tmp/thakur/.testfile.shfp.yyy.xxxx, where yyy
+<span class="lineNum">      25 </span>            :    is rank 0's process id and xxxx is a random number. If the
+<span class="lineNum">      26 </span>            :    underlying file system supports shared file pointers
+<span class="lineNum">      27 </span>            :    (PVFS does not, for example), the file name is always
+<span class="lineNum">      28 </span>            :    constructed. This file is created only if the shared
+<span class="lineNum">      29 </span>            :    file pointer functions are used and is deleted when the real
+<a name="30"><span class="lineNum">      30 </span>            :    file is closed. */</a>
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span><span class="lineCov">       1952 : void ADIOI_Shfp_fname(ADIO_File fd, int rank, int *error_code)</span>
+<span class="lineNum">      33 </span>            : {
+<span class="lineNum">      34 </span>            :     int i;
+<span class="lineNum">      35 </span>            :     int len;
+<span class="lineNum">      36 </span>            :     char *slash, *ptr, tmp[128];
+<span class="lineNum">      37 </span><span class="lineCov">       1952 :     int pid = 0;</span>
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span><span class="lineCov">       1952 :     fd-&gt;shared_fp_fname = (char *) ADIOI_Malloc(PATH_MAX);</span>
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span><span class="lineCov">       1952 :     if (!rank) {</span>
+<span class="lineNum">      42 </span><span class="lineCov">        664 :         srand(time(NULL));</span>
+<span class="lineNum">      43 </span><span class="lineCov">        664 :         i = rand();</span>
+<span class="lineNum">      44 </span><span class="lineCov">        664 :         pid = (int)getpid();</span>
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span><span class="lineCov">        664 :         if (ADIOI_Strncpy(fd-&gt;shared_fp_fname, fd-&gt;filename, PATH_MAX)) {</span>
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :             *error_code = ADIOI_Err_create_code(&quot;ADIOI_Shfp_fname&quot;,</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :                     fd-&gt;filename, ENAMETOOLONG);</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">      50 </span>            :         }
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : #ifdef ROMIO_NTFS
+<span class="lineNum">      53 </span>            :         slash = strrchr(fd-&gt;filename, '\\');
+<span class="lineNum">      54 </span>            : #else
+<span class="lineNum">      55 </span><span class="lineCov">        664 :         slash = strrchr(fd-&gt;filename, '/');</span>
+<span class="lineNum">      56 </span>            : #endif
+<span class="lineNum">      57 </span><span class="lineCov">        664 :         if (!slash) {</span>
+<span class="lineNum">      58 </span><span class="lineCov">        664 :             if (ADIOI_Strncpy(fd-&gt;shared_fp_fname, &quot;.&quot;, 2)) {</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :                 *error_code = ADIOI_Err_create_code(&quot;ADIOI_Shfp_fname&quot;,</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :                         fd-&gt;filename, ENAMETOOLONG);</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">      62 </span>            :             }
+<span class="lineNum">      63 </span><span class="lineCov">        664 :             if (ADIOI_Strncpy(fd-&gt;shared_fp_fname + 1, fd-&gt;filename, PATH_MAX-1)) {</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :                 *error_code = ADIOI_Err_create_code(&quot;ADIOI_Shfp_fname&quot;,</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :                         fd-&gt;filename, ENAMETOOLONG);</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">      67 </span>            :             }
+<span class="lineNum">      68 </span>            :         }
+<span class="lineNum">      69 </span>            :         else {
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :             ptr = slash;</span>
+<span class="lineNum">      71 </span>            : #ifdef ROMIO_NTFS
+<span class="lineNum">      72 </span>            :                 slash = strrchr(fd-&gt;shared_fp_fname, '\\');
+<span class="lineNum">      73 </span>            : #else
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :             slash = strrchr(fd-&gt;shared_fp_fname, '/');</span>
+<span class="lineNum">      75 </span>            : #endif
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :             if (ADIOI_Strncpy(slash + 1, &quot;.&quot;, 2))  {</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :                 *error_code = ADIOI_Err_create_code(&quot;ADIOI_Shfp_fname&quot;,</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :                         fd-&gt;filename, ENAMETOOLONG);</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">      80 </span>            :             }
+<span class="lineNum">      81 </span>            :             /* ok to cast: file names bounded by PATH_MAX and NAME_MAX */
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :             len = (int) (PATH_MAX - (slash+2 - fd-&gt;shared_fp_fname));</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :             if (ADIOI_Strncpy(slash + 2, ptr + 1, len)) {</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :                 *error_code = ADIOI_Err_create_code(&quot;ADIOI_Shfp_fname&quot;,</span>
+<span class="lineNum">      85 </span>            :                         ptr + 1, ENAMETOOLONG);
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">      87 </span>            :             }
+<span class="lineNum">      88 </span>            :         }
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineCov">        664 :         ADIOI_Snprintf(tmp, 128, &quot;.shfp.%d.%d&quot;, pid, i);</span>
+<span class="lineNum">      91 </span>            :         /* ADIOI_Strnapp will return non-zero if truncated.  That's ok */
+<span class="lineNum">      92 </span><span class="lineCov">        664 :         ADIOI_Strnapp(fd-&gt;shared_fp_fname, tmp, PATH_MAX);</span>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span><span class="lineCov">        664 :         len = (int)strlen(fd-&gt;shared_fp_fname);</span>
+<span class="lineNum">      95 </span><span class="lineCov">        664 :         MPI_Bcast(&amp;len, 1, MPI_INT, 0, fd-&gt;comm);</span>
+<span class="lineNum">      96 </span><span class="lineCov">        664 :         MPI_Bcast(fd-&gt;shared_fp_fname, len+1, MPI_CHAR, 0, fd-&gt;comm);</span>
+<span class="lineNum">      97 </span>            :     }
+<span class="lineNum">      98 </span>            :     else {
+<span class="lineNum">      99 </span><span class="lineCov">       1288 :         MPI_Bcast(&amp;len, 1, MPI_INT, 0, fd-&gt;comm);</span>
+<span class="lineNum">     100 </span><span class="lineCov">       1288 :         MPI_Bcast(fd-&gt;shared_fp_fname, len+1, MPI_CHAR, 0, fd-&gt;comm);</span>
+<span class="lineNum">     101 </span>            :     }
+<span class="lineNum">     102 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

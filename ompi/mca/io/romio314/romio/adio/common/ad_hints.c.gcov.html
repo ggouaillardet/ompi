@@ -1,0 +1,385 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/io/romio314/romio/adio/common/ad_hints.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">ompi/mca/io/romio314/romio/adio/common</a> - ad_hints.c<span style="font-size: 80%;"> (source / <a href="ad_hints.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">101</td>
+            <td class="headerCovTableEntry">124</td>
+            <td class="headerCovTableEntryMed">81.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  *   Copyright (C) 1997 University of Chicago.
+<span class="lineNum">       5 </span>            :  *   See COPYRIGHT notice in top-level directory.
+<span class="lineNum">       6 </span>            :  */
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : #include &quot;adio.h&quot;
+<span class="lineNum">       9 </span>            : #include &quot;adio_extern.h&quot;
+<a name="10"><span class="lineNum">      10 </span>            : #include &quot;hint_fns.h&quot;</a>
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span><span class="lineCov">       3272 : void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)</span>
+<span class="lineNum">      13 </span>            : {
+<span class="lineNum">      14 </span>            : /* if fd-&gt;info is null, create a new info object.
+<span class="lineNum">      15 </span>            :    Initialize fd-&gt;info to default values.
+<span class="lineNum">      16 </span>            :    Initialize fd-&gt;hints to default values.
+<span class="lineNum">      17 </span>            :    Examine the info object passed by the user. If it contains values that
+<span class="lineNum">      18 </span>            :    ROMIO understands, override the default. */
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            :     MPI_Info info;
+<span class="lineNum">      21 </span>            :     char *value;
+<span class="lineNum">      22 </span><span class="lineCov">       3272 :     int flag, nprocs=0, len;</span>
+<span class="lineNum">      23 </span><span class="lineCov">       3272 :     int ok_to_override_cb_nodes=0;</span>
+<span class="lineNum">      24 </span>            :     static char myname[] = &quot;ADIOI_GEN_SETINFO&quot;;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            :     /* if we've already set up default hints and the user has not asked us to
+<span class="lineNum">      28 </span>            :      * process any hints (MPI_INFO_NULL), then we can short-circuit hint
+<span class="lineNum">      29 </span>            :      * processing */
+<span class="lineNum">      30 </span><span class="lineCov">       3272 :     if (fd-&gt;hints-&gt;initialized &amp;&amp; fd-&gt;info == MPI_INFO_NULL) {</span>
+<span class="lineNum">      31 </span><span class="lineNoCov">          0 :             *error_code = MPI_SUCCESS;</span>
+<span class="lineNum">      32 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">      33 </span>            :     }
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span><span class="lineCov">       3272 :     if (fd-&gt;info == MPI_INFO_NULL) MPI_Info_create(&amp;(fd-&gt;info));</span>
+<span class="lineNum">      36 </span><span class="lineCov">       3272 :     info = fd-&gt;info;</span>
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span><span class="lineCov">       3272 :     MPI_Comm_size(fd-&gt;comm, &amp;nprocs);</span>
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            :     /* Note that fd-&gt;hints is allocated at file open time; thus it is
+<span class="lineNum">      41 </span>            :      * not necessary to allocate it, or check for allocation, here.
+<span class="lineNum">      42 </span>            :      */
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span><span class="lineCov">       3272 :     value = (char *) ADIOI_Malloc((MPI_MAX_INFO_VAL+1)*sizeof(char));</span>
+<span class="lineNum">      45 </span><span class="lineCov">       3272 :     if (value == NULL) {</span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(*error_code,</span>
+<span class="lineNum">      47 </span>            :                                            MPIR_ERR_RECOVERABLE,
+<span class="lineNum">      48 </span>            :                                            myname,
+<span class="lineNum">      49 </span>            :                                            __LINE__,
+<span class="lineNum">      50 </span>            :                                            MPI_ERR_OTHER,
+<span class="lineNum">      51 </span>            :                                            &quot;**nomem2&quot;,0);
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">      53 </span>            :     }
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            :     /* initialize info and hints to default values if they haven't been
+<span class="lineNum">      56 </span>            :      * previously initialized
+<span class="lineNum">      57 </span>            :      */
+<span class="lineNum">      58 </span><span class="lineCov">       3272 :     if (!fd-&gt;hints-&gt;initialized) {</span>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            :         /* buffer size for collective I/O */
+<span class="lineNum">      61 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;cb_buffer_size&quot;, ADIOI_CB_BUFFER_SIZE_DFLT);</span>
+<span class="lineNum">      62 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;cb_buffer_size = atoi(ADIOI_CB_BUFFER_SIZE_DFLT);</span>
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            :         /* default is to let romio automatically decide when to use
+<span class="lineNum">      65 </span>            :          * collective buffering
+<span class="lineNum">      66 </span>            :          */
+<span class="lineNum">      67 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;romio_cb_read&quot;, &quot;automatic&quot;);</span>
+<span class="lineNum">      68 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;cb_read = ADIOI_HINT_AUTO;</span>
+<span class="lineNum">      69 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;romio_cb_write&quot;, &quot;automatic&quot;);</span>
+<span class="lineNum">      70 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;cb_write = ADIOI_HINT_AUTO;</span>
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;cb_config_list = NULL;</span>
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            :         /* number of processes that perform I/O in collective I/O */
+<span class="lineNum">      75 </span><span class="lineCov">       2192 :         ADIOI_Snprintf(value, MPI_MAX_INFO_VAL+1, &quot;%d&quot;, nprocs);</span>
+<span class="lineNum">      76 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;cb_nodes&quot;, value);</span>
+<span class="lineNum">      77 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;cb_nodes = nprocs;</span>
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            :         /* hint indicating that no indep. I/O will be performed on this file */
+<span class="lineNum">      80 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;romio_no_indep_rw&quot;, &quot;false&quot;);</span>
+<span class="lineNum">      81 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;no_indep_rw = 0;</span>
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            :         /* hint instructing the use of persistent file realms */
+<span class="lineNum">      84 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;romio_cb_pfr&quot;, &quot;disable&quot;);</span>
+<span class="lineNum">      85 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;cb_pfr = ADIOI_HINT_DISABLE;</span>
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            :         /* hint guiding the assignment of persistent file realms */
+<span class="lineNum">      88 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;romio_cb_fr_types&quot;, &quot;aar&quot;);</span>
+<span class="lineNum">      89 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;cb_fr_type = ADIOI_FR_AAR;</span>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            :         /* hint to align file realms with a certain byte value */
+<span class="lineNum">      92 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;romio_cb_fr_alignment&quot;, &quot;1&quot;);</span>
+<span class="lineNum">      93 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;cb_fr_alignment = 1;</span>
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            :         /* hint to set a threshold percentage for a datatype's size/extent at
+<span class="lineNum">      96 </span>            :          * which data sieving should be done in collective I/O */
+<span class="lineNum">      97 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;romio_cb_ds_threshold&quot;, &quot;0&quot;);</span>
+<span class="lineNum">      98 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;cb_ds_threshold = 0;</span>
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            :         /* hint to switch between point-to-point or all-to-all for two-phase */
+<span class="lineNum">     101 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;romio_cb_alltoall&quot;, &quot;automatic&quot;);</span>
+<span class="lineNum">     102 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;cb_alltoall = ADIOI_HINT_AUTO;</span>
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            :          /* deferred_open derived from no_indep_rw and cb_{read,write} */
+<span class="lineNum">     105 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;deferred_open = 0;</span>
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            :         /* buffer size for data sieving in independent reads */
+<span class="lineNum">     108 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;ind_rd_buffer_size&quot;, ADIOI_IND_RD_BUFFER_SIZE_DFLT);</span>
+<span class="lineNum">     109 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;ind_rd_buffer_size = atoi(ADIOI_IND_RD_BUFFER_SIZE_DFLT);</span>
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :         /* buffer size for data sieving in independent writes */
+<span class="lineNum">     112 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;ind_wr_buffer_size&quot;, ADIOI_IND_WR_BUFFER_SIZE_DFLT);</span>
+<span class="lineNum">     113 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;ind_wr_buffer_size = atoi(ADIOI_IND_WR_BUFFER_SIZE_DFLT);</span>
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            :         /* default is to let romio automatically decide when to use data
+<span class="lineNum">     116 </span>            :          * sieving
+<span class="lineNum">     117 </span>            :          */
+<span class="lineNum">     118 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;romio_ds_read&quot;, &quot;automatic&quot;);</span>
+<span class="lineNum">     119 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;ds_read = ADIOI_HINT_AUTO;</span>
+<span class="lineNum">     120 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;romio_ds_write&quot;, &quot;automatic&quot;);</span>
+<span class="lineNum">     121 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;ds_write = ADIOI_HINT_AUTO;</span>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            :         /* still to do: tune this a bit for a variety of file systems. there's
+<span class="lineNum">     124 </span>            :          * no good default value so just leave it unset */
+<span class="lineNum">     125 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;min_fdomain_size = 0;</span>
+<span class="lineNum">     126 </span><span class="lineCov">       2192 :   fd-&gt;hints-&gt;striping_unit = 0;</span>
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;initialized = 1;</span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            :         /* ADIO_Open sets up collective buffering arrays.  If we are in this
+<span class="lineNum">     131 </span>            :          * path from say set_file_view, then we've don't want to adjust the
+<span class="lineNum">     132 </span>            :          * array: we'll get a segfault during collective i/o.  We only want to
+<span class="lineNum">     133 </span>            :          * look at the users cb_nodes if it's open time  */
+<span class="lineNum">     134 </span><span class="lineCov">       2192 :         ok_to_override_cb_nodes = 1;</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            :     }
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            :     /* add in user's info if supplied */
+<span class="lineNum">     139 </span><span class="lineCov">       3272 :     if (users_info != MPI_INFO_NULL) {</span>
+<span class="lineNum">     140 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_int(fd, users_info, &quot;cb_buffer_size&quot;,</span>
+<span class="lineNum">     141 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;cb_buffer_size), myname, error_code);</span>
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span>            :         /* aligning file realms to certain sizes (e.g. stripe sizes)
+<span class="lineNum">     144 </span>            :          * may benefit I/O performance */
+<span class="lineNum">     145 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_int(fd, users_info, &quot;romio_cb_fr_alignment&quot;,</span>
+<span class="lineNum">     146 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;cb_fr_alignment), myname, error_code);</span>
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            :         /* for collective I/O, try to be smarter about when to do data sieving
+<span class="lineNum">     149 </span>            :          * using a specific threshold for the datatype size/extent
+<span class="lineNum">     150 </span>            :          * (percentage 0-100%) */
+<span class="lineNum">     151 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_int(fd, users_info, &quot;romio_cb_ds_threshold&quot;,</span>
+<span class="lineNum">     152 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;cb_ds_threshold), myname, error_code);</span>
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_enabled(fd, users_info, &quot;romio_cb_alltoall&quot;,</span>
+<span class="lineNum">     155 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;cb_alltoall), myname, error_code);</span>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            :         /* new hints for enabling/disabling coll. buffering on
+<span class="lineNum">     158 </span>            :          * reads/writes
+<span class="lineNum">     159 </span>            :          */
+<span class="lineNum">     160 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_enabled(fd, users_info, &quot;romio_cb_read&quot;,</span>
+<span class="lineNum">     161 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;cb_read), myname, error_code);</span>
+<span class="lineNum">     162 </span><span class="lineCov">        192 :         if (fd-&gt;hints-&gt;cb_read == ADIOI_HINT_DISABLE) {</span>
+<span class="lineNum">     163 </span>            :             /* romio_cb_read overrides no_indep_rw */
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :             ADIOI_Info_set(info, &quot;romio_no_indep_rw&quot;, &quot;false&quot;);</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :             fd-&gt;hints-&gt;no_indep_rw = ADIOI_HINT_DISABLE;</span>
+<span class="lineNum">     166 </span>            :         }
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_enabled(fd, users_info, &quot;romio_cb_write&quot;,</span>
+<span class="lineNum">     169 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;cb_write), myname, error_code);</span>
+<span class="lineNum">     170 </span><span class="lineCov">        192 :         if (fd-&gt;hints-&gt;cb_write == ADIOI_HINT_DISABLE) {</span>
+<span class="lineNum">     171 </span>            :             /* romio_cb_write overrides no_indep_rw */
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :             ADIOI_Info_set(info, &quot;romio_no_indep_rw&quot;, &quot;false&quot;);</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :             fd-&gt;hints-&gt;no_indep_rw = ADIOI_HINT_DISABLE;</span>
+<span class="lineNum">     174 </span>            :         }
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            :         /* enable/disable persistent file realms for collective I/O */
+<span class="lineNum">     177 </span>            :         /* may want to check for no_indep_rdwr hint as well */
+<span class="lineNum">     178 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_enabled(fd, users_info, &quot;romio_cb_pfr&quot;,</span>
+<span class="lineNum">     179 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;cb_pfr), myname, error_code);</span>
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            :         /* file realm assignment types ADIOI_FR_AAR(0),
+<span class="lineNum">     183 </span>            :          ADIOI_FR_FSZ(-1), ADIOI_FR_USR_REALMS(-2), all others specify
+<span class="lineNum">     184 </span>            :          a regular fr size in bytes. probably not the best way... */
+<span class="lineNum">     185 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_int(fd, users_info, &quot;romio_cb_fr_type&quot;,</span>
+<span class="lineNum">     186 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;cb_fr_type), myname, error_code);</span>
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span>            :         /* Has the user indicated all I/O will be done collectively? */
+<span class="lineNum">     189 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_true(fd, users_info, &quot;romio_no_indep_rw&quot;,</span>
+<span class="lineNum">     190 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;no_indep_rw), myname, error_code);</span>
+<span class="lineNum">     191 </span><span class="lineCov">        192 :         if (fd-&gt;hints-&gt;no_indep_rw == 1) {</span>
+<span class="lineNum">     192 </span>            :             /* if 'no_indep_rw' set, also hint that we will do
+<span class="lineNum">     193 </span>            :              * collective buffering: if we aren't doing independent io,
+<span class="lineNum">     194 </span>            :              * then we have to do collective  */
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :             ADIOI_Info_set(info, &quot;romio_cb_write&quot;, &quot;enable&quot;);</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :             ADIOI_Info_set(info, &quot;romio_cb_read&quot;, &quot;enable&quot;);</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :             fd-&gt;hints-&gt;cb_read = 1;</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :             fd-&gt;hints-&gt;cb_write = 1;</span>
+<span class="lineNum">     199 </span>            :         }
+<span class="lineNum">     200 </span>            :         /* new hints for enabling/disabling data sieving on
+<span class="lineNum">     201 </span>            :          * reads/writes
+<span class="lineNum">     202 </span>            :          */
+<span class="lineNum">     203 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_enabled(fd, users_info, &quot;romio_ds_read&quot;,</span>
+<span class="lineNum">     204 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;ds_read), myname, error_code);</span>
+<span class="lineNum">     205 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_enabled(fd, users_info, &quot;romio_ds_write&quot;,</span>
+<span class="lineNum">     206 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;ds_write), myname, error_code);</span>
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineCov">        192 :         if (ok_to_override_cb_nodes) {</span>
+<span class="lineNum">     209 </span>            :                 /* MPI_File_open path sets up some data structrues that don't
+<span class="lineNum">     210 </span>            :                  * get resized in the MPI_File_set_view path, so ignore
+<span class="lineNum">     211 </span>            :                  * cb_nodes in the set_view case */
+<span class="lineNum">     212 </span><span class="lineCov">         96 :             ADIOI_Info_check_and_install_int(fd, users_info, &quot;cb_nodes&quot;,</span>
+<span class="lineNum">     213 </span><span class="lineCov">         96 :                     &amp;(fd-&gt;hints-&gt;cb_nodes), myname, error_code);</span>
+<span class="lineNum">     214 </span><span class="lineCov">         96 :             if ((fd-&gt;hints-&gt;cb_nodes &lt;= 0) || (fd-&gt;hints-&gt;cb_nodes &gt; nprocs)) {</span>
+<span class="lineNum">     215 </span>            :                 /* can't ask for more aggregators than mpi processes, though it
+<span class="lineNum">     216 </span>            :                  * might be interesting to think what such oversubscription
+<span class="lineNum">     217 </span>            :                  * might mean... someday */
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :                 ADIOI_Snprintf(value, MPI_MAX_INFO_VAL+1, &quot;%d&quot;, nprocs);</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :                 ADIOI_Info_set(info, &quot;cb_nodes&quot;, value);</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :                 fd-&gt;hints-&gt;cb_nodes = nprocs;</span>
+<span class="lineNum">     221 </span>            :             }
+<span class="lineNum">     222 </span>            :         } /* if (ok_to_override_cb_nodes) */
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_int(fd, users_info, &quot;ind_wr_buffer_size&quot;,</span>
+<span class="lineNum">     225 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;ind_wr_buffer_size), myname, error_code);</span>
+<span class="lineNum">     226 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_int(fd, users_info, &quot;ind_rd_buffer_size&quot;,</span>
+<span class="lineNum">     227 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;ind_rd_buffer_size), myname, error_code);</span>
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span><span class="lineCov">        192 :         if (fd-&gt;hints-&gt;cb_config_list == NULL) {</span>
+<span class="lineNum">     230 </span>            :             /* only set cb_config_list if it isn't already set.  Note that
+<span class="lineNum">     231 </span>            :              * since we set it below, this ensures that the cb_config_list hint
+<span class="lineNum">     232 </span>            :              * will be set at file open time either by the user or to the
+<span class="lineNum">     233 </span>            :              * default */
+<span class="lineNum">     234 </span>            :             /* if it has been set already, we ignore it the second time.
+<span class="lineNum">     235 </span>            :              * otherwise we would get an error if someone used the same info
+<span class="lineNum">     236 </span>            :              * value with a cb_config_list value in it in a couple of calls,
+<span class="lineNum">     237 </span>            :              * which would be irritating. */
+<span class="lineNum">     238 </span><span class="lineCov">         96 :             ADIOI_Info_check_and_install_str(fd, users_info, &quot;cb_config_list&quot;,</span>
+<span class="lineNum">     239 </span><span class="lineCov">         96 :                 &amp;(fd-&gt;hints-&gt;cb_config_list), myname, error_code);</span>
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span>            :         }
+<span class="lineNum">     242 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_int(fd, users_info, &quot;romio_min_fdomain_size&quot;,</span>
+<span class="lineNum">     243 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;min_fdomain_size), myname, error_code);</span>
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            :         /* Now we use striping unit in common code so we should
+<span class="lineNum">     246 </span>            :            process hints for it. */
+<span class="lineNum">     247 </span><span class="lineCov">        192 :         ADIOI_Info_check_and_install_int(fd, users_info, &quot;striping_unit&quot;,</span>
+<span class="lineNum">     248 </span><span class="lineCov">        192 :                 &amp;(fd-&gt;hints-&gt;striping_unit), myname, error_code);</span>
+<span class="lineNum">     249 </span>            :     }
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            :     /* Begin hint post-processig: some hints take precidence over or conflict
+<span class="lineNum">     252 </span>            :      * with others, or aren't supported by some file systems */
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            :     /* handle cb_config_list default value here; avoids an extra
+<span class="lineNum">     255 </span>            :      * free/alloc and insures it is always set
+<span class="lineNum">     256 </span>            :      */
+<span class="lineNum">     257 </span><span class="lineCov">       3272 :     if (fd-&gt;hints-&gt;cb_config_list == NULL) {</span>
+<span class="lineNum">     258 </span><span class="lineCov">       2192 :         ADIOI_Info_set(info, &quot;cb_config_list&quot;, ADIOI_CB_CONFIG_LIST_DFLT);</span>
+<span class="lineNum">     259 </span><span class="lineCov">       2192 :         len = (strlen(ADIOI_CB_CONFIG_LIST_DFLT)+1) * sizeof(char);</span>
+<span class="lineNum">     260 </span><span class="lineCov">       2192 :         fd-&gt;hints-&gt;cb_config_list = ADIOI_Malloc(len);</span>
+<span class="lineNum">     261 </span><span class="lineCov">       2192 :         if (fd-&gt;hints-&gt;cb_config_list == NULL) {</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :             *error_code = MPIO_Err_create_code(*error_code,</span>
+<span class="lineNum">     263 </span>            :                                                MPIR_ERR_RECOVERABLE,
+<span class="lineNum">     264 </span>            :                                                myname,
+<span class="lineNum">     265 </span>            :                                                __LINE__,
+<span class="lineNum">     266 </span>            :                                                MPI_ERR_OTHER,
+<span class="lineNum">     267 </span>            :                                                &quot;**nomem2&quot;,0);
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     269 </span>            :         }
+<span class="lineNum">     270 </span><span class="lineCov">       2192 :         ADIOI_Strncpy(fd-&gt;hints-&gt;cb_config_list, ADIOI_CB_CONFIG_LIST_DFLT, len);</span>
+<span class="lineNum">     271 </span>            :     }
+<span class="lineNum">     272 </span>            :     /* deferred_open won't be set by callers, but if the user doesn't
+<span class="lineNum">     273 </span>            :      * explicitly disable collecitve buffering (two-phase) and does hint that
+<span class="lineNum">     274 </span>            :      * io w/o independent io is going on, we'll set this internal hint as a
+<span class="lineNum">     275 </span>            :      * convenience */
+<span class="lineNum">     276 </span><span class="lineCov">       3272 :     if ( ( (fd-&gt;hints-&gt;cb_read != ADIOI_HINT_DISABLE) \</span>
+<span class="lineNum">     277 </span><span class="lineCov">       3272 :                             &amp;&amp; (fd-&gt;hints-&gt;cb_write != ADIOI_HINT_DISABLE)\</span>
+<span class="lineNum">     278 </span><span class="lineCov">       3272 :                             &amp;&amp; fd-&gt;hints-&gt;no_indep_rw ) ) {</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :             fd-&gt;hints-&gt;deferred_open = 1;</span>
+<span class="lineNum">     280 </span>            :     } else {
+<span class="lineNum">     281 </span>            :             /* setting romio_no_indep_rw enable and romio_cb_{read,write}
+<span class="lineNum">     282 </span>            :              * disable at the same time doesn't make sense. honor
+<span class="lineNum">     283 </span>            :              * romio_cb_{read,write} and force the no_indep_rw hint to
+<span class="lineNum">     284 </span>            :              * 'disable' */
+<span class="lineNum">     285 </span><span class="lineCov">       3272 :             ADIOI_Info_set(info, &quot;romio_no_indep_rw&quot;, &quot;false&quot;);</span>
+<span class="lineNum">     286 </span><span class="lineCov">       3272 :             fd-&gt;hints-&gt;no_indep_rw = 0;</span>
+<span class="lineNum">     287 </span><span class="lineCov">       3272 :             fd-&gt;hints-&gt;deferred_open = 0;</span>
+<span class="lineNum">     288 </span>            :     }
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineCov">       3272 :     if (ADIO_Feature(fd, ADIO_DATA_SIEVING_WRITES) == 0) {</span>
+<span class="lineNum">     291 </span>            :     /* disable data sieving for fs that do not
+<span class="lineNum">     292 </span>            :        support file locking */
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :         ADIOI_Info_get(info, &quot;ind_wr_buffer_size&quot;, MPI_MAX_INFO_VAL,</span>
+<span class="lineNum">     294 </span>            :                      value, &amp;flag);
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :         if (flag) {</span>
+<span class="lineNum">     296 </span>            :             /* get rid of this value if it is set */
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :             ADIOI_Info_delete(info, &quot;ind_wr_buffer_size&quot;);</span>
+<span class="lineNum">     298 </span>            :         }
+<span class="lineNum">     299 </span>            :         /* note: leave ind_wr_buffer_size alone; used for other cases
+<span class="lineNum">     300 </span>            :          * as well. -- Rob Ross, 04/22/2003
+<span class="lineNum">     301 </span>            :          */
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :         ADIOI_Info_set(info, &quot;romio_ds_write&quot;, &quot;disable&quot;);</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         fd-&gt;hints-&gt;ds_write = ADIOI_HINT_DISABLE;</span>
+<span class="lineNum">     304 </span>            :     }
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span><span class="lineCov">       3272 :     ADIOI_Free(value);</span>
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineCov">       3272 :     *error_code = MPI_SUCCESS;</span>
+<span class="lineNum">     309 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

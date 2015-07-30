@@ -1,0 +1,390 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/io/ompio/io_ompio_component.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/io/ompio</a> - io_ompio_component.c<span style="font-size: 80%;"> (source / <a href="io_ompio_component.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">48</td>
+            <td class="headerCovTableEntry">49</td>
+            <td class="headerCovTableEntryHi">98.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2007 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2005 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2008-2015 University of Houston. All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
+<span class="lineNum">      15 </span>            :  *                         reserved.
+<span class="lineNum">      16 </span>            :  * Copyright (c) 2015      Research Organization for Information Science
+<span class="lineNum">      17 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      18 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      21 </span>            :  *
+<span class="lineNum">      22 </span>            :  * $HEADER$
+<span class="lineNum">      23 </span>            :  */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &quot;mpi.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;opal/class/opal_list.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;opal/threads/mutex.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;opal/mca/base/base.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;ompi/mca/io/io.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;io_ompio.h&quot;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : int mca_io_ompio_cycle_buffer_size = OMPIO_PREALLOC_MAX_BUF_SIZE;
+<span class="lineNum">      35 </span>            : int mca_io_ompio_bytes_per_agg = OMPIO_PREALLOC_MAX_BUF_SIZE;
+<span class="lineNum">      36 </span>            : int mca_io_ompio_num_aggregators = -1;
+<span class="lineNum">      37 </span>            : int mca_io_ompio_record_offset_info = 0;
+<span class="lineNum">      38 </span>            : int mca_io_ompio_coll_timing_info = 0;
+<span class="lineNum">      39 </span>            : int mca_io_ompio_sharedfp_lazy_open = 1;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : int mca_io_ompio_grouping_option=0;
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : /*
+<span class="lineNum">      44 </span>            :  * Private functions
+<span class="lineNum">      45 </span>            :  */
+<span class="lineNum">      46 </span>            : static int register_component(void);
+<span class="lineNum">      47 </span>            : static int open_component(void);
+<span class="lineNum">      48 </span>            : static int close_component(void);
+<span class="lineNum">      49 </span>            : static int init_query(bool enable_progress_threads,
+<span class="lineNum">      50 </span>            :                       bool enable_mpi_threads);
+<span class="lineNum">      51 </span>            : static const struct mca_io_base_module_2_0_0_t *
+<span class="lineNum">      52 </span>            : file_query (struct ompi_file_t *file,
+<span class="lineNum">      53 </span>            :             struct mca_io_base_file_t **private_data,
+<span class="lineNum">      54 </span>            :             int *priority);
+<span class="lineNum">      55 </span>            : static int file_unquery(struct ompi_file_t *file,
+<span class="lineNum">      56 </span>            :                         struct mca_io_base_file_t *private_data);
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : static int delete_query(char *filename, struct ompi_info_t *info,
+<span class="lineNum">      59 </span>            :                         struct mca_io_base_delete_t **private_data,
+<span class="lineNum">      60 </span>            :                         bool *usable, int *priorty);
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : static int delete_select(char *filename, struct ompi_info_t *info,
+<span class="lineNum">      63 </span>            :                          struct mca_io_base_delete_t *private_data);
+<span class="lineNum">      64 </span>            : /*
+<span class="lineNum">      65 </span>            : static int io_progress(void);
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            : static int register_datarep(char *,
+<span class="lineNum">      68 </span>            :                             MPI_Datarep_conversion_function*,
+<span class="lineNum">      69 </span>            :                             MPI_Datarep_conversion_function*,
+<span class="lineNum">      70 </span>            :                             MPI_Datarep_extent_function*,
+<span class="lineNum">      71 </span>            :                             void*);
+<span class="lineNum">      72 </span>            : */
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            : /*
+<span class="lineNum">      75 </span>            :  * Private variables
+<span class="lineNum">      76 </span>            :  */
+<span class="lineNum">      77 </span>            : static int priority_param = 30;
+<span class="lineNum">      78 </span>            : static int delete_priority_param = 30;
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : /*
+<span class="lineNum">      82 </span>            :  * Global, component-wide OMPIO mutex because OMPIO is not thread safe
+<span class="lineNum">      83 </span>            :  */
+<span class="lineNum">      84 </span>            : opal_mutex_t mca_io_ompio_mutex = {{0}};
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : /*
+<span class="lineNum">      88 </span>            :  * Global list of requests for this component
+<span class="lineNum">      89 </span>            :  */
+<span class="lineNum">      90 </span>            : opal_list_t mca_io_ompio_pending_requests = {{0}};
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            : /*
+<span class="lineNum">      94 </span>            :  * Public string showing this component's version number
+<span class="lineNum">      95 </span>            :  */
+<span class="lineNum">      96 </span>            : const char *mca_io_ompio_component_version_string =
+<span class="lineNum">      97 </span>            : &quot;OMPI/MPI OMPIO io MCA component version &quot; OMPI_VERSION;
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            : mca_io_base_component_2_0_0_t mca_io_ompio_component = {
+<span class="lineNum">     101 </span>            :     /* First, the mca_base_component_t struct containing meta information
+<span class="lineNum">     102 </span>            :        about the component itself */
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            :     .io_version = {
+<span class="lineNum">     105 </span>            :         MCA_IO_BASE_VERSION_2_0_0,
+<span class="lineNum">     106 </span>            :         .mca_component_name = &quot;ompio&quot;,
+<span class="lineNum">     107 </span>            :         MCA_BASE_MAKE_VERSION(component, OMPI_MAJOR_VERSION, OMPI_MINOR_VERSION,
+<span class="lineNum">     108 </span>            :                               OMPI_RELEASE_VERSION),
+<span class="lineNum">     109 </span>            :         .mca_open_component = open_component,
+<span class="lineNum">     110 </span>            :         .mca_close_component = close_component,
+<span class="lineNum">     111 </span>            :         .mca_register_component_params = register_component,
+<span class="lineNum">     112 </span>            :     },
+<span class="lineNum">     113 </span>            :     .io_data = {
+<span class="lineNum">     114 </span>            :         /* The component is checkpoint ready */
+<span class="lineNum">     115 </span>            :         MCA_BASE_METADATA_PARAM_CHECKPOINT
+<span class="lineNum">     116 </span>            :     },
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            :     /* Initial configuration / Open a new file */
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            :     .io_init_query = init_query,
+<span class="lineNum">     121 </span>            :     .io_file_query = file_query,
+<span class="lineNum">     122 </span>            :     .io_file_unquery = file_unquery,
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            :     /* Delete a file */
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            :     .io_delete_query = delete_query,
+<span class="lineNum">     127 </span>            :     .io_delete_select = delete_select,
+<a name="128"><span class="lineNum">     128 </span>            : };</a>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span><span class="lineCov">         41 : static int register_component(void)</span>
+<span class="lineNum">     131 </span>            : {
+<span class="lineNum">     132 </span><span class="lineCov">         41 :     priority_param = 30;</span>
+<span class="lineNum">     133 </span><span class="lineCov">         41 :     (void) mca_base_component_var_register(&amp;mca_io_ompio_component.io_version,</span>
+<span class="lineNum">     134 </span>            :                                            &quot;priority&quot;, &quot;Priority of the io ompio component&quot;,
+<span class="lineNum">     135 </span>            :                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+<span class="lineNum">     136 </span>            :                                            OPAL_INFO_LVL_9,
+<span class="lineNum">     137 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     138 </span>            :                                            &amp;priority_param);
+<span class="lineNum">     139 </span><span class="lineCov">         41 :     delete_priority_param = 30;</span>
+<span class="lineNum">     140 </span><span class="lineCov">         41 :     (void) mca_base_component_var_register(&amp;mca_io_ompio_component.io_version,</span>
+<span class="lineNum">     141 </span>            :                                            &quot;delete_priority&quot;, &quot;Delete priority of the io ompio component&quot;,
+<span class="lineNum">     142 </span>            :                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+<span class="lineNum">     143 </span>            :                                            OPAL_INFO_LVL_9,
+<span class="lineNum">     144 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     145 </span>            :                                            &amp;delete_priority_param);
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineCov">         41 :     mca_io_ompio_record_offset_info = 0;</span>
+<span class="lineNum">     148 </span><span class="lineCov">         41 :     (void) mca_base_component_var_register(&amp;mca_io_ompio_component.io_version,</span>
+<span class="lineNum">     149 </span>            :                                            &quot;record_file_offset_info&quot;,
+<span class="lineNum">     150 </span>            :                                            &quot;The information of the file offset/length&quot;,
+<span class="lineNum">     151 </span>            :                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+<span class="lineNum">     152 </span>            :                                            OPAL_INFO_LVL_9,
+<span class="lineNum">     153 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     154 </span>            :                                            &amp;mca_io_ompio_record_offset_info);
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineCov">         41 :     mca_io_ompio_coll_timing_info = 0;</span>
+<span class="lineNum">     157 </span><span class="lineCov">         41 :     (void) mca_base_component_var_register(&amp;mca_io_ompio_component.io_version,</span>
+<span class="lineNum">     158 </span>            :                                            &quot;coll_timing_info&quot;,
+<span class="lineNum">     159 </span>            :                                            &quot;Enable collective algorithm timing information&quot;,
+<span class="lineNum">     160 </span>            :                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+<span class="lineNum">     161 </span>            :                                            OPAL_INFO_LVL_9,
+<span class="lineNum">     162 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     163 </span>            :                                            &amp;mca_io_ompio_coll_timing_info);
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineCov">         41 :     mca_io_ompio_cycle_buffer_size = OMPIO_PREALLOC_MAX_BUF_SIZE;</span>
+<span class="lineNum">     166 </span><span class="lineCov">         41 :     (void) mca_base_component_var_register(&amp;mca_io_ompio_component.io_version,</span>
+<span class="lineNum">     167 </span>            :                                            &quot;cycle_buffer_size&quot;,
+<span class="lineNum">     168 </span>            :                                            &quot;Cycle buffer size of individual reads/writes&quot;,
+<span class="lineNum">     169 </span>            :                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+<span class="lineNum">     170 </span>            :                                            OPAL_INFO_LVL_9,
+<span class="lineNum">     171 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     172 </span>            :                                            &amp;mca_io_ompio_cycle_buffer_size);
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span><span class="lineCov">         41 :     mca_io_ompio_bytes_per_agg = OMPIO_PREALLOC_MAX_BUF_SIZE;</span>
+<span class="lineNum">     175 </span><span class="lineCov">         41 :     (void) mca_base_component_var_register(&amp;mca_io_ompio_component.io_version,</span>
+<span class="lineNum">     176 </span>            :                                            &quot;bytes_per_agg&quot;,
+<span class="lineNum">     177 </span>            :                                            &quot;Size of temporary buffer for collective I/O operations&quot;,
+<span class="lineNum">     178 </span>            :                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+<span class="lineNum">     179 </span>            :                                            OPAL_INFO_LVL_9,
+<span class="lineNum">     180 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     181 </span>            :                                            &amp;mca_io_ompio_bytes_per_agg);
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span><span class="lineCov">         41 :     mca_io_ompio_num_aggregators = -1;</span>
+<span class="lineNum">     184 </span><span class="lineCov">         41 :     (void) mca_base_component_var_register(&amp;mca_io_ompio_component.io_version,</span>
+<span class="lineNum">     185 </span>            :                                            &quot;num_aggregators&quot;,
+<span class="lineNum">     186 </span>            :                                            &quot;number of aggregators for collective I/O operations&quot;,
+<span class="lineNum">     187 </span>            :                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+<span class="lineNum">     188 </span>            :                                            OPAL_INFO_LVL_9,
+<span class="lineNum">     189 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     190 </span>            :                                            &amp;mca_io_ompio_num_aggregators);
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span><span class="lineCov">         41 :     mca_io_ompio_sharedfp_lazy_open = 1;</span>
+<span class="lineNum">     194 </span><span class="lineCov">         41 :     (void) mca_base_component_var_register(&amp;mca_io_ompio_component.io_version,</span>
+<span class="lineNum">     195 </span>            :                                            &quot;sharedfp_lazy_open&quot;,
+<span class="lineNum">     196 </span>            :                                            &quot;lazy allocation of internal shared file pointer structures&quot;,
+<span class="lineNum">     197 </span>            :                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+<span class="lineNum">     198 </span>            :                                            OPAL_INFO_LVL_9,
+<span class="lineNum">     199 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     200 </span>            :                                            &amp;mca_io_ompio_sharedfp_lazy_open);
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span><span class="lineCov">         41 :     mca_io_ompio_grouping_option = 0;</span>
+<span class="lineNum">     203 </span><span class="lineCov">         41 :     (void) mca_base_component_var_register(&amp;mca_io_ompio_component.io_version,</span>
+<span class="lineNum">     204 </span>            :                                            &quot;grouping_option&quot;,
+<span class="lineNum">     205 </span>            :                                            &quot;Option for grouping of processes in the aggregator selection&quot;,
+<span class="lineNum">     206 </span>            :                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+<span class="lineNum">     207 </span>            :                                            OPAL_INFO_LVL_9,
+<span class="lineNum">     208 </span>            :                                            MCA_BASE_VAR_SCOPE_READONLY,
+<span class="lineNum">     209 </span>            :                                            &amp;mca_io_ompio_grouping_option);
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span><span class="lineCov">         41 :     return OMPI_SUCCESS;</span>
+<a name="212"><span class="lineNum">     212 </span>            : }</a>
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineCov">         12 : static int open_component(void)</span>
+<span class="lineNum">     215 </span>            : {
+<span class="lineNum">     216 </span>            :     /* Create the mutex */
+<span class="lineNum">     217 </span><span class="lineCov">         12 :     OBJ_CONSTRUCT(&amp;mca_io_ompio_mutex, opal_mutex_t);</span>
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            :     /* Create the list of pending requests */
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span><span class="lineCov">         12 :     OBJ_CONSTRUCT(&amp;mca_io_ompio_pending_requests, opal_list_t);</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineCov">         12 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     224 </span>            : }
+<a name="225"><span class="lineNum">     225 </span>            : </a>
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineCov">         12 : static int close_component(void)</span>
+<span class="lineNum">     228 </span>            : {
+<span class="lineNum">     229 </span>            :     /* Destroy the list of pending requests */
+<span class="lineNum">     230 </span>            :     /* JMS: Good opprotunity here to list out all the IO requests that
+<span class="lineNum">     231 </span>            :        were not destroyed / completed upon MPI_FINALIZE */
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span><span class="lineCov">         12 :     OBJ_DESTRUCT(&amp;mca_io_ompio_pending_requests);</span>
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineCov">         12 :     OBJ_DESTRUCT(&amp;mca_io_ompio_mutex);</span>
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span><span class="lineCov">         12 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     238 </span>            : }
+<a name="239"><span class="lineNum">     239 </span>            : </a>
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span><span class="lineCov">         12 : static int init_query(bool enable_progress_threads,</span>
+<span class="lineNum">     242 </span>            :                       bool enable_mpi_threads)
+<span class="lineNum">     243 </span>            : {
+<span class="lineNum">     244 </span><span class="lineCov">         12 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     245 </span>            : }
+<span class="lineNum">     246 </span>            : 
+<a name="247"><span class="lineNum">     247 </span>            : </a>
+<span class="lineNum">     248 </span>            : static const struct mca_io_base_module_2_0_0_t *
+<span class="lineNum">     249 </span><span class="lineCov">       1964 : file_query(struct ompi_file_t *file,</span>
+<span class="lineNum">     250 </span>            :            struct mca_io_base_file_t **private_data,
+<span class="lineNum">     251 </span>            :            int *priority)
+<span class="lineNum">     252 </span>            : {
+<span class="lineNum">     253 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span><span class="lineCov">       1964 :     *priority = priority_param;</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            :     /* Allocate a space for this module to hang private data (e.g.,
+<span class="lineNum">     258 </span>            :        the OMPIO file handle) */
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span><span class="lineCov">       1964 :     data = calloc(1, sizeof(mca_io_ompio_data_t));</span>
+<span class="lineNum">     261 </span><span class="lineCov">       1964 :     if (NULL == data) {</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     263 </span>            :     }
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span><span class="lineCov">       1964 :     *private_data = (struct mca_io_base_file_t*) data;</span>
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            :     /* All done */
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span><span class="lineCov">       1964 :     return &amp;mca_io_ompio_module;</span>
+<span class="lineNum">     270 </span>            : }
+<a name="271"><span class="lineNum">     271 </span>            : </a>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineCov">       1952 : static int file_unquery(struct ompi_file_t *file,</span>
+<span class="lineNum">     274 </span>            :                         struct mca_io_base_file_t *private_data)
+<span class="lineNum">     275 </span>            : {
+<span class="lineNum">     276 </span>            :     /* Free the ompio module-specific data that was allocated in
+<span class="lineNum">     277 </span>            :        _file_query(), above */
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineCov">       1952 :     if (NULL != private_data) {</span>
+<span class="lineNum">     280 </span><span class="lineCov">       1952 :         free(private_data);</span>
+<span class="lineNum">     281 </span>            :     }
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineCov">       1952 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     284 </span>            : }
+<a name="285"><span class="lineNum">     285 </span>            : </a>
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span><span class="lineCov">        329 : static int delete_query(char *filename, struct ompi_info_t *info,</span>
+<span class="lineNum">     288 </span>            :                         struct mca_io_base_delete_t **private_data,
+<span class="lineNum">     289 </span>            :                         bool *usable, int *priority)
+<span class="lineNum">     290 </span>            : {
+<span class="lineNum">     291 </span><span class="lineCov">        329 :     *priority = delete_priority_param;</span>
+<span class="lineNum">     292 </span><span class="lineCov">        329 :     *usable = true;</span>
+<span class="lineNum">     293 </span><span class="lineCov">        329 :     *private_data = NULL;</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineCov">        329 :     return OMPI_SUCCESS;</span>
+<a name="296"><span class="lineNum">     296 </span>            : }</a>
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span><span class="lineCov">        329 : static int delete_select(char *filename, struct ompi_info_t *info,</span>
+<span class="lineNum">     299 </span>            :                          struct mca_io_base_delete_t *private_data)
+<span class="lineNum">     300 </span>            : {
+<span class="lineNum">     301 </span>            :     int ret;
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            :     OPAL_THREAD_LOCK (&amp;mca_io_ompio_mutex);
+<span class="lineNum">     304 </span><span class="lineCov">        329 :     ret = mca_io_ompio_file_delete (filename, info);</span>
+<span class="lineNum">     305 </span>            :     OPAL_THREAD_UNLOCK (&amp;mca_io_ompio_mutex);
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineCov">        329 :     return ret;</span>
+<span class="lineNum">     308 </span>            : }
+<span class="lineNum">     309 </span>            : /*
+<span class="lineNum">     310 </span>            : static int io_progress (void)
+<span class="lineNum">     311 </span>            : {
+<span class="lineNum">     312 </span>            :     return OMPI_SUCCESS;
+<span class="lineNum">     313 </span>            : }
+<span class="lineNum">     314 </span>            : */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

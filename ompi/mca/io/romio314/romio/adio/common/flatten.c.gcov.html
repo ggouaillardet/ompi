@@ -1,0 +1,1244 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/io/romio314/romio/adio/common/flatten.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">ompi/mca/io/romio314/romio/adio/common</a> - flatten.c<span style="font-size: 80%;"> (source / <a href="flatten.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">170</td>
+            <td class="headerCovTableEntry">514</td>
+            <td class="headerCovTableEntryLo">33.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  *   Copyright (C) 1997 University of Chicago.
+<span class="lineNum">       4 </span>            :  *   See COPYRIGHT notice in top-level directory.
+<span class="lineNum">       5 </span>            :  */
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            : #include &quot;adio.h&quot;
+<span class="lineNum">       8 </span>            : #include &quot;adio_extern.h&quot;
+<span class="lineNum">       9 </span>            : /* #ifdef MPISGI
+<span class="lineNum">      10 </span>            : #include &quot;mpisgi2.h&quot;
+<span class="lineNum">      11 </span>            : #endif */
+<span class="lineNum">      12 </span>            : 
+<span class="lineNum">      13 </span>            : #ifdef USE_DBG_LOGGING
+<span class="lineNum">      14 </span>            :   #define FLATTEN_DEBUG 1
+<span class="lineNum">      15 </span>            : #endif
+<span class="lineNum">      16 </span>            : 
+<a name="17"><span class="lineNum">      17 </span>            : void ADIOI_Optimize_flattened(ADIOI_Flatlist_node *flat_type);</a>
+<span class="lineNum">      18 </span>            : /* flatten datatype and add it to Flatlist */
+<span class="lineNum">      19 </span><span class="lineCov">        192 : void ADIOI_Flatten_datatype(MPI_Datatype datatype)</span>
+<span class="lineNum">      20 </span>            : {
+<span class="lineNum">      21 </span>            : #ifdef HAVE_MPIR_TYPE_FLATTEN
+<span class="lineNum">      22 </span>            :     MPI_Aint flatten_idx;
+<span class="lineNum">      23 </span>            : #endif
+<span class="lineNum">      24 </span><span class="lineCov">        192 :     MPI_Count curr_index=0;</span>
+<span class="lineNum">      25 </span>            :     int is_contig;
+<span class="lineNum">      26 </span><span class="lineCov">        192 :     ADIOI_Flatlist_node *flat, *prev=0;</span>
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            :     /* check if necessary to flatten. */
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            :     /* is it entirely contiguous? */
+<span class="lineNum">      31 </span><span class="lineCov">        192 :     ADIOI_Datatype_iscontig(datatype, &amp;is_contig);</span>
+<span class="lineNum">      32 </span>            :   #ifdef FLATTEN_DEBUG
+<span class="lineNum">      33 </span>            :   DBG_FPRINTF(stderr,&quot;ADIOI_Flatten_datatype:: is_contig %#X\n&quot;,is_contig);
+<span class="lineNum">      34 </span>            :   #endif
+<span class="lineNum">      35 </span><span class="lineCov">        192 :     if (is_contig) return;</span>
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            :     /* has it already been flattened? */
+<span class="lineNum">      38 </span><span class="lineCov">        192 :     flat = ADIOI_Flatlist;</span>
+<span class="lineNum">      39 </span><span class="lineCov">        576 :     while (flat) {</span>
+<span class="lineNum">      40 </span><span class="lineCov">        192 :         if (flat-&gt;type == datatype) {</span>
+<span class="lineNum">      41 </span>            :       #ifdef FLATTEN_DEBUG
+<span class="lineNum">      42 </span>            :       DBG_FPRINTF(stderr,&quot;ADIOI_Flatten_datatype:: found datatype %#X\n&quot;, datatype);
+<span class="lineNum">      43 </span>            :       #endif
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">      45 </span>            :         }
+<span class="lineNum">      46 </span>            :         else {
+<span class="lineNum">      47 </span><span class="lineCov">        192 :             prev = flat;</span>
+<span class="lineNum">      48 </span><span class="lineCov">        192 :             flat = flat-&gt;next;</span>
+<span class="lineNum">      49 </span>            :         }
+<span class="lineNum">      50 </span>            :     }
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            :     /* flatten and add to the list */
+<span class="lineNum">      53 </span><span class="lineCov">        192 :     flat = prev;</span>
+<span class="lineNum">      54 </span><span class="lineCov">        192 :     flat-&gt;next = (ADIOI_Flatlist_node *)ADIOI_Malloc(sizeof(ADIOI_Flatlist_node));</span>
+<span class="lineNum">      55 </span><span class="lineCov">        192 :     flat = flat-&gt;next;</span>
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span><span class="lineCov">        192 :     flat-&gt;type = datatype;</span>
+<span class="lineNum">      58 </span><span class="lineCov">        192 :     flat-&gt;next = NULL;</span>
+<span class="lineNum">      59 </span><span class="lineCov">        192 :     flat-&gt;blocklens = NULL;</span>
+<span class="lineNum">      60 </span><span class="lineCov">        192 :     flat-&gt;indices = NULL;</span>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span><span class="lineCov">        192 :     flat-&gt;count = ADIOI_Count_contiguous_blocks(datatype, &amp;curr_index);</span>
+<span class="lineNum">      63 </span>            : #ifdef FLATTEN_DEBUG
+<span class="lineNum">      64 </span>            :     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten_datatype:: count %llX, cur_idx = %#llX\n&quot;,flat-&gt;count,curr_index);
+<span class="lineNum">      65 </span>            : #endif
+<span class="lineNum">      66 </span>            : /*    DBG_FPRINTF(stderr, &quot;%d\n&quot;, flat-&gt;count);*/
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span><span class="lineCov">        192 :     if (flat-&gt;count) {</span>
+<span class="lineNum">      69 </span><span class="lineCov">        192 :         flat-&gt;blocklens = (ADIO_Offset *) ADIOI_Malloc(flat-&gt;count * sizeof(ADIO_Offset));</span>
+<span class="lineNum">      70 </span><span class="lineCov">        192 :         flat-&gt;indices = (ADIO_Offset *) ADIOI_Malloc(flat-&gt;count * sizeof(ADIO_Offset));</span>
+<span class="lineNum">      71 </span>            :     }
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span><span class="lineCov">        192 :     curr_index = 0;</span>
+<span class="lineNum">      74 </span>            : #ifdef HAVE_MPIR_TYPE_FLATTEN
+<span class="lineNum">      75 </span>            :     flatten_idx = (MPI_Aint) flat-&gt;count;
+<span class="lineNum">      76 </span>            :     MPIR_Type_flatten(datatype, flat-&gt;indices, flat-&gt;blocklens, &amp;flatten_idx);
+<span class="lineNum">      77 </span>            :   #ifdef FLATTEN_DEBUG
+<span class="lineNum">      78 </span>            :   DBG_FPRINTF(stderr,&quot;ADIOI_Flatten_datatype:: MPIR_Type_flatten\n&quot;);
+<span class="lineNum">      79 </span>            :   #endif
+<span class="lineNum">      80 </span>            : #else
+<span class="lineNum">      81 </span><span class="lineCov">        192 :     ADIOI_Flatten(datatype, flat, 0, &amp;curr_index);</span>
+<span class="lineNum">      82 </span>            :   #ifdef FLATTEN_DEBUG
+<span class="lineNum">      83 </span>            :   DBG_FPRINTF(stderr,&quot;ADIOI_Flatten_datatype:: ADIOI_Flatten\n&quot;);
+<span class="lineNum">      84 </span>            :   #endif
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span><span class="lineCov">        192 :     ADIOI_Optimize_flattened(flat);</span>
+<span class="lineNum">      87 </span>            : #endif
+<span class="lineNum">      88 </span>            : /* debug */
+<span class="lineNum">      89 </span>            : #ifdef FLATTEN_DEBUG
+<span class="lineNum">      90 </span>            :     {
+<span class="lineNum">      91 </span>            :         int i;
+<span class="lineNum">      92 </span>            :         for (i=0; i&lt;flat-&gt;count; i++)
+<span class="lineNum">      93 </span>            :       DBG_FPRINTF(stderr,&quot;ADIOI_Flatten_datatype:: i %#X, blocklens %#llX, indices %#llX\n&quot;,
+<span class="lineNum">      94 </span>            :               i,
+<span class="lineNum">      95 </span>            :               flat-&gt;blocklens[i],
+<span class="lineNum">      96 </span>            :               flat-&gt;indices[i]
+<span class="lineNum">      97 </span>            :              );
+<span class="lineNum">      98 </span>            :   }
+<span class="lineNum">      99 </span>            : #endif
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span>            : }
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            : /* ADIOI_Flatten()
+<span class="lineNum">     104 </span>            :  *
+<a name="105"><span class="lineNum">     105 </span>            :  * Assumption: input datatype is not a basic!!!!</a>
+<span class="lineNum">     106 </span>            :  */
+<span class="lineNum">     107 </span><span class="lineCov">        480 : void ADIOI_Flatten(MPI_Datatype datatype, ADIOI_Flatlist_node *flat,</span>
+<span class="lineNum">     108 </span>            :                   ADIO_Offset st_offset, MPI_Count *curr_index)
+<span class="lineNum">     109 </span>            : {
+<span class="lineNum">     110 </span><span class="lineCov">        480 :     int i, k, m, n, basic_num, nonzeroth, is_hindexed_block=0;</span>
+<span class="lineNum">     111 </span>            :     int combiner, old_combiner, old_is_contig;
+<span class="lineNum">     112 </span>            :     int nints, nadds, ntypes, old_nints, old_nadds, old_ntypes;
+<span class="lineNum">     113 </span>            :     /* By using ADIO_Offset we preserve +/- sign and
+<span class="lineNum">     114 </span>            :          avoid &gt;2G integer arithmetic problems */
+<span class="lineNum">     115 </span>            :     ADIO_Offset top_count;
+<span class="lineNum">     116 </span>            :     MPI_Count j, old_size, prev_index, num;
+<span class="lineNum">     117 </span>            :     MPI_Aint old_extent;/* Assume extents are non-negative */
+<span class="lineNum">     118 </span>            :     int *ints;
+<span class="lineNum">     119 </span>            :     MPI_Aint *adds; /* Make no assumptions about +/- sign on these */
+<span class="lineNum">     120 </span>            :     MPI_Datatype *types;
+<span class="lineNum">     121 </span><span class="lineCov">        480 :     MPI_Type_get_envelope(datatype, &amp;nints, &amp;nadds, &amp;ntypes, &amp;combiner);</span>
+<span class="lineNum">     122 </span><span class="lineCov">        480 :     ints = (int *) ADIOI_Malloc((nints+1)*sizeof(int));</span>
+<span class="lineNum">     123 </span><span class="lineCov">        480 :     adds = (MPI_Aint *) ADIOI_Malloc((nadds+1)*sizeof(MPI_Aint));</span>
+<span class="lineNum">     124 </span><span class="lineCov">        480 :     types = (MPI_Datatype *) ADIOI_Malloc((ntypes+1)*sizeof(MPI_Datatype));</span>
+<span class="lineNum">     125 </span><span class="lineCov">        480 :     MPI_Type_get_contents(datatype, nints, nadds, ntypes, ints, adds, types);</span>
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            :   #ifdef FLATTEN_DEBUG
+<span class="lineNum">     128 </span>            :   DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: st_offset %#llX, curr_index %#llX\n&quot;,st_offset,*curr_index);
+<span class="lineNum">     129 </span>            :   DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: nints %#X, nadds %#X, ntypes %#X\n&quot;,nints, nadds, ntypes);
+<span class="lineNum">     130 </span>            :   for(i=0; i&lt; nints; ++i)
+<span class="lineNum">     131 </span>            :   {
+<span class="lineNum">     132 </span>            :     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: ints[%d]=%#X\n&quot;,i,ints[i]);
+<span class="lineNum">     133 </span>            :   }
+<span class="lineNum">     134 </span>            :   for(i=0; i&lt; nadds; ++i)
+<span class="lineNum">     135 </span>            :   {
+<span class="lineNum">     136 </span>            :     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: adds[%d]=&quot;MPI_AINT_FMT_HEX_SPEC&quot;\n&quot;,i,adds[i]);
+<span class="lineNum">     137 </span>            :   }
+<span class="lineNum">     138 </span>            :   for(i=0; i&lt; ntypes; ++i)
+<span class="lineNum">     139 </span>            :   {
+<span class="lineNum">     140 </span>            :     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: types[%d]=%#llX\n&quot;,i,(unsigned long long)(unsigned long)types[i]);
+<span class="lineNum">     141 </span>            :   }
+<span class="lineNum">     142 </span>            :   #endif
+<span class="lineNum">     143 </span>            :   /* Chapter 4, page 83: when processing datatypes, note this item from the
+<span class="lineNum">     144 </span>            :    * standard:
+<span class="lineNum">     145 </span>            :          Most datatype constructors have replication count or block length
+<span class="lineNum">     146 </span>            :          arguments.  Allowed values are non-negative integers. If the value is
+<span class="lineNum">     147 </span>            :          zero, no elements are generated in the type map and there is no effect
+<span class="lineNum">     148 </span>            :          on datatype bounds or extent.  */
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineCov">        480 :     switch (combiner) {</span>
+<span class="lineNum">     151 </span>            : #ifdef MPIIMPL_HAVE_MPI_COMBINER_DUP
+<span class="lineNum">     152 </span>            :     case MPI_COMBINER_DUP:
+<span class="lineNum">     153 </span>            :     #ifdef FLATTEN_DEBUG
+<span class="lineNum">     154 </span>            :     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: MPI_COMBINER_DUP\n&quot;);
+<span class="lineNum">     155 </span>            :     #endif
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     157 </span>            :                               &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :             ADIOI_Flatten(types[0], flat, st_offset, curr_index);</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     162 </span>            : #endif
+<span class="lineNum">     163 </span>            : #ifdef MPIIMPL_HAVE_MPI_COMBINER_SUBARRAY
+<span class="lineNum">     164 </span>            :     case MPI_COMBINER_SUBARRAY:
+<span class="lineNum">     165 </span>            :         {
+<span class="lineNum">     166 </span><span class="lineCov">         48 :             int dims = ints[0];</span>
+<span class="lineNum">     167 </span>            :             MPI_Datatype stype;
+<span class="lineNum">     168 </span>            :       #ifdef FLATTEN_DEBUG
+<span class="lineNum">     169 </span>            :       DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: MPI_COMBINER_SUBARRAY\n&quot;);
+<span class="lineNum">     170 </span>            :       #endif
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineCov">        144 :             ADIO_Type_create_subarray(dims,</span>
+<span class="lineNum">     173 </span>            :                                       &amp;ints[1],        /* sizes */
+<span class="lineNum">     174 </span><span class="lineCov">         48 :                                       &amp;ints[dims+1],   /* subsizes */</span>
+<span class="lineNum">     175 </span>            :                                       &amp;ints[2*dims+1], /* starts */
+<span class="lineNum">     176 </span><span class="lineCov">         48 :                                       ints[3*dims+1],  /* order */</span>
+<span class="lineNum">     177 </span>            :                                       types[0],        /* type */
+<span class="lineNum">     178 </span>            :                                       &amp;stype);
+<span class="lineNum">     179 </span><span class="lineCov">         48 :             ADIOI_Flatten(stype, flat, st_offset, curr_index);</span>
+<span class="lineNum">     180 </span><span class="lineCov">         48 :             MPI_Type_free(&amp;stype);</span>
+<span class="lineNum">     181 </span>            :         }
+<span class="lineNum">     182 </span><span class="lineCov">         48 :         break;</span>
+<span class="lineNum">     183 </span>            : #endif
+<span class="lineNum">     184 </span>            : #ifdef MPIIMPL_HAVE_MPI_COMBINER_DARRAY
+<span class="lineNum">     185 </span>            :     case MPI_COMBINER_DARRAY:
+<span class="lineNum">     186 </span>            :         {
+<span class="lineNum">     187 </span><span class="lineCov">         48 :             int dims = ints[2];</span>
+<span class="lineNum">     188 </span>            :             MPI_Datatype dtype;
+<span class="lineNum">     189 </span>            :       #ifdef FLATTEN_DEBUG
+<span class="lineNum">     190 </span>            :       DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: MPI_COMBINER_DARRAY\n&quot;);
+<span class="lineNum">     191 </span>            :       #endif
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span><span class="lineCov">        192 :             ADIO_Type_create_darray(ints[0],         /* size */</span>
+<span class="lineNum">     194 </span><span class="lineCov">         48 :                                     ints[1],         /* rank */</span>
+<span class="lineNum">     195 </span>            :                                     dims,
+<span class="lineNum">     196 </span>            :                                     &amp;ints[3],        /* gsizes */
+<span class="lineNum">     197 </span><span class="lineCov">         48 :                                     &amp;ints[dims+3],   /* distribs */</span>
+<span class="lineNum">     198 </span>            :                                     &amp;ints[2*dims+3], /* dargs */
+<span class="lineNum">     199 </span>            :                                     &amp;ints[3*dims+3], /* psizes */
+<span class="lineNum">     200 </span><span class="lineCov">         48 :                                     ints[4*dims+3],  /* order */</span>
+<span class="lineNum">     201 </span>            :                                     types[0],
+<span class="lineNum">     202 </span>            :                                     &amp;dtype);
+<span class="lineNum">     203 </span>            :       #ifdef FLATTEN_DEBUG
+<span class="lineNum">     204 </span>            :       DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: MPI_COMBINER_DARRAY &lt;ADIOI_Flatten(dtype, flat-&gt;indices[%#X] %#llX, flat-&gt;blocklens[%#X] %#llX, st_offset %#llX, curr_index %#llX);\n&quot;,
+<span class="lineNum">     205 </span>            :               0, flat-&gt;indices[0], 0, flat-&gt;blocklens[0], st_offset, *curr_index);
+<span class="lineNum">     206 </span>            :       #endif
+<span class="lineNum">     207 </span><span class="lineCov">         48 :             ADIOI_Flatten(dtype, flat, st_offset, curr_index);</span>
+<span class="lineNum">     208 </span>            :       #ifdef FLATTEN_DEBUG
+<span class="lineNum">     209 </span>            :       DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: MPI_COMBINER_DARRAY &gt;ADIOI_Flatten(dtype, flat-&gt;indices[%#X] %#llX, flat-&gt;blocklens[%#X] %#llX, st_offset %#llX, curr_index %#llX);\n&quot;,
+<span class="lineNum">     210 </span>            :               0, flat-&gt;indices[0], 0, flat-&gt;blocklens[0], st_offset, *curr_index);
+<span class="lineNum">     211 </span>            :       #endif
+<span class="lineNum">     212 </span><span class="lineCov">         48 :             MPI_Type_free(&amp;dtype);</span>
+<span class="lineNum">     213 </span>            :         }
+<span class="lineNum">     214 </span><span class="lineCov">         48 :         break;</span>
+<span class="lineNum">     215 </span>            : #endif
+<span class="lineNum">     216 </span>            :     case MPI_COMBINER_CONTIGUOUS:
+<span class="lineNum">     217 </span>            :     #ifdef FLATTEN_DEBUG
+<span class="lineNum">     218 </span>            :     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: MPI_COMBINER_CONTIGUOUS\n&quot;);
+<span class="lineNum">     219 </span>            :     #endif
+<span class="lineNum">     220 </span><span class="lineCov">        192 :         top_count = ints[0];</span>
+<span class="lineNum">     221 </span><span class="lineCov">        192 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     222 </span>            :                               &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     223 </span><span class="lineCov">        192 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span><span class="lineCov">        192 :         prev_index = *curr_index;</span>
+<span class="lineNum">     226 </span><span class="lineCov">        192 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">     227 </span><span class="lineCov">        192 :             ADIOI_Flatten(types[0], flat, st_offset, curr_index);</span>
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span><span class="lineCov">        192 :         if (prev_index == *curr_index) {</span>
+<span class="lineNum">     230 </span>            : /* simplest case, made up of basic or contiguous types */
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :             j = *curr_index;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :             flat-&gt;indices[j] = st_offset;</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :             MPI_Type_size_x(types[0], &amp;old_size);</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :             flat-&gt;blocklens[j] = top_count * old_size;</span>
+<span class="lineNum">     235 </span>            :       #ifdef FLATTEN_DEBUG
+<span class="lineNum">     236 </span>            :       DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: simple flat-&gt;indices[%#llX] %#llX, flat-&gt;blocklens[%#llX] %#llX\n&quot;,j, flat-&gt;indices[j], j, flat-&gt;blocklens[j]);
+<span class="lineNum">     237 </span>            :       #endif
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :             (*curr_index)++;</span>
+<span class="lineNum">     239 </span>            :         }
+<span class="lineNum">     240 </span>            :         else {
+<span class="lineNum">     241 </span>            : /* made up of noncontiguous derived types */
+<span class="lineNum">     242 </span><span class="lineCov">        192 :             j = *curr_index;</span>
+<span class="lineNum">     243 </span><span class="lineCov">        192 :             num = *curr_index - prev_index;</span>
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            : /* The noncontiguous types have to be replicated count times */
+<span class="lineNum">     246 </span><span class="lineCov">        192 :             MPI_Type_extent(types[0], &amp;old_extent);</span>
+<span class="lineNum">     247 </span><span class="lineCov">        192 :             for (m=1; m&lt;top_count; m++) {</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :                 for (i=0; i&lt;num; i++) {</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :                     flat-&gt;indices[j] = flat-&gt;indices[j-num] + ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :                     flat-&gt;blocklens[j] = flat-&gt;blocklens[j-num];</span>
+<span class="lineNum">     251 </span>            :           #ifdef FLATTEN_DEBUG
+<span class="lineNum">     252 </span>            :           DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: derived flat-&gt;indices[%#llX] %#llX, flat-&gt;blocklens[%#llX] %#llX\n&quot;,j, flat-&gt;indices[j], j, flat-&gt;blocklens[j]);
+<span class="lineNum">     253 </span>            :           #endif
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :                     j++;</span>
+<span class="lineNum">     255 </span>            :                 }
+<span class="lineNum">     256 </span>            :             }
+<span class="lineNum">     257 </span><span class="lineCov">        192 :             *curr_index = j;</span>
+<span class="lineNum">     258 </span>            :         }
+<span class="lineNum">     259 </span><span class="lineCov">        192 :         break;</span>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            :     case MPI_COMBINER_VECTOR:
+<span class="lineNum">     262 </span>            :     #ifdef FLATTEN_DEBUG
+<span class="lineNum">     263 </span>            :     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: MPI_COMBINER_VECTOR\n&quot;);
+<span class="lineNum">     264 </span>            :     #endif
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         top_count = ints[0];</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     267 </span>            :                               &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         prev_index = *curr_index;</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :             ADIOI_Flatten(types[0], flat, st_offset, curr_index);</span>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         if (prev_index == *curr_index) {</span>
+<span class="lineNum">     275 </span>            : /* simplest case, vector of basic or contiguous types */
+<span class="lineNum">     276 </span>            :     /* By using ADIO_Offset we preserve +/- sign and
+<span class="lineNum">     277 </span>            :          avoid &gt;2G integer arithmetic problems */
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     ADIO_Offset blocklength = ints[1], stride = ints[2];</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :             j = *curr_index;</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :             flat-&gt;indices[j] = st_offset;</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :             MPI_Type_size_x(types[0], &amp;old_size);</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :             flat-&gt;blocklens[j] = blocklength * old_size;</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :             for (i=j+1; i&lt;j+top_count; i++) {</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :                 flat-&gt;indices[i] = flat-&gt;indices[i-1] + stride * old_size;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :                 flat-&gt;blocklens[i] = flat-&gt;blocklens[j];</span>
+<span class="lineNum">     286 </span>            :             }
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :             *curr_index = i;</span>
+<span class="lineNum">     288 </span>            :         }
+<span class="lineNum">     289 </span>            :         else {
+<span class="lineNum">     290 </span>            : /* vector of noncontiguous derived types */
+<span class="lineNum">     291 </span>            :     /* By using ADIO_Offset we preserve +/- sign and
+<span class="lineNum">     292 </span>            :          avoid &gt;2G integer arithmetic problems */
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     ADIO_Offset blocklength = ints[1], stride = ints[2];</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :             j = *curr_index;</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :             num = *curr_index - prev_index;</span>
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span>            : /* The noncontiguous types have to be replicated blocklen times
+<span class="lineNum">     299 </span>            :    and then strided. Replicate the first one. */
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :             MPI_Type_extent(types[0], &amp;old_extent);</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :             for (m=1; m&lt;blocklength; m++) {</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :                 for (i=0; i&lt;num; i++) {</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :                     flat-&gt;indices[j] = flat-&gt;indices[j-num] + ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :                     flat-&gt;blocklens[j] = flat-&gt;blocklens[j-num];</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :                     j++;</span>
+<span class="lineNum">     306 </span>            :                 }
+<span class="lineNum">     307 </span>            :             }
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :             *curr_index = j;</span>
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            : /* Now repeat with strides. */
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :             num = *curr_index - prev_index;</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :             for (i=1; i&lt;top_count; i++) {</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :                 for (m=0; m&lt;num; m++) {</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :                    flat-&gt;indices[j] =  flat-&gt;indices[j-num] + stride * ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :                    flat-&gt;blocklens[j] = flat-&gt;blocklens[j-num];</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :                    j++;</span>
+<span class="lineNum">     317 </span>            :                 }
+<span class="lineNum">     318 </span>            :             }
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :             *curr_index = j;</span>
+<span class="lineNum">     320 </span>            :         }
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            :     case MPI_COMBINER_HVECTOR:
+<span class="lineNum">     324 </span>            :     case MPI_COMBINER_HVECTOR_INTEGER:
+<span class="lineNum">     325 </span>            :     #ifdef FLATTEN_DEBUG
+<span class="lineNum">     326 </span>            :     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: MPI_COMBINER_HVECTOR_INTEGER\n&quot;);
+<span class="lineNum">     327 </span>            :     #endif
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :         top_count = ints[0];</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     330 </span>            :                               &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :         prev_index = *curr_index;</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :             ADIOI_Flatten(types[0], flat, st_offset, curr_index);</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :         if (prev_index == *curr_index) {</span>
+<span class="lineNum">     338 </span>            : /* simplest case, vector of basic or contiguous types */
+<span class="lineNum">     339 </span>            :     /* By using ADIO_Offset we preserve +/- sign and
+<span class="lineNum">     340 </span>            :          avoid &gt;2G integer arithmetic problems */
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     ADIO_Offset blocklength = ints[1];</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :             j = *curr_index;</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :             flat-&gt;indices[j] = st_offset;</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :             MPI_Type_size_x(types[0], &amp;old_size);</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :             flat-&gt;blocklens[j] = blocklength * old_size;</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :             for (i=j+1; i&lt;j+top_count; i++) {</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :                 flat-&gt;indices[i] = flat-&gt;indices[i-1] + adds[0];</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :                 flat-&gt;blocklens[i] = flat-&gt;blocklens[j];</span>
+<span class="lineNum">     349 </span>            :             }
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :             *curr_index = i;</span>
+<span class="lineNum">     351 </span>            :         }
+<span class="lineNum">     352 </span>            :         else {
+<span class="lineNum">     353 </span>            : /* vector of noncontiguous derived types */
+<span class="lineNum">     354 </span>            :     /* By using ADIO_Offset we preserve +/- sign and
+<span class="lineNum">     355 </span>            :          avoid &gt;2G integer arithmetic problems */
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     ADIO_Offset blocklength = ints[1];</span>
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :             j = *curr_index;</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :             num = *curr_index - prev_index;</span>
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span>            : /* The noncontiguous types have to be replicated blocklen times
+<span class="lineNum">     362 </span>            :    and then strided. Replicate the first one. */
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :             MPI_Type_extent(types[0], &amp;old_extent);</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :             for (m=1; m&lt;blocklength; m++) {</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :                 for (i=0; i&lt;num; i++) {</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :                     flat-&gt;indices[j] = flat-&gt;indices[j-num] + ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :                     flat-&gt;blocklens[j] = flat-&gt;blocklens[j-num];</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :                     j++;</span>
+<span class="lineNum">     369 </span>            :                 }
+<span class="lineNum">     370 </span>            :             }
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :             *curr_index = j;</span>
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span>            : /* Now repeat with strides. */
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :             num = *curr_index - prev_index;</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :             for (i=1; i&lt;top_count; i++) {</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :                 for (m=0; m&lt;num; m++) {</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                    flat-&gt;indices[j] =  flat-&gt;indices[j-num] + adds[0];</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                    flat-&gt;blocklens[j] = flat-&gt;blocklens[j-num];</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :                    j++;</span>
+<span class="lineNum">     380 </span>            :                 }
+<span class="lineNum">     381 </span>            :             }
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :             *curr_index = j;</span>
+<span class="lineNum">     383 </span>            :         }
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span>            :     case MPI_COMBINER_INDEXED:
+<span class="lineNum">     387 </span>            :     #ifdef FLATTEN_DEBUG
+<span class="lineNum">     388 </span>            :     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: MPI_COMBINER_INDEXED\n&quot;);
+<span class="lineNum">     389 </span>            :     #endif
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :         top_count = ints[0];</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     392 </span>            :                               &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :         MPI_Type_extent(types[0], &amp;old_extent);</span>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :         prev_index = *curr_index;</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">     398 </span>            :   {
+<span class="lineNum">     399 </span>            :     /* By using ADIO_Offset we preserve +/- sign and
+<span class="lineNum">     400 </span>            :          avoid &gt;2G integer arithmetic problems */
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :     ADIO_Offset stride = ints[top_count+1];</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :         ADIOI_Flatten(types[0], flat,</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :          st_offset+stride* ADIOI_AINT_CAST_TO_OFFSET old_extent, curr_index);</span>
+<span class="lineNum">     404 </span>            :   }
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :         if (prev_index == *curr_index) {</span>
+<span class="lineNum">     407 </span>            : /* simplest case, indexed type made up of basic or contiguous types */
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :             j = *curr_index;</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :             for (i=j, nonzeroth=i; i&lt;j+top_count; i++) {</span>
+<span class="lineNum">     410 </span>            :     /* By using ADIO_Offset we preserve +/- sign and
+<span class="lineNum">     411 </span>            :          avoid &gt;2G integer arithmetic problems */
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :     ADIO_Offset blocklength = ints[1+i-j], stride = ints[top_count+1+i-j];</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :                 if (blocklength &gt; 0) {</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :                     flat-&gt;indices[nonzeroth] =</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :                         st_offset + stride* ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :                     flat-&gt;blocklens[nonzeroth] =</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :                         blocklength* ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :                     nonzeroth++;</span>
+<span class="lineNum">     419 </span>            :                 } else {
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :                     flat-&gt;count--; /* don't count/consider any zero-length blocklens */</span>
+<span class="lineNum">     421 </span>            :                 }
+<span class="lineNum">     422 </span>            :             }
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :             *curr_index = i;</span>
+<span class="lineNum">     424 </span>            :         }
+<span class="lineNum">     425 </span>            :         else {
+<span class="lineNum">     426 </span>            : /* indexed type made up of noncontiguous derived types */
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :             j = *curr_index;</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :             num = *curr_index - prev_index;</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :             basic_num = num;</span>
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span>            : /* The noncontiguous types have to be replicated blocklens[i] times
+<span class="lineNum">     433 </span>            :    and then strided. Replicate the first one. */
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :             for (m=1; m&lt;ints[1]; m++) {</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :                 for (i=0, nonzeroth = j; i&lt;num; i++) {</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :                     if (flat-&gt;blocklens[j-num] &gt; 0) {</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :                         flat-&gt;indices[nonzeroth] =</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :                             flat-&gt;indices[nonzeroth-num] + ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :                         flat-&gt;blocklens[nonzeroth] =</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :                             flat-&gt;blocklens[nonzeroth-num];</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :                         j++;</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :                         nonzeroth++;</span>
+<span class="lineNum">     443 </span>            :                     } else {
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :                         flat-&gt;count --;</span>
+<span class="lineNum">     445 </span>            :                     }
+<span class="lineNum">     446 </span>            :                 }
+<span class="lineNum">     447 </span>            :             }
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :             *curr_index = j;</span>
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span>            : /* Now repeat with strides. */
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :             for (i=1; i&lt;top_count; i++) {</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :                 num = *curr_index - prev_index;</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :                 prev_index = *curr_index;</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :                 for (m=0, nonzeroth=j; m&lt;basic_num; m++) {</span>
+<span class="lineNum">     455 </span>            :       /* By using ADIO_Offset we preserve +/- sign and
+<span class="lineNum">     456 </span>            :          avoid &gt;2G integer arithmetic problems */
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :       ADIO_Offset stride = ints[top_count+1+i]-ints[top_count+i];</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :                     if (flat-&gt;blocklens[j-num] &gt; 0 ) {</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :                         flat-&gt;indices[nonzeroth] =</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :                             flat-&gt;indices[j-num] + stride* ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :                         flat-&gt;blocklens[nonzeroth] = flat-&gt;blocklens[j-num];</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :                         j++;</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :                         nonzeroth++;</span>
+<span class="lineNum">     464 </span>            :                     } else {
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :                         flat-&gt;count--;</span>
+<span class="lineNum">     466 </span>            :                     }
+<span class="lineNum">     467 </span>            :                 }
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :                 *curr_index = j;</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :                 for (m=1; m&lt;ints[1+i]; m++) {</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :                     for (k=0, nonzeroth=j; k&lt;basic_num; k++) {</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :                         if (flat-&gt;blocklens[j-basic_num] &gt; 0) {</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :                             flat-&gt;indices[nonzeroth] =</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :                                 flat-&gt;indices[j-basic_num] + ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :                             flat-&gt;blocklens[nonzeroth] = flat-&gt;blocklens[j-basic_num];</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :                             j++;</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :                             nonzeroth++;</span>
+<span class="lineNum">     477 </span>            :                         } else {
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :                             flat-&gt;count --;</span>
+<span class="lineNum">     479 </span>            :                         }
+<span class="lineNum">     480 </span>            :                     }
+<span class="lineNum">     481 </span>            :                 }
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :                 *curr_index = j;</span>
+<span class="lineNum">     483 </span>            :             }
+<span class="lineNum">     484 </span>            :         }
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span>            : #if defined HAVE_DECL_MPI_COMBINER_HINDEXED_BLOCK &amp;&amp; HAVE_DECL_MPI_COMBINER_HINDEXED_BLOCK
+<span class="lineNum">     488 </span>            :     case MPI_COMBINER_HINDEXED_BLOCK:
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :         is_hindexed_block=1;</span>
+<span class="lineNum">     490 </span>            :         /* deliberate fall-through */
+<span class="lineNum">     491 </span>            : #endif
+<span class="lineNum">     492 </span>            :     case MPI_COMBINER_INDEXED_BLOCK:
+<span class="lineNum">     493 </span>            :     #ifdef FLATTEN_DEBUG
+<span class="lineNum">     494 </span>            :     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: MPI_COMBINER_INDEXED_BLOCK\n&quot;);
+<span class="lineNum">     495 </span>            :     #endif
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :         top_count = ints[0];</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     498 </span>            :                               &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :         MPI_Type_extent(types[0], &amp;old_extent);</span>
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :         prev_index = *curr_index;</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">     504 </span>            :   {
+<span class="lineNum">     505 </span>            :       /* By using ADIO_Offset we preserve +/- sign and
+<span class="lineNum">     506 </span>            :          avoid &gt;2G integer arithmetic problems */
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :       ADIO_Offset stride = ints[1+1];</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :         if (is_hindexed_block) {</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :             ADIOI_Flatten(types[0], flat,</span>
+<span class="lineNum">     510 </span>            :                     st_offset+adds[0], curr_index);
+<span class="lineNum">     511 </span>            :         } else {
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :             ADIOI_Flatten(types[0], flat,</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :                     st_offset+stride* ADIOI_AINT_CAST_TO_OFFSET old_extent, curr_index);</span>
+<span class="lineNum">     514 </span>            :         }
+<span class="lineNum">     515 </span>            :   }
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :         if (prev_index == *curr_index) {</span>
+<span class="lineNum">     518 </span>            : /* simplest case, indexed type made up of basic or contiguous types */
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :             j = *curr_index;</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :             for (i=j; i&lt;j+top_count; i++) {</span>
+<span class="lineNum">     521 </span>            :       /* By using ADIO_Offset we preserve +/- sign and
+<span class="lineNum">     522 </span>            :          avoid &gt;2G integer arithmetic problems */
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :                 ADIO_Offset blocklength = ints[1];</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :                 if (is_hindexed_block) {</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :                     flat-&gt;indices[i] = st_offset + adds[i-j];</span>
+<span class="lineNum">     526 </span>            :                 } else {
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :                     ADIO_Offset stride = ints[1+1+i-j];</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :                     flat-&gt;indices[i] = st_offset +</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :                         stride* ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     530 </span>            :                 }
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :                 flat-&gt;blocklens[i] = blocklength* ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     532 </span>            :             }
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :             *curr_index = i;</span>
+<span class="lineNum">     534 </span>            :         }
+<span class="lineNum">     535 </span>            :         else {
+<span class="lineNum">     536 </span>            : /* vector of noncontiguous derived types */
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :             j = *curr_index;</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :             num = *curr_index - prev_index;</span>
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span>            : /* The noncontiguous types have to be replicated blocklens[i] times
+<span class="lineNum">     542 </span>            :    and then strided. Replicate the first one. */
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :             for (m=1; m&lt;ints[1]; m++) {</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :                 for (i=0; i&lt;num; i++) {</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :                     if (is_hindexed_block) {</span>
+<span class="lineNum">     546 </span>            :                         /* this is the one place the hindexed case uses the
+<span class="lineNum">     547 </span>            :                          * extent of a type */
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :                         MPI_Type_extent(types[0], &amp;old_extent);</span>
+<span class="lineNum">     549 </span>            :                     }
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :                     flat-&gt;indices[j] = flat-&gt;indices[j-num] +</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :                         ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :                     flat-&gt;blocklens[j] = flat-&gt;blocklens[j-num];</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :                     j++;</span>
+<span class="lineNum">     554 </span>            :                 }
+<span class="lineNum">     555 </span>            :             }
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :             *curr_index = j;</span>
+<span class="lineNum">     557 </span>            : 
+<span class="lineNum">     558 </span>            : /* Now repeat with strides. */
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :             num = *curr_index - prev_index;</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :             for (i=1; i&lt;top_count; i++) {</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :                 for (m=0; m&lt;num; m++) {</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :                     if (is_hindexed_block) {</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :                         flat-&gt;indices[j] = flat-&gt;indices[j-num] +</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :                             adds[i] - adds[i-1];</span>
+<span class="lineNum">     565 </span>            :                     } else {
+<span class="lineNum">     566 </span>            :                         /* By using ADIO_Offset we preserve +/- sign and
+<span class="lineNum">     567 </span>            :                            avoid &gt;2G integer arithmetic problems */
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :                         ADIO_Offset stride = ints[2+i]-ints[1+i];</span>
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :                         flat-&gt;indices[j] = flat-&gt;indices[j-num] +</span>
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :                             stride* ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     571 </span>            :                     }
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :                     flat-&gt;blocklens[j] = flat-&gt;blocklens[j-num];</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :                     j++;</span>
+<span class="lineNum">     574 </span>            :                 }
+<span class="lineNum">     575 </span>            :             }
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :             *curr_index = j;</span>
+<span class="lineNum">     577 </span>            :         }
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     579 </span>            : 
+<span class="lineNum">     580 </span>            :     case MPI_COMBINER_HINDEXED:
+<span class="lineNum">     581 </span>            :     case MPI_COMBINER_HINDEXED_INTEGER:
+<span class="lineNum">     582 </span>            :     #ifdef FLATTEN_DEBUG
+<span class="lineNum">     583 </span>            :     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: MPI_COMBINER_HINDEXED_INTEGER\n&quot;);
+<span class="lineNum">     584 </span>            :     #endif
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :         top_count = ints[0];</span>
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     587 </span>            :                               &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">     589 </span>            : 
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :         prev_index = *curr_index;</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">     592 </span>            :   {
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :         ADIOI_Flatten(types[0], flat, st_offset+adds[0], curr_index);</span>
+<span class="lineNum">     594 </span>            :   }
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :         if (prev_index == *curr_index) {</span>
+<span class="lineNum">     597 </span>            : /* simplest case, indexed type made up of basic or contiguous types */
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :             j = *curr_index;</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :             MPI_Type_size_x(types[0], &amp;old_size);</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :             for (i=j, nonzeroth=j; i&lt;j+top_count; i++) {</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :                 if (ints[1+i-j] &gt; 0) {</span>
+<span class="lineNum">     602 </span>            :                     /* By using ADIO_Offset we preserve +/- sign and
+<span class="lineNum">     603 </span>            :                        avoid &gt;2G integer arithmetic problems */
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :                     ADIO_Offset blocklength = ints[1+i-j];</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :                     flat-&gt;indices[nonzeroth] = st_offset + adds[i-j];</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :                     flat-&gt;blocklens[nonzeroth] = blocklength*old_size;</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :                     nonzeroth++;</span>
+<span class="lineNum">     608 </span>            :                 } else {
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :                     flat-&gt;count--;</span>
+<span class="lineNum">     610 </span>            :                 }
+<span class="lineNum">     611 </span>            :             }
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :             *curr_index = i;</span>
+<span class="lineNum">     613 </span>            :         }
+<span class="lineNum">     614 </span>            :         else {
+<span class="lineNum">     615 </span>            : /* indexed type made up of noncontiguous derived types */
+<span class="lineNum">     616 </span>            : 
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :             j = *curr_index;</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :             num = *curr_index - prev_index;</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :             basic_num = num;</span>
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span>            : /* The noncontiguous types have to be replicated blocklens[i] times
+<span class="lineNum">     622 </span>            :    and then strided. Replicate the first one. */
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :             MPI_Type_extent(types[0], &amp;old_extent);</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :             for (m=1; m&lt;ints[1]; m++) {</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :                 for (i=0, nonzeroth=j; i&lt;num; i++) {</span>
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :                     if (flat-&gt;blocklens[j-num] &gt; 0) {</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :                         flat-&gt;indices[nonzeroth] =</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :                             flat-&gt;indices[j-num] + ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :                         flat-&gt;blocklens[nonzeroth] = flat-&gt;blocklens[j-num];</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :                         j++;</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :                         nonzeroth++;</span>
+<span class="lineNum">     632 </span>            :                     } else {
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :                         flat-&gt;count--;</span>
+<span class="lineNum">     634 </span>            :                     }
+<span class="lineNum">     635 </span>            :                 }
+<span class="lineNum">     636 </span>            :             }
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :             *curr_index = j;</span>
+<span class="lineNum">     638 </span>            : 
+<span class="lineNum">     639 </span>            : /* Now repeat with strides. */
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :             for (i=1; i&lt;top_count; i++) {</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :                 num = *curr_index - prev_index;</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :                 prev_index = *curr_index;</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :                 for (m=0, nonzeroth=j; m&lt;basic_num; m++) {</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :                     if (flat-&gt;blocklens[j-num] &gt; 0) {</span>
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :                         flat-&gt;indices[nonzeroth] =</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :                             flat-&gt;indices[j-num] + adds[i] - adds[i-1];</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :                         flat-&gt;blocklens[nonzeroth] = flat-&gt;blocklens[j-num];</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :                         j++;</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :                         nonzeroth++;</span>
+<span class="lineNum">     650 </span>            :                     } else {
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :                         flat-&gt;count--;</span>
+<span class="lineNum">     652 </span>            :                     }
+<span class="lineNum">     653 </span>            :                 }
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :                 *curr_index = j;</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :                 for (m=1; m&lt;ints[1+i]; m++) {</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :                     for (k=0,nonzeroth=j; k&lt;basic_num; k++) {</span>
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :                         if (flat-&gt;blocklens[j-basic_num] &gt;0) {</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :                             flat-&gt;indices[nonzeroth] =</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :                                 flat-&gt;indices[j-basic_num] + ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :                             flat-&gt;blocklens[nonzeroth] = flat-&gt;blocklens[j-basic_num];</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :                             j++;</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :                             nonzeroth++;</span>
+<span class="lineNum">     663 </span>            :                         }
+<span class="lineNum">     664 </span>            :                     }
+<span class="lineNum">     665 </span>            :                 }
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :                 *curr_index = j;</span>
+<span class="lineNum">     667 </span>            :             }
+<span class="lineNum">     668 </span>            :         }
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     670 </span>            : 
+<span class="lineNum">     671 </span>            :     case MPI_COMBINER_STRUCT:
+<span class="lineNum">     672 </span>            :     case MPI_COMBINER_STRUCT_INTEGER:
+<span class="lineNum">     673 </span>            :     #ifdef FLATTEN_DEBUG
+<span class="lineNum">     674 </span>            :     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: MPI_COMBINER_STRUCT_INTEGER\n&quot;);
+<span class="lineNum">     675 </span>            :     #endif
+<span class="lineNum">     676 </span><span class="lineCov">        192 :         top_count = ints[0];</span>
+<span class="lineNum">     677 </span><span class="lineCov">        768 :         for (n=0; n&lt;top_count; n++) {</span>
+<span class="lineNum">     678 </span><span class="lineCov">        576 :             MPI_Type_get_envelope(types[n], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     679 </span>            :                                   &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     680 </span><span class="lineCov">        576 :             ADIOI_Datatype_iscontig(types[n], &amp;old_is_contig);</span>
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span><span class="lineCov">        576 :             prev_index = *curr_index;</span>
+<span class="lineNum">     683 </span><span class="lineCov">        576 :             if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :                 ADIOI_Flatten(types[n], flat, st_offset+adds[n], curr_index);</span>
+<span class="lineNum">     685 </span>            : 
+<span class="lineNum">     686 </span><span class="lineCov">        576 :             if (prev_index == *curr_index) {</span>
+<span class="lineNum">     687 </span>            : /* simplest case, current type is basic or contiguous types */
+<span class="lineNum">     688 </span>            :         /* By using ADIO_Offset we preserve +/- sign and
+<span class="lineNum">     689 </span>            :            avoid &gt;2G integer arithmetic problems */
+<span class="lineNum">     690 </span><span class="lineCov">        576 :                 if (ints[1+n] &gt; 0 || types[n] == MPI_LB || types[n] == MPI_UB) {</span>
+<span class="lineNum">     691 </span><span class="lineCov">        576 :                     ADIO_Offset blocklength = ints[1+n];</span>
+<span class="lineNum">     692 </span><span class="lineCov">        576 :                     j = *curr_index;</span>
+<span class="lineNum">     693 </span><span class="lineCov">        576 :                     flat-&gt;indices[j] = st_offset + adds[n];</span>
+<span class="lineNum">     694 </span><span class="lineCov">        576 :                     MPI_Type_size_x(types[n], &amp;old_size);</span>
+<span class="lineNum">     695 </span><span class="lineCov">        576 :                     flat-&gt;blocklens[j] = blocklength * old_size;</span>
+<span class="lineNum">     696 </span>            : #ifdef FLATTEN_DEBUG
+<span class="lineNum">     697 </span>            :                     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: simple adds[%#X] &quot;MPI_AINT_FMT_HEX_SPEC&quot;, flat-&gt;indices[%#llX] %#llX, flat-&gt;blocklens[%#llX] %#llX\n&quot;,n,adds[n],j, flat-&gt;indices[j], j, flat-&gt;blocklens[j]);
+<span class="lineNum">     698 </span>            : #endif
+<span class="lineNum">     699 </span><span class="lineCov">        576 :                     (*curr_index)++;</span>
+<span class="lineNum">     700 </span>            :                 }
+<span class="lineNum">     701 </span>            :             }
+<span class="lineNum">     702 </span>            :             else {
+<span class="lineNum">     703 </span>            : /* current type made up of noncontiguous derived types */
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :                 j = *curr_index;</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :                 num = *curr_index - prev_index;</span>
+<span class="lineNum">     707 </span>            : 
+<span class="lineNum">     708 </span>            : /* The current type has to be replicated blocklens[n] times */
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :                 MPI_Type_extent(types[n], &amp;old_extent);</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :                 for (m=1; m&lt;ints[1+n]; m++) {</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :                     for (i=0; i&lt;num; i++) {</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :                         flat-&gt;indices[j] =</span>
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :                             flat-&gt;indices[j-num] + ADIOI_AINT_CAST_TO_OFFSET old_extent;</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :                         flat-&gt;blocklens[j] = flat-&gt;blocklens[j-num];</span>
+<span class="lineNum">     715 </span>            : #ifdef FLATTEN_DEBUG
+<span class="lineNum">     716 </span>            :                         DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: simple old_extent &quot;MPI_AINT_FMT_HEX_SPEC&quot;, flat-&gt;indices[%#llX] %#llX, flat-&gt;blocklens[%#llX] %#llX\n&quot;,old_extent,j, flat-&gt;indices[j], j, flat-&gt;blocklens[j]);
+<span class="lineNum">     717 </span>            : #endif
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :                         j++;</span>
+<span class="lineNum">     719 </span>            :                     }
+<span class="lineNum">     720 </span>            :                 }
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :                 *curr_index = j;</span>
+<span class="lineNum">     722 </span>            :             }
+<span class="lineNum">     723 </span>            :         }
+<span class="lineNum">     724 </span><span class="lineCov">        192 :         break;</span>
+<span class="lineNum">     725 </span>            : 
+<span class="lineNum">     726 </span>            :     case MPI_COMBINER_RESIZED:
+<span class="lineNum">     727 </span>            :     #ifdef FLATTEN_DEBUG
+<span class="lineNum">     728 </span>            :     DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: MPI_COMBINER_RESIZED\n&quot;);
+<span class="lineNum">     729 </span>            :     #endif
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span>            :     /* This is done similar to a type_struct with an lb, datatype, ub */
+<span class="lineNum">     732 </span>            : 
+<span class="lineNum">     733 </span>            :     /* handle the Lb */
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :         j = *curr_index;</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :         flat-&gt;indices[j] = st_offset + adds[0];</span>
+<span class="lineNum">     736 </span>            :         /* this zero-length blocklens[] element, unlike eleswhere in the
+<span class="lineNum">     737 </span>            :          * flattening code, is correct and is used to indicate a lower bound
+<span class="lineNum">     738 </span>            :          * marker */
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :         flat-&gt;blocklens[j] = 0;</span>
+<span class="lineNum">     740 </span>            : 
+<span class="lineNum">     741 </span>            :         #ifdef FLATTEN_DEBUG
+<span class="lineNum">     742 </span>            :         DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: simple adds[%#X] &quot;MPI_AINT_FMT_HEX_SPEC&quot;, flat-&gt;indices[%#llX] %#llX, flat-&gt;blocklens[%#llX] %#llX\n&quot;,0,adds[0],j, flat-&gt;indices[j], j, flat-&gt;blocklens[j]);
+<span class="lineNum">     743 </span>            :         #endif
+<span class="lineNum">     744 </span>            : 
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :         (*curr_index)++;</span>
+<span class="lineNum">     746 </span>            : 
+<span class="lineNum">     747 </span>            :         /* handle the datatype */
+<span class="lineNum">     748 </span>            : 
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     750 </span>            :                               &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">     752 </span>            : 
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig)) {</span>
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :             ADIOI_Flatten(types[0], flat, st_offset+adds[0], curr_index);</span>
+<span class="lineNum">     755 </span>            :         }
+<span class="lineNum">     756 </span>            :         else {
+<span class="lineNum">     757 </span>            :             /* current type is basic or contiguous */
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :             j = *curr_index;</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :             flat-&gt;indices[j] = st_offset;</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :             MPI_Type_size_x(types[0], &amp;old_size);</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :             flat-&gt;blocklens[j] = old_size;</span>
+<span class="lineNum">     762 </span>            : 
+<span class="lineNum">     763 </span>            :             #ifdef FLATTEN_DEBUG
+<span class="lineNum">     764 </span>            :             DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: simple adds[%#X] &quot;MPI_AINT_FMT_HEX_SPEC&quot;, flat-&gt;indices[%#llX] %#llX, flat-&gt;blocklens[%#llX] %#llX\n&quot;,0,adds[0],j, flat-&gt;indices[j], j, flat-&gt;blocklens[j]);
+<span class="lineNum">     765 </span>            :             #endif
+<span class="lineNum">     766 </span>            : 
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :             (*curr_index)++;</span>
+<span class="lineNum">     768 </span>            :         }
+<span class="lineNum">     769 </span>            : 
+<span class="lineNum">     770 </span>            :         /* take care of the extent as a UB */
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :         j = *curr_index;</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :         flat-&gt;indices[j] = st_offset + adds[0] + adds[1];</span>
+<span class="lineNum">     773 </span>            :         /* again, zero-element ok: an upper-bound marker explicitly set by the
+<span class="lineNum">     774 </span>            :          * constructor of this resized type */
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :         flat-&gt;blocklens[j] = 0;</span>
+<span class="lineNum">     776 </span>            : 
+<span class="lineNum">     777 </span>            :         #ifdef FLATTEN_DEBUG
+<span class="lineNum">     778 </span>            :         DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: simple adds[%#X] &quot;MPI_AINT_FMT_HEX_SPEC&quot;, flat-&gt;indices[%#llX] %#llX, flat-&gt;blocklens[%#llX] %#llX\n&quot;,1,adds[1],j, flat-&gt;indices[j], j, flat-&gt;blocklens[j]);
+<span class="lineNum">     779 </span>            :         #endif
+<span class="lineNum">     780 </span>            : 
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :         (*curr_index)++;</span>
+<span class="lineNum">     782 </span>            : 
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     784 </span>            : 
+<span class="lineNum">     785 </span>            :     default:
+<span class="lineNum">     786 </span>            :         /* TODO: FIXME (requires changing prototypes to return errors...) */
+<span class="lineNum">     787 </span>            :         DBG_FPRINTF(stderr, &quot;Error: Unsupported datatype passed to ADIOI_Flatten\n&quot;);
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :         MPI_Abort(MPI_COMM_WORLD, 1);</span>
+<span class="lineNum">     789 </span>            :     }
+<span class="lineNum">     790 </span>            : 
+<span class="lineNum">     791 </span>            : #ifndef MPISGI
+<span class="lineNum">     792 </span>            : /* There is a bug in SGI's impl. of MPI_Type_get_contents. It doesn't
+<span class="lineNum">     793 </span>            :    return new datatypes. Therefore no need to free. */
+<span class="lineNum">     794 </span><span class="lineCov">       1344 :     for (i=0; i&lt;ntypes; i++) {</span>
+<span class="lineNum">     795 </span><span class="lineCov">        864 :         MPI_Type_get_envelope(types[i], &amp;old_nints, &amp;old_nadds, &amp;old_ntypes,</span>
+<span class="lineNum">     796 </span>            :                               &amp;old_combiner);
+<span class="lineNum">     797 </span><span class="lineCov">        864 :         if (old_combiner != MPI_COMBINER_NAMED) MPI_Type_free(types+i);</span>
+<span class="lineNum">     798 </span>            :     }
+<span class="lineNum">     799 </span>            : #endif
+<span class="lineNum">     800 </span>            : 
+<span class="lineNum">     801 </span><span class="lineCov">        480 :     ADIOI_Free(ints);</span>
+<span class="lineNum">     802 </span><span class="lineCov">        480 :     ADIOI_Free(adds);</span>
+<span class="lineNum">     803 </span><span class="lineCov">        480 :     ADIOI_Free(types);</span>
+<span class="lineNum">     804 </span>            : 
+<span class="lineNum">     805 </span>            :   #ifdef FLATTEN_DEBUG
+<span class="lineNum">     806 </span>            :   DBG_FPRINTF(stderr,&quot;ADIOI_Flatten:: return st_offset %#llX, curr_index %#llX\n&quot;,st_offset,*curr_index);
+<span class="lineNum">     807 </span>            :   #endif
+<span class="lineNum">     808 </span>            : 
+<span class="lineNum">     809 </span><span class="lineCov">        480 : }</span>
+<span class="lineNum">     810 </span>            : 
+<span class="lineNum">     811 </span>            : /********************************************************/
+<span class="lineNum">     812 </span>            : 
+<span class="lineNum">     813 </span>            : /* ADIOI_Count_contiguous_blocks
+<span class="lineNum">     814 </span>            :  *
+<span class="lineNum">     815 </span>            :  * Returns number of contiguous blocks in type, and also updates
+<span class="lineNum">     816 </span>            :  * curr_index to reflect the space for the additional blocks.
+<span class="lineNum">     817 </span>            :  *
+<a name="818"><span class="lineNum">     818 </span>            :  * ASSUMES THAT TYPE IS NOT A BASIC!!!</a>
+<span class="lineNum">     819 </span>            :  */
+<span class="lineNum">     820 </span><span class="lineCov">        480 : MPI_Count ADIOI_Count_contiguous_blocks(MPI_Datatype datatype, MPI_Count *curr_index)</span>
+<span class="lineNum">     821 </span>            : {
+<span class="lineNum">     822 </span>            :     int i, n;
+<span class="lineNum">     823 </span><span class="lineCov">        480 :     MPI_Count count=0, prev_index, num, basic_num;</span>
+<span class="lineNum">     824 </span>            :     int top_count, combiner, old_combiner, old_is_contig;
+<span class="lineNum">     825 </span>            :     int nints, nadds, ntypes, old_nints, old_nadds, old_ntypes;
+<span class="lineNum">     826 </span>            :     int *ints;
+<span class="lineNum">     827 </span>            :     MPI_Aint *adds; /* Make no assumptions about +/- sign on these */
+<span class="lineNum">     828 </span>            :     MPI_Datatype *types;
+<span class="lineNum">     829 </span>            : 
+<span class="lineNum">     830 </span><span class="lineCov">        480 :     MPI_Type_get_envelope(datatype, &amp;nints, &amp;nadds, &amp;ntypes, &amp;combiner);</span>
+<span class="lineNum">     831 </span><span class="lineCov">        480 :     ints = (int *) ADIOI_Malloc((nints+1)*sizeof(int));</span>
+<span class="lineNum">     832 </span><span class="lineCov">        480 :     adds = (MPI_Aint *) ADIOI_Malloc((nadds+1)*sizeof(MPI_Aint));</span>
+<span class="lineNum">     833 </span><span class="lineCov">        480 :     types = (MPI_Datatype *) ADIOI_Malloc((ntypes+1)*sizeof(MPI_Datatype));</span>
+<span class="lineNum">     834 </span><span class="lineCov">        480 :     MPI_Type_get_contents(datatype, nints, nadds, ntypes, ints, adds, types);</span>
+<span class="lineNum">     835 </span>            : 
+<span class="lineNum">     836 </span><span class="lineCov">        480 :     switch (combiner) {</span>
+<span class="lineNum">     837 </span>            : #ifdef MPIIMPL_HAVE_MPI_COMBINER_DUP
+<span class="lineNum">     838 </span>            :     case MPI_COMBINER_DUP:
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     840 </span>            :                               &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :             count = ADIOI_Count_contiguous_blocks(types[0], curr_index);</span>
+<span class="lineNum">     844 </span>            :         else {
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :                 count = 1;</span>
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :                 (*curr_index)++;</span>
+<span class="lineNum">     847 </span>            :         }
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     849 </span>            : #endif
+<span class="lineNum">     850 </span>            : #ifdef MPIIMPL_HAVE_MPI_COMBINER_SUBARRAY
+<span class="lineNum">     851 </span>            :     case MPI_COMBINER_SUBARRAY:
+<span class="lineNum">     852 </span>            :         {
+<span class="lineNum">     853 </span><span class="lineCov">         48 :             int dims = ints[0];</span>
+<span class="lineNum">     854 </span>            :             MPI_Datatype stype;
+<span class="lineNum">     855 </span>            : 
+<span class="lineNum">     856 </span><span class="lineCov">        144 :             ADIO_Type_create_subarray(dims,</span>
+<span class="lineNum">     857 </span>            :                                       &amp;ints[1],        /* sizes */
+<span class="lineNum">     858 </span><span class="lineCov">         48 :                                       &amp;ints[dims+1],   /* subsizes */</span>
+<span class="lineNum">     859 </span>            :                                       &amp;ints[2*dims+1], /* starts */
+<span class="lineNum">     860 </span><span class="lineCov">         48 :                                       ints[3*dims+1],  /* order */</span>
+<span class="lineNum">     861 </span>            :                                       types[0],        /* type */
+<span class="lineNum">     862 </span>            :                                       &amp;stype);
+<span class="lineNum">     863 </span><span class="lineCov">         48 :             count = ADIOI_Count_contiguous_blocks(stype, curr_index);</span>
+<span class="lineNum">     864 </span>            :             /* curr_index will have already been updated; just pass
+<span class="lineNum">     865 </span>            :              * count back up.
+<span class="lineNum">     866 </span>            :              */
+<span class="lineNum">     867 </span><span class="lineCov">         48 :             MPI_Type_free(&amp;stype);</span>
+<span class="lineNum">     868 </span>            : 
+<span class="lineNum">     869 </span>            :         }
+<span class="lineNum">     870 </span><span class="lineCov">         48 :         break;</span>
+<span class="lineNum">     871 </span>            : #endif
+<span class="lineNum">     872 </span>            : #ifdef MPIIMPL_HAVE_MPI_COMBINER_DARRAY
+<span class="lineNum">     873 </span>            :     case MPI_COMBINER_DARRAY:
+<span class="lineNum">     874 </span>            :         {
+<span class="lineNum">     875 </span><span class="lineCov">         48 :             int dims = ints[2];</span>
+<span class="lineNum">     876 </span>            :             MPI_Datatype dtype;
+<span class="lineNum">     877 </span>            : 
+<span class="lineNum">     878 </span><span class="lineCov">        192 :             ADIO_Type_create_darray(ints[0],         /* size */</span>
+<span class="lineNum">     879 </span><span class="lineCov">         48 :                                     ints[1],         /* rank */</span>
+<span class="lineNum">     880 </span>            :                                     dims,
+<span class="lineNum">     881 </span>            :                                     &amp;ints[3],        /* gsizes */
+<span class="lineNum">     882 </span><span class="lineCov">         48 :                                     &amp;ints[dims+3],   /* distribs */</span>
+<span class="lineNum">     883 </span>            :                                     &amp;ints[2*dims+3], /* dargs */
+<span class="lineNum">     884 </span>            :                                     &amp;ints[3*dims+3], /* psizes */
+<span class="lineNum">     885 </span><span class="lineCov">         48 :                                     ints[4*dims+3],  /* order */</span>
+<span class="lineNum">     886 </span>            :                                     types[0],
+<span class="lineNum">     887 </span>            :                                     &amp;dtype);
+<span class="lineNum">     888 </span><span class="lineCov">         48 :             count = ADIOI_Count_contiguous_blocks(dtype, curr_index);</span>
+<span class="lineNum">     889 </span>            :             /* curr_index will have already been updated; just pass
+<span class="lineNum">     890 </span>            :              * count back up.
+<span class="lineNum">     891 </span>            :              */
+<span class="lineNum">     892 </span><span class="lineCov">         48 :             MPI_Type_free(&amp;dtype);</span>
+<span class="lineNum">     893 </span>            :         }
+<span class="lineNum">     894 </span><span class="lineCov">         48 :         break;</span>
+<span class="lineNum">     895 </span>            : #endif
+<span class="lineNum">     896 </span>            :     case MPI_COMBINER_CONTIGUOUS:
+<span class="lineNum">     897 </span><span class="lineCov">        192 :         top_count = ints[0];</span>
+<span class="lineNum">     898 </span><span class="lineCov">        192 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     899 </span>            :                               &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     900 </span><span class="lineCov">        192 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">     901 </span>            : 
+<span class="lineNum">     902 </span><span class="lineCov">        192 :         prev_index = *curr_index;</span>
+<span class="lineNum">     903 </span><span class="lineCov">        192 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">     904 </span><span class="lineCov">        192 :             count = ADIOI_Count_contiguous_blocks(types[0], curr_index);</span>
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :         else count = 1;</span>
+<span class="lineNum">     906 </span>            : 
+<span class="lineNum">     907 </span><span class="lineCov">        192 :         if (prev_index == *curr_index)</span>
+<span class="lineNum">     908 </span>            : /* simplest case, made up of basic or contiguous types */
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :             (*curr_index)++;</span>
+<span class="lineNum">     910 </span>            :         else {
+<span class="lineNum">     911 </span>            : /* made up of noncontiguous derived types */
+<span class="lineNum">     912 </span><span class="lineCov">        192 :             num = *curr_index - prev_index;</span>
+<span class="lineNum">     913 </span><span class="lineCov">        192 :             count *= top_count;</span>
+<span class="lineNum">     914 </span><span class="lineCov">        192 :             *curr_index += (top_count - 1)*num;</span>
+<span class="lineNum">     915 </span>            :         }
+<span class="lineNum">     916 </span><span class="lineCov">        192 :         break;</span>
+<span class="lineNum">     917 </span>            : 
+<span class="lineNum">     918 </span>            :     case MPI_COMBINER_VECTOR:
+<span class="lineNum">     919 </span>            :     case MPI_COMBINER_HVECTOR:
+<span class="lineNum">     920 </span>            :     case MPI_COMBINER_HVECTOR_INTEGER:
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :         top_count = ints[0];</span>
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     923 </span>            :                               &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     924 </span><span class="lineNoCov">          0 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">     925 </span>            : 
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :         prev_index = *curr_index;</span>
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :             count = ADIOI_Count_contiguous_blocks(types[0], curr_index);</span>
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :         else count = 1;</span>
+<span class="lineNum">     930 </span>            : 
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :         if (prev_index == *curr_index) {</span>
+<span class="lineNum">     932 </span>            : /* simplest case, vector of basic or contiguous types */
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :             count = top_count;</span>
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :             *curr_index += count;</span>
+<span class="lineNum">     935 </span>            :         }
+<span class="lineNum">     936 </span>            :         else {
+<span class="lineNum">     937 </span>            : /* vector of noncontiguous derived types */
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :             num = *curr_index - prev_index;</span>
+<span class="lineNum">     939 </span>            : 
+<span class="lineNum">     940 </span>            : /* The noncontiguous types have to be replicated blocklen times
+<span class="lineNum">     941 </span>            :    and then strided. */
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :             count *= ints[1] * top_count;</span>
+<span class="lineNum">     943 </span>            : 
+<span class="lineNum">     944 </span>            : /* First one */
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :             *curr_index += (ints[1] - 1)*num;</span>
+<span class="lineNum">     946 </span>            : 
+<span class="lineNum">     947 </span>            : /* Now repeat with strides. */
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :             num = *curr_index - prev_index;</span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :             *curr_index += (top_count - 1)*num;</span>
+<span class="lineNum">     950 </span>            :         }
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     952 </span>            : 
+<span class="lineNum">     953 </span>            :     case MPI_COMBINER_INDEXED:
+<span class="lineNum">     954 </span>            :     case MPI_COMBINER_HINDEXED:
+<span class="lineNum">     955 </span>            :     case MPI_COMBINER_HINDEXED_INTEGER:
+<span class="lineNum">     956 </span><span class="lineNoCov">          0 :         top_count = ints[0];</span>
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     958 </span>            :                               &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">     960 </span>            : 
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :         prev_index = *curr_index;</span>
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :             count = ADIOI_Count_contiguous_blocks(types[0], curr_index);</span>
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :         else count = 1;</span>
+<span class="lineNum">     965 </span>            : 
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :         if (prev_index == *curr_index) {</span>
+<span class="lineNum">     967 </span>            : /* simplest case, indexed type made up of basic or contiguous types */
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :             count = top_count;</span>
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :             *curr_index += count;</span>
+<span class="lineNum">     970 </span>            :         }
+<span class="lineNum">     971 </span>            :         else {
+<span class="lineNum">     972 </span>            : /* indexed type made up of noncontiguous derived types */
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :             basic_num = *curr_index - prev_index;</span>
+<span class="lineNum">     974 </span>            : 
+<span class="lineNum">     975 </span>            : /* The noncontiguous types have to be replicated blocklens[i] times
+<span class="lineNum">     976 </span>            :    and then strided. */
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :             *curr_index += (ints[1]-1) * basic_num;</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :             count *= ints[1];</span>
+<span class="lineNum">     979 </span>            : 
+<span class="lineNum">     980 </span>            : /* Now repeat with strides. */
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :             for (i=1; i&lt;top_count; i++) {</span>
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 :                 count += ints[1+i] * basic_num;</span>
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :                 *curr_index += ints[1+i] * basic_num;</span>
+<span class="lineNum">     984 </span>            :             }
+<span class="lineNum">     985 </span>            :         }
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     987 </span>            : 
+<span class="lineNum">     988 </span>            : #if defined HAVE_DECL_MPI_COMBINER_HINDEXED_BLOCK &amp;&amp; HAVE_DECL_MPI_COMBINER_HINDEXED_BLOCK
+<span class="lineNum">     989 </span>            :     case MPI_COMBINER_HINDEXED_BLOCK:
+<span class="lineNum">     990 </span>            : #endif
+<span class="lineNum">     991 </span>            :     case MPI_COMBINER_INDEXED_BLOCK:
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :         top_count = ints[0];</span>
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">     994 </span>            :                               &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">     996 </span>            : 
+<span class="lineNum">     997 </span><span class="lineNoCov">          0 :         prev_index = *curr_index;</span>
+<span class="lineNum">     998 </span><span class="lineNoCov">          0 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">     999 </span><span class="lineNoCov">          0 :             count = ADIOI_Count_contiguous_blocks(types[0], curr_index);</span>
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :         else count = 1;</span>
+<span class="lineNum">    1001 </span>            : 
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :         if (prev_index == *curr_index) {</span>
+<span class="lineNum">    1003 </span>            : /* simplest case, indexed type made up of basic or contiguous types */
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :             count = top_count;</span>
+<span class="lineNum">    1005 </span><span class="lineNoCov">          0 :             *curr_index += count;</span>
+<span class="lineNum">    1006 </span>            :         }
+<span class="lineNum">    1007 </span>            :         else {
+<span class="lineNum">    1008 </span>            : /* indexed type made up of noncontiguous derived types */
+<span class="lineNum">    1009 </span><span class="lineNoCov">          0 :             basic_num = *curr_index - prev_index;</span>
+<span class="lineNum">    1010 </span>            : 
+<span class="lineNum">    1011 </span>            : /* The noncontiguous types have to be replicated blocklens[i] times
+<span class="lineNum">    1012 </span>            :    and then strided. */
+<span class="lineNum">    1013 </span><span class="lineNoCov">          0 :             *curr_index += (ints[1]-1) * basic_num;</span>
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :             count *= ints[1];</span>
+<span class="lineNum">    1015 </span>            : 
+<span class="lineNum">    1016 </span>            : /* Now repeat with strides. */
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :             *curr_index += (top_count-1) * count;</span>
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :             count *= top_count;</span>
+<span class="lineNum">    1019 </span>            :         }
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1021 </span>            : 
+<span class="lineNum">    1022 </span>            :     case MPI_COMBINER_STRUCT:
+<span class="lineNum">    1023 </span>            :     case MPI_COMBINER_STRUCT_INTEGER:
+<span class="lineNum">    1024 </span><span class="lineCov">        192 :         top_count = ints[0];</span>
+<span class="lineNum">    1025 </span><span class="lineCov">        192 :         count = 0;</span>
+<span class="lineNum">    1026 </span><span class="lineCov">        768 :         for (n=0; n&lt;top_count; n++) {</span>
+<span class="lineNum">    1027 </span><span class="lineCov">        576 :             MPI_Type_get_envelope(types[n], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">    1028 </span>            :                                   &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">    1029 </span><span class="lineCov">        576 :             ADIOI_Datatype_iscontig(types[n], &amp;old_is_contig);</span>
+<span class="lineNum">    1030 </span>            : 
+<span class="lineNum">    1031 </span><span class="lineCov">        576 :             prev_index = *curr_index;</span>
+<span class="lineNum">    1032 </span><span class="lineCov">        576 :             if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig))</span>
+<span class="lineNum">    1033 </span><span class="lineNoCov">          0 :             count += ADIOI_Count_contiguous_blocks(types[n], curr_index);</span>
+<span class="lineNum">    1034 </span>            : 
+<span class="lineNum">    1035 </span><span class="lineCov">        576 :             if (prev_index == *curr_index) {</span>
+<span class="lineNum">    1036 </span>            : /* simplest case, current type is basic or contiguous types */
+<span class="lineNum">    1037 </span><span class="lineCov">        576 :                 count++;</span>
+<span class="lineNum">    1038 </span><span class="lineCov">        576 :                 (*curr_index)++;</span>
+<span class="lineNum">    1039 </span>            :             }
+<span class="lineNum">    1040 </span>            :             else {
+<span class="lineNum">    1041 </span>            : /* current type made up of noncontiguous derived types */
+<span class="lineNum">    1042 </span>            : /* The current type has to be replicated blocklens[n] times */
+<span class="lineNum">    1043 </span>            : 
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 :                 num = *curr_index - prev_index;</span>
+<span class="lineNum">    1045 </span><span class="lineNoCov">          0 :                 count += (ints[1+n]-1)*num;</span>
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :                 (*curr_index) += (ints[1+n]-1)*num;</span>
+<span class="lineNum">    1047 </span>            :             }
+<span class="lineNum">    1048 </span>            :         }
+<span class="lineNum">    1049 </span><span class="lineCov">        192 :         break;</span>
+<span class="lineNum">    1050 </span>            : 
+<span class="lineNum">    1051 </span>            :     case MPI_COMBINER_RESIZED:
+<span class="lineNum">    1052 </span>            :         /* treat it as a struct with lb, type, ub */
+<span class="lineNum">    1053 </span>            : 
+<span class="lineNum">    1054 </span>            :         /* add 2 for lb and ub */
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :         (*curr_index) += 2;</span>
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :         count += 2;</span>
+<span class="lineNum">    1057 </span>            : 
+<span class="lineNum">    1058 </span>            :         /* add for datatype */
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :         MPI_Type_get_envelope(types[0], &amp;old_nints, &amp;old_nadds,</span>
+<span class="lineNum">    1060 </span>            :                                   &amp;old_ntypes, &amp;old_combiner);
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :         ADIOI_Datatype_iscontig(types[0], &amp;old_is_contig);</span>
+<span class="lineNum">    1062 </span>            : 
+<span class="lineNum">    1063 </span><span class="lineNoCov">          0 :         if ((old_combiner != MPI_COMBINER_NAMED) &amp;&amp; (!old_is_contig)) {</span>
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :             count += ADIOI_Count_contiguous_blocks(types[0], curr_index);</span>
+<span class="lineNum">    1065 </span>            :         }
+<span class="lineNum">    1066 </span>            :         else {
+<span class="lineNum">    1067 </span>            :         /* basic or contiguous type */
+<span class="lineNum">    1068 </span><span class="lineNoCov">          0 :             count++;</span>
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :             (*curr_index)++;</span>
+<span class="lineNum">    1070 </span>            :         }
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1072 </span>            : 
+<span class="lineNum">    1073 </span>            :     default:
+<span class="lineNum">    1074 </span>            :         /* TODO: FIXME */
+<span class="lineNum">    1075 </span>            :         DBG_FPRINTF(stderr, &quot;Error: Unsupported datatype passed to ADIOI_Count_contiguous_blocks, combiner = %d\n&quot;, combiner);
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :         MPI_Abort(MPI_COMM_WORLD, 1);</span>
+<span class="lineNum">    1077 </span>            :     }
+<span class="lineNum">    1078 </span>            : 
+<span class="lineNum">    1079 </span>            : #ifndef MPISGI
+<span class="lineNum">    1080 </span>            : /* There is a bug in SGI's impl. of MPI_Type_get_contents. It doesn't
+<span class="lineNum">    1081 </span>            :    return new datatypes. Therefore no need to free. */
+<span class="lineNum">    1082 </span><span class="lineCov">       1344 :     for (i=0; i&lt;ntypes; i++) {</span>
+<span class="lineNum">    1083 </span><span class="lineCov">        864 :         MPI_Type_get_envelope(types[i], &amp;old_nints, &amp;old_nadds, &amp;old_ntypes,</span>
+<span class="lineNum">    1084 </span>            :                               &amp;old_combiner);
+<span class="lineNum">    1085 </span><span class="lineCov">        864 :         if (old_combiner != MPI_COMBINER_NAMED) MPI_Type_free(types+i);</span>
+<span class="lineNum">    1086 </span>            :     }
+<span class="lineNum">    1087 </span>            : #endif
+<span class="lineNum">    1088 </span>            : 
+<span class="lineNum">    1089 </span><span class="lineCov">        480 :     ADIOI_Free(ints);</span>
+<span class="lineNum">    1090 </span><span class="lineCov">        480 :     ADIOI_Free(adds);</span>
+<span class="lineNum">    1091 </span><span class="lineCov">        480 :     ADIOI_Free(types);</span>
+<span class="lineNum">    1092 </span><span class="lineCov">        480 :     return count;</span>
+<span class="lineNum">    1093 </span>            : }
+<span class="lineNum">    1094 </span>            : 
+<span class="lineNum">    1095 </span>            : 
+<span class="lineNum">    1096 </span>            : /****************************************************************/
+<span class="lineNum">    1097 </span>            : 
+<span class="lineNum">    1098 </span>            : /* ADIOI_Optimize_flattened()
+<span class="lineNum">    1099 </span>            :  *
+<span class="lineNum">    1100 </span>            :  * Scans the blocks of a flattened type and merges adjacent blocks
+<span class="lineNum">    1101 </span>            :  * together, resulting in a shorter blocklist (and thus fewer
+<span class="lineNum">    1102 </span>            :  * contiguous operations).
+<span class="lineNum">    1103 </span>            :  *
+<span class="lineNum">    1104 </span>            :  * NOTE: a further optimization would be to remove zero length blocks. However,
+<span class="lineNum">    1105 </span>            :  * the first and last blocks must remain as zero length first or last block
+<span class="lineNum">    1106 </span>            :  * indicates UB and LB.  Furthermore, once the &quot;zero length blocklen&quot; fix
+<span class="lineNum">    1107 </span>            :  * went in, the flattened representation should no longer have zero-length
+<a name="1108"><span class="lineNum">    1108 </span>            :  * blocks except for UB and LB markers.</a>
+<span class="lineNum">    1109 </span>            :  */
+<span class="lineNum">    1110 </span><span class="lineCov">        192 : void ADIOI_Optimize_flattened(ADIOI_Flatlist_node *flat_type)</span>
+<span class="lineNum">    1111 </span>            : {
+<span class="lineNum">    1112 </span>            :     int i, j, opt_blocks;
+<span class="lineNum">    1113 </span>            :     ADIO_Offset *opt_blocklens;
+<span class="lineNum">    1114 </span>            :     ADIO_Offset *opt_indices;
+<span class="lineNum">    1115 </span>            : 
+<span class="lineNum">    1116 </span><span class="lineCov">        192 :     opt_blocks = 1;</span>
+<span class="lineNum">    1117 </span>            : 
+<span class="lineNum">    1118 </span>            :     /* save number of noncontiguous blocks in opt_blocks */
+<span class="lineNum">    1119 </span><span class="lineCov">        576 :     for (i=0; i &lt; (flat_type-&gt;count - 1); i++) {</span>
+<span class="lineNum">    1120 </span><span class="lineCov">        768 :         if ((flat_type-&gt;indices[i] + flat_type-&gt;blocklens[i] !=</span>
+<span class="lineNum">    1121 </span><span class="lineCov">        384 :              flat_type-&gt;indices[i + 1]))</span>
+<span class="lineNum">    1122 </span><span class="lineCov">        224 :             opt_blocks++;</span>
+<span class="lineNum">    1123 </span>            :     }
+<span class="lineNum">    1124 </span>            : 
+<span class="lineNum">    1125 </span>            :     /* if we can't reduce the number of blocks, quit now */
+<span class="lineNum">    1126 </span><span class="lineCov">        192 :     if (opt_blocks == flat_type-&gt;count) return;</span>
+<span class="lineNum">    1127 </span>            : 
+<span class="lineNum">    1128 </span><span class="lineCov">        160 :     opt_blocklens = (ADIO_Offset *) ADIOI_Malloc(opt_blocks * sizeof(ADIO_Offset));</span>
+<span class="lineNum">    1129 </span><span class="lineCov">        160 :     opt_indices = (ADIO_Offset *)ADIOI_Malloc(opt_blocks*sizeof(ADIO_Offset));</span>
+<span class="lineNum">    1130 </span>            : 
+<span class="lineNum">    1131 </span>            :     /* fill in new blocklists */
+<span class="lineNum">    1132 </span><span class="lineCov">        160 :     opt_blocklens[0] = flat_type-&gt;blocklens[0];</span>
+<span class="lineNum">    1133 </span><span class="lineCov">        160 :     opt_indices[0] = flat_type-&gt;indices[0];</span>
+<span class="lineNum">    1134 </span><span class="lineCov">        160 :     j = 0;</span>
+<span class="lineNum">    1135 </span><span class="lineCov">        480 :     for (i=0; i &lt; (flat_type-&gt;count - 1); i++) {</span>
+<span class="lineNum">    1136 </span><span class="lineCov">        640 :         if ((flat_type-&gt;indices[i] + flat_type-&gt;blocklens[i] ==</span>
+<span class="lineNum">    1137 </span><span class="lineCov">        320 :              flat_type-&gt;indices[i + 1]))</span>
+<span class="lineNum">    1138 </span><span class="lineCov">        160 :             opt_blocklens[j] += flat_type-&gt;blocklens[i + 1];</span>
+<span class="lineNum">    1139 </span>            :         else {
+<span class="lineNum">    1140 </span><span class="lineCov">        160 :             j++;</span>
+<span class="lineNum">    1141 </span><span class="lineCov">        160 :             opt_indices[j] = flat_type-&gt;indices[i + 1];</span>
+<span class="lineNum">    1142 </span><span class="lineCov">        160 :             opt_blocklens[j] = flat_type-&gt;blocklens[i + 1];</span>
+<span class="lineNum">    1143 </span>            :         }
+<span class="lineNum">    1144 </span>            :     }
+<span class="lineNum">    1145 </span><span class="lineCov">        160 :     flat_type-&gt;count = opt_blocks;</span>
+<span class="lineNum">    1146 </span><span class="lineCov">        160 :     ADIOI_Free(flat_type-&gt;blocklens);</span>
+<span class="lineNum">    1147 </span><span class="lineCov">        160 :     ADIOI_Free(flat_type-&gt;indices);</span>
+<span class="lineNum">    1148 </span><span class="lineCov">        160 :     flat_type-&gt;blocklens = opt_blocklens;</span>
+<span class="lineNum">    1149 </span><span class="lineCov">        160 :     flat_type-&gt;indices = opt_indices;</span>
+<span class="lineNum">    1150 </span><span class="lineCov">        160 :     return;</span>
+<a name="1151"><span class="lineNum">    1151 </span>            : }</a>
+<span class="lineNum">    1152 </span>            : 
+<span class="lineNum">    1153 </span><span class="lineCov">        192 : void ADIOI_Delete_flattened(MPI_Datatype datatype)</span>
+<span class="lineNum">    1154 </span>            : {
+<span class="lineNum">    1155 </span>            :     ADIOI_Flatlist_node *flat, *prev;
+<span class="lineNum">    1156 </span>            : 
+<span class="lineNum">    1157 </span><span class="lineCov">        192 :     prev = flat = ADIOI_Flatlist;</span>
+<span class="lineNum">    1158 </span><span class="lineCov">        576 :     while (flat &amp;&amp; (flat-&gt;type != datatype)) {</span>
+<span class="lineNum">    1159 </span><span class="lineCov">        192 :         prev = flat;</span>
+<span class="lineNum">    1160 </span><span class="lineCov">        192 :         flat = flat-&gt;next;</span>
+<span class="lineNum">    1161 </span>            :     }
+<span class="lineNum">    1162 </span><span class="lineCov">        192 :     if (flat) {</span>
+<span class="lineNum">    1163 </span><span class="lineCov">        192 :         prev-&gt;next = flat-&gt;next;</span>
+<span class="lineNum">    1164 </span><span class="lineCov">        192 :         if (flat-&gt;blocklens) ADIOI_Free(flat-&gt;blocklens);</span>
+<span class="lineNum">    1165 </span><span class="lineCov">        192 :         if (flat-&gt;indices) ADIOI_Free(flat-&gt;indices);</span>
+<span class="lineNum">    1166 </span><span class="lineCov">        192 :         ADIOI_Free(flat);</span>
+<span class="lineNum">    1167 </span>            :     }
+<span class="lineNum">    1168 </span><span class="lineCov">        192 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

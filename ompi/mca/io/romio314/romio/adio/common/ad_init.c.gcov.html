@@ -1,0 +1,210 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/io/romio314/romio/adio/common/ad_init.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">ompi/mca/io/romio314/romio/adio/common</a> - ad_init.c<span style="font-size: 80%;"> (source / <a href="ad_init.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryHi">93.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  *   Copyright (C) 1997 University of Chicago.
+<span class="lineNum">       5 </span>            :  *   See COPYRIGHT notice in top-level directory.
+<span class="lineNum">       6 </span>            :  */
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : #include &quot;adio.h&quot;
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            : ADIOI_Flatlist_node *ADIOI_Flatlist = NULL;
+<span class="lineNum">      11 </span>            : ADIOI_Datarep *ADIOI_Datarep_head = NULL;
+<span class="lineNum">      12 </span>            :     /* list of datareps registered by the user */
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : /* for f2c and c2f conversion */
+<span class="lineNum">      15 </span>            : ADIO_File *ADIOI_Ftable = NULL;
+<span class="lineNum">      16 </span>            : int ADIOI_Ftable_ptr = 0, ADIOI_Ftable_max = 0;
+<span class="lineNum">      17 </span>            : ADIO_Request *ADIOI_Reqtable = NULL;
+<span class="lineNum">      18 </span>            : int ADIOI_Reqtable_ptr = 0, ADIOI_Reqtable_max = 0;
+<span class="lineNum">      19 </span>            : #ifndef HAVE_MPI_INFO
+<span class="lineNum">      20 </span>            : MPI_Info *MPIR_Infotable = NULL;
+<span class="lineNum">      21 </span>            : int MPIR_Infotable_ptr = 0, MPIR_Infotable_max = 0;
+<span class="lineNum">      22 </span>            : #endif
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : MPI_Info ADIOI_syshints = MPI_INFO_NULL;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : MPI_Op ADIO_same_amode=MPI_OP_NULL;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #if defined(ROMIO_XFS) || defined(ROMIO_LUSTRE)
+<span class="lineNum">      29 </span>            : int ADIOI_Direct_read = 0, ADIOI_Direct_write = 0;
+<span class="lineNum">      30 </span>            : #endif
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : int ADIO_Init_keyval=MPI_KEYVAL_INVALID;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : MPI_Errhandler ADIOI_DFLT_ERR_HANDLER = MPI_ERRORS_RETURN;
+<a name="35"><span class="lineNum">      35 </span>            : </a>
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span><span class="lineCov">       3224 : static void my_consensus(void *invec, void *inoutvec, int *len, MPI_Datatype *datatype)</span>
+<span class="lineNum">      38 </span>            : {
+<span class="lineNum">      39 </span>            :     int i, *in, *inout;
+<span class="lineNum">      40 </span><span class="lineCov">       3224 :     in = (int*)invec;</span>
+<span class="lineNum">      41 </span><span class="lineCov">       3224 :     inout = (int*)inoutvec;</span>
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span><span class="lineCov">       6448 :     for (i=0; i&lt; *len; i++) {</span>
+<span class="lineNum">      44 </span><span class="lineCov">       3224 :         if (in[i] != inout[i])</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :             inout[i] = ADIO_AMODE_NOMATCH;</span>
+<span class="lineNum">      46 </span>            :     }
+<span class="lineNum">      47 </span><span class="lineCov">       3224 :     return;</span>
+<a name="48"><span class="lineNum">      48 </span>            : }</a>
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span><span class="lineCov">          4 : void ADIO_Init(int *argc, char ***argv, int *error_code)</span>
+<span class="lineNum">      51 </span>            : {
+<span class="lineNum">      52 </span>            : #if defined(ROMIO_XFS) || defined(ROMIO_LUSTRE)
+<span class="lineNum">      53 </span>            :     char *c;
+<span class="lineNum">      54 </span>            : #endif
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            :     ADIOI_UNREFERENCED_ARG(argc);
+<span class="lineNum">      57 </span>            :     ADIOI_UNREFERENCED_ARG(argv);
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : #ifdef ROMIO_INSIDE_MPICH
+<span class="lineNum">      60 </span>            :     MPIR_Ext_init();
+<span class="lineNum">      61 </span>            : #endif
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : /* initialize the linked list containing flattened datatypes */
+<span class="lineNum">      64 </span><span class="lineCov">          4 :     ADIOI_Flatlist = (ADIOI_Flatlist_node *) ADIOI_Malloc(sizeof(ADIOI_Flatlist_node));</span>
+<span class="lineNum">      65 </span><span class="lineCov">          4 :     ADIOI_Flatlist-&gt;type = MPI_DATATYPE_NULL;</span>
+<span class="lineNum">      66 </span><span class="lineCov">          4 :     ADIOI_Flatlist-&gt;next = NULL;</span>
+<span class="lineNum">      67 </span><span class="lineCov">          4 :     ADIOI_Flatlist-&gt;blocklens = NULL;</span>
+<span class="lineNum">      68 </span><span class="lineCov">          4 :     ADIOI_Flatlist-&gt;indices = NULL;</span>
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : #if defined(ROMIO_XFS) || defined(ROMIO_LUSTRE)
+<span class="lineNum">      71 </span>            :     c = getenv(&quot;MPIO_DIRECT_READ&quot;);
+<span class="lineNum">      72 </span>            :     if (c &amp;&amp; (!strcmp(c, &quot;true&quot;) || !strcmp(c, &quot;TRUE&quot;)))
+<span class="lineNum">      73 </span>            :         ADIOI_Direct_read = 1;
+<span class="lineNum">      74 </span>            :     else ADIOI_Direct_read = 0;
+<span class="lineNum">      75 </span>            :     c = getenv(&quot;MPIO_DIRECT_WRITE&quot;);
+<span class="lineNum">      76 </span>            :     if (c &amp;&amp; (!strcmp(c, &quot;true&quot;) || !strcmp(c, &quot;TRUE&quot;)))
+<span class="lineNum">      77 </span>            :         ADIOI_Direct_write = 1;
+<span class="lineNum">      78 </span>            :     else ADIOI_Direct_write = 0;
+<span class="lineNum">      79 </span>            : #endif
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : #ifdef ADIOI_MPE_LOGGING
+<span class="lineNum">      83 </span>            :     {
+<span class="lineNum">      84 </span>            :         MPE_Log_get_state_eventIDs( &amp;ADIOI_MPE_open_a, &amp;ADIOI_MPE_open_b );
+<span class="lineNum">      85 </span>            :         MPE_Log_get_state_eventIDs( &amp;ADIOI_MPE_read_a, &amp;ADIOI_MPE_read_b );
+<span class="lineNum">      86 </span>            :         MPE_Log_get_state_eventIDs( &amp;ADIOI_MPE_write_a, &amp;ADIOI_MPE_write_b );
+<span class="lineNum">      87 </span>            :         MPE_Log_get_state_eventIDs( &amp;ADIOI_MPE_lseek_a, &amp;ADIOI_MPE_lseek_b );
+<span class="lineNum">      88 </span>            :         MPE_Log_get_state_eventIDs( &amp;ADIOI_MPE_close_a, &amp;ADIOI_MPE_close_b );
+<span class="lineNum">      89 </span>            :         MPE_Log_get_state_eventIDs( &amp;ADIOI_MPE_writelock_a,
+<span class="lineNum">      90 </span>            :                                     &amp;ADIOI_MPE_writelock_b );
+<span class="lineNum">      91 </span>            :         MPE_Log_get_state_eventIDs( &amp;ADIOI_MPE_readlock_a,
+<span class="lineNum">      92 </span>            :                                     &amp;ADIOI_MPE_readlock_b );
+<span class="lineNum">      93 </span>            :         MPE_Log_get_state_eventIDs( &amp;ADIOI_MPE_unlock_a, &amp;ADIOI_MPE_unlock_b );
+<span class="lineNum">      94 </span>            :         MPE_Log_get_state_eventIDs( &amp;ADIOI_MPE_postwrite_a,
+<span class="lineNum">      95 </span>            :                                     &amp;ADIOI_MPE_postwrite_b );
+<span class="lineNum">      96 </span>            :         MPE_Log_get_state_eventIDs( &amp;ADIOI_MPE_openinternal_a,
+<span class="lineNum">      97 </span>            :                         &amp;ADIOI_MPE_openinternal_b);
+<span class="lineNum">      98 </span>            :         MPE_Log_get_state_eventIDs( &amp;ADIOI_MPE_stat_a, &amp;ADIOI_MPE_stat_b);
+<span class="lineNum">      99 </span>            :         MPE_Log_get_state_eventIDs( &amp;ADIOI_MPE_iread_a, &amp;ADIOI_MPE_iread_b);
+<span class="lineNum">     100 </span>            :         MPE_Log_get_state_eventIDs( &amp;ADIOI_MPE_iwrite_a, &amp;ADIOI_MPE_iwrite_b);
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :         int  comm_world_rank;
+<span class="lineNum">     103 </span>            :         MPI_Comm_rank( MPI_COMM_WORLD, &amp;comm_world_rank );
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            :         if ( comm_world_rank == 0 ) {
+<span class="lineNum">     106 </span>            :             MPE_Describe_state( ADIOI_MPE_open_a, ADIOI_MPE_open_b,
+<span class="lineNum">     107 </span>            :                                 &quot;open&quot;, &quot;orange&quot; );
+<span class="lineNum">     108 </span>            :             MPE_Describe_state( ADIOI_MPE_read_a, ADIOI_MPE_read_b,
+<span class="lineNum">     109 </span>            :                                 &quot;read&quot;, &quot;green&quot; );
+<span class="lineNum">     110 </span>            :             MPE_Describe_state( ADIOI_MPE_write_a, ADIOI_MPE_write_b,
+<span class="lineNum">     111 </span>            :                                 &quot;write&quot;, &quot;blue&quot; );
+<span class="lineNum">     112 </span>            :             MPE_Describe_state( ADIOI_MPE_lseek_a, ADIOI_MPE_lseek_b,
+<span class="lineNum">     113 </span>            :                                 &quot;lseek&quot;, &quot;red&quot; );
+<span class="lineNum">     114 </span>            :             MPE_Describe_state( ADIOI_MPE_close_a, ADIOI_MPE_close_b,
+<span class="lineNum">     115 </span>            :                                 &quot;close&quot;, &quot;grey&quot; );
+<span class="lineNum">     116 </span>            :             MPE_Describe_state( ADIOI_MPE_writelock_a, ADIOI_MPE_writelock_b,
+<span class="lineNum">     117 </span>            :                                 &quot;writelock&quot;, &quot;plum&quot; );
+<span class="lineNum">     118 </span>            :             MPE_Describe_state( ADIOI_MPE_readlock_a, ADIOI_MPE_readlock_b,
+<span class="lineNum">     119 </span>            :                                 &quot;readlock&quot;, &quot;magenta&quot; );
+<span class="lineNum">     120 </span>            :             MPE_Describe_state( ADIOI_MPE_unlock_a, ADIOI_MPE_unlock_b,
+<span class="lineNum">     121 </span>            :                                 &quot;unlock&quot;, &quot;purple&quot; );
+<span class="lineNum">     122 </span>            :             MPE_Describe_state( ADIOI_MPE_postwrite_a, ADIOI_MPE_postwrite_b,
+<span class="lineNum">     123 </span>            :                                 &quot;postwrite&quot;, &quot;ivory&quot; );
+<span class="lineNum">     124 </span>            :             MPE_Describe_state( ADIOI_MPE_openinternal_a, ADIOI_MPE_openinternal_b, &quot;open system&quot;, &quot;blue&quot;);
+<span class="lineNum">     125 </span>            :             MPE_Describe_state( ADIOI_MPE_stat_a, ADIOI_MPE_stat_b, &quot;stat&quot;, &quot;purple&quot;);
+<span class="lineNum">     126 </span>            :             MPE_Describe_state( ADIOI_MPE_iread_a, ADIOI_MPE_iread_b, &quot;iread&quot;, &quot;purple&quot;);
+<span class="lineNum">     127 </span>            :             MPE_Describe_state( ADIOI_MPE_iwrite_a, ADIOI_MPE_iwrite_b, &quot;iwrite&quot;, &quot;purple&quot;);
+<span class="lineNum">     128 </span>            :         }
+<span class="lineNum">     129 </span>            :     }
+<span class="lineNum">     130 </span>            : #endif
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span><span class="lineCov">          4 :     *error_code = MPI_SUCCESS;</span>
+<span class="lineNum">     133 </span><span class="lineCov">          4 :     MPI_Op_create(my_consensus, 1, &amp;ADIO_same_amode);</span>
+<span class="lineNum">     134 </span><span class="lineCov">          4 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,948 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/io/romio314/romio/adio/common/ad_fstype.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">ompi/mca/io/romio314/romio/adio/common</a> - ad_fstype.c<span style="font-size: 80%;"> (source / <a href="ad_fstype.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">61</td>
+            <td class="headerCovTableEntry">170</td>
+            <td class="headerCovTableEntryLo">35.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryLo">60.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  *   Copyright (C) 1997 University of Chicago.
+<span class="lineNum">       4 </span>            :  *   See COPYRIGHT notice in top-level directory.
+<span class="lineNum">       5 </span>            :  */
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            : /* This file is quickly becoming the single one, outside the ADIO
+<span class="lineNum">       8 </span>            :  * implementations, which has &quot;what ADIO components are built in&quot; code in it.
+<span class="lineNum">       9 </span>            :  */
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : #include &quot;adio.h&quot;
+<span class="lineNum">      12 </span>            : 
+<span class="lineNum">      13 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      14 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      15 </span>            : #endif
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : #ifdef HAVE_SYS_PARAM_H
+<span class="lineNum">      18 </span>            : #include &lt;sys/param.h&gt;
+<span class="lineNum">      19 </span>            : #endif
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #ifdef HAVE_PVFS_H
+<span class="lineNum">      22 </span>            : #include &quot;pvfs.h&quot;
+<span class="lineNum">      23 </span>            : #endif
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #ifdef HAVE_PVFS2_H
+<span class="lineNum">      26 </span>            : #include &quot;pvfs2.h&quot;
+<span class="lineNum">      27 </span>            : #endif
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #ifdef HAVE_ZOIDFS_H
+<span class="lineNum">      30 </span>            : #include &quot;zoidfs.h&quot;
+<span class="lineNum">      31 </span>            : #endif
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #ifdef HAVE_GPFS_H
+<span class="lineNum">      34 </span>            : #include &quot;gpfs.h&quot;
+<span class="lineNum">      35 </span>            : #endif
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : /* Notes on detection process:
+<span class="lineNum">      38 </span>            :  *
+<span class="lineNum">      39 </span>            :  * There are three more &quot;general&quot; mechanisms that we use for detecting
+<span class="lineNum">      40 </span>            :  * file system type:
+<span class="lineNum">      41 </span>            :  * - struct statfs's f_type field
+<span class="lineNum">      42 </span>            :  * - struct statvfs's f_basetype field
+<span class="lineNum">      43 </span>            :  * - struct stat's st_fstype field
+<span class="lineNum">      44 </span>            :  *
+<span class="lineNum">      45 </span>            :  * Otherwise we'll fall back on some OS-specific approach.
+<span class="lineNum">      46 </span>            :  */
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : #ifdef HAVE_STRUCT_STATFS
+<span class="lineNum">      49 </span>            : # ifdef HAVE_SYS_VFS_H
+<span class="lineNum">      50 </span>            : # include &lt;sys/vfs.h&gt;
+<span class="lineNum">      51 </span>            : # endif
+<span class="lineNum">      52 </span>            : # ifdef HAVE_SYS_STATVFS_H
+<span class="lineNum">      53 </span>            : # include &lt;sys/statvfs.h&gt;
+<span class="lineNum">      54 </span>            : # endif
+<span class="lineNum">      55 </span>            : # ifdef HAVE_SYS_PARAM_H
+<span class="lineNum">      56 </span>            : # include &lt;sys/param.h&gt;
+<span class="lineNum">      57 </span>            : # endif
+<span class="lineNum">      58 </span>            : # ifdef HAVE_SYS_MOUNT_H
+<span class="lineNum">      59 </span>            : # include &lt;sys/mount.h&gt;
+<span class="lineNum">      60 </span>            : # endif
+<span class="lineNum">      61 </span>            :  /* On Linux platforms, linux/nfs_fs.h is all messed up and cannot be
+<span class="lineNum">      62 </span>            :   * reliably included.
+<span class="lineNum">      63 </span>            :   */
+<span class="lineNum">      64 </span>            : # if defined(ROMIO_NFS) &amp;&amp; !defined(NFS_SUPER_MAGIC)
+<span class="lineNum">      65 </span>            : # define NFS_SUPER_MAGIC 0x6969
+<span class="lineNum">      66 </span>            : # endif
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : # if defined(ROMIO_PANFS) &amp;&amp; !defined(PAN_KERNEL_FS_CLIENT_SUPER_MAGIC)
+<span class="lineNum">      69 </span>            : # define PAN_KERNEL_FS_CLIENT_SUPER_MAGIC 0xAAD7AAEA
+<span class="lineNum">      70 </span>            : # endif
+<span class="lineNum">      71 </span>            : #endif
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : # if defined(ROMIO_XFS) &amp;&amp; !defined(XFS_SUPER_MAGIC)
+<span class="lineNum">      74 </span>            : # define XFS_SUPER_MAGIC 0x58465342
+<span class="lineNum">      75 </span>            : # endif
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : #if !defined(PVFS2_SUPER_MAGIC)
+<span class="lineNum">      78 </span>            : #define PVFS2_SUPER_MAGIC (0x20030528)
+<span class="lineNum">      79 </span>            : #endif
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : #if defined(ROMIO_GPFS) &amp;&amp; !defined(GPFS_SUPER_MAGIC)
+<span class="lineNum">      82 </span>            : # define GPFS_SUPER_MAGIC 0x47504653
+<span class="lineNum">      83 </span>            : #endif
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : #ifdef ROMIO_HAVE_STRUCT_STATVFS_WITH_F_BASETYPE
+<span class="lineNum">      86 </span>            : # ifdef HAVE_SYS_STATVFS_H
+<span class="lineNum">      87 </span>            : # include &lt;sys/statvfs.h&gt;
+<span class="lineNum">      88 </span>            : # endif
+<span class="lineNum">      89 </span>            : # ifdef HAVE_SYS_VFS_H
+<span class="lineNum">      90 </span>            : # include &lt;sys/vfs.h&gt;
+<span class="lineNum">      91 </span>            : # endif
+<span class="lineNum">      92 </span>            : # ifdef HAVE_SYS_PARAM_H
+<span class="lineNum">      93 </span>            : # include &lt;sys/param.h&gt;
+<span class="lineNum">      94 </span>            : # endif
+<span class="lineNum">      95 </span>            : # ifdef HAVE_SYS_MOUNT_H
+<span class="lineNum">      96 </span>            : # include &lt;sys/mount.h&gt;
+<span class="lineNum">      97 </span>            : # endif
+<span class="lineNum">      98 </span>            : #endif
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            : #ifdef ROMIO_HAVE_STRUCT_STAT_WITH_ST_FSTYPE
+<span class="lineNum">     101 </span>            : # ifdef HAVE_SYS_TYPES_H
+<span class="lineNum">     102 </span>            : # include &lt;sys/types.h&gt;
+<span class="lineNum">     103 </span>            : # endif
+<span class="lineNum">     104 </span>            : # ifdef HAVE_SYS_STAT_H
+<span class="lineNum">     105 </span>            : # include &lt;sys/stat.h&gt;
+<span class="lineNum">     106 </span>            : # endif
+<span class="lineNum">     107 </span>            : #endif
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            : /* ADIO_FileSysType_parentdir is only used if one of these is defined.
+<span class="lineNum">     110 </span>            :    By including this test, we avoid warnings about unused static functions
+<span class="lineNum">     111 </span>            :    from the compiler */
+<span class="lineNum">     112 </span>            : #if defined(ROMIO_HAVE_STRUCT_STATVFS_WITH_F_BASETYPE) || \
+<span class="lineNum">     113 </span>            :     defined(HAVE_STRUCT_STATFS) || \
+<span class="lineNum">     114 </span>            :     defined(ROMIO_HAVE_STRUCT_STAT_WITH_ST_FSTYPE)
+<span class="lineNum">     115 </span>            : #ifndef ROMIO_NTFS
+<span class="lineNum">     116 </span>            : #define ROMIO_NEEDS_ADIOPARENTDIR
+<span class="lineNum">     117 </span>            : static void ADIO_FileSysType_parentdir(const char *filename, char **dirnamep);
+<span class="lineNum">     118 </span>            : #endif
+<span class="lineNum">     119 </span>            : #endif
+<span class="lineNum">     120 </span>            : static void ADIO_FileSysType_prefix(const char *filename, int *fstype,
+<span class="lineNum">     121 </span>            :                                     int *error_code);
+<span class="lineNum">     122 </span>            : static void ADIO_FileSysType_fncall(const char *filename, int *fstype,
+<span class="lineNum">     123 </span>            :                                     int *error_code);
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            : /*
+<span class="lineNum">     126 </span>            :  ADIO_FileSysType_parentdir - determines a string pathname for the
+<span class="lineNum">     127 </span>            :  parent directory of a given filename.
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            : Input Parameters:
+<span class="lineNum">     130 </span>            : . filename - pointer to file name character array
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : Output Parameters:
+<span class="lineNum">     133 </span>            : . dirnamep - pointer to location in which to store a pointer to a string
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            :  Note that the caller should free the memory located at the pointer returned
+<span class="lineNum">     136 </span>            :  after the string is no longer needed.
+<span class="lineNum">     137 </span>            : */
+<span class="lineNum">     138 </span>            : #ifdef ROMIO_NEEDS_ADIOPARENTDIR
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            : /* In a strict ANSI environment, S_ISLNK may not be defined.  Fix that
+<span class="lineNum">     141 </span>            :    here.  We assume that S_ISLNK is *always* defined as a macro.  If
+<span class="lineNum">     142 </span>            :    that is not universally true, then add a test to the romio
+<span class="lineNum">     143 </span>            :    configure that trys to link a program that references S_ISLNK */
+<span class="lineNum">     144 </span>            : #if !defined(S_ISLNK)
+<span class="lineNum">     145 </span>            : #    if defined(S_IFLNK)
+<span class="lineNum">     146 </span>            :      /* Check for the link bit */
+<span class="lineNum">     147 </span>            : #    define S_ISLNK(mode) ((mode) &amp; S_IFLNK)
+<span class="lineNum">     148 </span>            : #    else
+<span class="lineNum">     149 </span>            :      /* no way to check if it is a link, so say false */
+<span class="lineNum">     150 </span>            : #    define S_ISLNK(mode) 0
+<span class="lineNum">     151 </span>            : #    endif
+<span class="lineNum">     152 </span>            : #endif /* !(S_ISLNK) */
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span>            : /* ADIO_FileSysType_parentdir
+<span class="lineNum">     155 </span>            :  *
+<span class="lineNum">     156 </span>            :  * Returns pointer to string in dirnamep; that string is allocated with
+<a name="157"><span class="lineNum">     157 </span>            :  * strdup and must be free()'d.</a>
+<span class="lineNum">     158 </span>            :  */
+<span class="lineNum">     159 </span><span class="lineCov">        968 : static void ADIO_FileSysType_parentdir(const char *filename, char **dirnamep)</span>
+<span class="lineNum">     160 </span>            : {
+<span class="lineNum">     161 </span>            :     int err;
+<span class="lineNum">     162 </span><span class="lineCov">        968 :     char *dir = NULL, *slash;</span>
+<span class="lineNum">     163 </span>            :     struct stat statbuf;
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineCov">        968 :     err = lstat(filename, &amp;statbuf);</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineCov">        968 :     if (err || (!S_ISLNK(statbuf.st_mode))) {</span>
+<span class="lineNum">     168 </span>            :         /* no such file, or file is not a link; these are the &quot;normal&quot;
+<span class="lineNum">     169 </span>            :          * cases where we can just return the parent directory.
+<span class="lineNum">     170 </span>            :          */
+<span class="lineNum">     171 </span><span class="lineCov">        968 :         dir = ADIOI_Strdup(filename);</span>
+<span class="lineNum">     172 </span>            :     }
+<span class="lineNum">     173 </span>            :     else {
+<span class="lineNum">     174 </span>            :         /* filename is a symlink.  we've presumably already tried
+<span class="lineNum">     175 </span>            :          * to stat it and found it to be missing (dangling link),
+<span class="lineNum">     176 </span>            :          * but this code doesn't care if the target is really there
+<span class="lineNum">     177 </span>            :          * or not.
+<span class="lineNum">     178 </span>            :          */
+<span class="lineNum">     179 </span>            :         ssize_t namelen;
+<span class="lineNum">     180 </span>            :         char *linkbuf;
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         linkbuf = ADIOI_Malloc(PATH_MAX+1);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :         namelen = readlink(filename, linkbuf, PATH_MAX+1);</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         if (namelen == -1) {</span>
+<span class="lineNum">     185 </span>            :             /* something strange has happened between the time that
+<span class="lineNum">     186 </span>            :              * we determined that this was a link and the time that
+<span class="lineNum">     187 </span>            :              * we attempted to read it; punt and use the old name.
+<span class="lineNum">     188 </span>            :              */
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :             dir = ADIOI_Strdup(filename);</span>
+<span class="lineNum">     190 </span>            :         }
+<span class="lineNum">     191 </span>            :         else {
+<span class="lineNum">     192 </span>            :             /* successfully read the link */
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :             linkbuf[namelen] = '\0'; /* readlink doesn't null terminate */</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :             dir = ADIOI_Strdup(linkbuf);</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :             ADIOI_Free(linkbuf);</span>
+<span class="lineNum">     196 </span>            :         }
+<span class="lineNum">     197 </span>            :     }
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span><span class="lineCov">        968 :     slash = strrchr(dir, '/');</span>
+<span class="lineNum">     200 </span><span class="lineCov">        968 :     if (!slash) ADIOI_Strncpy(dir, &quot;.&quot;, 2);</span>
+<span class="lineNum">     201 </span>            :     else {
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         if (slash == dir) *(dir + 1) = '\0';</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :         else *slash = '\0';</span>
+<span class="lineNum">     204 </span>            :     }
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span><span class="lineCov">        968 :     *dirnamep = dir;</span>
+<span class="lineNum">     207 </span><span class="lineCov">        968 :     return;</span>
+<span class="lineNum">     208 </span>            : }
+<span class="lineNum">     209 </span>            : #endif /* ROMIO_NTFS */
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span>            : /*
+<span class="lineNum">     212 </span>            :  ADIO_FileSysType_fncall - determines the file system type for a given file
+<span class="lineNum">     213 </span>            :  using a system-dependent function call
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            : Input Parameters:
+<span class="lineNum">     216 </span>            : . filename - pointer to file name character array
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            : Output Parameters:
+<span class="lineNum">     219 </span>            : . fstype - location in which to store file system type (ADIO_XXX)
+<span class="lineNum">     220 </span>            : . error_code - location in which to store error code
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            :  MPI_SUCCESS is stored in the location pointed to by error_code on success.
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            :  This function is used by MPI_File_open() and MPI_File_delete() to determine
+<span class="lineNum">     225 </span>            :  file system type.  Most other functions use the type which is stored when the
+<a name="226"><span class="lineNum">     226 </span>            :  file is opened.</a>
+<span class="lineNum">     227 </span>            :  */
+<span class="lineNum">     228 </span><span class="lineCov">       1952 : static void ADIO_FileSysType_fncall(const char *filename, int *fstype, int *error_code)</span>
+<span class="lineNum">     229 </span>            : {
+<span class="lineNum">     230 </span>            : #if defined (ROMIO_HAVE_STRUCT_STATVFS_WITH_F_BASETYPE) || defined (HAVE_STRUCT_STATFS) || defined (ROMIO_HAVE_STRUCT_STAT_WITH_ST_FSTYPE)
+<span class="lineNum">     231 </span>            :     int err;
+<span class="lineNum">     232 </span>            : #endif
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            : #ifdef ROMIO_HAVE_STRUCT_STATVFS_WITH_F_BASETYPE
+<span class="lineNum">     235 </span>            :     struct statvfs vfsbuf;
+<span class="lineNum">     236 </span>            : #endif
+<span class="lineNum">     237 </span>            : #ifdef HAVE_STRUCT_STATFS
+<span class="lineNum">     238 </span>            :     struct statfs fsbuf;
+<span class="lineNum">     239 </span>            : #endif
+<span class="lineNum">     240 </span>            : #ifdef ROMIO_HAVE_STRUCT_STAT_WITH_ST_FSTYPE
+<span class="lineNum">     241 </span>            :     struct stat sbuf;
+<span class="lineNum">     242 </span>            : #endif
+<span class="lineNum">     243 </span>            :     static char myname[] = &quot;ADIO_RESOLVEFILETYPE_FNCALL&quot;;
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            : /* NFS can get stuck and end up returing ESTALE &quot;forever&quot; */
+<span class="lineNum">     246 </span>            : #define MAX_ESTALE_RETRY 10000
+<span class="lineNum">     247 </span>            :     int retry_cnt;
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span><span class="lineCov">       1952 :     *error_code = MPI_SUCCESS;</span>
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            : #ifdef ROMIO_HAVE_STRUCT_STATVFS_WITH_F_BASETYPE
+<span class="lineNum">     252 </span>            :     /* rare: old solaris machines */
+<span class="lineNum">     253 </span>            :     retry_cnt=0;
+<span class="lineNum">     254 </span>            :     do {
+<span class="lineNum">     255 </span>            :         err = statvfs(filename, &amp;vfsbuf);
+<span class="lineNum">     256 </span>            :     } while (err &amp;&amp; (errno == ESTALE) &amp;&amp; retry_cnt++ &lt; MAX_ESTALE_RETRY);
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            :     if (err) {
+<span class="lineNum">     259 </span>            :         /* ENOENT may be returned in two cases:
+<span class="lineNum">     260 </span>            :          * 1) no directory entry for &quot;filename&quot;
+<span class="lineNum">     261 </span>            :          * 2) &quot;filename&quot; is a dangling symbolic link
+<span class="lineNum">     262 </span>            :          *
+<span class="lineNum">     263 </span>            :          * ADIO_FileSysType_parentdir tries to deal with both cases.
+<span class="lineNum">     264 </span>            :          */
+<span class="lineNum">     265 </span>            :         if (errno == ENOENT) {
+<span class="lineNum">     266 </span>            :             char *dir;
+<span class="lineNum">     267 </span>            :             ADIO_FileSysType_parentdir(filename, &amp;dir);
+<span class="lineNum">     268 </span>            :             err = statvfs(dir, &amp;vfsbuf);
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span>            :             ADIOI_Free(dir);
+<span class="lineNum">     271 </span>            :         }
+<span class="lineNum">     272 </span>            :         else {
+<span class="lineNum">     273 </span>            :             *error_code = ADIOI_Err_create_code(myname, filename, errno);
+<span class="lineNum">     274 </span>            :             if(*error_code != MPI_SUCCESS) return;
+<span class="lineNum">     275 </span>            :         }
+<span class="lineNum">     276 </span>            :     }
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span>            :     /* --BEGIN ERROR HANDLING-- */
+<span class="lineNum">     279 </span>            :     if (err) {
+<span class="lineNum">     280 </span>            :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+<span class="lineNum">     281 </span>            :                                            myname, __LINE__, MPI_ERR_NO_SUCH_FILE,
+<span class="lineNum">     282 </span>            :                                            &quot;**filename&quot;, &quot;**filename %s&quot;, filename);
+<span class="lineNum">     283 </span>            :         return;
+<span class="lineNum">     284 </span>            :     }
+<span class="lineNum">     285 </span>            :     /* --END ERROR HANDLING-- */
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span>            :     /* FPRINTF(stderr, &quot;%s\n&quot;, vfsbuf.f_basetype); */
+<span class="lineNum">     288 </span>            :     if (!strncmp(vfsbuf.f_basetype, &quot;nfs&quot;, 3)) {
+<span class="lineNum">     289 </span>            :         *fstype = ADIO_NFS;
+<span class="lineNum">     290 </span>            :         return;
+<span class="lineNum">     291 </span>            :     }
+<span class="lineNum">     292 </span>            :     if (!strncmp(vfsbuf.f_basetype, &quot;xfs&quot;, 3)) {
+<span class="lineNum">     293 </span>            :         *fstype = ADIO_XFS;
+<span class="lineNum">     294 </span>            :         return;
+<span class="lineNum">     295 </span>            :     }
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            : # ifdef ROMIO_UFS
+<span class="lineNum">     298 </span>            :     /* if UFS support is enabled, default to that */
+<span class="lineNum">     299 </span>            :     *fstype = ADIO_UFS;
+<span class="lineNum">     300 </span>            :     return;
+<span class="lineNum">     301 </span>            : # endif
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            :     /* --BEGIN ERROR HANDLING-- */
+<span class="lineNum">     304 </span>            :     *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+<span class="lineNum">     305 </span>            :                                        myname, __LINE__, MPI_ERR_NO_SUCH_FILE,
+<span class="lineNum">     306 </span>            :                                        &quot;**filename&quot;, &quot;**filename %s&quot;, filename);
+<span class="lineNum">     307 </span>            :     /* --END ERROR HANDLING-- */
+<span class="lineNum">     308 </span>            : #endif /* STATVFS APPROACH */
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            : #if defined(HAVE_STRUCT_STATFS) &amp;&amp; defined(HAVE_STATFS)
+<span class="lineNum">     311 </span>            :     /* common automagic fs-detection logic for any modern POSX-compliant
+<span class="lineNum">     312 </span>            :      * environment */
+<span class="lineNum">     313 </span><span class="lineCov">       1952 :     retry_cnt = 0;</span>
+<span class="lineNum">     314 </span>            :     do {
+<span class="lineNum">     315 </span><span class="lineCov">       1952 :         err = statfs(filename, &amp;fsbuf);</span>
+<span class="lineNum">     316 </span><span class="lineCov">       1952 :     } while (err &amp;&amp; (errno == ESTALE) &amp;&amp; retry_cnt++ &lt; MAX_ESTALE_RETRY);</span>
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span><span class="lineCov">       1952 :     if (err) {</span>
+<span class="lineNum">     319 </span><span class="lineCov">        968 :         if(errno == ENOENT) {</span>
+<span class="lineNum">     320 </span>            :             char *dir;
+<span class="lineNum">     321 </span><span class="lineCov">        968 :             ADIO_FileSysType_parentdir(filename, &amp;dir);</span>
+<span class="lineNum">     322 </span><span class="lineCov">        968 :             err = statfs(dir, &amp;fsbuf);</span>
+<span class="lineNum">     323 </span><span class="lineCov">        968 :             ADIOI_Free(dir);</span>
+<span class="lineNum">     324 </span>            :         }
+<span class="lineNum">     325 </span>            :         else {
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :             *error_code = ADIOI_Err_create_code(myname, filename, errno);</span>
+<span class="lineNum">     327 </span><span class="lineCov">       1952 :             if(*error_code != MPI_SUCCESS) return;</span>
+<span class="lineNum">     328 </span>            :         }
+<span class="lineNum">     329 </span>            :     }
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            :     /* --BEGIN ERROR HANDLING-- */
+<span class="lineNum">     332 </span><span class="lineCov">       1952 :     if (err) {</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     334 </span>            :                                            myname, __LINE__, MPI_ERR_NO_SUCH_FILE,
+<span class="lineNum">     335 </span>            :                                            &quot;**filename&quot;, &quot;**filename %s&quot;, filename);
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     337 </span>            :     }
+<span class="lineNum">     338 </span>            :     /* --END ERROR HANDLING-- */
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span>            : # ifdef ROMIO_HAVE_STRUCT_STATFS_WITH_F_FSTYPENAME
+<span class="lineNum">     341 </span>            :     /* uncommon: maybe only on Darwin ? */
+<span class="lineNum">     342 </span>            :     if ( !strncmp(&quot;nfs&quot;,fsbuf.f_fstypename,3) ) {
+<span class="lineNum">     343 </span>            :         *fstype = ADIO_NFS;
+<span class="lineNum">     344 </span>            :         return;
+<span class="lineNum">     345 </span>            :     }
+<span class="lineNum">     346 </span>            : # endif
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            : #ifdef ROMIO_GPFS
+<span class="lineNum">     350 </span>            :     if (fsbuf.f_type == GPFS_SUPER_MAGIC) {
+<span class="lineNum">     351 </span>            :         *fstype = ADIO_GPFS;
+<span class="lineNum">     352 </span>            :         return;
+<span class="lineNum">     353 </span>            :     }
+<span class="lineNum">     354 </span>            : #endif
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span>            :     /* FPRINTF(stderr, &quot;%d\n&quot;, fsbuf.f_type);*/
+<span class="lineNum">     357 </span>            : # ifdef NFS_SUPER_MAGIC
+<span class="lineNum">     358 </span><span class="lineCov">       1952 :     if (fsbuf.f_type == NFS_SUPER_MAGIC) {</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :         *fstype = ADIO_NFS;</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     361 </span>            :     }
+<span class="lineNum">     362 </span>            : # endif
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span>            : #ifdef ROMIO_LUSTRE
+<span class="lineNum">     365 </span>            : # ifndef LL_SUPER_MAGIC
+<span class="lineNum">     366 </span>            : #  define LL_SUPER_MAGIC 0x0BD00BD0
+<span class="lineNum">     367 </span>            : # endif
+<span class="lineNum">     368 </span>            :     if (fsbuf.f_type == LL_SUPER_MAGIC) {
+<span class="lineNum">     369 </span>            :         *fstype = ADIO_LUSTRE;
+<span class="lineNum">     370 </span>            :         return;
+<span class="lineNum">     371 </span>            :     }
+<span class="lineNum">     372 </span>            : #endif
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span>            : # ifdef PAN_KERNEL_FS_CLIENT_SUPER_MAGIC
+<span class="lineNum">     375 </span>            :     if (fsbuf.f_type == PAN_KERNEL_FS_CLIENT_SUPER_MAGIC) {
+<span class="lineNum">     376 </span>            :         *fstype = ADIO_PANFS;
+<span class="lineNum">     377 </span>            :         return;
+<span class="lineNum">     378 </span>            :     }
+<span class="lineNum">     379 </span>            : # endif
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            : # ifdef MOUNT_NFS
+<span class="lineNum">     382 </span>            :     if (fsbuf.f_type == MOUNT_NFS) {
+<span class="lineNum">     383 </span>            :         *fstype = ADIO_NFS;
+<span class="lineNum">     384 </span>            :         return;
+<span class="lineNum">     385 </span>            :     }
+<span class="lineNum">     386 </span>            : # endif
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span>            : # ifdef MOUNT_PFS
+<span class="lineNum">     389 </span>            :     if (fsbuf.f_type == MOUNT_PFS) {
+<span class="lineNum">     390 </span>            :         *fstype = ADIO_PFS;
+<span class="lineNum">     391 </span>            :         return;
+<span class="lineNum">     392 </span>            :     }
+<span class="lineNum">     393 </span>            : # endif
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span>            : # ifdef PVFS_SUPER_MAGIC
+<span class="lineNum">     396 </span>            :     if (fsbuf.f_type == PVFS_SUPER_MAGIC) {
+<span class="lineNum">     397 </span>            :         *fstype = ADIO_PVFS;
+<span class="lineNum">     398 </span>            :         return;
+<span class="lineNum">     399 </span>            :     }
+<span class="lineNum">     400 </span>            : # endif
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span>            : # ifdef PVFS2_SUPER_MAGIC
+<span class="lineNum">     403 </span><span class="lineCov">       1952 :     if (fsbuf.f_type == PVFS2_SUPER_MAGIC) {</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         *fstype = ADIO_PVFS2;</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     406 </span>            :     }
+<span class="lineNum">     407 </span>            : # endif
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span>            : # ifdef XFS_SUPER_MAGIC
+<span class="lineNum">     410 </span>            :     if (fsbuf.f_type == XFS_SUPER_MAGIC) {
+<span class="lineNum">     411 </span>            :             *fstype = ADIO_XFS;
+<span class="lineNum">     412 </span>            :             return;
+<span class="lineNum">     413 </span>            :     }
+<span class="lineNum">     414 </span>            : # endif
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span>            : # ifdef ROMIO_UFS
+<span class="lineNum">     417 </span>            :     /* if UFS support is enabled, default to that */
+<span class="lineNum">     418 </span><span class="lineCov">       1952 :     *fstype = ADIO_UFS;</span>
+<span class="lineNum">     419 </span><span class="lineCov">       1952 :     return;</span>
+<span class="lineNum">     420 </span>            : # endif
+<span class="lineNum">     421 </span>            :     /* --BEGIN ERROR HANDLING-- */
+<span class="lineNum">     422 </span>            :     *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+<span class="lineNum">     423 </span>            :                                        myname, __LINE__, MPI_ERR_NO_SUCH_FILE,
+<span class="lineNum">     424 </span>            :                                        &quot;**filename&quot;, &quot;**filename %s&quot;, filename);
+<span class="lineNum">     425 </span>            :     /* --END ERROR HANDLING-- */
+<span class="lineNum">     426 </span>            : #endif /* STATFS APPROACH */
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span>            : #ifdef ROMIO_HAVE_STRUCT_STAT_WITH_ST_FSTYPE
+<span class="lineNum">     429 </span>            :     /* rare: maybe old NEC SX or SGI IRIX machines */
+<span class="lineNum">     430 </span>            :     retry_cnt = 0;
+<span class="lineNum">     431 </span>            :     do {
+<span class="lineNum">     432 </span>            :         err = stat(filename, &amp;sbuf);
+<span class="lineNum">     433 </span>            :     } while (err &amp;&amp; (errno == ESTALE) &amp;&amp; retry_cnt++ &lt; MAX_ESTALE_RETRY);
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span>            :     if (err) {
+<span class="lineNum">     436 </span>            :         if(errno == ENOENT) {
+<span class="lineNum">     437 </span>            :             char *dir;
+<span class="lineNum">     438 </span>            :             ADIO_FileSysType_parentdir(filename, &amp;dir);
+<span class="lineNum">     439 </span>            :             err = stat(dir, &amp;sbuf);
+<span class="lineNum">     440 </span>            :             ADIOI_Free(dir);
+<span class="lineNum">     441 </span>            :         }
+<span class="lineNum">     442 </span>            :         else{
+<span class="lineNum">     443 </span>            :             *error_code = ADIOI_Err_create_code(myname, filename, errno);
+<span class="lineNum">     444 </span>            :             if(*error_code != MPI_SUCCESS) return;
+<span class="lineNum">     445 </span>            :         }
+<span class="lineNum">     446 </span>            :     }
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span>            :     if (err) {
+<span class="lineNum">     449 </span>            :         /* --BEGIN ERROR HANDLING-- */
+<span class="lineNum">     450 </span>            :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+<span class="lineNum">     451 </span>            :                                            myname, __LINE__, MPI_ERR_NO_SUCH_FILE,
+<span class="lineNum">     452 </span>            :                                            &quot;**filename&quot;, &quot;**filename %s&quot;, filename);
+<span class="lineNum">     453 </span>            :         /* --END ERROR HANDLING-- */
+<span class="lineNum">     454 </span>            :         return;
+<span class="lineNum">     455 </span>            :     }
+<span class="lineNum">     456 </span>            :     else {
+<span class="lineNum">     457 </span>            :         if (!strcmp(sbuf.st_fstype, &quot;nfs&quot;)) *fstype = ADIO_NFS;
+<span class="lineNum">     458 </span>            :         else *fstype = ADIO_SFS; /* assuming SX4 for now */
+<span class="lineNum">     459 </span>            :     }
+<span class="lineNum">     460 </span>            : #endif /* STAT APPROACH */
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span>            : #ifdef ROMIO_NTFS
+<span class="lineNum">     463 </span>            :     ADIOI_UNREFERENCED_ARG(filename);
+<span class="lineNum">     464 </span>            :     ADIOI_UNREFERENCED_ARG(error_code);
+<span class="lineNum">     465 </span>            :     *fstype = ADIO_NTFS; /* only supported FS on Windows */
+<span class="lineNum">     466 </span>            : #elif defined(ROMIO_NFS)
+<span class="lineNum">     467 </span>            :     *fstype = ADIO_NFS;
+<span class="lineNum">     468 </span>            : #elif defined(ROMIO_UFS)
+<span class="lineNum">     469 </span>            :     *fstype = ADIO_UFS;
+<span class="lineNum">     470 </span>            : #else
+<span class="lineNum">     471 </span>            :     /* --BEGIN ERROR HANDLING-- */
+<span class="lineNum">     472 </span>            :     *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+<span class="lineNum">     473 </span>            :                                        myname, __LINE__, MPI_ERR_NO_SUCH_FILE,
+<span class="lineNum">     474 </span>            :                                        &quot;**filename&quot;, &quot;**filename %s&quot;, filename);
+<span class="lineNum">     475 </span>            :     /* --END ERROR HANDLING-- */
+<span class="lineNum">     476 </span>            : #endif
+<span class="lineNum">     477 </span>            : }
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span>            : /* all proceeses opening, creating, or deleting a file end up invoking several
+<span class="lineNum">     480 </span>            :  * stat system calls (unless a fs prefix is given).  Cary out this file system
+<a name="481"><span class="lineNum">     481 </span>            :  * detection in a more scalable way by having rank 0 stat the file and broadcast the result (fs type and error code) to the other mpi processes */</a>
+<span class="lineNum">     482 </span>            : 
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 : static void ADIO_FileSysType_fncall_scalable(MPI_Comm comm, const char *filename, int * file_system, int * error_code)</span>
+<span class="lineNum">     484 </span>            : {
+<span class="lineNum">     485 </span>            :     int rank;
+<span class="lineNum">     486 </span>            :     int buf[2];
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     MPI_Comm_rank(comm, &amp;rank);</span>
+<span class="lineNum">     488 </span>            : 
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :     if (rank == 0) {</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :         ADIO_FileSysType_fncall(filename, file_system, error_code);</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :         buf[0] = *file_system;</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :         buf[1] = *error_code;</span>
+<span class="lineNum">     493 </span>            :     }
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :     MPI_Bcast(buf, 2, MPI_INT, 0, comm);</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     *file_system = buf[0];</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :     *error_code = buf[1];</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span>            : 
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span>            : /*
+<span class="lineNum">     502 </span>            :   ADIO_FileSysType_prefix - determines file system type for a file using
+<span class="lineNum">     503 </span>            :   a prefix on the file name.  upper layer should have already determined
+<span class="lineNum">     504 </span>            :   that a prefix is present.
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span>            : Input Parameters:
+<span class="lineNum">     507 </span>            : . filename - path to file, including prefix (xxx:)
+<span class="lineNum">     508 </span>            : 
+<span class="lineNum">     509 </span>            : Output Parameters:
+<span class="lineNum">     510 </span>            : . fstype - pointer to integer in which to store file system type (ADIO_XXX)
+<span class="lineNum">     511 </span>            : . error_code - pointer to integer in which to store error code
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span>            :   Returns MPI_SUCCESS in error_code on success.  Filename not having a prefix
+<span class="lineNum">     514 </span>            :   is considered an error. Except for on Windows systems where the default is NTFS.
+<a name="515"><span class="lineNum">     515 </span>            : </a>
+<span class="lineNum">     516 </span>            :  */
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 : static void ADIO_FileSysType_prefix(const char *filename, int *fstype, int *error_code)</span>
+<span class="lineNum">     518 </span>            : {
+<span class="lineNum">     519 </span>            :     static char myname[] = &quot;ADIO_RESOLVEFILETYPE_PREFIX&quot;;
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :     *error_code = MPI_SUCCESS;</span>
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     if (!strncmp(filename, &quot;pfs:&quot;, 4) || !strncmp(filename, &quot;PFS:&quot;, 4)) {</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :         *fstype = ADIO_PFS;</span>
+<span class="lineNum">     524 </span>            :     }
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;piofs:&quot;, 6) || !strncmp(filename, &quot;PIOFS:&quot;, 6)) {</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :         *fstype = ADIO_PIOFS;</span>
+<span class="lineNum">     527 </span>            :     }
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;ufs:&quot;, 4) || !strncmp(filename, &quot;UFS:&quot;, 4)) {</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :         *fstype = ADIO_UFS;</span>
+<span class="lineNum">     530 </span>            :     }
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;nfs:&quot;, 4) || !strncmp(filename, &quot;NFS:&quot;, 4)) {</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :         *fstype = ADIO_NFS;</span>
+<span class="lineNum">     533 </span>            :     }
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;panfs:&quot;, 6) || !strncmp(filename, &quot;PANFS:&quot;, 6)) {</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :         *fstype = ADIO_PANFS;</span>
+<span class="lineNum">     536 </span>            :     }
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;hfs:&quot;, 4) || !strncmp(filename, &quot;HFS:&quot;, 4)) {</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :         *fstype = ADIO_HFS;</span>
+<span class="lineNum">     539 </span>            :     }
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;xfs:&quot;, 4) || !strncmp(filename, &quot;XFS:&quot;, 4)) {</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :         *fstype = ADIO_XFS;</span>
+<span class="lineNum">     542 </span>            :     }
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;sfs:&quot;, 4) || !strncmp(filename, &quot;SFS:&quot;, 4)) {</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :         *fstype = ADIO_SFS;</span>
+<span class="lineNum">     545 </span>            :     }
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;pvfs:&quot;, 5) || !strncmp(filename, &quot;PVFS:&quot;, 5)) {</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :         *fstype = ADIO_PVFS;</span>
+<span class="lineNum">     548 </span>            :     }
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;pvfs2:&quot;, 6)||!strncmp(filename, &quot;PVFS2:&quot;, 6)) {</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :         *fstype = ADIO_PVFS2;</span>
+<span class="lineNum">     551 </span>            :     }
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;zoidfs:&quot;, 7)||</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :                     !strncmp(filename, &quot;ZOIDFS:&quot;, 7)) {</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :             *fstype = ADIO_ZOIDFS;</span>
+<span class="lineNum">     555 </span>            :     }
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;testfs:&quot;, 7)</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :              || !strncmp(filename, &quot;TESTFS:&quot;, 7))</span>
+<span class="lineNum">     558 </span>            :     {
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :         *fstype = ADIO_TESTFS;</span>
+<span class="lineNum">     560 </span>            :     }
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;ftp:&quot;, 4)</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :                     || !strncmp(filename, &quot;gsiftp:&quot;, 7))</span>
+<span class="lineNum">     563 </span>            :     {
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :         *fstype = ADIO_GRIDFTP;</span>
+<span class="lineNum">     565 </span>            :     }
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;lustre:&quot;, 7)</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :              || !strncmp(filename, &quot;LUSTRE:&quot;, 7))</span>
+<span class="lineNum">     568 </span>            :     {
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :         *fstype = ADIO_LUSTRE;</span>
+<span class="lineNum">     570 </span>            :     }
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :     else if (!strncmp(filename, &quot;gpfs:&quot;, 5) || !strncmp(filename, &quot;GPFS:&quot;, 5)) {</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :         *fstype = ADIO_GPFS;</span>
+<span class="lineNum">     573 </span>            :     }
+<span class="lineNum">     574 </span>            :     else {
+<span class="lineNum">     575 </span>            : #ifdef ROMIO_NTFS
+<span class="lineNum">     576 </span>            :         *fstype = ADIO_NTFS;
+<span class="lineNum">     577 </span>            : #else
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :         *fstype = 0;</span>
+<span class="lineNum">     579 </span>            :         /* --BEGIN ERROR HANDLING-- */
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     581 </span>            :                                            myname, __LINE__, MPI_ERR_NO_SUCH_FILE,
+<span class="lineNum">     582 </span>            :                                            &quot;**filename&quot;, &quot;**filename %s&quot;, filename);
+<span class="lineNum">     583 </span>            :         /* --END ERROR HANDLING-- */
+<span class="lineNum">     584 </span>            : #endif
+<span class="lineNum">     585 </span>            :     }
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span>            : /*@
+<span class="lineNum">     589 </span>            :     ADIO_ResolveFileType - determines file system type and operations from
+<span class="lineNum">     590 </span>            :                            file name string; this is a collective call
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span>            : Input Parameters:
+<span class="lineNum">     593 </span>            : . comm - communicator across which collective open is performed
+<span class="lineNum">     594 </span>            : . filename - name of file (string)
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span>            : Output Parameters:
+<span class="lineNum">     597 </span>            : . fstype - (pointer to) int holding file system type
+<span class="lineNum">     598 </span>            : . ops - (address of) pointer to table of valid file operations
+<span class="lineNum">     599 </span>            : . error_code - (pointer to) int holding error code
+<span class="lineNum">     600 </span>            : 
+<span class="lineNum">     601 </span>            : Notes:
+<span class="lineNum">     602 </span>            : This code used to be in MPI_File_open(), but it has been moved into here in
+<span class="lineNum">     603 </span>            : order to clean things up.  The goal is to separate all this &quot;did we compile
+<span class="lineNum">     604 </span>            : for this fs type&quot; code from the MPI layer and also to introduce the ADIOI_Fns
+<a name="605"><span class="lineNum">     605 </span>            : tables in a reasonable way. -- Rob, 06/06/2001</a>
+<span class="lineNum">     606 </span>            : @*/
+<span class="lineNum">     607 </span><span class="lineCov">       1952 : void ADIO_ResolveFileType(MPI_Comm comm, const char *filename, int *fstype,</span>
+<span class="lineNum">     608 </span>            :                           ADIOI_Fns **ops, int *error_code)
+<span class="lineNum">     609 </span>            : {
+<span class="lineNum">     610 </span>            :     int myerrcode, file_system, min_code, max_code;
+<span class="lineNum">     611 </span>            :     char *tmp;
+<span class="lineNum">     612 </span>            :     static char myname[] = &quot;ADIO_RESOLVEFILETYPE&quot;;
+<span class="lineNum">     613 </span>            :     char * p;
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span><span class="lineCov">       1952 :     file_system = -1;</span>
+<span class="lineNum">     616 </span><span class="lineCov">       1952 :     if (filename == NULL) {</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :             *error_code = ADIOI_Err_create_code(myname, filename, ENOENT);</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     619 </span>            :     }
+<span class="lineNum">     620 </span><span class="lineCov">       1952 :     tmp = strchr(filename, ':');</span>
+<span class="lineNum">     621 </span><span class="lineCov">       1952 :     if (!tmp) {</span>
+<span class="lineNum">     622 </span><span class="lineCov">       1952 :         int have_nfs_enabled=0;</span>
+<span class="lineNum">     623 </span><span class="lineCov">       1952 :         *error_code = MPI_SUCCESS;</span>
+<span class="lineNum">     624 </span>            :         /* no prefix; use system-dependent function call to determine type */
+<span class="lineNum">     625 </span>            :         /* Optimization: we can reduce the 'storm of stats' that result from
+<span class="lineNum">     626 </span>            :          * thousands of mpi processes determinig file type this way.  Let us
+<span class="lineNum">     627 </span>            :          * have just one process stat the file and broadcast the result to
+<span class="lineNum">     628 </span>            :          * everyone else.
+<span class="lineNum">     629 </span>            :          * - Note that we will not catch cases like
+<span class="lineNum">     630 </span>            :          * http://www.mcs.anl.gov/web-mail-archive/lists/mpich-discuss/2007/08/msg00042.html
+<span class="lineNum">     631 </span>            :          * (edit: now http://lists.mcs.anl.gov/pipermail/mpich-discuss/2007-August/002648.html)
+<span class="lineNum">     632 </span>            :          *
+<span class="lineNum">     633 </span>            :          * where file systems are not mounted or available on other processes,
+<span class="lineNum">     634 </span>            :          * but we'll catch those a few functions later in ADIO_Open
+<span class="lineNum">     635 </span>            :          * - Note that if we have NFS enabled, we might have a situation where,
+<span class="lineNum">     636 </span>            :          *   for example, /home/user/data.out is UFS on one process but NFS on
+<span class="lineNum">     637 </span>            :          *   others, so we won't perform this optimization if NFS is enabled.
+<span class="lineNum">     638 </span>            :          * - Another point: error codes and file system types are broadcast to
+<span class="lineNum">     639 </span>            :          *   all members of the communicator, so we get to skip the allreduce
+<span class="lineNum">     640 </span>            :          *   steps*/
+<span class="lineNum">     641 </span>            : 
+<span class="lineNum">     642 </span>            : #ifdef ROMIO_NFS
+<span class="lineNum">     643 </span><span class="lineCov">       1952 :         have_nfs_enabled=1;</span>
+<span class="lineNum">     644 </span>            : #endif
+<span class="lineNum">     645 </span><span class="lineCov">       1952 :         if (!have_nfs_enabled) {</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :             ADIO_FileSysType_fncall_scalable(comm, filename, &amp;file_system, &amp;myerrcode);</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :             if (myerrcode != MPI_SUCCESS) {</span>
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :                 *error_code = myerrcode;</span>
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     650 </span>            :             }
+<span class="lineNum">     651 </span>            :         } else {
+<span class="lineNum">     652 </span><span class="lineCov">       1952 :             ADIO_FileSysType_fncall(filename, &amp;file_system, &amp;myerrcode);</span>
+<span class="lineNum">     653 </span>            : 
+<span class="lineNum">     654 </span>            :             /* the check for file system type will hang if any process got
+<span class="lineNum">     655 </span>            :              * an error in ADIO_FileSysType_fncall.  Processes encountering
+<span class="lineNum">     656 </span>            :              * an error will return early, before the collective file
+<span class="lineNum">     657 </span>            :              * system type check below.  This case could happen if a full
+<span class="lineNum">     658 </span>            :              * path exists on one node but not on others, and no prefix
+<span class="lineNum">     659 </span>            :              * like ufs: was provided.  see discussion at
+<span class="lineNum">     660 </span>            :              * http://www.mcs.anl.gov/web-mail-archive/lists/mpich-discuss/2007/08/msg00042.html
+<span class="lineNum">     661 </span>            :              * (edit: now
+<span class="lineNum">     662 </span>            :              * http://lists.mcs.anl.gov/pipermail/mpich-discuss/2007-August/002648.html)
+<span class="lineNum">     663 </span>            :              */
+<span class="lineNum">     664 </span>            : 
+<span class="lineNum">     665 </span><span class="lineCov">       1952 :             MPI_Allreduce(&amp;myerrcode, &amp;max_code, 1, MPI_INT, MPI_MAX, comm);</span>
+<span class="lineNum">     666 </span><span class="lineCov">       1952 :             if (max_code != MPI_SUCCESS)  {</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :                 *error_code = max_code;</span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     669 </span>            :             }
+<span class="lineNum">     670 </span>            :             /* ensure everyone came up with the same file system type */
+<span class="lineNum">     671 </span><span class="lineCov">       1952 :             MPI_Allreduce(&amp;file_system, &amp;min_code, 1, MPI_INT,</span>
+<span class="lineNum">     672 </span>            :                     MPI_MIN, comm);
+<span class="lineNum">     673 </span><span class="lineCov">       1952 :             if (min_code == ADIO_NFS) file_system = ADIO_NFS;</span>
+<span class="lineNum">     674 </span>            :         }
+<span class="lineNum">     675 </span>            :     }
+<span class="lineNum">     676 </span>            :     else {
+<span class="lineNum">     677 </span>            :         /* prefix specified; just match via prefix and assume everyone got
+<span class="lineNum">     678 </span>            :          * the same thing.
+<span class="lineNum">     679 </span>            :          *
+<span class="lineNum">     680 </span>            :          * perhaps we should have this code go through the allreduce as well?
+<span class="lineNum">     681 </span>            :          */
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :         ADIO_FileSysType_prefix(filename, &amp;file_system, &amp;myerrcode);</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :         if (myerrcode != MPI_SUCCESS) {</span>
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :             *error_code = myerrcode;</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     686 </span>            :         }
+<span class="lineNum">     687 </span>            :     }
+<span class="lineNum">     688 </span>            : 
+<span class="lineNum">     689 </span>            :     /* lastly, there may be situations where one cannot override the file
+<span class="lineNum">     690 </span>            :      * system detection with a prefix -- maybe the file name is passed to both
+<span class="lineNum">     691 </span>            :      * posix and MPI-IO routines, or maybe the file name is hard-coded into an
+<span class="lineNum">     692 </span>            :      * application.
+<span class="lineNum">     693 </span>            :      * Assumes all processes set the same environment varialble.
+<span class="lineNum">     694 </span>            :      * Values: the same prefix you would stick on a file path. e.g. pvfs2: --
+<span class="lineNum">     695 </span>            :      * including the colon! */
+<span class="lineNum">     696 </span><span class="lineCov">       1952 :     p = getenv(&quot;ROMIO_FSTYPE_FORCE&quot;);</span>
+<span class="lineNum">     697 </span><span class="lineCov">       1952 :     if (p != NULL) {</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :         ADIO_FileSysType_prefix(p, &amp;file_system, &amp;myerrcode);</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :         if (myerrcode != MPI_SUCCESS) {</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :             *error_code = myerrcode;</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">     702 </span>            :         }
+<span class="lineNum">     703 </span>            :     }
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span>            :     /* verify that we support this file system type and set ops pointer */
+<span class="lineNum">     706 </span><span class="lineCov">       1952 :     if (file_system == ADIO_PFS) {</span>
+<span class="lineNum">     707 </span>            : #ifndef ROMIO_PFS
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     709 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     710 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     712 </span>            : #else
+<span class="lineNum">     713 </span>            :         *ops = &amp;ADIO_PFS_operations;
+<span class="lineNum">     714 </span>            : #endif
+<span class="lineNum">     715 </span>            :     }
+<span class="lineNum">     716 </span><span class="lineCov">       1952 :     if (file_system == ADIO_PIOFS) {</span>
+<span class="lineNum">     717 </span>            : #ifndef ROMIO_PIOFS
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     719 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     720 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     722 </span>            : #else
+<span class="lineNum">     723 </span>            :         *ops = &amp;ADIO_PIOFS_operations;
+<span class="lineNum">     724 </span>            : #endif
+<span class="lineNum">     725 </span>            :     }
+<span class="lineNum">     726 </span><span class="lineCov">       1952 :     if (file_system == ADIO_UFS) {</span>
+<span class="lineNum">     727 </span>            : #ifndef ROMIO_UFS
+<span class="lineNum">     728 </span>            :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+<span class="lineNum">     729 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     730 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     731 </span>            :         return;
+<span class="lineNum">     732 </span>            : #else
+<span class="lineNum">     733 </span><span class="lineCov">       1952 :         *ops = &amp;ADIO_UFS_operations;</span>
+<span class="lineNum">     734 </span>            : #endif
+<span class="lineNum">     735 </span>            :     }
+<span class="lineNum">     736 </span><span class="lineCov">       1952 :     if (file_system == ADIO_NFS) {</span>
+<span class="lineNum">     737 </span>            : #ifndef ROMIO_NFS
+<span class="lineNum">     738 </span>            :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+<span class="lineNum">     739 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     740 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     741 </span>            :         return;
+<span class="lineNum">     742 </span>            : #else
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :         *ops = &amp;ADIO_NFS_operations;</span>
+<span class="lineNum">     744 </span>            : #endif
+<span class="lineNum">     745 </span>            :     }
+<span class="lineNum">     746 </span><span class="lineCov">       1952 :     if (file_system == ADIO_PANFS) {</span>
+<span class="lineNum">     747 </span>            : #ifndef ROMIO_PANFS
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     749 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     750 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     752 </span>            : #else
+<span class="lineNum">     753 </span>            :         *ops = &amp;ADIO_PANFS_operations;
+<span class="lineNum">     754 </span>            : #endif
+<span class="lineNum">     755 </span>            :     }
+<span class="lineNum">     756 </span><span class="lineCov">       1952 :     if (file_system == ADIO_HFS) {</span>
+<span class="lineNum">     757 </span>            : #ifndef ROMIO_HFS
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     759 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     760 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     762 </span>            : #else
+<span class="lineNum">     763 </span>            :         *ops = &amp;ADIO_HFS_operations;
+<span class="lineNum">     764 </span>            : #endif
+<span class="lineNum">     765 </span>            :     }
+<span class="lineNum">     766 </span><span class="lineCov">       1952 :     if (file_system == ADIO_XFS) {</span>
+<span class="lineNum">     767 </span>            : #ifndef ROMIO_XFS
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     769 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     770 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     772 </span>            : #else
+<span class="lineNum">     773 </span>            :         *ops = &amp;ADIO_XFS_operations;
+<span class="lineNum">     774 </span>            : #endif
+<span class="lineNum">     775 </span>            :     }
+<span class="lineNum">     776 </span><span class="lineCov">       1952 :     if (file_system == ADIO_SFS) {</span>
+<span class="lineNum">     777 </span>            : #ifndef ROMIO_SFS
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     779 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     780 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     782 </span>            : #else
+<span class="lineNum">     783 </span>            :         *ops = &amp;ADIO_SFS_operations;
+<span class="lineNum">     784 </span>            : #endif
+<span class="lineNum">     785 </span>            :     }
+<span class="lineNum">     786 </span><span class="lineCov">       1952 :     if (file_system == ADIO_PVFS) {</span>
+<span class="lineNum">     787 </span>            : #ifndef ROMIO_PVFS
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     789 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     790 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     792 </span>            : #else
+<span class="lineNum">     793 </span>            :         *ops = &amp;ADIO_PVFS_operations;
+<span class="lineNum">     794 </span>            : #endif
+<span class="lineNum">     795 </span>            :     }
+<span class="lineNum">     796 </span><span class="lineCov">       1952 :     if (file_system == ADIO_PVFS2) {</span>
+<span class="lineNum">     797 </span>            : #ifndef ROMIO_PVFS2
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     799 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     800 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     802 </span>            : #else
+<span class="lineNum">     803 </span>            :         *ops = &amp;ADIO_PVFS2_operations;
+<span class="lineNum">     804 </span>            : #endif
+<span class="lineNum">     805 </span>            :     }
+<span class="lineNum">     806 </span><span class="lineCov">       1952 :     if (file_system == ADIO_NTFS) {</span>
+<span class="lineNum">     807 </span>            : #ifndef ROMIO_NTFS
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     809 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     810 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     812 </span>            : #else
+<span class="lineNum">     813 </span>            :         *ops = &amp;ADIO_NTFS_operations;
+<span class="lineNum">     814 </span>            : #endif
+<span class="lineNum">     815 </span>            :     }
+<span class="lineNum">     816 </span><span class="lineCov">       1952 :     if (file_system == ADIO_TESTFS) {</span>
+<span class="lineNum">     817 </span>            : #ifndef ROMIO_TESTFS
+<span class="lineNum">     818 </span>            :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+<span class="lineNum">     819 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     820 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     821 </span>            :         return;
+<span class="lineNum">     822 </span>            : #else
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :         *ops = &amp;ADIO_TESTFS_operations;</span>
+<span class="lineNum">     824 </span>            : #endif
+<span class="lineNum">     825 </span>            :     }
+<span class="lineNum">     826 </span>            : 
+<span class="lineNum">     827 </span><span class="lineCov">       1952 :     if (file_system == ADIO_GPFS) {</span>
+<span class="lineNum">     828 </span>            : #ifndef ROMIO_GPFS
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     830 </span>            :                                         myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     831 </span>            :                                         &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     833 </span>            : #else
+<span class="lineNum">     834 </span>            :         *ops = &amp;ADIO_GPFS_operations;
+<span class="lineNum">     835 </span>            : #endif
+<span class="lineNum">     836 </span>            :     }
+<span class="lineNum">     837 </span>            : 
+<span class="lineNum">     838 </span><span class="lineCov">       1952 :     if (file_system == ADIO_GRIDFTP) {</span>
+<span class="lineNum">     839 </span>            : #ifndef ROMIO_GRIDFTP
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     841 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     842 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     844 </span>            : #else
+<span class="lineNum">     845 </span>            :         *ops = &amp;ADIO_GRIDFTP_operations;
+<span class="lineNum">     846 </span>            : #endif
+<span class="lineNum">     847 </span>            :     }
+<span class="lineNum">     848 </span><span class="lineCov">       1952 :     if (file_system == ADIO_LUSTRE) {</span>
+<span class="lineNum">     849 </span>            : #ifndef ROMIO_LUSTRE
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, &quot;**iofstypeunsupported&quot;, 0);</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     852 </span>            : #else
+<span class="lineNum">     853 </span>            :         *ops = &amp;ADIO_LUSTRE_operations;
+<span class="lineNum">     854 </span>            : #endif
+<span class="lineNum">     855 </span>            :     }
+<span class="lineNum">     856 </span><span class="lineCov">       1952 :     if (file_system == ADIO_ZOIDFS) {</span>
+<span class="lineNum">     857 </span>            : #ifndef ROMIO_ZOIDFS
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :         *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,</span>
+<span class="lineNum">     859 </span>            :                                            myname, __LINE__, MPI_ERR_IO,
+<span class="lineNum">     860 </span>            :                                            &quot;**iofstypeunsupported&quot;, 0);
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     862 </span>            : #else
+<span class="lineNum">     863 </span>            :         *ops = &amp;ADIO_ZOIDFS_operations;
+<span class="lineNum">     864 </span>            : #endif
+<span class="lineNum">     865 </span>            :     }
+<span class="lineNum">     866 </span><span class="lineCov">       1952 :     *error_code = MPI_SUCCESS;</span>
+<span class="lineNum">     867 </span><span class="lineCov">       1952 :     *fstype = file_system;</span>
+<span class="lineNum">     868 </span><span class="lineCov">       1952 :     return;</span>
+<span class="lineNum">     869 </span>            : }
+<span class="lineNum">     870 </span>            : /*
+<span class="lineNum">     871 </span>            :  * vim: ts=8 sts=4 sw=4 noexpandtab
+<span class="lineNum">     872 </span>            :  */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

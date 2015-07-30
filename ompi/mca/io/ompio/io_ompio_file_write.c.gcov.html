@@ -1,0 +1,899 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/io/ompio/io_ompio_file_write.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/io/ompio</a> - io_ompio_file_write.c<span style="font-size: 80%;"> (source / <a href="io_ompio_file_write.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">78</td>
+            <td class="headerCovTableEntry">311</td>
+            <td class="headerCovTableEntryLo">25.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">24</td>
+            <td class="headerCovTableEntryLo">12.5 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  *  Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                          University Research and Technology
+<span class="lineNum">       4 </span>            :  *                          Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  *  Copyright (c) 2004-2005 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                          of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                          reserved.
+<span class="lineNum">       8 </span>            :  *  Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                          University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  *  Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                          All rights reserved.
+<span class="lineNum">      12 </span>            :  *  Copyright (c) 2008-2015 University of Houston. All rights reserved.
+<span class="lineNum">      13 </span>            :  *  $COPYRIGHT$
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  *  Additional copyrights may follow
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  *  $HEADER$
+<span class="lineNum">      18 </span>            :  */
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &quot;ompi/communicator/communicator.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;ompi/info/info.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;ompi/file/file.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;ompi/mca/fs/fs.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;ompi/mca/fs/base/base.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;ompi/mca/fcoll/fcoll.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;ompi/mca/fcoll/base/base.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;ompi/mca/fbtl/fbtl.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;ompi/mca/fbtl/base/base.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;ompi/mca/sharedfp/sharedfp.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;ompi/mca/sharedfp/base/base.h&quot;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #include &quot;io_ompio.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;io_ompio_request.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;math.h&quot;
+<span class="lineNum">      37 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : /* Read and write routines are split into two interfaces.
+<span class="lineNum">      40 </span>            : **   The
+<span class="lineNum">      41 </span>            : **   mca_io_ompio_file_read/write[_at]
+<span class="lineNum">      42 </span>            : **
+<span class="lineNum">      43 </span>            : ** routines are the ones registered with the ompio modules.
+<span class="lineNum">      44 </span>            : ** The
+<span class="lineNum">      45 </span>            : **
+<span class="lineNum">      46 </span>            : ** ompio_io_ompio_file_read/write[_at]
+<span class="lineNum">      47 </span>            : **
+<span class="lineNum">      48 </span>            : ** routesin are used e.g. from the shared file pointer modules.
+<span class="lineNum">      49 </span>            : ** The main difference is, that the first one takes an ompi_file_t
+<span class="lineNum">      50 </span>            : ** as a file pointer argument, while the second uses the ompio internal
+<span class="lineNum">      51 </span>            : ** mca_io_ompio_file_t structure.
+<span class="lineNum">      52 </span>            : */
+<a name="53"><span class="lineNum">      53 </span>            : </a>
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span><span class="lineCov">        800 : int mca_io_ompio_file_write (ompi_file_t *fp,</span>
+<span class="lineNum">      56 </span>            :                              void *buf,
+<span class="lineNum">      57 </span>            :                              int count,
+<span class="lineNum">      58 </span>            :                              struct ompi_datatype_t *datatype,
+<span class="lineNum">      59 </span>            :                              ompi_status_public_t *status)
+<span class="lineNum">      60 </span>            : {
+<span class="lineNum">      61 </span><span class="lineCov">        800 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">      62 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">      63 </span>            :     mca_io_ompio_file_t *fh;
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span><span class="lineCov">        800 :     data = (mca_io_ompio_data_t *) fp-&gt;f_io_selected_data;</span>
+<span class="lineNum">      66 </span><span class="lineCov">        800 :     fh = &amp;data-&gt;ompio_fh;</span>
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span><span class="lineCov">        800 :     ret = ompio_io_ompio_file_write(fh,buf,count,datatype,status);</span>
+<span class="lineNum">      69 </span><span class="lineCov">        800 :     return ret;</span>
+<a name="70"><span class="lineNum">      70 </span>            : }</a>
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span><span class="lineCov">        800 : int ompio_io_ompio_file_write (mca_io_ompio_file_t *fh,</span>
+<span class="lineNum">      73 </span>            :                                void *buf,
+<span class="lineNum">      74 </span>            :                                int count,
+<span class="lineNum">      75 </span>            :                                struct ompi_datatype_t *datatype,
+<span class="lineNum">      76 </span>            :                                ompi_status_public_t *status)
+<span class="lineNum">      77 </span>            : {
+<span class="lineNum">      78 </span><span class="lineCov">        800 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">      79 </span><span class="lineCov">        800 :     int index = 0;</span>
+<span class="lineNum">      80 </span><span class="lineCov">        800 :     int cycles = 0;</span>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span><span class="lineCov">        800 :     uint32_t iov_count = 0;</span>
+<span class="lineNum">      83 </span><span class="lineCov">        800 :     struct iovec *decoded_iov = NULL;</span>
+<span class="lineNum">      84 </span><span class="lineCov">        800 :     size_t bytes_per_cycle=0;</span>
+<span class="lineNum">      85 </span><span class="lineCov">        800 :     size_t total_bytes_written = 0;</span>
+<span class="lineNum">      86 </span><span class="lineCov">        800 :     size_t max_data=0, real_bytes_written=0;</span>
+<span class="lineNum">      87 </span><span class="lineCov">        800 :     ssize_t ret_code=0;</span>
+<span class="lineNum">      88 </span><span class="lineCov">        800 :     int i = 0; /* index into the decoded iovec of the buffer */</span>
+<span class="lineNum">      89 </span><span class="lineCov">        800 :     int j = 0; /* index into the file view iovec */</span>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">        800 :     if ( 0 == count ) {</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         if ( MPI_STATUS_IGNORE != status ) {</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :             status-&gt;_ucount = 0;</span>
+<span class="lineNum">      94 </span>            :         }
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         return ret;</span>
+<span class="lineNum">      96 </span>            :     }
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span><span class="lineCov">        800 :     ompi_io_ompio_decode_datatype (fh,</span>
+<span class="lineNum">      99 </span>            :                                    datatype,
+<span class="lineNum">     100 </span>            :                                    count,
+<span class="lineNum">     101 </span>            :                                    buf,
+<span class="lineNum">     102 </span>            :                                    &amp;max_data,
+<span class="lineNum">     103 </span>            :                                    &amp;decoded_iov,
+<span class="lineNum">     104 </span>            :                                    &amp;iov_count);
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span><span class="lineCov">        800 :     bytes_per_cycle = mca_io_ompio_cycle_buffer_size;</span>
+<span class="lineNum">     107 </span><span class="lineCov">        800 :     cycles = ceil((float)max_data/bytes_per_cycle);</span>
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            : #if 0
+<span class="lineNum">     110 </span>            :     printf (&quot;Bytes per Cycle: %d   Cycles: %d\n&quot;, bytes_per_cycle, cycles);
+<span class="lineNum">     111 </span>            : #endif
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span><span class="lineCov">        800 :     j = fh-&gt;f_index_in_file_view;</span>
+<span class="lineNum">     114 </span><span class="lineCov">       1600 :     for (index = 0; index &lt; cycles; index++) {</span>
+<span class="lineNum">     115 </span><span class="lineCov">        800 :         mca_io_ompio_build_io_array ( fh,</span>
+<span class="lineNum">     116 </span>            :                                          index,
+<span class="lineNum">     117 </span>            :                                          cycles,
+<span class="lineNum">     118 </span>            :                                          bytes_per_cycle,
+<span class="lineNum">     119 </span>            :                                          max_data,
+<span class="lineNum">     120 </span>            :                                          iov_count,
+<span class="lineNum">     121 </span>            :                                          decoded_iov,
+<span class="lineNum">     122 </span>            :                                          &amp;i,
+<span class="lineNum">     123 </span>            :                                          &amp;j,
+<span class="lineNum">     124 </span>            :                                          &amp;total_bytes_written);
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineCov">        800 :         if (fh-&gt;f_num_of_io_entries) {</span>
+<span class="lineNum">     127 </span><span class="lineCov">        800 :             ret_code =fh-&gt;f_fbtl-&gt;fbtl_pwritev (fh);</span>
+<span class="lineNum">     128 </span><span class="lineCov">        800 :             if ( 0&lt;= ret_code ) {</span>
+<span class="lineNum">     129 </span><span class="lineCov">        800 :                 real_bytes_written+= (size_t)ret_code;</span>
+<span class="lineNum">     130 </span>            :             }
+<span class="lineNum">     131 </span>            :         }
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span><span class="lineCov">        800 :         fh-&gt;f_num_of_io_entries = 0;</span>
+<span class="lineNum">     134 </span><span class="lineCov">        800 :         if (NULL != fh-&gt;f_io_array) {</span>
+<span class="lineNum">     135 </span><span class="lineCov">        800 :             free (fh-&gt;f_io_array);</span>
+<span class="lineNum">     136 </span><span class="lineCov">        800 :             fh-&gt;f_io_array = NULL;</span>
+<span class="lineNum">     137 </span>            :         }
+<span class="lineNum">     138 </span>            :     }
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span><span class="lineCov">        800 :     if (NULL != decoded_iov) {</span>
+<span class="lineNum">     141 </span><span class="lineCov">        800 :         free (decoded_iov);</span>
+<span class="lineNum">     142 </span><span class="lineCov">        800 :         decoded_iov = NULL;</span>
+<span class="lineNum">     143 </span>            :     }
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span><span class="lineCov">        800 :     if ( MPI_STATUS_IGNORE != status ) {</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         status-&gt;_ucount = real_bytes_written;</span>
+<span class="lineNum">     147 </span>            :     }
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineCov">        800 :     return ret;</span>
+<a name="150"><span class="lineNum">     150 </span>            : }</a>
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_write_at (ompi_file_t *fh,</span>
+<span class="lineNum">     153 </span>            :                                 OMPI_MPI_OFFSET_TYPE offset,
+<span class="lineNum">     154 </span>            :                                 void *buf,
+<span class="lineNum">     155 </span>            :                                 int count,
+<span class="lineNum">     156 </span>            :                                 struct ompi_datatype_t *datatype,
+<span class="lineNum">     157 </span>            :                                 ompi_status_public_t *status)
+<span class="lineNum">     158 </span>            : {
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     160 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fh-&gt;f_io_selected_data;</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     ret = ompio_io_ompio_file_write_at (&amp;data-&gt;ompio_fh, offset,buf,count,datatype,status);</span>
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="166"><span class="lineNum">     166 </span>            : }</a>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 : int ompio_io_ompio_file_write_at (mca_io_ompio_file_t *fh,</span>
+<span class="lineNum">     169 </span>            :                                   OMPI_MPI_OFFSET_TYPE offset,
+<span class="lineNum">     170 </span>            :                                   void *buf,
+<span class="lineNum">     171 </span>            :                                   int count,
+<span class="lineNum">     172 </span>            :                                   struct ompi_datatype_t *datatype,
+<span class="lineNum">     173 </span>            :                                   ompi_status_public_t *status)
+<span class="lineNum">     174 </span>            : {
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     176 </span>            :     OMPI_MPI_OFFSET_TYPE prev_offset;
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     ompio_io_ompio_file_get_position (fh, &amp;prev_offset );</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     ompi_io_ompio_set_explicit_offset (fh, offset);</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :     ret = ompio_io_ompio_file_write (fh,</span>
+<span class="lineNum">     181 </span>            :                                      buf,
+<span class="lineNum">     182 </span>            :                                      count,
+<span class="lineNum">     183 </span>            :                                      datatype,
+<span class="lineNum">     184 </span>            :                                      status);
+<span class="lineNum">     185 </span>            :     // An explicit offset file operation is not suppsed to modify
+<span class="lineNum">     186 </span>            :     // the internal file pointer. So reset the pointer
+<span class="lineNum">     187 </span>            :     // to the previous value
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :     ompi_io_ompio_set_explicit_offset (fh, prev_offset );</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="190"><span class="lineNum">     190 </span>            : }</a>
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_iwrite (ompi_file_t *fp,</span>
+<span class="lineNum">     193 </span>            :                               void *buf,
+<span class="lineNum">     194 </span>            :                               int count,
+<span class="lineNum">     195 </span>            :                               struct ompi_datatype_t *datatype,
+<span class="lineNum">     196 </span>            :                               ompi_request_t **request)
+<span class="lineNum">     197 </span>            : {
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     199 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fp-&gt;f_io_selected_data;</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     ret = ompio_io_ompio_file_iwrite(&amp;data-&gt;ompio_fh,buf,count,datatype,request);</span>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="205"><span class="lineNum">     205 </span>            : }</a>
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 : int ompio_io_ompio_file_iwrite (mca_io_ompio_file_t *fh,</span>
+<span class="lineNum">     208 </span>            :                                 void *buf,
+<span class="lineNum">     209 </span>            :                                 int count,
+<span class="lineNum">     210 </span>            :                                 struct ompi_datatype_t *datatype,
+<span class="lineNum">     211 </span>            :                                 ompi_request_t **request)
+<span class="lineNum">     212 </span>            : {
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     mca_ompio_request_t *ompio_req=NULL;</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :     ompio_req = OBJ_NEW(mca_ompio_request_t);</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     ompio_req-&gt;req_type = MCA_OMPIO_REQUEST_WRITE;</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     ompio_req-&gt;req_ompi.req_state = OMPI_REQUEST_ACTIVE;</span>
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :   if ( 0 == count ) {</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         ompi_request_complete (&amp;ompio_req-&gt;req_ompi, 0);</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         ompio_req-&gt;req_ompi.req_status.MPI_ERROR = OMPI_SUCCESS;</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :         ompio_req-&gt;req_ompi.req_status._ucount = 0;</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :         return OMPI_SUCCESS;</span>
+<span class="lineNum">     225 </span>            :     }
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     if ( NULL != fh-&gt;f_fbtl-&gt;fbtl_ipwritev ) {</span>
+<span class="lineNum">     228 </span>            :         /* This fbtl has support for non-blocking operations */
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         uint32_t iov_count = 0;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         struct iovec *decoded_iov = NULL;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         size_t max_data = 0;</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         size_t total_bytes_written =0;</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         int i = 0; /* index into the decoded iovec of the buffer */</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         int j = 0; /* index into the file vie iovec */</span>
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         ompi_io_ompio_decode_datatype (fh,</span>
+<span class="lineNum">     238 </span>            :                                        datatype,
+<span class="lineNum">     239 </span>            :                                        count,
+<span class="lineNum">     240 </span>            :                                        buf,
+<span class="lineNum">     241 </span>            :                                        &amp;max_data,
+<span class="lineNum">     242 </span>            :                                        &amp;decoded_iov,
+<span class="lineNum">     243 </span>            :                                        &amp;iov_count);
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :         j = fh-&gt;f_index_in_file_view;</span>
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            :         /* Non blocking operations have to occur in a single cycle */
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :         mca_io_ompio_build_io_array ( fh,</span>
+<span class="lineNum">     248 </span>            :                                       0,         // index of current cycle iteration
+<span class="lineNum">     249 </span>            :                                       1,         // number of cycles
+<span class="lineNum">     250 </span>            :                                       max_data,  // setting bytes_per_cycle to max_data
+<span class="lineNum">     251 </span>            :                                       max_data,
+<span class="lineNum">     252 </span>            :                                       iov_count,
+<span class="lineNum">     253 </span>            :                                       decoded_iov,
+<span class="lineNum">     254 </span>            :                                       &amp;i,
+<span class="lineNum">     255 </span>            :                                       &amp;j,
+<span class="lineNum">     256 </span>            :                                       &amp;total_bytes_written);
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         if (fh-&gt;f_num_of_io_entries) {</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :           fh-&gt;f_fbtl-&gt;fbtl_ipwritev (fh, (ompi_request_t *) ompio_req);</span>
+<span class="lineNum">     260 </span>            :         }
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         if ( false == mca_io_ompio_progress_is_registered ) {</span>
+<span class="lineNum">     263 </span>            :             // Lazy initialization of progress function to minimize impact
+<span class="lineNum">     264 </span>            :             // on other ompi functionality in case its not used.
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :             opal_progress_register (mca_io_ompio_component_progress);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :             mca_io_ompio_progress_is_registered=true;</span>
+<span class="lineNum">     267 </span>            :         }
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :         fh-&gt;f_num_of_io_entries = 0;</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         if (NULL != fh-&gt;f_io_array) {</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :             free (fh-&gt;f_io_array);</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :             fh-&gt;f_io_array = NULL;</span>
+<span class="lineNum">     273 </span>            :         }
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         if (NULL != decoded_iov) {</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :             free (decoded_iov);</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :             decoded_iov = NULL;</span>
+<span class="lineNum">     277 </span>            :         }
+<span class="lineNum">     278 </span>            :     }
+<span class="lineNum">     279 </span>            :     else {
+<span class="lineNum">     280 </span>            :         // This fbtl does not support non-blocking write operations
+<span class="lineNum">     281 </span>            :         ompi_status_public_t status;
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :         ret = ompio_io_ompio_file_write(fh,buf,count,datatype, &amp;status);</span>
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :         ompi_request_complete (&amp;ompio_req-&gt;req_ompi, 0);</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :         ompio_req-&gt;req_ompi.req_status.MPI_ERROR = ret;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         ompio_req-&gt;req_ompi.req_status._ucount = status._ucount;</span>
+<span class="lineNum">     287 </span>            :     }
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     *request = (ompi_request_t *) ompio_req;</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="291"><span class="lineNum">     291 </span>            : }</a>
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_iwrite_at (ompi_file_t *fh,</span>
+<span class="lineNum">     294 </span>            :                                  OMPI_MPI_OFFSET_TYPE offset,
+<span class="lineNum">     295 </span>            :                                  void *buf,
+<span class="lineNum">     296 </span>            :                                  int count,
+<span class="lineNum">     297 </span>            :                                  struct ompi_datatype_t *datatype,
+<span class="lineNum">     298 </span>            :                                  ompi_request_t **request)
+<span class="lineNum">     299 </span>            : {
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     301 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fh-&gt;f_io_selected_data;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     ret = ompio_io_ompio_file_iwrite_at(&amp;data-&gt;ompio_fh,offset,buf,count,datatype,request);</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="307"><span class="lineNum">     307 </span>            : }</a>
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 : int ompio_io_ompio_file_iwrite_at (mca_io_ompio_file_t *fh,</span>
+<span class="lineNum">     310 </span>            :                                    OMPI_MPI_OFFSET_TYPE offset,
+<span class="lineNum">     311 </span>            :                                    void *buf,
+<span class="lineNum">     312 </span>            :                                    int count,
+<span class="lineNum">     313 </span>            :                                    struct ompi_datatype_t *datatype,
+<span class="lineNum">     314 </span>            :                                    ompi_request_t **request)
+<span class="lineNum">     315 </span>            : {
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     317 </span>            :     OMPI_MPI_OFFSET_TYPE prev_offset;
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     ompio_io_ompio_file_get_position (fh, &amp;prev_offset );</span>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     ompi_io_ompio_set_explicit_offset (fh, offset);</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     ret = ompio_io_ompio_file_iwrite (fh,</span>
+<span class="lineNum">     322 </span>            :                                     buf,
+<span class="lineNum">     323 </span>            :                                     count,
+<span class="lineNum">     324 </span>            :                                     datatype,
+<span class="lineNum">     325 </span>            :                                     request);
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span>            :     /* An explicit offset file operation is not suppsed to modify
+<span class="lineNum">     328 </span>            :     ** the internal file pointer. So reset the pointer
+<span class="lineNum">     329 </span>            :     ** to the previous value
+<span class="lineNum">     330 </span>            :     ** It is OK to reset the position already here, althgouth
+<span class="lineNum">     331 </span>            :     ** the operation might still be pending/ongoing, since
+<span class="lineNum">     332 </span>            :     ** the entire array of &lt;offset, length, memaddress&gt; have
+<span class="lineNum">     333 </span>            :     ** already been constructed in the file_iwrite operation
+<span class="lineNum">     334 </span>            :     */
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :     ompi_io_ompio_set_explicit_offset (fh, prev_offset);</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     338 </span>            : }
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span>            : /* Helper function used by both read and write operations     */
+<a name="341"><span class="lineNum">     341 </span>            : /**************************************************************/</a>
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineCov">        804 : int mca_io_ompio_build_io_array ( mca_io_ompio_file_t *fh, int index, int cycles,</span>
+<span class="lineNum">     344 </span>            :                                   size_t bytes_per_cycle, int max_data, uint32_t iov_count,
+<span class="lineNum">     345 </span>            :                                   struct iovec *decoded_iov, int *ii, int *jj, size_t *tbw )
+<span class="lineNum">     346 </span>            : {
+<span class="lineNum">     347 </span>            :     OPAL_PTRDIFF_TYPE disp;
+<span class="lineNum">     348 </span><span class="lineCov">        804 :     int block = 1;</span>
+<span class="lineNum">     349 </span><span class="lineCov">        804 :     size_t total_bytes_written = *tbw;  /* total bytes that have been written*/</span>
+<span class="lineNum">     350 </span><span class="lineCov">        804 :     size_t bytes_to_write_in_cycle = 0; /* left to be written in a cycle*/</span>
+<span class="lineNum">     351 </span><span class="lineCov">        804 :     size_t sum_previous_counts = 0;</span>
+<span class="lineNum">     352 </span><span class="lineCov">        804 :     size_t sum_previous_length = 0;</span>
+<span class="lineNum">     353 </span><span class="lineCov">        804 :     int k = 0; /* index into the io_array */</span>
+<span class="lineNum">     354 </span><span class="lineCov">        804 :     int i = *ii;</span>
+<span class="lineNum">     355 </span><span class="lineCov">        804 :     int j = *jj;</span>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineCov">        804 :     sum_previous_length = fh-&gt;f_position_in_file_view;</span>
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span><span class="lineCov">        804 :     if ((index == cycles-1) &amp;&amp; (max_data % bytes_per_cycle)) {</span>
+<span class="lineNum">     360 </span><span class="lineCov">        804 :         bytes_to_write_in_cycle = max_data % bytes_per_cycle;</span>
+<span class="lineNum">     361 </span>            :     }
+<span class="lineNum">     362 </span>            :     else {
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :         bytes_to_write_in_cycle = bytes_per_cycle;</span>
+<span class="lineNum">     364 </span>            :     }
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span><span class="lineCov">        804 :     fh-&gt;f_io_array = (mca_io_ompio_io_array_t *)malloc</span>
+<span class="lineNum">     367 </span>            :         (OMPIO_IOVEC_INITIAL_SIZE * sizeof (mca_io_ompio_io_array_t));
+<span class="lineNum">     368 </span><span class="lineCov">        804 :     if (NULL == fh-&gt;f_io_array) {</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :         opal_output(1, &quot;OUT OF MEMORY\n&quot;);</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :         return OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     371 </span>            :     }
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span><span class="lineCov">       2412 :     while (bytes_to_write_in_cycle) {</span>
+<span class="lineNum">     374 </span>            :         /* reallocate if needed  */
+<span class="lineNum">     375 </span><span class="lineCov">        804 :         if (OMPIO_IOVEC_INITIAL_SIZE*block &lt;= k) {</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :             block ++;</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :             fh-&gt;f_io_array = (mca_io_ompio_io_array_t *)realloc</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                 (fh-&gt;f_io_array, OMPIO_IOVEC_INITIAL_SIZE *</span>
+<span class="lineNum">     379 </span>            :                  block * sizeof (mca_io_ompio_io_array_t));
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :             if (NULL == fh-&gt;f_io_array) {</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :                 opal_output(1, &quot;OUT OF MEMORY\n&quot;);</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :                 return OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     383 </span>            :             }
+<span class="lineNum">     384 </span>            :         }
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineCov">       1608 :         if (decoded_iov[i].iov_len -</span>
+<span class="lineNum">     387 </span><span class="lineCov">        804 :             (total_bytes_written - sum_previous_counts) &lt;= 0) {</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :             sum_previous_counts += decoded_iov[i].iov_len;</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :             i = i + 1;</span>
+<span class="lineNum">     390 </span>            :         }
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span><span class="lineCov">       1608 :         disp = (OPAL_PTRDIFF_TYPE)decoded_iov[i].iov_base +</span>
+<span class="lineNum">     393 </span><span class="lineCov">        804 :             (total_bytes_written - sum_previous_counts);</span>
+<span class="lineNum">     394 </span><span class="lineCov">        804 :         fh-&gt;f_io_array[k].memory_address = (IOVBASE_TYPE *)disp;</span>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineCov">       1608 :         if (decoded_iov[i].iov_len -</span>
+<span class="lineNum">     397 </span><span class="lineCov">        804 :             (total_bytes_written - sum_previous_counts) &gt;=</span>
+<span class="lineNum">     398 </span>            :             bytes_to_write_in_cycle) {
+<span class="lineNum">     399 </span><span class="lineCov">        804 :             fh-&gt;f_io_array[k].length = bytes_to_write_in_cycle;</span>
+<span class="lineNum">     400 </span>            :         }
+<span class="lineNum">     401 </span>            :         else {
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :             fh-&gt;f_io_array[k].length =  decoded_iov[i].iov_len -</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :                 (total_bytes_written - sum_previous_counts);</span>
+<span class="lineNum">     404 </span>            :         }
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineCov">        804 :         if (! (fh-&gt;f_flags &amp; OMPIO_CONTIGUOUS_FVIEW)) {</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :             if (fh-&gt;f_decoded_iov[j].iov_len -</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :                 (fh-&gt;f_total_bytes - sum_previous_length) &lt;= 0) {</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :                 sum_previous_length += fh-&gt;f_decoded_iov[j].iov_len;</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :                 j = j + 1;</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :                 if (j == (int)fh-&gt;f_iov_count) {</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :                     j = 0;</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :                     sum_previous_length = 0;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :                     fh-&gt;f_offset += fh-&gt;f_view_extent;</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :                     fh-&gt;f_position_in_file_view = sum_previous_length;</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :                     fh-&gt;f_index_in_file_view = j;</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :                     fh-&gt;f_total_bytes = 0;</span>
+<span class="lineNum">     418 </span>            :                 }
+<span class="lineNum">     419 </span>            :             }
+<span class="lineNum">     420 </span>            :         }
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span><span class="lineCov">       1608 :         disp = (OPAL_PTRDIFF_TYPE)fh-&gt;f_decoded_iov[j].iov_base +</span>
+<span class="lineNum">     423 </span><span class="lineCov">        804 :             (fh-&gt;f_total_bytes - sum_previous_length);</span>
+<span class="lineNum">     424 </span><span class="lineCov">        804 :         fh-&gt;f_io_array[k].offset = (IOVBASE_TYPE *)(intptr_t)(disp + fh-&gt;f_offset);</span>
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span><span class="lineCov">        804 :         if (! (fh-&gt;f_flags &amp; OMPIO_CONTIGUOUS_FVIEW)) {</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :             if (fh-&gt;f_decoded_iov[j].iov_len -</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :                 (fh-&gt;f_total_bytes - sum_previous_length)</span>
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :                 &lt; fh-&gt;f_io_array[k].length) {</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :                 fh-&gt;f_io_array[k].length = fh-&gt;f_decoded_iov[j].iov_len -</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :                     (fh-&gt;f_total_bytes - sum_previous_length);</span>
+<span class="lineNum">     432 </span>            :             }
+<span class="lineNum">     433 </span>            :         }
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span><span class="lineCov">        804 :         total_bytes_written += fh-&gt;f_io_array[k].length;</span>
+<span class="lineNum">     436 </span><span class="lineCov">        804 :         fh-&gt;f_total_bytes += fh-&gt;f_io_array[k].length;</span>
+<span class="lineNum">     437 </span><span class="lineCov">        804 :         bytes_to_write_in_cycle -= fh-&gt;f_io_array[k].length;</span>
+<span class="lineNum">     438 </span><span class="lineCov">        804 :         k = k + 1;</span>
+<span class="lineNum">     439 </span>            :     }
+<span class="lineNum">     440 </span><span class="lineCov">        804 :     fh-&gt;f_position_in_file_view = sum_previous_length;</span>
+<span class="lineNum">     441 </span><span class="lineCov">        804 :     fh-&gt;f_index_in_file_view = j;</span>
+<span class="lineNum">     442 </span><span class="lineCov">        804 :     fh-&gt;f_num_of_io_entries = k;</span>
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span>            : #if 0
+<span class="lineNum">     445 </span>            :     if (fh-&gt;f_rank == 0) {
+<span class="lineNum">     446 </span>            :         int d;
+<span class="lineNum">     447 </span>            :         printf(&quot;*************************** %d\n&quot;, fh-&gt;f_num_of_io_entries);
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span>            :         for (d=0 ; d&lt;fh-&gt;f_num_of_io_entries ; d++) {
+<span class="lineNum">     450 </span>            :             printf(&quot; ADDRESS: %p  OFFSET: %p   LENGTH: %d\n&quot;,
+<span class="lineNum">     451 </span>            :                    fh-&gt;f_io_array[d].memory_address,
+<span class="lineNum">     452 </span>            :                    fh-&gt;f_io_array[d].offset,
+<span class="lineNum">     453 </span>            :                    fh-&gt;f_io_array[d].length);
+<span class="lineNum">     454 </span>            :         }
+<span class="lineNum">     455 </span>            :     }
+<span class="lineNum">     456 </span>            : #endif
+<span class="lineNum">     457 </span><span class="lineCov">        804 :     *ii = i;</span>
+<span class="lineNum">     458 </span><span class="lineCov">        804 :     *jj = j;</span>
+<span class="lineNum">     459 </span><span class="lineCov">        804 :     *tbw = total_bytes_written;</span>
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span><span class="lineCov">        804 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     462 </span>            : }
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span>            : /* Collective operations                                          */
+<a name="465"><span class="lineNum">     465 </span>            : /******************************************************************/</a>
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_write_all (ompi_file_t *fh,</span>
+<span class="lineNum">     468 </span>            :                                  void *buf,
+<span class="lineNum">     469 </span>            :                                  int count,
+<span class="lineNum">     470 </span>            :                                  struct ompi_datatype_t *datatype,
+<span class="lineNum">     471 </span>            :                                  ompi_status_public_t *status)
+<span class="lineNum">     472 </span>            : {
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     474 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fh-&gt;f_io_selected_data;</span>
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     ret = data-&gt;ompio_fh.</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :         f_fcoll-&gt;fcoll_file_write_all (&amp;data-&gt;ompio_fh,</span>
+<span class="lineNum">     480 </span>            :                                        buf,
+<span class="lineNum">     481 </span>            :                                        count,
+<span class="lineNum">     482 </span>            :                                        datatype,
+<span class="lineNum">     483 </span>            :                                        status);
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :     if ( MPI_STATUS_IGNORE != status ) {</span>
+<span class="lineNum">     486 </span>            :         size_t size;
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :         opal_datatype_type_size (&amp;datatype-&gt;super, &amp;size);</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :         status-&gt;_ucount = count * size;</span>
+<span class="lineNum">     490 </span>            :     }
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="493"><span class="lineNum">     493 </span>            : }</a>
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_write_at_all (ompi_file_t *fh,</span>
+<span class="lineNum">     496 </span>            :                                     OMPI_MPI_OFFSET_TYPE offset,
+<span class="lineNum">     497 </span>            :                                     void *buf,
+<span class="lineNum">     498 </span>            :                                     int count,
+<span class="lineNum">     499 </span>            :                                     struct ompi_datatype_t *datatype,
+<span class="lineNum">     500 </span>            :                                     ompi_status_public_t *status)
+<span class="lineNum">     501 </span>            : {
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     503 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fh-&gt;f_io_selected_data;</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :     ret = ompio_io_ompio_file_write_at_all(&amp;data-&gt;ompio_fh,offset,buf,count,datatype,status);</span>
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="509"><span class="lineNum">     509 </span>            : }</a>
+<span class="lineNum">     510 </span>            : 
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_iwrite_all (ompi_file_t *fh,</span>
+<span class="lineNum">     512 </span>            :                                   void *buf,
+<span class="lineNum">     513 </span>            :                                   int count,
+<span class="lineNum">     514 </span>            :                                   struct ompi_datatype_t *datatype,
+<span class="lineNum">     515 </span>            :                                   ompi_request_t **request)
+<span class="lineNum">     516 </span>            : {
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :     mca_io_ompio_data_t *data=NULL;</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     mca_io_ompio_file_t *fp=NULL;</span>
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fh-&gt;f_io_selected_data;</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     fp = &amp;data-&gt;ompio_fh;</span>
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :     if ( NULL != fp-&gt;f_fcoll-&gt;fcoll_file_iwrite_all ) {</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :         ret = fp-&gt;f_fcoll-&gt;fcoll_file_iwrite_all (&amp;data-&gt;ompio_fh,</span>
+<span class="lineNum">     526 </span>            :                                                   buf,
+<span class="lineNum">     527 </span>            :                                                   count,
+<span class="lineNum">     528 </span>            :                                                   datatype,
+<span class="lineNum">     529 </span>            :                                                   request);
+<span class="lineNum">     530 </span>            :     }
+<span class="lineNum">     531 </span>            :     else {
+<span class="lineNum">     532 </span>            :         /* this fcoll component does not support non-blocking
+<span class="lineNum">     533 </span>            :            collective I/O operations. WE fake it with
+<span class="lineNum">     534 </span>            :            individual non-blocking I/O operations. */
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :         ret = ompio_io_ompio_file_iwrite ( fp, buf, count, datatype, request );</span>
+<span class="lineNum">     536 </span>            :     }
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="539"><span class="lineNum">     539 </span>            : }</a>
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 : int ompio_io_ompio_file_write_at_all (mca_io_ompio_file_t *fh,</span>
+<span class="lineNum">     542 </span>            :                                       OMPI_MPI_OFFSET_TYPE offset,
+<span class="lineNum">     543 </span>            :                                       void *buf,
+<span class="lineNum">     544 </span>            :                                       int count,
+<span class="lineNum">     545 </span>            :                                       struct ompi_datatype_t *datatype,
+<span class="lineNum">     546 </span>            :                                       ompi_status_public_t *status)
+<span class="lineNum">     547 </span>            : {
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     549 </span>            :     OMPI_MPI_OFFSET_TYPE prev_offset;
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :     ompio_io_ompio_file_get_position (fh, &amp;prev_offset );</span>
+<span class="lineNum">     551 </span>            : 
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     ompi_io_ompio_set_explicit_offset (fh, offset);</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :     ret = fh-&gt;f_fcoll-&gt;fcoll_file_write_all (fh,</span>
+<span class="lineNum">     554 </span>            :                                              buf,
+<span class="lineNum">     555 </span>            :                                              count,
+<span class="lineNum">     556 </span>            :                                              datatype,
+<span class="lineNum">     557 </span>            :                                              status);
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :     ompi_io_ompio_set_explicit_offset (fh, prev_offset);</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="561"><span class="lineNum">     561 </span>            : }</a>
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_iwrite_at_all (ompi_file_t *fh,</span>
+<span class="lineNum">     564 </span>            :                                      OMPI_MPI_OFFSET_TYPE offset,
+<span class="lineNum">     565 </span>            :                                      void *buf,
+<span class="lineNum">     566 </span>            :                                      int count,
+<span class="lineNum">     567 </span>            :                                      struct ompi_datatype_t *datatype,
+<span class="lineNum">     568 </span>            :                                      ompi_request_t **request)
+<span class="lineNum">     569 </span>            : {
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     571 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fh-&gt;f_io_selected_data;</span>
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :     ret = ompio_io_ompio_file_iwrite_at_all ( &amp;data-&gt;ompio_fh, offset, buf, count, datatype, request );</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="576"><span class="lineNum">     576 </span>            : }</a>
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 : int ompio_io_ompio_file_iwrite_at_all (mca_io_ompio_file_t *fp,</span>
+<span class="lineNum">     579 </span>            :                                        OMPI_MPI_OFFSET_TYPE offset,
+<span class="lineNum">     580 </span>            :                                        void *buf,
+<span class="lineNum">     581 </span>            :                                        int count,
+<span class="lineNum">     582 </span>            :                                        struct ompi_datatype_t *datatype,
+<span class="lineNum">     583 </span>            :                                        ompi_request_t **request)
+<span class="lineNum">     584 </span>            : {
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     587 </span>            :     OMPI_MPI_OFFSET_TYPE prev_offset;
+<span class="lineNum">     588 </span>            : 
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :     ompio_io_ompio_file_get_position (fp, &amp;prev_offset );</span>
+<span class="lineNum">     590 </span>            : 
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :     ompi_io_ompio_set_explicit_offset (fp, offset);</span>
+<span class="lineNum">     592 </span>            : 
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :     if ( NULL != fp-&gt;f_fcoll-&gt;fcoll_file_iwrite_all ) {</span>
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :         ret = fp-&gt;f_fcoll-&gt;fcoll_file_iwrite_all (fp,</span>
+<span class="lineNum">     595 </span>            :                                                   buf,
+<span class="lineNum">     596 </span>            :                                                   count,
+<span class="lineNum">     597 </span>            :                                                   datatype,
+<span class="lineNum">     598 </span>            :                                                   request);
+<span class="lineNum">     599 </span>            :     }
+<span class="lineNum">     600 </span>            :     else {
+<span class="lineNum">     601 </span>            :         /* this fcoll component does not support non-blocking
+<span class="lineNum">     602 </span>            :            collective I/O operations. WE fake it with
+<span class="lineNum">     603 </span>            :            individual non-blocking I/O operations. */
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :         ret = ompio_io_ompio_file_iwrite ( fp, buf, count, datatype, request );</span>
+<span class="lineNum">     605 </span>            :     }
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :     ompi_io_ompio_set_explicit_offset (fp, prev_offset);</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     609 </span>            : }
+<span class="lineNum">     610 </span>            : 
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span>            : 
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span>            : /* Infrastructure for shared file pointer operations */
+<span class="lineNum">     616 </span>            : /* (Individual and collective */
+<a name="617"><span class="lineNum">     617 </span>            : /******************************************************/</a>
+<span class="lineNum">     618 </span>            : 
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_write_shared (ompi_file_t *fp,</span>
+<span class="lineNum">     620 </span>            :                                     void *buf,
+<span class="lineNum">     621 </span>            :                                     int count,
+<span class="lineNum">     622 </span>            :                                     struct ompi_datatype_t *datatype,
+<span class="lineNum">     623 </span>            :                                     ompi_status_public_t * status)
+<span class="lineNum">     624 </span>            : {
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     626 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     627 </span>            :     mca_io_ompio_file_t *fh;
+<span class="lineNum">     628 </span>            :     mca_sharedfp_base_module_t * shared_fp_base_module;
+<span class="lineNum">     629 </span>            : 
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fp-&gt;f_io_selected_data;</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :     fh = &amp;data-&gt;ompio_fh;</span>
+<span class="lineNum">     632 </span>            : 
+<span class="lineNum">     633 </span>            :     /*get the shared fp module associated with this file*/
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :     shared_fp_base_module = fh-&gt;f_sharedfp;</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :     if ( NULL == shared_fp_base_module ){</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;No shared file pointer component found for this communicator. Can not execute\n&quot;);</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :         return OMPI_ERROR;</span>
+<span class="lineNum">     638 </span>            :     }
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :     ret = shared_fp_base_module-&gt;sharedfp_write(fh,buf,count,datatype,status);</span>
+<span class="lineNum">     640 </span>            : 
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="642"><span class="lineNum">     642 </span>            : }</a>
+<span class="lineNum">     643 </span>            : 
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_iwrite_shared (ompi_file_t *fp,</span>
+<span class="lineNum">     645 </span>            :                                      void *buf,
+<span class="lineNum">     646 </span>            :                                      int count,
+<span class="lineNum">     647 </span>            :                                      struct ompi_datatype_t *datatype,
+<span class="lineNum">     648 </span>            :                                      ompi_request_t **request)
+<span class="lineNum">     649 </span>            : {
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     651 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     652 </span>            :     mca_io_ompio_file_t *fh;
+<span class="lineNum">     653 </span>            :     mca_sharedfp_base_module_t * shared_fp_base_module;
+<span class="lineNum">     654 </span>            : 
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fp-&gt;f_io_selected_data;</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :     fh = &amp;data-&gt;ompio_fh;</span>
+<span class="lineNum">     657 </span>            : 
+<span class="lineNum">     658 </span>            :     /*get the shared fp module associated with this file*/
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :     shared_fp_base_module = fh-&gt;f_sharedfp;</span>
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :     if ( NULL == shared_fp_base_module ){</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;No shared file pointer component found for this communicator. Can not execute\n&quot;);</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :         return OMPI_ERROR;</span>
+<span class="lineNum">     663 </span>            :     }
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :     ret = shared_fp_base_module-&gt;sharedfp_iwrite(fh,buf,count,datatype,request);</span>
+<span class="lineNum">     665 </span>            : 
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="667"><span class="lineNum">     667 </span>            : }</a>
+<span class="lineNum">     668 </span>            : 
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_write_ordered (ompi_file_t *fp,</span>
+<span class="lineNum">     670 </span>            :                                      void *buf,
+<span class="lineNum">     671 </span>            :                                      int count,
+<span class="lineNum">     672 </span>            :                                      struct ompi_datatype_t *datatype,
+<span class="lineNum">     673 </span>            :                                      ompi_status_public_t * status)
+<span class="lineNum">     674 </span>            : {
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     676 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     677 </span>            :     mca_io_ompio_file_t *fh;
+<span class="lineNum">     678 </span>            :     mca_sharedfp_base_module_t * shared_fp_base_module;
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fp-&gt;f_io_selected_data;</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :     fh = &amp;data-&gt;ompio_fh;</span>
+<span class="lineNum">     682 </span>            : 
+<span class="lineNum">     683 </span>            :     /*get the shared fp module associated with this file*/
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :     shared_fp_base_module = fh-&gt;f_sharedfp;</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :     if ( NULL == shared_fp_base_module ){</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :         opal_output(0,&quot;No shared file pointer component found for this communicator. Can not execute\n&quot;);</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :         return OMPI_ERROR;</span>
+<span class="lineNum">     688 </span>            :     }
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :     ret = shared_fp_base_module-&gt;sharedfp_write_ordered(fh,buf,count,datatype,status);</span>
+<span class="lineNum">     690 </span>            : 
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="692"><span class="lineNum">     692 </span>            : }</a>
+<span class="lineNum">     693 </span>            : 
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_write_ordered_begin (ompi_file_t *fp,</span>
+<span class="lineNum">     695 </span>            :                                            void *buf,
+<span class="lineNum">     696 </span>            :                                            int count,
+<span class="lineNum">     697 </span>            :                                            struct ompi_datatype_t *datatype)
+<span class="lineNum">     698 </span>            : {
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     700 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     701 </span>            :     mca_io_ompio_file_t *fh;
+<span class="lineNum">     702 </span>            :     mca_sharedfp_base_module_t * shared_fp_base_module;
+<span class="lineNum">     703 </span>            : 
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fp-&gt;f_io_selected_data;</span>
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :     fh = &amp;data-&gt;ompio_fh;</span>
+<span class="lineNum">     706 </span>            : 
+<span class="lineNum">     707 </span>            :     /*get the shared fp module associated with this file*/
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :     shared_fp_base_module = fh-&gt;f_sharedfp;</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :     if ( NULL == shared_fp_base_module ){</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;No shared file pointer component found for this communicator. Can not execute\n&quot;);</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :         return OMPI_ERROR;</span>
+<span class="lineNum">     712 </span>            :     }
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :     ret = shared_fp_base_module-&gt;sharedfp_write_ordered_begin(fh,buf,count,datatype);</span>
+<span class="lineNum">     714 </span>            : 
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="716"><span class="lineNum">     716 </span>            : }</a>
+<span class="lineNum">     717 </span>            : 
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_write_ordered_end (ompi_file_t *fp,</span>
+<span class="lineNum">     719 </span>            :                                          void *buf,
+<span class="lineNum">     720 </span>            :                                          ompi_status_public_t *status)
+<span class="lineNum">     721 </span>            : {
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     723 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     724 </span>            :     mca_io_ompio_file_t *fh;
+<span class="lineNum">     725 </span>            :     mca_sharedfp_base_module_t * shared_fp_base_module;
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fp-&gt;f_io_selected_data;</span>
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :     fh = &amp;data-&gt;ompio_fh;</span>
+<span class="lineNum">     729 </span>            : 
+<span class="lineNum">     730 </span>            :     /*get the shared fp module associated with this file*/
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :     shared_fp_base_module = fh-&gt;f_sharedfp;</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :     if ( NULL == shared_fp_base_module ){</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :         opal_output(0, &quot;No shared file pointer component found for this communicator. Can not execute\n&quot;);</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :         return OMPI_ERROR;</span>
+<span class="lineNum">     735 </span>            :     }
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :     ret = shared_fp_base_module-&gt;sharedfp_write_ordered_end(fh,buf,status);</span>
+<span class="lineNum">     737 </span>            : 
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     739 </span>            : }
+<span class="lineNum">     740 </span>            : 
+<span class="lineNum">     741 </span>            : 
+<a name="742"><span class="lineNum">     742 </span>            : /* Split collectives . Not really used but infrastructure is in place */</a>
+<span class="lineNum">     743 </span>            : /**********************************************************************/
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_write_all_begin (ompi_file_t *fh,</span>
+<span class="lineNum">     745 </span>            :                                        void *buf,
+<span class="lineNum">     746 </span>            :                                        int count,
+<span class="lineNum">     747 </span>            :                                        struct ompi_datatype_t *datatype)
+<span class="lineNum">     748 </span>            : {
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     750 </span>            :     mca_io_ompio_file_t *fp;
+<span class="lineNum">     751 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     752 </span>            : 
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fh-&gt;f_io_selected_data;</span>
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :     fp = &amp;data-&gt;ompio_fh;</span>
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :     if ( true == fp-&gt;f_split_coll_in_use ) {</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :         printf(&quot;Only one split collective I/O operation allowed per file handle at any given point in time!\n&quot;);</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :         return MPI_ERR_OTHER;</span>
+<span class="lineNum">     758 </span>            :     }
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :     ret = mca_io_ompio_file_iwrite_all ( fh, buf, count, datatype, &amp;fp-&gt;f_split_coll_req );</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :     fp-&gt;f_split_coll_in_use = true;</span>
+<span class="lineNum">     761 </span>            : 
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="763"><span class="lineNum">     763 </span>            : }</a>
+<span class="lineNum">     764 </span>            : 
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_write_all_end (ompi_file_t *fh,</span>
+<span class="lineNum">     766 </span>            :                                      void *buf,
+<span class="lineNum">     767 </span>            :                                      ompi_status_public_t *status)
+<span class="lineNum">     768 </span>            : {
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     770 </span>            :     mca_io_ompio_file_t *fp;
+<span class="lineNum">     771 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     772 </span>            : 
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fh-&gt;f_io_selected_data;</span>
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :     fp = &amp;data-&gt;ompio_fh;</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :     ret = ompi_request_wait ( &amp;fp-&gt;f_split_coll_req, status );</span>
+<span class="lineNum">     776 </span>            : 
+<span class="lineNum">     777 </span>            :     /* remove the flag again */
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :     fp-&gt;f_split_coll_in_use = false;</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     780 </span>            : }
+<a name="781"><span class="lineNum">     781 </span>            : </a>
+<span class="lineNum">     782 </span>            : 
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_write_at_all_begin (ompi_file_t *fh,</span>
+<span class="lineNum">     784 </span>            :                                           OMPI_MPI_OFFSET_TYPE offset,
+<span class="lineNum">     785 </span>            :                                           void *buf,
+<span class="lineNum">     786 </span>            :                                           int count,
+<span class="lineNum">     787 </span>            :                                           struct ompi_datatype_t *datatype)
+<span class="lineNum">     788 </span>            : {
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :     mca_io_ompio_data_t *data=NULL;</span>
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :     mca_io_ompio_file_t *fp=NULL;</span>
+<span class="lineNum">     792 </span>            : 
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fh-&gt;f_io_selected_data;</span>
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :     fp = &amp;data-&gt;ompio_fh;</span>
+<span class="lineNum">     795 </span>            : 
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :     if ( true == fp-&gt;f_split_coll_in_use ) {</span>
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :         printf(&quot;Only one split collective I/O operation allowed per file handle at any given point in time!\n&quot;);</span>
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :         return MPI_ERR_REQUEST;</span>
+<span class="lineNum">     799 </span>            :     }
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :     ret = ompio_io_ompio_file_iwrite_at_all ( fp, offset, buf, count, datatype, &amp;fp-&gt;f_split_coll_req );</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :     fp-&gt;f_split_coll_in_use = true;</span>
+<span class="lineNum">     802 </span>            : 
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     804 </span>            : }
+<a name="805"><span class="lineNum">     805 </span>            : </a>
+<span class="lineNum">     806 </span>            : 
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 : int mca_io_ompio_file_write_at_all_end (ompi_file_t *fh,</span>
+<span class="lineNum">     808 </span>            :                                         void *buf,
+<span class="lineNum">     809 </span>            :                                         ompi_status_public_t * status)
+<span class="lineNum">     810 </span>            : {
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :     int ret = OMPI_SUCCESS;</span>
+<span class="lineNum">     812 </span>            :     mca_io_ompio_data_t *data;
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :     mca_io_ompio_file_t *fp=NULL;</span>
+<span class="lineNum">     814 </span>            :     
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :     data = (mca_io_ompio_data_t *) fh-&gt;f_io_selected_data;</span>
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :     fp = &amp;data-&gt;ompio_fh;</span>
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :     ret = ompi_request_wait ( &amp;fp-&gt;f_split_coll_req, status );</span>
+<span class="lineNum">     818 </span>            : 
+<span class="lineNum">     819 </span>            :     /* remove the flag again */
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :     fp-&gt;f_split_coll_in_use = false;</span>
+<span class="lineNum">     821 </span>            : 
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     823 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

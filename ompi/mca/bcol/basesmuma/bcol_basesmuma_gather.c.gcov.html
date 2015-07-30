@@ -1,0 +1,1182 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/bcol/basesmuma/bcol_basesmuma_gather.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/bcol/basesmuma</a> - bcol_basesmuma_gather.c<span style="font-size: 80%;"> (source / <a href="bcol_basesmuma_gather.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">174</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2009-2012 Oak Ridge National Laboratory.  All rights reserved.
+<span class="lineNum">       4 </span>            :  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2013-2014 Los Alamos National Security, LLC. All rights
+<span class="lineNum">       6 </span>            :  *                         reserved.
+<span class="lineNum">       7 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * $HEADER$
+<span class="lineNum">      12 </span>            :  */
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      15 </span>            : #include &quot;ompi/mca/bcol/base/base.h&quot;
+<span class="lineNum">      16 </span>            : #include &quot;ompi/mca/bcol/basesmuma/bcol_basesmuma.h&quot;
+<span class="lineNum">      17 </span>            : #include &quot;ompi/constants.h&quot;
+<span class="lineNum">      18 </span>            : #include &quot;ompi/datatype/ompi_datatype.h&quot;
+<span class="lineNum">      19 </span>            : #include &quot;ompi/communicator/communicator.h&quot;
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : /* debug
+<span class="lineNum">      22 </span>            :  *   #include &quot;opal/sys/timer.h&quot;
+<span class="lineNum">      23 </span>            :  *
+<span class="lineNum">      24 </span>            :  *   extern uint64_t timers[7];
+<span class="lineNum">      25 </span>            :  *   end debug */
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : /* debug */
+<span class="lineNum">      28 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      29 </span>            : /* end debug */
+<a name="30"><span class="lineNum">      30 </span>            : </a>
+<span class="lineNum">      31 </span>            : /* non-blocking gather routines: init and progress functions */
+<span class="lineNum">      32 </span><span class="lineNoCov">          0 : int bcol_basesmuma_gather_init(mca_bcol_base_module_t *super)</span>
+<span class="lineNum">      33 </span>            : {
+<span class="lineNum">      34 </span>            :     mca_bcol_base_coll_fn_comm_attributes_t comm_attribs;
+<span class="lineNum">      35 </span>            :     mca_bcol_base_coll_fn_invoke_attributes_t inv_attribs;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span><span class="lineNoCov">          0 :     comm_attribs.bcoll_type = BCOL_GATHER;</span>
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 :     comm_attribs.comm_size_min = 0;</span>
+<span class="lineNum">      39 </span><span class="lineNoCov">          0 :     comm_attribs.comm_size_max = 1048576;</span>
+<span class="lineNum">      40 </span><span class="lineNoCov">          0 :     comm_attribs.data_src = DATA_SRC_KNOWN;</span>
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 :     comm_attribs.waiting_semantics = BLOCKING;</span>
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :     inv_attribs.bcol_msg_min = 0;</span>
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :     inv_attribs.bcol_msg_max = 20000;</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :     inv_attribs.datatype_bitmap = 0x11111111;</span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :     inv_attribs.op_types_bitmap = 0x11111111;</span>
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            :     /* Set attributes for fanin fanout algorithm */
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :     mca_bcol_base_set_attributes(super, &amp;comm_attribs, &amp;inv_attribs,</span>
+<span class="lineNum">      50 </span>            :                                  bcol_basesmuma_k_nomial_gather_init,
+<span class="lineNum">      51 </span>            :                                  bcol_basesmuma_k_nomial_gather_progress);
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<a name="54"><span class="lineNum">      54 </span>            : }</a>
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 : int bcol_basesmuma_k_nomial_gather_init(bcol_function_args_t *input_args,</span>
+<span class="lineNum">      57 </span>            :                                         mca_bcol_base_function_t *c_input_args)
+<span class="lineNum">      58 </span>            : {
+<span class="lineNum">      59 </span>            :     /* local variables */
+<span class="lineNum">      60 </span>            :     int leading_dim, buff_idx, idx;
+<span class="lineNum">      61 </span>            :     int src, i, j, k_temp1, k_temp2;
+<span class="lineNum">      62 </span>            :     int pseudo_root, proxy_root, pseudo_base_adj;
+<span class="lineNum">      63 </span>            :     volatile int8_t ready_flag;
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     int count=input_args-&gt;count;</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     struct ompi_datatype_t* dtype=input_args-&gt;dtype;</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     int root=input_args-&gt;root;</span>
+<span class="lineNum">      67 </span>            :     int base_adj, base;
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :     int total_peers, my_pow_k=0;</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     int64_t sequence_number=input_args-&gt;sequence_num;</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     mca_bcol_basesmuma_module_t* bcol_module=</span>
+<span class="lineNum">      71 </span>            :         (mca_bcol_basesmuma_module_t *)c_input_args-&gt;bcol_module;
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     int bcol_id = (int) bcol_module-&gt;super.bcol_id;</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     int my_rank = bcol_module-&gt;super.sbgp_partner_module-&gt;my_index;</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     netpatterns_k_exchange_node_t *exchange_node =</span>
+<span class="lineNum">      75 </span>            :         &amp;bcol_module-&gt;knomial_allgather_tree;
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     uint32_t buffer_index = input_args-&gt;buffer_index;</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :     int *active_requests =</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :         &amp;(bcol_module-&gt;ml_mem.nb_coll_desc[buffer_index].active_requests);</span>
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :     int *iteration = &amp;bcol_module-&gt;ml_mem.nb_coll_desc[buffer_index].iteration;</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     int *status = &amp;bcol_module-&gt;ml_mem.nb_coll_desc[buffer_index].status;</span>
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     int buff_offset = bcol_module-&gt;super.hier_scather_offset;</span>
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            :     /* &quot;indirectors&quot; */
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :     int *inv_map = exchange_node-&gt;inv_reindex_map;</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     int *reindex_map = exchange_node-&gt;reindex_map;</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     int stray = exchange_node-&gt;k_nomial_stray;</span>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :     /* tree radix */
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     int tree_order = exchange_node-&gt;tree_order;</span>
+<span class="lineNum">      92 </span>            :     /* tree depth */
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     int pow_k =  exchange_node-&gt;log_tree_order;</span>
+<span class="lineNum">      94 </span>            :     /* largest power of k less than or equal to np */
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     int cnt = exchange_node-&gt;n_largest_pow_tree_order;</span>
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            :     /* payload structures */
+<span class="lineNum">      98 </span>            :     volatile mca_bcol_basesmuma_payload_t *data_buffs;
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            :     /* control structures */
+<span class="lineNum">     101 </span>            :     volatile mca_bcol_basesmuma_header_t *my_ctl_pointer;
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :     size_t pack_len = 0, dt_size;</span>
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            : #if 0
+<span class="lineNum">     106 </span>            :     fprintf(stderr,&quot;Entering sm gather input_args-&gt;sbuf_offset %d \n&quot;,input_args-&gt;sbuf_offset);
+<span class="lineNum">     107 </span>            :     fflush(stderr);
+<span class="lineNum">     108 </span>            : #endif
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :     /* we will work only on packed data - so compute the length*/
+<span class="lineNum">     112 </span>            :     /* this is the size of my data, this is not gatherv so it's the same
+<span class="lineNum">     113 </span>            :      * for all ranks in the communicator.
+<span class="lineNum">     114 </span>            :      */
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size(dtype, &amp;dt_size);</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     pack_len=count*dt_size;</span>
+<span class="lineNum">     117 </span>            :     /* now set the &quot;real&quot; offset */
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     buff_offset = buff_offset*pack_len;</span>
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     buff_idx = input_args-&gt;src_desc-&gt;buffer_index;</span>
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span>            :     /* Get addressing information */
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     my_rank = bcol_module-&gt;super.sbgp_partner_module-&gt;my_index;</span>
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :     leading_dim=bcol_module-&gt;colls_no_user_data.size_of_group;</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     idx=SM_ARRAY_INDEX(leading_dim,buff_idx,0);</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     data_buffs=(volatile mca_bcol_basesmuma_payload_t *)</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         bcol_module-&gt;colls_with_user_data.data_buffs+idx;</span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            :     /* Set pointer to current proc ctrl region */
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     my_ctl_pointer = data_buffs[my_rank].ctl_struct;</span>
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span>            :     /* init the header */
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     BASESMUMA_HEADER_INIT(my_ctl_pointer, ready_flag, sequence_number, bcol_id);</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            :     /* init active requests, iteration, and status */
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     *iteration = 0;</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :     *active_requests = 0;</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     *status = -1;</span>
+<span class="lineNum">     140 </span>            :     /* calculate the number of steps necessary for this collective */
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            :     /* first thing we do is figure out where the root is in our new indexing */
+<span class="lineNum">     143 </span>            :     /* find root in new indexing */
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     pseudo_root = inv_map[root];</span>
+<span class="lineNum">     145 </span>            :     /* see if this is larger than the stray */
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     if (pseudo_root &gt;= stray) {</span>
+<span class="lineNum">     147 </span>            :         /* then we need to define the proxy root, everyone can do this */
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         proxy_root = pseudo_root - cnt;</span>
+<span class="lineNum">     149 </span>            :     } else {
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         proxy_root = pseudo_root;</span>
+<span class="lineNum">     151 </span>            :     }
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            :     /* do some figuring */
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     if (EXCHANGE_NODE == exchange_node-&gt;node_type) {</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :         total_peers = 0;</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         my_pow_k = pow_k;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :         k_temp1 = tree_order;</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :         k_temp2 = 1;</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :         for( i = 0; i &lt; pow_k; i++) {</span>
+<span class="lineNum">     160 </span>            :             /* then find the base */
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :             FIND_BASE(base,exchange_node-&gt;reindex_myid,i+1,tree_order);</span>
+<span class="lineNum">     162 </span>            :             /* now find the adjusted base */
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :             base_adj = base + (base + proxy_root)%k_temp1;</span>
+<span class="lineNum">     164 </span>            :             /* ok, now find out WHO is occupying this slot */
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :             pseudo_base_adj = reindex_map[base_adj];</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :             if(my_rank == pseudo_base_adj ) {</span>
+<span class="lineNum">     168 </span>            :                 /* then go ahead and poll for children's data */
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :                 for( j = 0; j &lt; (tree_order - 1); j++ ) {</span>
+<span class="lineNum">     170 </span>            :                     /* send phase
+<span class="lineNum">     171 </span>            :                      */
+<span class="lineNum">     172 </span>            :                     /* get communication partner */
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :                     src = exchange_node-&gt;rank_exchanges[i][j];</span>
+<span class="lineNum">     175 </span>            :                     /* remember, if we have extra ranks, then we won't participate
+<span class="lineNum">     176 </span>            :                      * with a least one peer. Make a check
+<span class="lineNum">     177 </span>            :                      */
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :                     if( src &lt; 0 ){</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     180 </span>            :                     }else{
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            :                         /* flip a bit to represent this request */
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :                         *active_requests ^= (1&lt;&lt;total_peers++);</span>
+<span class="lineNum">     184 </span>            :                     }
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span>            :                 }
+<span class="lineNum">     188 </span>            :             } else {
+<span class="lineNum">     189 </span>            :                 /* announce my arrival */
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                 my_pow_k = i;</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     192 </span>            :             }
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :             k_temp1 = k_temp1*tree_order;</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :             k_temp2 = k_temp2*tree_order;</span>
+<span class="lineNum">     196 </span>            :         }
+<span class="lineNum">     197 </span>            :     }
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :     *iteration = my_pow_k;</span>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     if (EXTRA_NODE == exchange_node-&gt;node_type || 0 == exchange_node-&gt;n_extra_sources) {</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         if (0 == my_pow_k || EXTRA_NODE == exchange_node-&gt;node_type) {</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :             opal_atomic_rmb ();</span>
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :             my_ctl_pointer-&gt;flags[GATHER_FLAG][bcol_id] = ready_flag;</span>
+<span class="lineNum">     206 </span>            :         }
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         if ((EXTRA_NODE == exchange_node-&gt;node_type &amp;&amp; root != my_rank) || 0 == my_pow_k) {</span>
+<span class="lineNum">     209 </span>            :             /* nothing more to do */
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :             my_ctl_pointer-&gt;starting_flag_value[bcol_id]++;</span>
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :             return BCOL_FN_COMPLETE;</span>
+<span class="lineNum">     213 </span>            :         }
+<span class="lineNum">     214 </span>            :     }
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :     return BCOL_FN_STARTED;</span>
+<span class="lineNum">     217 </span>            : }
+<a name="218"><span class="lineNum">     218 </span>            : </a>
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 : int bcol_basesmuma_k_nomial_gather_progress(bcol_function_args_t *input_args,</span>
+<span class="lineNum">     221 </span>            :                                             mca_bcol_base_function_t *c_input_args)
+<span class="lineNum">     222 </span>            : {
+<span class="lineNum">     223 </span>            :     /* local variables */
+<span class="lineNum">     224 </span>            :     int group_size;
+<span class="lineNum">     225 </span>            :     int flag_offset;
+<span class="lineNum">     226 </span>            :     int leading_dim, buff_idx, idx;
+<span class="lineNum">     227 </span>            :     int src, knt, i, j, k_temp1, k_temp2;
+<span class="lineNum">     228 </span>            :     volatile int8_t ready_flag;
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     int count=input_args-&gt;count;</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     struct ompi_datatype_t* dtype=input_args-&gt;dtype;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     int root=input_args-&gt;root;</span>
+<span class="lineNum">     232 </span>            :     int probe;
+<span class="lineNum">     233 </span>            :     int matched;
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     int64_t sequence_number=input_args-&gt;sequence_num;</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     mca_bcol_basesmuma_module_t* bcol_module=</span>
+<span class="lineNum">     236 </span>            :         (mca_bcol_basesmuma_module_t *)c_input_args-&gt;bcol_module;
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     int bcol_id = (int) bcol_module-&gt;super.bcol_id;</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     int my_rank = bcol_module-&gt;super.sbgp_partner_module-&gt;my_index;</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :     mca_bcol_basesmuma_component_t *cm = &amp;mca_bcol_basesmuma_component;</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     netpatterns_k_exchange_node_t *exchange_node =</span>
+<span class="lineNum">     241 </span>            :         &amp;bcol_module-&gt;knomial_allgather_tree;
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     uint32_t buffer_index = input_args-&gt;buffer_index;</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     int *active_requests =</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :         &amp;(bcol_module-&gt;ml_mem.nb_coll_desc[buffer_index].active_requests);</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     int *iteration = &amp;bcol_module-&gt;ml_mem.nb_coll_desc[buffer_index].iteration;</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     int *status = &amp;bcol_module-&gt;ml_mem.nb_coll_desc[buffer_index].status;</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     int buff_offset = bcol_module-&gt;super.hier_scather_offset;</span>
+<span class="lineNum">     248 </span>            :     /* &quot;indirectors&quot; */
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :     int *list_connected = bcol_module-&gt;super.list_n_connected;</span>
+<span class="lineNum">     250 </span>            :     /* tree radix */
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :     int tree_order = exchange_node-&gt;tree_order;</span>
+<span class="lineNum">     252 </span>            :     /* payload structures */
+<span class="lineNum">     253 </span>            :     volatile mca_bcol_basesmuma_payload_t *data_buffs;
+<span class="lineNum">     254 </span>            :     volatile char *child_data_pointer;
+<span class="lineNum">     255 </span>            :     /* control structures */
+<span class="lineNum">     256 </span>            :     volatile mca_bcol_basesmuma_header_t *my_ctl_pointer;
+<span class="lineNum">     257 </span>            :     volatile mca_bcol_basesmuma_header_t *child_ctl_pointer;
+<span class="lineNum">     258 </span>            :     /*volatile mca_bcol_basesmuma_ctl_struct_t* parent_ctl_pointer; */
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     size_t pack_len = 0, dt_size;</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     void *data_addr = (void *)((unsigned char *)input_args-&gt;src_desc-&gt;data_addr);</span>
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            : #if 0
+<span class="lineNum">     265 </span>            :     fprintf(stderr,&quot;Entering sm gather input_args-&gt;sbuf_offset %d \n&quot;,input_args-&gt;sbuf_offset);
+<span class="lineNum">     266 </span>            :     fflush(stderr);
+<span class="lineNum">     267 </span>            : #endif
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span>            :     /* we will work only on packed data - so compute the length*/
+<span class="lineNum">     271 </span>            :     /* this is the size of my data, this is not gatherv so it's the same
+<span class="lineNum">     272 </span>            :      * for all ranks in the communicator.
+<span class="lineNum">     273 </span>            :      */
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     ompi_datatype_type_size(dtype, &amp;dt_size);</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     pack_len=count*dt_size;</span>
+<span class="lineNum">     276 </span>            :     /* now set the &quot;real&quot; offset */
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     buff_offset = buff_offset*pack_len;</span>
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     buff_idx = input_args-&gt;src_desc-&gt;buffer_index;</span>
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span>            :     /* Get addressing information */
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :     my_rank = bcol_module-&gt;super.sbgp_partner_module-&gt;my_index;</span>
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     group_size = bcol_module-&gt;colls_no_user_data.size_of_group;</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     leading_dim=bcol_module-&gt;colls_no_user_data.size_of_group;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     idx=SM_ARRAY_INDEX(leading_dim,buff_idx,0);</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     data_buffs=(volatile mca_bcol_basesmuma_payload_t *)</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         bcol_module-&gt;colls_with_user_data.data_buffs+idx;</span>
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span>            :     /* Set pointer to current proc ctrl region */
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :     my_ctl_pointer = data_buffs[my_rank].ctl_struct;</span>
+<span class="lineNum">     292 </span>            :     /* restart the ready_flag state */
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     flag_offset = my_ctl_pointer-&gt;starting_flag_value[bcol_id];</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     ready_flag = flag_offset + 1;</span>
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span>            :     /* calculate the number of steps necessary for this collective */
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span>            :     /* first thing we do is figure out where the root is in our new indexing */
+<span class="lineNum">     299 </span>            :     /* find root in new indexing */
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     if( EXTRA_NODE == exchange_node-&gt;node_type ) {</span>
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            :         /* poll for data from proxy */
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         src = exchange_node-&gt;rank_extra_sources_array[0];</span>
+<span class="lineNum">     304 </span>            :         /* get src data buffer */
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         child_data_pointer = data_buffs[src].payload;</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :         child_ctl_pointer = data_buffs[src].ctl_struct;</span>
+<span class="lineNum">     307 </span>            :         /* remember to bump your flag */
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         ready_flag++;</span>
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            :         /* in this case, you must block */
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :         for (i = 0 ; i &lt; cm-&gt;num_to_probe ; ++i) {</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :             if (IS_PEER_READY(child_ctl_pointer,ready_flag,sequence_number, GATHER_FLAG, bcol_id)){</span>
+<span class="lineNum">     313 </span>            :                 /* receive the data from the proxy, aka pseudo-root */
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :                 memcpy((void *) ((unsigned char *) data_addr + buff_offset),</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :                        (void *) ((unsigned char *) child_data_pointer+buff_offset),</span>
+<span class="lineNum">     316 </span>            :                        pack_len * group_size);
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :                 goto FINISHED;</span>
+<span class="lineNum">     319 </span>            :             }
+<span class="lineNum">     320 </span>            :         }
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         return BCOL_FN_STARTED;</span>
+<span class="lineNum">     323 </span>            :     }
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     if (0 &lt; exchange_node-&gt;n_extra_sources &amp;&amp; (-1 == (*status))) {</span>
+<span class="lineNum">     327 </span>            :         /* am a proxy, poll for pack_len data from extra */
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :         src = exchange_node-&gt;rank_extra_sources_array[0];</span>
+<span class="lineNum">     329 </span>            :         /* get src data buffer */
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :         child_data_pointer = data_buffs[src].payload;</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :         child_ctl_pointer = data_buffs[src].ctl_struct;</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :         knt = 0;</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :         for( i = 0; i &lt; src; i++){</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :             knt += list_connected[i];</span>
+<span class="lineNum">     335 </span>            :         }
+<span class="lineNum">     336 </span>            :         /* must block here also */
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :         matched = 0;</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         for (i = 0, matched = 0 ; i &lt; cm-&gt;num_to_probe &amp;&amp; (0 == matched) ; ++i) {</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :             if(IS_PEER_READY(child_ctl_pointer,ready_flag,sequence_number, GATHER_FLAG, bcol_id)){</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :                 matched = 1;</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :                 memcpy((void *) ((unsigned char *) data_addr + buff_offset + pack_len*knt),</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :                        (void *) ((unsigned char *) child_data_pointer + buff_offset +</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :                                  pack_len*knt), pack_len*list_connected[src]);</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :                 *status = 0;</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :                 if( 0 == *active_requests ){</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :                     goto LAST_STEP;</span>
+<span class="lineNum">     347 </span>            :                 }
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     350 </span>            :             }
+<span class="lineNum">     351 </span>            :         }
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :         if( 0 == matched ){</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :             return BCOL_FN_STARTED;</span>
+<span class="lineNum">     354 </span>            :         }
+<span class="lineNum">     355 </span>            :     }
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            :     /* start the k-nomial gather phase */
+<span class="lineNum">     358 </span>            :     /* only &quot;active ranks participate, once a rank has forwarded its data, it becomes inactive */
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     for (probe = 0 ; probe &lt; cm-&gt;num_to_probe ; ++probe) {</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :         k_temp1 = tree_order;</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :         k_temp2 = 1;</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         for (i = 0 ; i &lt; *(iteration) ; ++i) {</span>
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span>            :             /* then go ahead and poll for children's data */
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :             for (j = 0 ; j &lt; (tree_order - 1) ; ++j) {</span>
+<span class="lineNum">     366 </span>            :                 /* send phase
+<span class="lineNum">     367 </span>            :                  */
+<span class="lineNum">     368 </span>            :                 /* get communication partner */
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :                 src = exchange_node-&gt;rank_exchanges[i][j];</span>
+<span class="lineNum">     371 </span>            :                 /* remember, if we have extra ranks, then we won't participate
+<span class="lineNum">     372 </span>            :                  * with a least one peer. Make a check
+<span class="lineNum">     373 </span>            :                  */
+<span class="lineNum">     374 </span>            :                 /* if the bit that corresponds to this child has been set to zero,
+<span class="lineNum">     375 </span>            :                  * then it has already checked in and data received
+<span class="lineNum">     376 </span>            :                  */
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :                 if (src &lt; 0 || 1 != ((*active_requests &gt;&gt; ((tree_order - 1)*i + j))&amp;1)){</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     379 </span>            :                 }
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :                 child_data_pointer = data_buffs[src].payload;</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :                 child_ctl_pointer = data_buffs[src].ctl_struct;</span>
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :                 if(IS_PEER_READY(child_ctl_pointer,ready_flag,sequence_number, GATHER_FLAG, bcol_id)){</span>
+<span class="lineNum">     384 </span>            :                     /* copy the data */
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :                     memcpy((void *) ((unsigned char *) data_addr + buff_offset +</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :                                      exchange_node-&gt;payload_info[i][j].r_offset*pack_len),</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :                            (void *) ((unsigned char *) child_data_pointer + buff_offset +</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :                                      exchange_node-&gt;payload_info[i][j].r_offset*pack_len),</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :                            exchange_node-&gt;payload_info[i][j].r_len*pack_len);</span>
+<span class="lineNum">     390 </span>            :                     /* flip the bit to zero */
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :                     *active_requests ^= (1&lt;&lt;((tree_order - 1)*i + j));</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :                     if(0 == (*active_requests)) {</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :                         goto LAST_STEP;</span>
+<span class="lineNum">     394 </span>            :                     }
+<span class="lineNum">     395 </span>            :                 }
+<span class="lineNum">     396 </span>            :             }
+<span class="lineNum">     397 </span>            :         }
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :         k_temp1 = k_temp1*tree_order;</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :         k_temp2 = k_temp2*tree_order;</span>
+<span class="lineNum">     401 </span>            :     }
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     return BCOL_FN_STARTED;</span>
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            : LAST_STEP:
+<span class="lineNum">     407 </span>            :     /* last step, proxies send full data back to the extra ranks */
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :     if( 0 &lt; exchange_node-&gt;n_extra_sources &amp;&amp;</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :         root == exchange_node-&gt;rank_extra_sources_array[0]) {</span>
+<span class="lineNum">     410 </span>            :         /* regardless, I will bump the ready flag and set it in case someone is watching */
+<span class="lineNum">     411 </span>            :         /* announce that data is ready */
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         ready_flag++;</span>
+<span class="lineNum">     413 </span>            :     }
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span>            :     /* signal that data is ready */
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :     opal_atomic_wmb ();</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :     my_ctl_pointer-&gt;flags[GATHER_FLAG][bcol_id] = ready_flag;</span>
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            : FINISHED:
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     my_ctl_pointer-&gt;starting_flag_value[bcol_id]++;</span>
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     return BCOL_FN_COMPLETE;</span>
+<span class="lineNum">     425 </span>            : }
+<span class="lineNum">     426 </span>            : 
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span>            : /* Blocking routines, used to prototype and test signaling,
+<span class="lineNum">     429 </span>            :  * as well as debug hierarchical algorithm
+<span class="lineNum">     430 </span>            :  */
+<span class="lineNum">     431 </span>            : #if 0
+<span class="lineNum">     432 </span>            : int bcol_basesmuma_gather_init(mca_bcol_base_module_t *super)
+<span class="lineNum">     433 </span>            : {
+<span class="lineNum">     434 </span>            :     mca_bcol_base_coll_fn_comm_attributes_t comm_attribs;
+<span class="lineNum">     435 </span>            :     mca_bcol_base_coll_fn_invoke_attributes_t inv_attribs;
+<span class="lineNum">     436 </span>            : 
+<span class="lineNum">     437 </span>            :     comm_attribs.bcoll_type = BCOL_GATHER;
+<span class="lineNum">     438 </span>            :     comm_attribs.comm_size_min = 0;
+<span class="lineNum">     439 </span>            :     comm_attribs.comm_size_max = 16;
+<span class="lineNum">     440 </span>            :     comm_attribs.data_src = DATA_SRC_KNOWN;
+<span class="lineNum">     441 </span>            :     comm_attribs.waiting_semantics = BLOCKING;
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span>            :     inv_attribs.bcol_msg_min = 0;
+<span class="lineNum">     444 </span>            :     inv_attribs.bcol_msg_max = 20000;
+<span class="lineNum">     445 </span>            :     inv_attribs.datatype_bitmap = 0x11111111;
+<span class="lineNum">     446 </span>            :     inv_attribs.op_types_bitmap = 0x11111111;
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span>            :     /* Set attributes for fanin fanout algorithm */
+<span class="lineNum">     450 </span>            :     mca_bcol_base_set_attributes(super, &amp;comm_attribs, &amp;inv_attribs, bcol_basesmuma_k_nomial_gather,
+<span class="lineNum">     451 </span>            :                                  bcol_basesmuma_k_nomial_gather);
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span>            :     return OMPI_SUCCESS;
+<span class="lineNum">     454 </span>            : }
+<span class="lineNum">     455 </span>            : #endif
+<span class="lineNum">     456 </span>            : 
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span>            : /* original, fully blocking, fully synchronous gather - should result in worst performance when used */
+<span class="lineNum">     459 </span>            : #if 0
+<span class="lineNum">     460 </span>            : int bcol_basesmuma_k_nomial_gather(bcol_function_args_t *input_args,
+<span class="lineNum">     461 </span>            :                                    mca_bcol_base_function_t *c_input_args)
+<span class="lineNum">     462 </span>            : {
+<span class="lineNum">     463 </span>            :     /* local variables */
+<span class="lineNum">     464 </span>            :     int group_size;
+<span class="lineNum">     465 </span>            :     int first_instance=0, flag_offset;
+<span class="lineNum">     466 </span>            :     int rc = OMPI_SUCCESS;
+<span class="lineNum">     467 </span>            :     int leading_dim, buff_idx, idx;
+<span class="lineNum">     468 </span>            :     int *group_list;
+<span class="lineNum">     469 </span>            :     int src, comm_src, knt, i, k, j, k_temp1, k_temp2;
+<span class="lineNum">     470 </span>            :     int pseudo_root, proxy_root, pseudo_base_adj;
+<span class="lineNum">     471 </span>            :     volatile int64_t ready_flag;
+<span class="lineNum">     472 </span>            :     int count=input_args-&gt;count;
+<span class="lineNum">     473 </span>            :     struct ompi_datatype_t* dtype=input_args-&gt;dtype;
+<span class="lineNum">     474 </span>            :     int root=input_args-&gt;root;
+<span class="lineNum">     475 </span>            :     int base_adj, base;
+<span class="lineNum">     476 </span>            :     int64_t sequence_number=input_args-&gt;sequence_num;
+<span class="lineNum">     477 </span>            :     mca_bcol_basesmuma_module_t* bcol_module=
+<span class="lineNum">     478 </span>            :         (mca_bcol_basesmuma_module_t *)c_input_args-&gt;bcol_module;
+<span class="lineNum">     479 </span>            :     int my_rank = bcol_module-&gt;super.sbgp_partner_module-&gt;my_index;
+<span class="lineNum">     480 </span>            :     mca_bcol_basesmuma_component_t *cs = &amp;mca_bcol_basesmuma_component;
+<span class="lineNum">     481 </span>            :     netpatterns_k_exchange_node_t *exchange_node =
+<span class="lineNum">     482 </span>            :         &amp;bcol_module-&gt;knomial_allgather_tree;
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            :     int buff_offset = bcol_module-&gt;super.hier_scather_offset;
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span>            :     /* &quot;indirectors&quot; */
+<span class="lineNum">     487 </span>            :     int *list_connected = bcol_module-&gt;super.list_n_connected;
+<span class="lineNum">     488 </span>            :     int *inv_map = exchange_node-&gt;inv_reindex_map;
+<span class="lineNum">     489 </span>            :     int *reindex_map = exchange_node-&gt;reindex_map;
+<span class="lineNum">     490 </span>            :     /*int *reindex_map = exchange_node-&gt;reindex_map;*/
+<span class="lineNum">     491 </span>            :     /* stray rank == first rank in the extra set */
+<span class="lineNum">     492 </span>            :     int stray = exchange_node-&gt;k_nomial_stray;
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span>            :     /* tree radix */
+<span class="lineNum">     495 </span>            :     int tree_order = exchange_node-&gt;tree_order;
+<span class="lineNum">     496 </span>            :     /* tree depth */
+<span class="lineNum">     497 </span>            :     int pow_k =  exchange_node-&gt;log_tree_order;
+<span class="lineNum">     498 </span>            :     /* largest power of k less than or equal to np */
+<span class="lineNum">     499 </span>            :     int cnt = exchange_node-&gt;n_largest_pow_tree_order;
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span>            :     /*fprintf(stderr,&quot;tree order %d pow_k %d stray %d root %d\n&quot;,tree_order, pow_k, stray, root);*/
+<span class="lineNum">     502 </span>            :     /* payload structures */
+<span class="lineNum">     503 </span>            :     volatile mca_bcol_basesmuma_payload_t *data_buffs;
+<span class="lineNum">     504 </span>            :     volatile char *child_data_pointer;
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span>            :     /* control structures */
+<span class="lineNum">     507 </span>            :     volatile mca_bcol_basesmuma_header_t *my_ctl_pointer;
+<span class="lineNum">     508 </span>            :     volatile mca_bcol_basesmuma_header_t *child_ctl_pointer;
+<span class="lineNum">     509 </span>            :     /*volatile mca_bcol_basesmuma_ctl_struct_t* parent_ctl_pointer; */
+<span class="lineNum">     510 </span>            : 
+<span class="lineNum">     511 </span>            :     size_t pack_len = 0, dt_size;
+<span class="lineNum">     512 </span>            :     void *data_addr = (void *)((unsigned char *)input_args-&gt;src_desc-&gt;data_addr);
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span>            :     /* active in the algorithm */
+<span class="lineNum">     515 </span>            :     bool active = true;
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span>            : #if 0
+<span class="lineNum">     518 </span>            :     fprintf(stderr,&quot;Entering sm gather input_args-&gt;sbuf_offset %d \n&quot;,input_args-&gt;sbuf_offset);
+<span class="lineNum">     519 </span>            :     fflush(stderr);
+<span class="lineNum">     520 </span>            : #endif
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span>            : 
+<span class="lineNum">     523 </span>            :     /* we will work only on packed data - so compute the length*/
+<span class="lineNum">     524 </span>            :     /* this is the size of my data, this is not gatherv so it's the same
+<span class="lineNum">     525 </span>            :      * for all ranks in the communicator.
+<span class="lineNum">     526 </span>            :      */
+<span class="lineNum">     527 </span>            :     ompi_datatype_type_size(dtype, &amp;dt_size);
+<span class="lineNum">     528 </span>            :     pack_len=count*dt_size;
+<span class="lineNum">     529 </span>            :     /* now set the &quot;real&quot; offset */
+<span class="lineNum">     530 </span>            :     buff_offset = buff_offset*pack_len;
+<span class="lineNum">     531 </span>            : 
+<span class="lineNum">     532 </span>            :     buff_idx = input_args-&gt;src_desc-&gt;buffer_index;
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span>            :     /* Get addressing information */
+<span class="lineNum">     535 </span>            :     my_rank = bcol_module-&gt;super.sbgp_partner_module-&gt;my_index;
+<span class="lineNum">     536 </span>            :     /* I have a feeling that I'll need this */
+<span class="lineNum">     537 </span>            :     group_list = bcol_module-&gt;super.sbgp_partner_module-&gt;group_list;
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span>            :     group_size = bcol_module-&gt;colls_no_user_data.size_of_group;
+<span class="lineNum">     540 </span>            :     leading_dim=bcol_module-&gt;colls_no_user_data.size_of_group;
+<span class="lineNum">     541 </span>            :     idx=SM_ARRAY_INDEX(leading_dim,buff_idx,0);
+<span class="lineNum">     542 </span>            :     /*ctl_structs=(mca_bcol_basesmuma_ctl_struct_t **)
+<span class="lineNum">     543 </span>            :       bcol_module-&gt;colls_with_user_data.ctl_buffs+idx;
+<span class="lineNum">     544 </span>            :     */
+<span class="lineNum">     545 </span>            :     data_buffs=(volatile mca_bcol_basesmuma_payload_t *)
+<span class="lineNum">     546 </span>            :         bcol_module-&gt;colls_with_user_data.data_buffs+idx;
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span>            :     /* Set pointer to current proc ctrl region */
+<span class="lineNum">     549 </span>            :     /*my_ctl_pointer = ctl_structs[my_rank]; */
+<span class="lineNum">     550 </span>            :     my_ctl_pointer = data_buffs[my_rank].ctl_struct;
+<span class="lineNum">     551 </span>            : 
+<span class="lineNum">     552 </span>            :     /* setup resource recycling */
+<span class="lineNum">     553 </span>            :     if( my_ctl_pointer-&gt;sequence_number &lt; sequence_number ) {
+<span class="lineNum">     554 </span>            :         first_instance=1;
+<span class="lineNum">     555 </span>            :     }
+<span class="lineNum">     556 </span>            : 
+<span class="lineNum">     557 </span>            :     if( first_instance ) {
+<span class="lineNum">     558 </span>            :         /* Signal arrival */
+<span class="lineNum">     559 </span>            :         my_ctl_pointer-&gt;flag = -1;
+<span class="lineNum">     560 </span>            :         my_ctl_pointer-&gt;gflag = -1;
+<span class="lineNum">     561 </span>            :         my_ctl_pointer-&gt;index=1;
+<span class="lineNum">     562 </span>            :         /* this does not need to use any flag values , so only need to
+<span class="lineNum">     563 </span>            :          * set the value for subsequent values that may need this */
+<span class="lineNum">     564 </span>            :         my_ctl_pointer-&gt;starting_flag_value=0;
+<span class="lineNum">     565 </span>            :         flag_offset=0;
+<span class="lineNum">     566 </span>            : 
+<span class="lineNum">     567 </span>            :     } else {
+<span class="lineNum">     568 </span>            :         /* only one thread at a time will be making progress on this
+<span class="lineNum">     569 </span>            :          *   collective, so no need to make this atomic */
+<span class="lineNum">     570 </span>            :         my_ctl_pointer-&gt;index++;
+<span class="lineNum">     571 </span>            :     }
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span>            :     /* increment the starting flag by one and return */
+<span class="lineNum">     575 </span>            :     flag_offset = my_ctl_pointer-&gt;starting_flag_value;
+<span class="lineNum">     576 </span>            :     ready_flag = flag_offset + sequence_number + 1;
+<span class="lineNum">     577 </span>            :     my_ctl_pointer-&gt;sequence_number = sequence_number;
+<span class="lineNum">     578 </span>            : 
+<span class="lineNum">     579 </span>            : /* debug
+<span class="lineNum">     580 </span>            :    fprintf(stderr,&quot; sequence_number %lld flag_offset %d starting flag val %d\n&quot;,sequence_number,flag_offset, my_ctl_pointer-&gt;starting_flag_value);
+<span class="lineNum">     581 </span>            :    fflush(stderr);
+<span class="lineNum">     582 </span>            :    end debug */
+<span class="lineNum">     583 </span>            : 
+<span class="lineNum">     584 </span>            : 
+<span class="lineNum">     585 </span>            :     /*
+<span class="lineNum">     586 </span>            :      * Fan out from root
+<span class="lineNum">     587 </span>            :      */
+<span class="lineNum">     588 </span>            :     /* don't need this either */
+<span class="lineNum">     589 </span>            :     /* root is the local leader */
+<span class="lineNum">     590 </span>            :     /* calculate the number of steps necessary for this collective */
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span>            :     /* first thing we do is figure out where the root is in our new indexing */
+<span class="lineNum">     593 </span>            :     /* find root in new indexing */
+<span class="lineNum">     594 </span>            :     pseudo_root = inv_map[root];
+<span class="lineNum">     595 </span>            :     /* see if this is larger than the stray */
+<span class="lineNum">     596 </span>            :     if( pseudo_root &gt;= stray ) {
+<span class="lineNum">     597 </span>            :         /* then we need to define the proxy root, everyone can do this */
+<span class="lineNum">     598 </span>            :         proxy_root = pseudo_root - cnt;
+<span class="lineNum">     599 </span>            :     }else {
+<span class="lineNum">     600 </span>            :         proxy_root = pseudo_root;
+<span class="lineNum">     601 </span>            :     }
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span>            : 
+<span class="lineNum">     605 </span>            :     if( EXTRA_NODE == exchange_node-&gt;node_type ) {
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span>            :         /* signal arrival */
+<span class="lineNum">     608 </span>            :         my_ctl_pointer-&gt;gflag = ready_flag;
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span>            :         /* send is done */
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span>            :         /* poll for data only if I am the root */
+<span class="lineNum">     613 </span>            :         /* bump the ready flag */
+<span class="lineNum">     614 </span>            :         ready_flag++;
+<span class="lineNum">     615 </span>            :         if( root == my_rank ){
+<span class="lineNum">     616 </span>            :             /* poll for data from proxy */
+<span class="lineNum">     617 </span>            :             src = exchange_node-&gt;rank_extra_sources_array[0];
+<span class="lineNum">     618 </span>            :             /* get src data buffer */
+<span class="lineNum">     619 </span>            :             child_data_pointer = data_buffs[src].payload;
+<span class="lineNum">     620 </span>            :             child_ctl_pointer = data_buffs[src].ctl_struct;
+<span class="lineNum">     621 </span>            :             while(!IS_GDATA_READY(child_ctl_pointer,ready_flag,sequence_number)){
+<span class="lineNum">     622 </span>            :                 opal_progress();
+<span class="lineNum">     623 </span>            :             }
+<span class="lineNum">     624 </span>            :             /* receive the data from the proxy, aka pseudo-root */
+<span class="lineNum">     625 </span>            : 
+<span class="lineNum">     626 </span>            :             memcpy((void *) ((unsigned char *) data_addr + buff_offset),(void *) ((unsigned char *) child_data_pointer+buff_offset)
+<span class="lineNum">     627 </span>            :                    ,pack_len*group_size);
+<span class="lineNum">     628 </span>            :         }
+<span class="lineNum">     629 </span>            :         goto FINISHED;
+<span class="lineNum">     630 </span>            : 
+<span class="lineNum">     631 </span>            : 
+<span class="lineNum">     632 </span>            :     } else if( 0 &lt; exchange_node-&gt;n_extra_sources ) {
+<span class="lineNum">     633 </span>            : 
+<span class="lineNum">     634 </span>            :         /* am a proxy, poll for pack_len data from extra */
+<span class="lineNum">     635 </span>            :         src = exchange_node-&gt;rank_extra_sources_array[0];
+<span class="lineNum">     636 </span>            :         /* get src data buffer */
+<span class="lineNum">     637 </span>            :         child_data_pointer = data_buffs[src].payload;
+<span class="lineNum">     638 </span>            :         child_ctl_pointer = data_buffs[src].ctl_struct;
+<span class="lineNum">     639 </span>            :         knt = 0;
+<span class="lineNum">     640 </span>            :         for( i = 0; i &lt; src; i++){
+<span class="lineNum">     641 </span>            :             knt += list_connected[i];
+<span class="lineNum">     642 </span>            :         }
+<span class="lineNum">     643 </span>            :         while(!IS_GDATA_READY(child_ctl_pointer,ready_flag,sequence_number)){
+<span class="lineNum">     644 </span>            :             opal_progress();
+<span class="lineNum">     645 </span>            :         }
+<span class="lineNum">     646 </span>            :         memcpy((void *) ((unsigned char *) data_addr + buff_offset + pack_len*knt),
+<span class="lineNum">     647 </span>            :                (void *) ((unsigned char *) child_data_pointer + buff_offset +
+<span class="lineNum">     648 </span>            :                          pack_len*knt), pack_len*list_connected[src]);
+<span class="lineNum">     649 </span>            :         /*fprintf(stderr,&quot;999 proxy received data from %d at offset %d of length %d\n&quot;,src,
+<span class="lineNum">     650 </span>            :           buff_offset+pack_len*knt,pack_len*list_connected[src]);
+<span class="lineNum">     651 </span>            :         */
+<span class="lineNum">     652 </span>            :     }
+<span class="lineNum">     653 </span>            : 
+<span class="lineNum">     654 </span>            :     /* start the k-nomial gather phase */
+<span class="lineNum">     655 </span>            :     /* only &quot;active ranks participate, once a rank has forwarded its data, it becomes inactive */
+<span class="lineNum">     656 </span>            :     knt = 0;
+<span class="lineNum">     657 </span>            :     while(active){
+<span class="lineNum">     658 </span>            :         k_temp1 = tree_order;
+<span class="lineNum">     659 </span>            :         k_temp2 = 1;
+<span class="lineNum">     660 </span>            :         for( i = 0; i &lt; pow_k; i++) {
+<span class="lineNum">     661 </span>            :             /* then find the base */
+<span class="lineNum">     662 </span>            :             /*FIND_BASE(base,my_rank,i+1,tree_order);*/
+<span class="lineNum">     663 </span>            :             FIND_BASE(base,exchange_node-&gt;reindex_myid,i+1,tree_order);
+<span class="lineNum">     664 </span>            :             /* now find the adjusted base */
+<span class="lineNum">     665 </span>            :             base_adj = base + (base + proxy_root)%k_temp1;
+<span class="lineNum">     666 </span>            :             /* ok, now find out WHO is occupying this slot */
+<span class="lineNum">     667 </span>            :             /*pseudo_base_adj = inv_map[base_adj];*/
+<span class="lineNum">     668 </span>            :             pseudo_base_adj = reindex_map[base_adj];
+<span class="lineNum">     669 </span>            : 
+<span class="lineNum">     670 </span>            :             if(my_rank == pseudo_base_adj ) {
+<span class="lineNum">     671 </span>            :                 /* then go ahead and poll for children's data */
+<span class="lineNum">     672 </span>            :                 for( j = 0; j &lt; (tree_order - 1); j++ ) {
+<span class="lineNum">     673 </span>            :                     /* send phase
+<span class="lineNum">     674 </span>            :                      */
+<span class="lineNum">     675 </span>            :                     /* get communication partner */
+<span class="lineNum">     676 </span>            : 
+<span class="lineNum">     677 </span>            :                     src = exchange_node-&gt;rank_exchanges[i][j];
+<span class="lineNum">     678 </span>            :                     /*fprintf(stderr,&quot;comm_src %d\n&quot;,comm_src);*/
+<span class="lineNum">     679 </span>            :                     /* remember, if we have extra ranks, then we won't participate
+<span class="lineNum">     680 </span>            :                      * with a least one peer. Make a check
+<span class="lineNum">     681 </span>            :                      */
+<span class="lineNum">     682 </span>            :                     if( src &lt; 0 ){
+<span class="lineNum">     683 </span>            :                         continue;
+<span class="lineNum">     684 </span>            :                     }
+<span class="lineNum">     685 </span>            : 
+<span class="lineNum">     686 </span>            :                     /*fprintf(stderr,&quot;src %d\n&quot;,src);*/
+<span class="lineNum">     687 </span>            :                     child_data_pointer = data_buffs[src].payload;
+<span class="lineNum">     688 </span>            :                     child_ctl_pointer = data_buffs[src].ctl_struct;
+<span class="lineNum">     689 </span>            :                     while(!IS_GDATA_READY(child_ctl_pointer,ready_flag,sequence_number)){
+<span class="lineNum">     690 </span>            :                         opal_progress();
+<span class="lineNum">     691 </span>            :                     }
+<span class="lineNum">     692 </span>            :                     memcpy((void *) ((unsigned char *) data_addr + buff_offset +
+<span class="lineNum">     693 </span>            :                                      exchange_node-&gt;payload_info[i][j].r_offset*pack_len),
+<span class="lineNum">     694 </span>            :                            (void *) ((unsigned char *) child_data_pointer + buff_offset +
+<span class="lineNum">     695 </span>            :                                      exchange_node-&gt;payload_info[i][j].r_offset*pack_len),
+<span class="lineNum">     696 </span>            :                            exchange_node-&gt;payload_info[i][j].r_len*pack_len);
+<span class="lineNum">     697 </span>            :                     /*
+<span class="lineNum">     698 </span>            :                       fprintf(stderr,&quot;999 receiving data from %d at offset %d of length %d\n&quot;,
+<span class="lineNum">     699 </span>            :                       exchange_node-&gt;rank_exchanges[i][j], buff_offset + exchange_node-&gt;payload_info[i][j].r_offset,
+<span class="lineNum">     700 </span>            :                       exchange_node-&gt;payload_info[i][j].r_len*pack_len);
+<span class="lineNum">     701 </span>            :                     */
+<span class="lineNum">     702 </span>            :                     opal_atomic_wmb ();
+<span class="lineNum">     703 </span>            :                     knt++;
+<span class="lineNum">     704 </span>            :                     if(knt == exchange_node-&gt;n_actual_exchanges) {
+<span class="lineNum">     705 </span>            :                         /* this is the trick to break the root out,
+<span class="lineNum">     706 </span>            :                          * only the root should be able to satisfy this
+<span class="lineNum">     707 </span>            :                          */
+<span class="lineNum">     708 </span>            :                         /*
+<span class="lineNum">     709 </span>            :                           fprintf(stderr,&quot;hello n_actual is %d \n&quot;,knt);
+<span class="lineNum">     710 </span>            :                           fprintf(stderr,&quot;hello n_actual_exch is %d \n&quot;,
+<span class="lineNum">     711 </span>            :                           exchange_node-&gt;n_actual_exchanges);
+<span class="lineNum">     712 </span>            :                         */
+<span class="lineNum">     713 </span>            :                         goto LAST_STEP;
+<span class="lineNum">     714 </span>            :                     }
+<span class="lineNum">     715 </span>            :                 }
+<span class="lineNum">     716 </span>            :             } else {
+<span class="lineNum">     717 </span>            :                 /* announce my arrival */
+<span class="lineNum">     718 </span>            :                 my_ctl_pointer-&gt;gflag = ready_flag;
+<span class="lineNum">     719 </span>            :                 active = false;
+<span class="lineNum">     720 </span>            :                 break;
+<span class="lineNum">     721 </span>            :             }
+<span class="lineNum">     722 </span>            : 
+<span class="lineNum">     723 </span>            :             k_temp1 = k_temp1*tree_order;
+<span class="lineNum">     724 </span>            :             k_temp2 = k_temp2*tree_order;
+<span class="lineNum">     725 </span>            :         }
+<span class="lineNum">     726 </span>            :     }
+<span class="lineNum">     727 </span>            : LAST_STEP:
+<span class="lineNum">     728 </span>            :     /* last step, proxies send full data back to the extra ranks */
+<span class="lineNum">     729 </span>            :     if( 0 &lt; exchange_node-&gt;n_extra_sources &amp;&amp;
+<span class="lineNum">     730 </span>            :         root == exchange_node-&gt;rank_extra_sources_array[0]) {
+<span class="lineNum">     731 </span>            :         /* regardless, I will bump the ready flag and set it in case someone is watching */
+<span class="lineNum">     732 </span>            :         /* announce that data is ready */
+<span class="lineNum">     733 </span>            :         ready_flag++;
+<span class="lineNum">     734 </span>            :         my_ctl_pointer-&gt;gflag = ready_flag;
+<span class="lineNum">     735 </span>            :     }
+<span class="lineNum">     736 </span>            : 
+<span class="lineNum">     737 </span>            : 
+<span class="lineNum">     738 </span>            : FINISHED:
+<span class="lineNum">     739 </span>            : 
+<span class="lineNum">     740 </span>            : /* debug
+<span class="lineNum">     741 </span>            :    fprintf(stderr,&quot; my_ctl_pointer-&gt;index %d n of this type %d %u \n&quot;,
+<span class="lineNum">     742 </span>            :    my_ctl_pointer-&gt;index,c_input_args-&gt;n_of_this_type_in_collective,getpid());
+<span class="lineNum">     743 </span>            :    fflush(stderr);
+<span class="lineNum">     744 </span>            :    end debug */
+<span class="lineNum">     745 </span>            : 
+<span class="lineNum">     746 </span>            :     my_ctl_pointer-&gt;starting_flag_value+=1;
+<span class="lineNum">     747 </span>            : 
+<span class="lineNum">     748 </span>            :     return BCOL_FN_COMPLETE;
+<span class="lineNum">     749 </span>            : }
+<span class="lineNum">     750 </span>            : 
+<span class="lineNum">     751 </span>            : #endif
+<span class="lineNum">     752 </span>            : 
+<span class="lineNum">     753 </span>            : 
+<span class="lineNum">     754 </span>            : #if 0
+<span class="lineNum">     755 </span>            : /* blocking, asynchronous polling gather routine */
+<span class="lineNum">     756 </span>            : int bcol_basesmuma_k_nomial_gather(bcol_function_args_t *input_args,
+<span class="lineNum">     757 </span>            :                                    mca_bcol_base_function_t *c_input_args)
+<span class="lineNum">     758 </span>            : {
+<span class="lineNum">     759 </span>            :     /* local variables */
+<span class="lineNum">     760 </span>            :     int group_size;
+<span class="lineNum">     761 </span>            :     int first_instance=0, flag_offset;
+<span class="lineNum">     762 </span>            :     int rc = OMPI_SUCCESS;
+<span class="lineNum">     763 </span>            :     int leading_dim, buff_idx, idx;
+<span class="lineNum">     764 </span>            :     int *group_list;
+<span class="lineNum">     765 </span>            :     int src, comm_src, knt, i, k, j, k_temp1, k_temp2;
+<span class="lineNum">     766 </span>            :     int pseudo_root, proxy_root, pseudo_base_adj;
+<span class="lineNum">     767 </span>            :     volatile int64_t ready_flag;
+<span class="lineNum">     768 </span>            :     int count=input_args-&gt;count;
+<span class="lineNum">     769 </span>            :     struct ompi_datatype_t* dtype=input_args-&gt;dtype;
+<span class="lineNum">     770 </span>            :     int root=input_args-&gt;root;
+<span class="lineNum">     771 </span>            :     int base_adj, base;
+<span class="lineNum">     772 </span>            :     int total_peers, my_pow_k;
+<span class="lineNum">     773 </span>            :     int probe;
+<span class="lineNum">     774 </span>            :     int matched;
+<span class="lineNum">     775 </span>            :     int64_t sequence_number=input_args-&gt;sequence_num;
+<span class="lineNum">     776 </span>            :     mca_bcol_basesmuma_module_t* bcol_module=
+<span class="lineNum">     777 </span>            :         (mca_bcol_basesmuma_module_t *)c_input_args-&gt;bcol_module;
+<span class="lineNum">     778 </span>            :     int my_rank = bcol_module-&gt;super.sbgp_partner_module-&gt;my_index;
+<span class="lineNum">     779 </span>            :     mca_bcol_basesmuma_component_t *cm = &amp;mca_bcol_basesmuma_component;
+<span class="lineNum">     780 </span>            :     netpatterns_k_exchange_node_t *exchange_node =
+<span class="lineNum">     781 </span>            :         &amp;bcol_module-&gt;knomial_allgather_tree;
+<span class="lineNum">     782 </span>            : 
+<span class="lineNum">     783 </span>            :     int buff_offset = bcol_module-&gt;super.hier_scather_offset;
+<span class="lineNum">     784 </span>            : 
+<span class="lineNum">     785 </span>            :     /* &quot;indirectors&quot; */
+<span class="lineNum">     786 </span>            :     int *list_connected = bcol_module-&gt;super.list_n_connected;
+<span class="lineNum">     787 </span>            :     int *inv_map = exchange_node-&gt;inv_reindex_map;
+<span class="lineNum">     788 </span>            :     int *reindex_map = exchange_node-&gt;reindex_map;
+<span class="lineNum">     789 </span>            :     /*int *reindex_map = exchange_node-&gt;reindex_map;*/
+<span class="lineNum">     790 </span>            :     /* stray rank == first rank in the extra set */
+<span class="lineNum">     791 </span>            :     int stray = exchange_node-&gt;k_nomial_stray;
+<span class="lineNum">     792 </span>            : 
+<span class="lineNum">     793 </span>            :     /* tree radix */
+<span class="lineNum">     794 </span>            :     int tree_order = exchange_node-&gt;tree_order;
+<span class="lineNum">     795 </span>            :     /* tree depth */
+<span class="lineNum">     796 </span>            :     int pow_k =  exchange_node-&gt;log_tree_order;
+<span class="lineNum">     797 </span>            :     /* largest power of k less than or equal to np */
+<span class="lineNum">     798 </span>            :     int cnt = exchange_node-&gt;n_largest_pow_tree_order;
+<span class="lineNum">     799 </span>            : 
+<span class="lineNum">     800 </span>            :     /*fprintf(stderr,&quot;tree order %d pow_k %d stray %d root %d\n&quot;,tree_order, pow_k, stray, root);*/
+<span class="lineNum">     801 </span>            :     /* payload structures */
+<span class="lineNum">     802 </span>            :     volatile mca_bcol_basesmuma_payload_t *data_buffs;
+<span class="lineNum">     803 </span>            :     volatile char *child_data_pointer;
+<span class="lineNum">     804 </span>            : 
+<span class="lineNum">     805 </span>            :     /* control structures */
+<span class="lineNum">     806 </span>            :     volatile mca_bcol_basesmuma_header_t *my_ctl_pointer;
+<span class="lineNum">     807 </span>            :     volatile mca_bcol_basesmuma_header_t *child_ctl_pointer;
+<span class="lineNum">     808 </span>            :     /*volatile mca_bcol_basesmuma_ctl_struct_t* parent_ctl_pointer; */
+<span class="lineNum">     809 </span>            : 
+<span class="lineNum">     810 </span>            :     size_t pack_len = 0, dt_size;
+<span class="lineNum">     811 </span>            :     void *data_addr = (void *)((unsigned char *)input_args-&gt;src_desc-&gt;data_addr);
+<span class="lineNum">     812 </span>            : 
+<span class="lineNum">     813 </span>            :     /* active in the algorithm */
+<span class="lineNum">     814 </span>            :     bool active = true;
+<span class="lineNum">     815 </span>            : 
+<span class="lineNum">     816 </span>            : #if 0
+<span class="lineNum">     817 </span>            :     fprintf(stderr,&quot;Entering sm gather root %d \n&quot;,root);
+<span class="lineNum">     818 </span>            :     fflush(stderr);
+<span class="lineNum">     819 </span>            : #endif
+<span class="lineNum">     820 </span>            : 
+<span class="lineNum">     821 </span>            : 
+<span class="lineNum">     822 </span>            :     /* we will work only on packed data - so compute the length*/
+<span class="lineNum">     823 </span>            :     /* this is the size of my data, this is not gatherv so it's the same
+<span class="lineNum">     824 </span>            :      * for all ranks in the communicator.
+<span class="lineNum">     825 </span>            :      */
+<span class="lineNum">     826 </span>            :     ompi_datatype_type_size(dtype, &amp;dt_size);
+<span class="lineNum">     827 </span>            :     pack_len=count*dt_size;
+<span class="lineNum">     828 </span>            :     /* now set the &quot;real&quot; offset */
+<span class="lineNum">     829 </span>            :     buff_offset = buff_offset*pack_len;
+<span class="lineNum">     830 </span>            : 
+<span class="lineNum">     831 </span>            :     buff_idx = input_args-&gt;src_desc-&gt;buffer_index;
+<span class="lineNum">     832 </span>            : 
+<span class="lineNum">     833 </span>            :     /* Get addressing information */
+<span class="lineNum">     834 </span>            :     my_rank = bcol_module-&gt;super.sbgp_partner_module-&gt;my_index;
+<span class="lineNum">     835 </span>            :     /* I have a feeling that I'll need this */
+<span class="lineNum">     836 </span>            :     group_list = bcol_module-&gt;super.sbgp_partner_module-&gt;group_list;
+<span class="lineNum">     837 </span>            : 
+<span class="lineNum">     838 </span>            :     group_size = bcol_module-&gt;colls_no_user_data.size_of_group;
+<span class="lineNum">     839 </span>            :     leading_dim=bcol_module-&gt;colls_no_user_data.size_of_group;
+<span class="lineNum">     840 </span>            :     idx=SM_ARRAY_INDEX(leading_dim,buff_idx,0);
+<span class="lineNum">     841 </span>            :     /*ctl_structs=(mca_bcol_basesmuma_ctl_struct_t **)
+<span class="lineNum">     842 </span>            :       bcol_module-&gt;colls_with_user_data.ctl_buffs+idx;
+<span class="lineNum">     843 </span>            :     */
+<span class="lineNum">     844 </span>            :     data_buffs=(volatile mca_bcol_basesmuma_payload_t *)
+<span class="lineNum">     845 </span>            :         bcol_module-&gt;colls_with_user_data.data_buffs+idx;
+<span class="lineNum">     846 </span>            : 
+<span class="lineNum">     847 </span>            :     /* Set pointer to current proc ctrl region */
+<span class="lineNum">     848 </span>            :     /*my_ctl_pointer = ctl_structs[my_rank]; */
+<span class="lineNum">     849 </span>            :     my_ctl_pointer = data_buffs[my_rank].ctl_struct;
+<span class="lineNum">     850 </span>            : 
+<span class="lineNum">     851 </span>            :     /* setup resource recycling */
+<span class="lineNum">     852 </span>            :     if( my_ctl_pointer-&gt;sequence_number &lt; sequence_number ) {
+<span class="lineNum">     853 </span>            :         first_instance=1;
+<span class="lineNum">     854 </span>            :     }
+<span class="lineNum">     855 </span>            : 
+<span class="lineNum">     856 </span>            :     if( first_instance ) {
+<span class="lineNum">     857 </span>            :         /* Signal arrival */
+<span class="lineNum">     858 </span>            :         my_ctl_pointer-&gt;flag = -1;
+<span class="lineNum">     859 </span>            :         my_ctl_pointer-&gt;gflag = -1;
+<span class="lineNum">     860 </span>            :         my_ctl_pointer-&gt;index=1;
+<span class="lineNum">     861 </span>            :         /* this does not need to use any flag values , so only need to
+<span class="lineNum">     862 </span>            :          * set the value for subsequent values that may need this */
+<span class="lineNum">     863 </span>            :         my_ctl_pointer-&gt;starting_flag_value=0;
+<span class="lineNum">     864 </span>            :         flag_offset=0;
+<span class="lineNum">     865 </span>            : 
+<span class="lineNum">     866 </span>            :     } else {
+<span class="lineNum">     867 </span>            :         /* only one thread at a time will be making progress on this
+<span class="lineNum">     868 </span>            :          *   collective, so no need to make this atomic */
+<span class="lineNum">     869 </span>            :         my_ctl_pointer-&gt;index++;
+<span class="lineNum">     870 </span>            :     }
+<span class="lineNum">     871 </span>            : 
+<span class="lineNum">     872 </span>            : 
+<span class="lineNum">     873 </span>            :     /* increment the starting flag by one and return */
+<span class="lineNum">     874 </span>            :     flag_offset = my_ctl_pointer-&gt;starting_flag_value;
+<span class="lineNum">     875 </span>            :     ready_flag = flag_offset + sequence_number + 1;
+<span class="lineNum">     876 </span>            :     my_ctl_pointer-&gt;sequence_number = sequence_number;
+<span class="lineNum">     877 </span>            : 
+<span class="lineNum">     878 </span>            : /* debug
+<span class="lineNum">     879 </span>            :    fprintf(stderr,&quot; sequence_number %lld flag_offset %d starting flag val %d\n&quot;,sequence_number,flag_offset, my_ctl_pointer-&gt;starting_flag_value);
+<span class="lineNum">     880 </span>            :    fflush(stderr);
+<span class="lineNum">     881 </span>            :    end debug */
+<span class="lineNum">     882 </span>            : 
+<span class="lineNum">     883 </span>            : 
+<span class="lineNum">     884 </span>            :     /*
+<span class="lineNum">     885 </span>            :      * Fan out from root
+<span class="lineNum">     886 </span>            :      */
+<span class="lineNum">     887 </span>            :     /* don't need this either */
+<span class="lineNum">     888 </span>            :     /* root is the local leader */
+<span class="lineNum">     889 </span>            :     /* calculate the number of steps necessary for this collective */
+<span class="lineNum">     890 </span>            : 
+<span class="lineNum">     891 </span>            :     /* first thing we do is figure out where the root is in our new indexing */
+<span class="lineNum">     892 </span>            :     /* find root in new indexing */
+<span class="lineNum">     893 </span>            :     pseudo_root = inv_map[root];
+<span class="lineNum">     894 </span>            :     /* see if this is larger than the stray */
+<span class="lineNum">     895 </span>            :     if( pseudo_root &gt;= stray ) {
+<span class="lineNum">     896 </span>            :         /* then we need to define the proxy root, everyone can do this */
+<span class="lineNum">     897 </span>            :         proxy_root = pseudo_root - cnt;
+<span class="lineNum">     898 </span>            :     }else {
+<span class="lineNum">     899 </span>            :         proxy_root = pseudo_root;
+<span class="lineNum">     900 </span>            :     }
+<span class="lineNum">     901 </span>            :     if( EXTRA_NODE == exchange_node-&gt;node_type ) {
+<span class="lineNum">     902 </span>            : 
+<span class="lineNum">     903 </span>            :         /* signal arrival */
+<span class="lineNum">     904 </span>            :         my_ctl_pointer-&gt;gflag = ready_flag;
+<span class="lineNum">     905 </span>            : 
+<span class="lineNum">     906 </span>            :         /* send is done */
+<span class="lineNum">     907 </span>            : 
+<span class="lineNum">     908 </span>            :         /* poll for data only if I am the root */
+<span class="lineNum">     909 </span>            :         /* bump the ready flag */
+<span class="lineNum">     910 </span>            :         ready_flag++;
+<span class="lineNum">     911 </span>            :         if( root == my_rank ){
+<span class="lineNum">     912 </span>            :             /* poll for data from proxy */
+<span class="lineNum">     913 </span>            :             src = exchange_node-&gt;rank_extra_sources_array[0];
+<span class="lineNum">     914 </span>            :             /* get src data buffer */
+<span class="lineNum">     915 </span>            :             child_data_pointer = data_buffs[src].payload;
+<span class="lineNum">     916 </span>            :             child_ctl_pointer = data_buffs[src].ctl_struct;
+<span class="lineNum">     917 </span>            :             /* in this case, you must block */
+<span class="lineNum">     918 </span>            :             while(!IS_GDATA_READY(child_ctl_pointer,ready_flag,sequence_number)){
+<span class="lineNum">     919 </span>            :                 opal_progress();
+<span class="lineNum">     920 </span>            :             }
+<span class="lineNum">     921 </span>            :             /* receive the data from the proxy, aka pseudo-root */
+<span class="lineNum">     922 </span>            : 
+<span class="lineNum">     923 </span>            :             memcpy((void *) ((unsigned char *) data_addr + buff_offset),
+<span class="lineNum">     924 </span>            :                    (void *) ((unsigned char *) child_data_pointer+buff_offset)
+<span class="lineNum">     925 </span>            :                    ,pack_len*group_size);
+<span class="lineNum">     926 </span>            :         }
+<span class="lineNum">     927 </span>            :         goto FINISHED;
+<span class="lineNum">     928 </span>            : 
+<span class="lineNum">     929 </span>            : 
+<span class="lineNum">     930 </span>            :     } else if( 0 &lt; exchange_node-&gt;n_extra_sources ) {
+<span class="lineNum">     931 </span>            : 
+<span class="lineNum">     932 </span>            :         /* am a proxy, poll for pack_len data from extra */
+<span class="lineNum">     933 </span>            :         src = exchange_node-&gt;rank_extra_sources_array[0];
+<span class="lineNum">     934 </span>            :         /* get src data buffer */
+<span class="lineNum">     935 </span>            :         child_data_pointer = data_buffs[src].payload;
+<span class="lineNum">     936 </span>            :         child_ctl_pointer = data_buffs[src].ctl_struct;
+<span class="lineNum">     937 </span>            :         knt = 0;
+<span class="lineNum">     938 </span>            :         for( i = 0; i &lt; src; i++){
+<span class="lineNum">     939 </span>            :             knt += list_connected[i];
+<span class="lineNum">     940 </span>            :         }
+<span class="lineNum">     941 </span>            :         /* must block here also */
+<span class="lineNum">     942 </span>            :         while(!IS_GDATA_READY(child_ctl_pointer,ready_flag,sequence_number)){
+<span class="lineNum">     943 </span>            :             opal_progress();
+<span class="lineNum">     944 </span>            :         }
+<span class="lineNum">     945 </span>            :         memcpy((void *) ((unsigned char *) data_addr + buff_offset + pack_len*knt),
+<span class="lineNum">     946 </span>            :                (void *) ((unsigned char *) child_data_pointer + buff_offset +
+<span class="lineNum">     947 </span>            :                          pack_len*knt), pack_len*list_connected[src]);
+<span class="lineNum">     948 </span>            :         /*fprintf(stderr,&quot;999 proxy received data from %d at offset %d of length %d\n&quot;,src,
+<span class="lineNum">     949 </span>            :           buff_offset+pack_len*knt,pack_len*list_connected[src]);
+<span class="lineNum">     950 </span>            :         */
+<span class="lineNum">     951 </span>            :     }
+<span class="lineNum">     952 </span>            :     /* do some figuring */
+<span class="lineNum">     953 </span>            : 
+<span class="lineNum">     954 </span>            :     total_peers = 0;
+<span class="lineNum">     955 </span>            :     my_pow_k = pow_k;
+<span class="lineNum">     956 </span>            :     k_temp1 = tree_order;
+<span class="lineNum">     957 </span>            :     k_temp2 = 1;
+<span class="lineNum">     958 </span>            :     for( i = 0; i &lt; pow_k; i++) {
+<span class="lineNum">     959 </span>            :         /* then find the base */
+<span class="lineNum">     960 </span>            :         /*FIND_BASE(base,my_rank,i+1,tree_order);*/
+<span class="lineNum">     961 </span>            :         FIND_BASE(base,exchange_node-&gt;reindex_myid,i+1,tree_order);
+<span class="lineNum">     962 </span>            :         /* now find the adjusted base */
+<span class="lineNum">     963 </span>            :         base_adj = base + (base + proxy_root)%k_temp1;
+<span class="lineNum">     964 </span>            :         /* ok, now find out WHO is occupying this slot */
+<span class="lineNum">     965 </span>            :         /*pseudo_base_adj = inv_map[base_adj];*/
+<span class="lineNum">     966 </span>            :         pseudo_base_adj = reindex_map[base_adj];
+<span class="lineNum">     967 </span>            : 
+<span class="lineNum">     968 </span>            :         if(my_rank == pseudo_base_adj ) {
+<span class="lineNum">     969 </span>            :             /* then go ahead and poll for children's data */
+<span class="lineNum">     970 </span>            :             for( j = 0; j &lt; (tree_order - 1); j++ ) {
+<span class="lineNum">     971 </span>            :                 /* send phase
+<span class="lineNum">     972 </span>            :                  */
+<span class="lineNum">     973 </span>            :                 /* get communication partner */
+<span class="lineNum">     974 </span>            : 
+<span class="lineNum">     975 </span>            :                 src = exchange_node-&gt;rank_exchanges[i][j];
+<span class="lineNum">     976 </span>            :                 /*fprintf(stderr,&quot;comm_src %d\n&quot;,comm_src);*/
+<span class="lineNum">     977 </span>            :                 /* remember, if we have extra ranks, then we won't participate
+<span class="lineNum">     978 </span>            :                  * with a least one peer. Make a check
+<span class="lineNum">     979 </span>            :                  */
+<span class="lineNum">     980 </span>            :                 if( src &lt; 0 ){
+<span class="lineNum">     981 </span>            :                     continue;
+<span class="lineNum">     982 </span>            :                 }else{
+<span class="lineNum">     983 </span>            :                     total_peers++;
+<span class="lineNum">     984 </span>            :                 }
+<span class="lineNum">     985 </span>            : 
+<span class="lineNum">     986 </span>            : 
+<span class="lineNum">     987 </span>            :             }
+<span class="lineNum">     988 </span>            :         } else {
+<span class="lineNum">     989 </span>            :             /* announce my arrival */
+<span class="lineNum">     990 </span>            :             my_pow_k = i;
+<span class="lineNum">     991 </span>            :             break;
+<span class="lineNum">     992 </span>            :         }
+<span class="lineNum">     993 </span>            : 
+<span class="lineNum">     994 </span>            :         k_temp1 = k_temp1*tree_order;
+<span class="lineNum">     995 </span>            :         k_temp2 = k_temp2*tree_order;
+<span class="lineNum">     996 </span>            :     }
+<span class="lineNum">     997 </span>            : 
+<span class="lineNum">     998 </span>            :     if( 0 == my_pow_k ){
+<span class="lineNum">     999 </span>            :         /* signal arrival */
+<span class="lineNum">    1000 </span>            :         my_ctl_pointer-&gt;gflag = ready_flag;
+<span class="lineNum">    1001 </span>            : 
+<span class="lineNum">    1002 </span>            :         goto FINISHED;
+<span class="lineNum">    1003 </span>            :     }
+<span class="lineNum">    1004 </span>            : 
+<span class="lineNum">    1005 </span>            : 
+<span class="lineNum">    1006 </span>            : 
+<span class="lineNum">    1007 </span>            :     /* start the k-nomial gather phase */
+<span class="lineNum">    1008 </span>            :     /* only &quot;active ranks participate, once a rank has forwarded its data, it becomes inactive */
+<span class="lineNum">    1009 </span>            :     knt = 0;
+<span class="lineNum">    1010 </span>            :     while(active){
+<span class="lineNum">    1011 </span>            :         k_temp1 = tree_order;
+<span class="lineNum">    1012 </span>            :         k_temp2 = 1;
+<span class="lineNum">    1013 </span>            :         for( i = 0; i &lt; my_pow_k; i++) {
+<span class="lineNum">    1014 </span>            : 
+<span class="lineNum">    1015 </span>            :             /* then go ahead and poll for children's data */
+<span class="lineNum">    1016 </span>            :             for( j = 0; j &lt; (tree_order - 1); j++ ) {
+<span class="lineNum">    1017 </span>            :                 matched = 0;
+<span class="lineNum">    1018 </span>            :                 /* send phase
+<span class="lineNum">    1019 </span>            :                  */
+<span class="lineNum">    1020 </span>            :                 /* get communication partner */
+<span class="lineNum">    1021 </span>            : 
+<span class="lineNum">    1022 </span>            :                 src = exchange_node-&gt;rank_exchanges[i][j];
+<span class="lineNum">    1023 </span>            :                 /*fprintf(stderr,&quot;comm_src %d\n&quot;,comm_src);*/
+<span class="lineNum">    1024 </span>            :                 /* remember, if we have extra ranks, then we won't participate
+<span class="lineNum">    1025 </span>            :                  * with a least one peer. Make a check
+<span class="lineNum">    1026 </span>            :                  */
+<span class="lineNum">    1027 </span>            :                 if( src &lt; 0 ){
+<span class="lineNum">    1028 </span>            :                     continue;
+<span class="lineNum">    1029 </span>            :                 }
+<span class="lineNum">    1030 </span>            : 
+<span class="lineNum">    1031 </span>            :                 /*fprintf(stderr,&quot;src %d\n&quot;,src);*/
+<span class="lineNum">    1032 </span>            :                 child_data_pointer = data_buffs[src].payload;
+<span class="lineNum">    1033 </span>            :                 child_ctl_pointer = data_buffs[src].ctl_struct;
+<span class="lineNum">    1034 </span>            : 
+<span class="lineNum">    1035 </span>            :                 /* if child has been marked, then skip */
+<span class="lineNum">    1036 </span>            :                 if( sequence_number == child_ctl_pointer-&gt;mark ){
+<span class="lineNum">    1037 </span>            :                     continue;
+<span class="lineNum">    1038 </span>            :                 }
+<span class="lineNum">    1039 </span>            : 
+<span class="lineNum">    1040 </span>            : 
+<span class="lineNum">    1041 </span>            :                 for( probe = 0; probe &lt; cm-&gt;num_to_probe &amp;&amp; (0 == matched); probe++){
+<span class="lineNum">    1042 </span>            :                     if(IS_GDATA_READY(child_ctl_pointer,ready_flag,sequence_number)){
+<span class="lineNum">    1043 </span>            :                         /* mark the child's pointer */
+<span class="lineNum">    1044 </span>            :                         child_ctl_pointer-&gt;mark = sequence_number;
+<span class="lineNum">    1045 </span>            :                         /* copy the data */
+<span class="lineNum">    1046 </span>            : 
+<span class="lineNum">    1047 </span>            :                         memcpy((void *) ((unsigned char *) data_addr + buff_offset +
+<span class="lineNum">    1048 </span>            :                                          exchange_node-&gt;payload_info[i][j].r_offset*pack_len),
+<span class="lineNum">    1049 </span>            :                                (void *) ((unsigned char *) child_data_pointer + buff_offset +
+<span class="lineNum">    1050 </span>            :                                          exchange_node-&gt;payload_info[i][j].r_offset*pack_len),
+<span class="lineNum">    1051 </span>            :                                exchange_node-&gt;payload_info[i][j].r_len*pack_len);
+<span class="lineNum">    1052 </span>            :                         /*
+<span class="lineNum">    1053 </span>            :                           fprintf(stderr,&quot;999 receiving data from %d at offset %d of length %d\n&quot;,
+<span class="lineNum">    1054 </span>            :                           exchange_node-&gt;rank_exchanges[i][j], buff_offset + exchange_node-&gt;payload_info[i][j].r_offset,
+<span class="lineNum">    1055 </span>            :                           exchange_node-&gt;payload_info[i][j].r_len*pack_len);
+<span class="lineNum">    1056 </span>            :                         */
+<span class="lineNum">    1057 </span>            :                         knt++;
+<span class="lineNum">    1058 </span>            :                         if(knt == total_peers) {
+<span class="lineNum">    1059 </span>            :                             /* this is the trick to break the root out,
+<span class="lineNum">    1060 </span>            :                              * only the root should be able to satisfy this
+<span class="lineNum">    1061 </span>            :                              */
+<span class="lineNum">    1062 </span>            :                             /*
+<span class="lineNum">    1063 </span>            :                               fprintf(stderr,&quot;hello n_actual is %d \n&quot;,knt);
+<span class="lineNum">    1064 </span>            :                               fprintf(stderr,&quot;hello n_actual_exch is %d \n&quot;,
+<span class="lineNum">    1065 </span>            :                               exchange_node-&gt;n_actual_exchanges);
+<span class="lineNum">    1066 </span>            :                             */
+<span class="lineNum">    1067 </span>            :                             opal_atomic_wmb ();
+<span class="lineNum">    1068 </span>            :                             my_ctl_pointer-&gt;gflag = ready_flag;
+<span class="lineNum">    1069 </span>            : 
+<span class="lineNum">    1070 </span>            :                             goto LAST_STEP;
+<span class="lineNum">    1071 </span>            :                         }
+<span class="lineNum">    1072 </span>            :                         matched = 1;
+<span class="lineNum">    1073 </span>            :                     }else{
+<span class="lineNum">    1074 </span>            :                         opal_progress();
+<span class="lineNum">    1075 </span>            :                     }
+<span class="lineNum">    1076 </span>            :                 }
+<span class="lineNum">    1077 </span>            :             }
+<span class="lineNum">    1078 </span>            :         }
+<span class="lineNum">    1079 </span>            : 
+<span class="lineNum">    1080 </span>            :         k_temp1 = k_temp1*tree_order;
+<span class="lineNum">    1081 </span>            :         k_temp2 = k_temp2*tree_order;
+<span class="lineNum">    1082 </span>            :     }
+<span class="lineNum">    1083 </span>            : LAST_STEP:
+<span class="lineNum">    1084 </span>            :     /* last step, proxies send full data back to the extra ranks */
+<span class="lineNum">    1085 </span>            :     if( 0 &lt; exchange_node-&gt;n_extra_sources &amp;&amp;
+<span class="lineNum">    1086 </span>            :         root == exchange_node-&gt;rank_extra_sources_array[0]) {
+<span class="lineNum">    1087 </span>            :         /* regardless, I will bump the ready flag and set it in case someone is watching */
+<span class="lineNum">    1088 </span>            :         /* announce that data is ready */
+<span class="lineNum">    1089 </span>            :         ready_flag++;
+<span class="lineNum">    1090 </span>            :         my_ctl_pointer-&gt;gflag = ready_flag;
+<span class="lineNum">    1091 </span>            :     }
+<span class="lineNum">    1092 </span>            : 
+<span class="lineNum">    1093 </span>            : 
+<span class="lineNum">    1094 </span>            : FINISHED:
+<span class="lineNum">    1095 </span>            : 
+<span class="lineNum">    1096 </span>            : /* debug
+<span class="lineNum">    1097 </span>            :    fprintf(stderr,&quot; my_ctl_pointer-&gt;index %d n of this type %d %u \n&quot;,
+<span class="lineNum">    1098 </span>            :    my_ctl_pointer-&gt;index,c_input_args-&gt;n_of_this_type_in_collective,getpid());
+<span class="lineNum">    1099 </span>            :    fflush(stderr);
+<span class="lineNum">    1100 </span>            :    end debug */
+<span class="lineNum">    1101 </span>            : 
+<span class="lineNum">    1102 </span>            :     my_ctl_pointer-&gt;starting_flag_value+=1;
+<span class="lineNum">    1103 </span>            : 
+<span class="lineNum">    1104 </span>            :     return BCOL_FN_COMPLETE;
+<span class="lineNum">    1105 </span>            : }
+<span class="lineNum">    1106 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

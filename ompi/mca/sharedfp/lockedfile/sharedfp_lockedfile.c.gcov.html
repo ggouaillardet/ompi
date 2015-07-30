@@ -1,0 +1,266 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/sharedfp/lockedfile/sharedfp_lockedfile.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/sharedfp/lockedfile</a> - sharedfp_lockedfile.c<span style="font-size: 80%;"> (source / <a href="sharedfp_lockedfile.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">27</td>
+            <td class="headerCovTableEntry">41</td>
+            <td class="headerCovTableEntryLo">65.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryMed">80.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2006 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2013      University of Houston. All rights reserved.
+<span class="lineNum">      13 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  * $HEADER$
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * These symbols are in a file by themselves to provide nice linker
+<span class="lineNum">      20 </span>            :  * semantics. Since linkers generally pull in symbols by object fules,
+<span class="lineNum">      21 </span>            :  * keeping these symbols as the only symbols in this file prevents
+<span class="lineNum">      22 </span>            :  * utility programs such as &quot;ompi_info&quot; from having to import entire
+<span class="lineNum">      23 </span>            :  * modules just to query their version and parameters
+<span class="lineNum">      24 </span>            :  */
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;mpi.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;ompi/mca/sharedfp/sharedfp.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;ompi/mca/sharedfp/base/base.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;ompi/mca/sharedfp/lockedfile/sharedfp_lockedfile.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : /* included so that we can test file locking availability */
+<span class="lineNum">      33 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : /*
+<span class="lineNum">      38 </span>            :  * *******************************************************************
+<span class="lineNum">      39 </span>            :  * ************************ actions structure ************************
+<span class="lineNum">      40 </span>            :  * *******************************************************************
+<span class="lineNum">      41 </span>            :  */
+<span class="lineNum">      42 </span>            :  /* IMPORTANT: Update here when adding sharedfp component interface functions*/
+<span class="lineNum">      43 </span>            : static mca_sharedfp_base_module_1_0_0_t lockedfile =  {
+<span class="lineNum">      44 </span>            :     mca_sharedfp_lockedfile_module_init, /* initalise after being selected */
+<span class="lineNum">      45 </span>            :     mca_sharedfp_lockedfile_module_finalize, /* close a module on a communicator */
+<span class="lineNum">      46 </span>            :     mca_sharedfp_lockedfile_seek,
+<span class="lineNum">      47 </span>            :     mca_sharedfp_lockedfile_get_position,
+<span class="lineNum">      48 </span>            :     mca_sharedfp_lockedfile_read,
+<span class="lineNum">      49 </span>            :     mca_sharedfp_lockedfile_read_ordered,
+<span class="lineNum">      50 </span>            :     mca_sharedfp_lockedfile_read_ordered_begin,
+<span class="lineNum">      51 </span>            :     mca_sharedfp_lockedfile_read_ordered_end,
+<span class="lineNum">      52 </span>            :     mca_sharedfp_lockedfile_iread,
+<span class="lineNum">      53 </span>            :     mca_sharedfp_lockedfile_write,
+<span class="lineNum">      54 </span>            :     mca_sharedfp_lockedfile_write_ordered,
+<span class="lineNum">      55 </span>            :     mca_sharedfp_lockedfile_write_ordered_begin,
+<span class="lineNum">      56 </span>            :     mca_sharedfp_lockedfile_write_ordered_end,
+<span class="lineNum">      57 </span>            :     mca_sharedfp_lockedfile_iwrite,
+<span class="lineNum">      58 </span>            :     mca_sharedfp_lockedfile_file_open,
+<span class="lineNum">      59 </span>            :     mca_sharedfp_lockedfile_file_close
+<span class="lineNum">      60 </span>            : };
+<span class="lineNum">      61 </span>            : /*
+<span class="lineNum">      62 </span>            :  * *******************************************************************
+<span class="lineNum">      63 </span>            :  * ************************* structure ends **************************
+<span class="lineNum">      64 </span>            :  * *******************************************************************
+<a name="65"><span class="lineNum">      65 </span>            :  */</a>
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span><span class="lineCov">         12 : int mca_sharedfp_lockedfile_component_init_query(bool enable_progress_threads,</span>
+<span class="lineNum">      68 </span>            :                                                  bool enable_mpi_threads)
+<span class="lineNum">      69 </span>            : {
+<span class="lineNum">      70 </span>            :     /* Nothing to do */
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span><span class="lineCov">         12 :     return OMPI_SUCCESS;</span>
+<a name="73"><span class="lineNum">      73 </span>            : }</a>
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span><span class="lineCov">         12 : struct mca_sharedfp_base_module_1_0_0_t * mca_sharedfp_lockedfile_component_file_query(mca_io_ompio_file_t *fh, int *priority) {</span>
+<span class="lineNum">      76 </span>            :     struct flock lock;
+<span class="lineNum">      77 </span>            :     int fd, err;
+<span class="lineNum">      78 </span>            :     /*char *filename;*/
+<span class="lineNum">      79 </span>            :     char filename[256];
+<span class="lineNum">      80 </span>            :     int rank;
+<span class="lineNum">      81 </span><span class="lineCov">         12 :     bool has_file_lock_support=false;</span>
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span><span class="lineCov">         12 :     *priority = mca_sharedfp_lockedfile_priority;</span>
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            :     /*get the rank of this process*/
+<span class="lineNum">      86 </span><span class="lineCov">         12 :     rank = ompi_comm_rank ( fh-&gt;f_comm);</span>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            :     /*test, and update priority*/
+<span class="lineNum">      89 </span>            :     /*
+<span class="lineNum">      90 </span>            :      * This test tests to see if fcntl returns success when asked to
+<span class="lineNum">      91 </span>            :      * establish a file lock.  This test is intended for use on file systems
+<span class="lineNum">      92 </span>            :      * such as NFS that may not implement file locks.  The locked file algorithm makes use
+<span class="lineNum">      93 </span>            :      * of file locks to implement the shared file pointer operations, and will not work
+<span class="lineNum">      94 </span>            :      * properly if file locks are not available.
+<span class="lineNum">      95 </span>            :      *
+<span class="lineNum">      96 </span>            :      * This is a simple test and has at least two limitations:
+<span class="lineNum">      97 </span>            :      *
+<span class="lineNum">      98 </span>            :      * 1. Some implementations of NFS are known to return success for
+<span class="lineNum">      99 </span>            :      * setting a file lock when in fact no lock has been set.  This
+<span class="lineNum">     100 </span>            :      * test will not detect such erroneous implementations of NFS
+<span class="lineNum">     101 </span>            :      *
+<span class="lineNum">     102 </span>            :      * 2. Some implementations will hang (enter and wait indefinitately)
+<span class="lineNum">     103 </span>            :      * within the fcntl call.  This test will also hang in that case.
+<span class="lineNum">     104 </span>            :      * Under normal conditions, this test should only take a few seconds to
+<span class="lineNum">     105 </span>            :      * run.
+<span class="lineNum">     106 </span>            :      *
+<span class="lineNum">     107 </span>            :      * The test prints a message showing the success or failure of
+<span class="lineNum">     108 </span>            :      * setting the file lock if PRINT_TAG is set to true in sharedfp.h.
+<span class="lineNum">     109 </span>            :      * It also sets the priority to a non-zero value on success and
+<span class="lineNum">     110 </span>            :      * returns NULL on failure.  If there is a failure, the system routine
+<span class="lineNum">     111 </span>            :      * strerror is interogated in order to print the reason.
+<span class="lineNum">     112 </span>            :      */
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :     /* Set the filename. */
+<span class="lineNum">     115 </span>            :     /*data filename created by appending .locktest.$rank to the original filename*/
+<span class="lineNum">     116 </span><span class="lineCov">         12 :     sprintf(filename,&quot;%s%s%d&quot;,fh-&gt;f_filename,&quot;.locktest.&quot;,rank);</span>
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span><span class="lineCov">         12 :     lock.l_type   = F_WRLCK;</span>
+<span class="lineNum">     119 </span><span class="lineCov">         12 :     lock.l_start  = 0;</span>
+<span class="lineNum">     120 </span><span class="lineCov">         12 :     lock.l_whence = SEEK_SET;</span>
+<span class="lineNum">     121 </span><span class="lineCov">         12 :     lock.l_len    = 100;</span>
+<span class="lineNum">     122 </span><span class="lineCov">         12 :     lock.l_pid      = getpid();</span>
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineCov">         12 :     fd = open(filename, O_RDWR | O_CREAT, 0644);</span>
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineCov">         12 :     if ( -1 == fd ){</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :         opal_output(ompi_sharedfp_base_framework.framework_output,</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :                     &quot;mca_sharedfp_lockedfile_component_file_query: error opening file %s %s&quot;, filename, strerror(errno));</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :         has_file_lock_support=false;</span>
+<span class="lineNum">     130 </span>            :     }
+<span class="lineNum">     131 </span>            :     else{
+<span class="lineNum">     132 </span><span class="lineCov">         12 :         err = fcntl(fd, F_SETLKW, &amp;lock);</span>
+<span class="lineNum">     133 </span><span class="lineCov">         12 :         opal_output(ompi_sharedfp_base_framework.framework_output,</span>
+<span class="lineNum">     134 </span>            :                     &quot;mca_sharedfp_lockedfile_component_file_query: returned err=%d, for fd=%d\n&quot;,err,fd);
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineCov">         12 :         if (err) {</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :             opal_output(ompi_sharedfp_base_framework.framework_output,</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :                         &quot;mca_sharedfp_lockedfile_component_file_query: Failed to set a file lock on %s %s\n&quot;, filename, strerror(errno) );</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :             opal_output(ompi_sharedfp_base_framework.framework_output,</span>
+<span class="lineNum">     140 </span>            :                         &quot;err=%d, errno=%d, EOPNOTSUPP=%d, EINVAL=%d, ENOSYS=%d, EACCES=%d, EAGAIN=%d, EBADF=%d\n&quot;,
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :                         err, errno, EOPNOTSUPP, EINVAL, ENOSYS, EACCES, EAGAIN, EBADF);</span>
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :             if (errno == EACCES || errno == EAGAIN) {</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :                 opal_output(ompi_sharedfp_base_framework.framework_output,</span>
+<span class="lineNum">     145 </span>            :                             &quot;errno=EACCES || EAGAIN, Already locked by another process\n&quot;);
+<span class="lineNum">     146 </span>            :             }
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            :         }
+<span class="lineNum">     149 </span>            :         else {
+<span class="lineNum">     150 </span><span class="lineCov">         12 :             opal_output(ompi_sharedfp_base_framework.framework_output,</span>
+<span class="lineNum">     151 </span>            :                         &quot;mca_sharedfp_lockedfile_component_file_query: fcntl claims success in setting a file lock on %s\n&quot;, filename );
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineCov">         12 :             has_file_lock_support=true;</span>
+<span class="lineNum">     154 </span>            :         }
+<span class="lineNum">     155 </span>            :         /* printf(&quot;err = %d, errno = %d\n&quot;, err, errno); */
+<span class="lineNum">     156 </span><span class="lineCov">         12 :         close(fd);</span>
+<span class="lineNum">     157 </span><span class="lineCov">         12 :         unlink( filename );</span>
+<span class="lineNum">     158 </span>            :     }
+<span class="lineNum">     159 </span>            :     /**priority=100;*/
+<span class="lineNum">     160 </span><span class="lineCov">         12 :     if(has_file_lock_support){</span>
+<span class="lineNum">     161 </span><span class="lineCov">         12 :         return &amp;lockedfile;</span>
+<span class="lineNum">     162 </span>            :     }
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     *priority = 0;</span>
+<span class="lineNum">     165 </span>            :     /*module can not run!, return NULL to indicate that we are unable to run*/
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     opal_output(ompi_sharedfp_base_framework.framework_output,</span>
+<span class="lineNum">     168 </span>            :                 &quot;mca_sharedfp_lockedfile_component_file_query: Can not run!, file locking not supported\n&quot;);
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<a name="170"><span class="lineNum">     170 </span>            : }</a>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 : int mca_sharedfp_lockedfile_component_file_unquery (mca_io_ompio_file_t *file)</span>
+<span class="lineNum">     173 </span>            : {
+<span class="lineNum">     174 </span>            :     /* This function might be needed for some purposes later. for now it
+<span class="lineNum">     175 </span>            :     * does not have anything to do since there are no steps which need
+<span class="lineNum">     176 </span>            :     * to be undone if this module is not selected */
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<a name="179"><span class="lineNum">     179 </span>            : }</a>
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span><span class="lineCov">         12 : int mca_sharedfp_lockedfile_module_init (mca_io_ompio_file_t *file)</span>
+<span class="lineNum">     182 </span>            : {
+<span class="lineNum">     183 </span><span class="lineCov">         12 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     184 </span>            : }
+<a name="185"><span class="lineNum">     185 </span>            : </a>
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span><span class="lineCov">         12 : int mca_sharedfp_lockedfile_module_finalize (mca_io_ompio_file_t *file)</span>
+<span class="lineNum">     188 </span>            : {
+<span class="lineNum">     189 </span><span class="lineCov">         12 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     190 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

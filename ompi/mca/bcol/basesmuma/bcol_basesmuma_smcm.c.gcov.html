@@ -1,0 +1,533 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/bcol/basesmuma/bcol_basesmuma_smcm.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/bcol/basesmuma</a> - bcol_basesmuma_smcm.c<span style="font-size: 80%;"> (source / <a href="bcol_basesmuma_smcm.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">161</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * Copyright (c) 2009-2012 Oak Ridge National Laboratory.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2012-2014 Los Alamos National Security, LLC. All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2014      Intel, Inc.  All rights reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2014-2015 Research Organization for Information Science
+<span class="lineNum">      10 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      11 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * $HEADER$
+<span class="lineNum">      16 </span>            :  */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      24 </span>            : #ifdef HAVE_STRINGS_H
+<span class="lineNum">      25 </span>            : #include &lt;strings.h&gt;
+<span class="lineNum">      26 </span>            : #endif
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &quot;ompi/proc/proc.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;ompi/patterns/comm/coll_ops.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;opal/align.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &quot;opal/dss/dss.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;opal/util/error.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;opal/util/output.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;opal/class/opal_list.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;opal/class/opal_hash_table.h&quot;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : #include &quot;bcol_basesmuma.h&quot;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : #define SM_BACKING_FILE_NAME_MAX_LEN 256
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : static bcol_basesmuma_smcm_mmap_t * bcol_basesmuma_smcm_reg_mmap(void *in_ptr, int fd, size_t length,
+<span class="lineNum">      45 </span>            :                                                                  size_t addr_offset, size_t alignment,
+<span class="lineNum">      46 </span>            :                                                                  char *file_name);
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : struct file_info_t {
+<span class="lineNum">      49 </span>            :     uint32_t vpid;
+<span class="lineNum">      50 </span>            :     uint32_t jobid;
+<span class="lineNum">      51 </span>            :     uint64_t file_size;
+<span class="lineNum">      52 </span>            :     uint64_t size_ctl_structure;
+<span class="lineNum">      53 </span>            :     uint64_t data_seg_alignment;
+<span class="lineNum">      54 </span>            :     char file_name[SM_BACKING_FILE_NAME_MAX_LEN];
+<span class="lineNum">      55 </span>            : };
+<a name="56"><span class="lineNum">      56 </span>            : </a>
+<span class="lineNum">      57 </span>            : /* need to allocate space for the peer */
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 : static void bcol_basesmuma_smcm_proc_item_t_construct (bcol_basesmuma_smcm_proc_item_t * item)</span>
+<span class="lineNum">      59 </span>            : {
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :     memset ((char *) item + sizeof (item-&gt;item), 0, sizeof (*item) - sizeof (item-&gt;item));</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 : }</span>
+<a name="62"><span class="lineNum">      62 </span>            : </a>
+<span class="lineNum">      63 </span>            : /* need to free the space for the peer */
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 : static void bcol_basesmuma_smcm_proc_item_t_destruct (bcol_basesmuma_smcm_proc_item_t * item)</span>
+<span class="lineNum">      65 </span>            : {
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     if (item-&gt;sm_mmap) {</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(item-&gt;sm_mmap);</span>
+<span class="lineNum">      68 </span>            :     }
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     if (item-&gt;sm_file.file_name) {</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :         free (item-&gt;sm_file.file_name);</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :         item-&gt;sm_file.file_name = NULL;</span>
+<span class="lineNum">      73 </span>            :     }
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            : OBJ_CLASS_INSTANCE(bcol_basesmuma_smcm_proc_item_t,
+<span class="lineNum">      77 </span>            :                    opal_list_item_t,
+<span class="lineNum">      78 </span>            :                    bcol_basesmuma_smcm_proc_item_t_construct,
+<a name="79"><span class="lineNum">      79 </span>            :                    bcol_basesmuma_smcm_proc_item_t_destruct);</a>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 : static void bcol_basesmuma_smcm_mmap_construct (bcol_basesmuma_smcm_mmap_t *smcm_mmap)</span>
+<span class="lineNum">      82 </span>            : {
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     memset ((char *) smcm_mmap + sizeof (smcm_mmap-&gt;super), 0, sizeof (*smcm_mmap) - sizeof (smcm_mmap-&gt;super));</span>
+<a name="84"><span class="lineNum">      84 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 : static void bcol_basesmuma_smcm_mmap_destruct (bcol_basesmuma_smcm_mmap_t *smcm_mmap)</span>
+<span class="lineNum">      87 </span>            : {
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     if (smcm_mmap-&gt;map_seg) {</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :         munmap ((void *)smcm_mmap-&gt;map_seg, smcm_mmap-&gt;map_size);</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :         smcm_mmap-&gt;map_seg = NULL;</span>
+<span class="lineNum">      91 </span>            :     }
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     if (smcm_mmap-&gt;map_path) {</span>
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :         free (smcm_mmap-&gt;map_path);</span>
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         smcm_mmap-&gt;map_path = NULL;</span>
+<span class="lineNum">      96 </span>            :     }
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            : OBJ_CLASS_INSTANCE(bcol_basesmuma_smcm_mmap_t, opal_list_item_t,
+<span class="lineNum">     100 </span>            :                    bcol_basesmuma_smcm_mmap_construct,
+<span class="lineNum">     101 </span>            :                    bcol_basesmuma_smcm_mmap_destruct);
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            : /* smcm_allgather_connection:
+<span class="lineNum">     105 </span>            :    This function is called when a shared memory subgroup wants to establish shared memory &quot;connections&quot; among
+<span class="lineNum">     106 </span>            :    a group of processes.
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            :    This function DOES NOT create any shared memory backing files, it only mmaps already existing files. Shared
+<span class="lineNum">     109 </span>            :    memory files are created by the shared memory registration function
+<span class="lineNum">     110 </span>            :    -----------------------------------------------------------------------------------------------------------
+<span class="lineNum">     111 </span>            :    Input params:
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            :    - sbgp module   The subgrouping module contains the list of ranks to wire up.
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            :    - peer_list      An opal list containing a list of bcol_basesmuma_smcm_proc_item_t types. This
+<span class="lineNum">     116 </span>            :    contains a list of peers whose shared memory files I have already mapped.
+<span class="lineNum">     117 </span>            :    Upon completion of the allgather exchange with all members of the group and depending on the
+<span class="lineNum">     118 </span>            :    value of &quot;map_all&quot;, my peers' shared memory files are mapped into my local virtual memory
+<span class="lineNum">     119 </span>            :    space, with all pertinent information being stored in an bcol_basesmuma_smcm_proc_item_t which is
+<span class="lineNum">     120 </span>            :    subsequently appended onto the &quot;peer_list&quot;.
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span>            :    - comm           The ompi_communicator_t communicator.
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            :    - input          A data struct that caches the information about my shared memory file.
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            :    - map_all        Bool that determines whether or not to go ahead and map the files from all of the peers
+<span class="lineNum">     127 </span>            :    defined in the sbgp-ing module. If map_all == true, then go ahead and mmap all of the files
+<span class="lineNum">     128 </span>            :    obtained in the exchange and append the information to the &quot;peer_list&quot;. If map_all == false
+<span class="lineNum">     129 </span>            :    then make a check and only mmap those peers' files whose vpid/jobid/filename combination do
+<span class="lineNum">     130 </span>            :    not already exist in the &quot;peer_list&quot;. Once mapping is completed, append this peer's information
+<span class="lineNum">     131 </span>            :    to the &quot;peer_list&quot;.
+<span class="lineNum">     132 </span>            :    -----------------------------------------------------------------------------------------------------------
+<span class="lineNum">     133 </span>            :    *
+<span class="lineNum">     134 </span>            :    */
+<a name="135"><span class="lineNum">     135 </span>            : </a>
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 : int bcol_basesmuma_smcm_allgather_connection(</span>
+<span class="lineNum">     138 </span>            :                                              mca_bcol_basesmuma_module_t *sm_bcol_module,
+<span class="lineNum">     139 </span>            :                                              mca_sbgp_base_module_t *module,
+<span class="lineNum">     140 </span>            :                                              opal_list_t *peer_list,
+<span class="lineNum">     141 </span>            :                                              bcol_basesmuma_smcm_proc_item_t ***back_files,
+<span class="lineNum">     142 </span>            :                                              ompi_communicator_t *comm,
+<span class="lineNum">     143 </span>            :                                              bcol_basesmuma_smcm_file_t input,
+<span class="lineNum">     144 </span>            :                                              char *base_fname,
+<span class="lineNum">     145 </span>            :                                              bool map_all)
+<span class="lineNum">     146 </span>            : {
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            :     /* define local variables */
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span>            :     int rc, i, fd;
+<span class="lineNum">     151 </span>            :     ptrdiff_t mem_offset;
+<span class="lineNum">     152 </span>            :     ompi_proc_t *proc_temp, *my_id;
+<span class="lineNum">     153 </span>            :     bcol_basesmuma_smcm_proc_item_t *temp;
+<span class="lineNum">     154 </span>            :     bcol_basesmuma_smcm_proc_item_t *item_ptr;
+<span class="lineNum">     155 </span>            :     bcol_basesmuma_smcm_proc_item_t **backing_files;
+<span class="lineNum">     156 </span>            :     struct file_info_t local_file;
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     struct file_info_t *all_files=NULL;</span>
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            :     /* sanity check */
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     if (strlen(input.file_name) &gt; SM_BACKING_FILE_NAME_MAX_LEN-1) {</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :         opal_output (ompi_bcol_base_framework.framework_output, &quot;backing file name too long:  %s len :: %d&quot;,</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                      input.file_name, (int) strlen(input.file_name));</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :         return OMPI_ERR_BAD_PARAM;</span>
+<span class="lineNum">     164 </span>            :     }
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     backing_files = (bcol_basesmuma_smcm_proc_item_t **)</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :         calloc(module-&gt;group_size, sizeof(bcol_basesmuma_smcm_proc_item_t *));</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :     if (!backing_files) {</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         return OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     170 </span>            :     }
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            :     /* FIXME *back_files might have been already allocated
+<span class="lineNum">     173 </span>            :      * so free it in order to avoid a memory leak */
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     if (NULL != *back_files) {</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :         free (*back_files);</span>
+<span class="lineNum">     176 </span>            :     }
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     *back_files = backing_files;</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     my_id = ompi_proc_local();</span>
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span>            :     /* Phase One:
+<span class="lineNum">     182 </span>            :        gather a list of processes that will participate in the allgather - I'm
+<span class="lineNum">     183 </span>            :        preparing this list from the sbgp-ing module that was passed into the function */
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            :     /* fill in local file information */
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     local_file.vpid  = ((orte_process_name_t*)&amp;my_id-&gt;super.proc_name)-&gt;vpid;</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     local_file.jobid = ((orte_process_name_t*)&amp;my_id-&gt;super.proc_name)-&gt;jobid;</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :     local_file.file_size=input.size;</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     local_file.size_ctl_structure=input.size_ctl_structure;</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :     local_file.data_seg_alignment=input.data_seg_alignment;</span>
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     strcpy (local_file.file_name, input.file_name);</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :     /* will exchange this data type as a string of characters -
+<span class="lineNum">     195 </span>            :      * this routine is first called before MPI_init() completes
+<span class="lineNum">     196 </span>            :      * and before error handling is setup, so can't use the
+<span class="lineNum">     197 </span>            :      * MPI data types to send this data */
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     all_files = (struct file_info_t *) calloc(module-&gt;group_size,</span>
+<span class="lineNum">     199 </span>            :                                               sizeof (struct file_info_t));
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     if (!all_files) {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :         return OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     202 </span>            :     }
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            :     /* exchange data */
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :     rc = comm_allgather_pml(&amp;local_file,all_files,sizeof(struct file_info_t), MPI_CHAR,</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :                             sm_bcol_module-&gt;super.sbgp_partner_module-&gt;my_index,</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :                             sm_bcol_module-&gt;super.sbgp_partner_module-&gt;group_size,</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :                             sm_bcol_module-&gt;super.sbgp_partner_module-&gt;group_list,</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :                             sm_bcol_module-&gt;super.sbgp_partner_module-&gt;group_comm);</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :     if( OMPI_SUCCESS != rc ) {</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :         opal_output (ompi_bcol_base_framework.framework_output, &quot;failed in comm_allgather_pml.  Error code: %d&quot;, rc);</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :         goto Error;</span>
+<span class="lineNum">     213 </span>            :     }
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            :     /* Phase four:
+<span class="lineNum">     216 </span>            :        loop through the receive buffer, unpack the data recieved from remote peers */
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; module-&gt;group_size; i++) {</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         struct file_info_t *rem_file = all_files + i;</span>
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span>            :         /* check if this is my index or if the file is already mapped (set above). ther
+<span class="lineNum">     222 </span>            :          * is no reason to look through the peer list again because no two members of
+<span class="lineNum">     223 </span>            :          * the group will have the same vpid/jobid pair. ignore this previously found
+<span class="lineNum">     224 </span>            :          * mapping if map_all was requested (NTH: not sure why exactly since we re-map
+<span class="lineNum">     225 </span>            :          * and already mapped file) */
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         if (sm_bcol_module-&gt;super.sbgp_partner_module-&gt;my_index == i) {</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     228 </span>            :         }
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         proc_temp = ompi_comm_peer_lookup(comm,module-&gt;group_list[i]);</span>
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         OPAL_LIST_FOREACH(item_ptr, peer_list, bcol_basesmuma_smcm_proc_item_t) {</span>
+<span class="lineNum">     233 </span>            :             /* if the vpid/jobid/filename combination already exists in the list,
+<span class="lineNum">     234 </span>            :                then do not map this peer's file --- because you already have */
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :             if (0 == ompi_rte_compare_name_fields(OMPI_RTE_CMP_ALL,</span>
+<span class="lineNum">     236 </span>            :                                                   OMPI_CAST_RTE_NAME(&amp;proc_temp-&gt;super.proc_name),
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :                                                   &amp;item_ptr-&gt;peer) &amp;&amp;</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :                 0 == strcmp (item_ptr-&gt;sm_file.file_name, rem_file-&gt;file_name)) {</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :                 ++item_ptr-&gt;refcnt;</span>
+<span class="lineNum">     240 </span>            :                 /* record file data */
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :                 backing_files[i] = item_ptr;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     243 </span>            :             }
+<span class="lineNum">     244 </span>            :         }
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :         if (!map_all &amp;&amp; backing_files[i]) {</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     248 </span>            :         }
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         temp = OBJ_NEW(bcol_basesmuma_smcm_proc_item_t);</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :         if (!temp) {</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :             rc = OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :             goto Error;</span>
+<span class="lineNum">     254 </span>            :         }
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         temp-&gt;peer.vpid = rem_file-&gt;vpid;</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :         temp-&gt;peer.jobid = rem_file-&gt;jobid;</span>
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :         temp-&gt;sm_file.file_name = strdup (rem_file-&gt;file_name);</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         if (!temp-&gt;sm_file.file_name) {</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :             rc = OMPI_ERR_OUT_OF_RESOURCE;</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(temp);</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :             goto Error;</span>
+<span class="lineNum">     264 </span>            :         }
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         temp-&gt;sm_file.size = (size_t) rem_file-&gt;file_size;</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         temp-&gt;sm_file.mpool_size = (size_t) rem_file-&gt;file_size;</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         temp-&gt;sm_file.size_ctl_structure = (size_t) rem_file-&gt;size_ctl_structure;</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :         temp-&gt;sm_file.data_seg_alignment = (size_t) rem_file-&gt;data_seg_alignment;</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         temp-&gt;refcnt = 1;</span>
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            :         /* Phase Five:
+<span class="lineNum">     273 </span>            :            If map_all == true, then  we map every peer's file
+<span class="lineNum">     274 </span>            :            else we check to see if I have already mapped this
+<span class="lineNum">     275 </span>            :            vpid/jobid/filename combination and if I have, then
+<span class="lineNum">     276 </span>            :            I do not mmap this peer's file.
+<span class="lineNum">     277 </span>            :            *
+<span class="lineNum">     278 </span>            :            */
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :         fd = open(temp-&gt;sm_file.file_name, O_RDWR, 0600);</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         if (0 &gt; fd) {</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :             opal_output (ompi_bcol_base_framework.framework_output, &quot;SMCM Allgather failed to open sm backing file %s. errno = %d&quot;,</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :                          temp-&gt;sm_file.file_name, errno);</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :             rc = OMPI_ERROR;</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :             goto Error;</span>
+<span class="lineNum">     285 </span>            :         }
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span>            :         /* map the file */
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         temp-&gt;sm_mmap = bcol_basesmuma_smcm_reg_mmap (NULL, fd, temp-&gt;sm_file.size,</span>
+<span class="lineNum">     289 </span>            :                                                       temp-&gt;sm_file.size_ctl_structure,
+<span class="lineNum">     290 </span>            :                                                       temp-&gt;sm_file.data_seg_alignment,
+<span class="lineNum">     291 </span>            :                                                       temp-&gt;sm_file.file_name);
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :         close (fd);</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :         if (NULL == temp-&gt;sm_mmap) {</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :             opal_output (ompi_bcol_base_framework.framework_output, &quot;mmapping failed to map remote peer's file&quot;);</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(temp);</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :             rc = OMPI_ERROR;</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :             goto Error;</span>
+<span class="lineNum">     298 </span>            :         }
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span>            :         /* compute memory offset */
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :         mem_offset = (ptrdiff_t) temp-&gt;sm_mmap-&gt;data_addr -</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :             (ptrdiff_t) temp-&gt;sm_mmap-&gt;map_seg;</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         temp-&gt;sm_mmap-&gt;map_seg-&gt;seg_offset = mem_offset;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         temp-&gt;sm_mmap-&gt;map_seg-&gt;seg_size = temp-&gt;sm_file.size - mem_offset;</span>
+<span class="lineNum">     305 </span>            :         /* more stuff to follow */
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            :         /* append this peer's info, including shared memory map addr, onto the
+<span class="lineNum">     308 </span>            :            peer_list */
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            :         /* record file data */
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :         backing_files[i] = (bcol_basesmuma_smcm_proc_item_t *) temp;</span>
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :         opal_list_append(peer_list, (opal_list_item_t*) temp);</span>
+<span class="lineNum">     314 </span>            :     }
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     rc = OMPI_SUCCESS;</span>
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span>            :  Error:
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            :     /* error clean-up and return */
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     if (NULL != all_files) {</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         free(all_files);</span>
+<span class="lineNum">     323 </span>            :     }
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     return rc;</span>
+<a name="326"><span class="lineNum">     326 </span>            : }</a>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 : int bcol_basesmuma_smcm_release_connections (mca_bcol_basesmuma_module_t *sm_bcol_module,</span>
+<span class="lineNum">     329 </span>            :                                              mca_sbgp_base_module_t *sbgp_module, opal_list_t *peer_list,
+<span class="lineNum">     330 </span>            :                                              bcol_basesmuma_smcm_proc_item_t ***back_files)
+<span class="lineNum">     331 </span>            : {
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :     bcol_basesmuma_smcm_proc_item_t **smcm_procs = *back_files;</span>
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :     for (int i = 0 ; i &lt; sbgp_module-&gt;group_size ; ++i) {</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :         if (smcm_procs[i] &amp;&amp; 0 == --smcm_procs[i]-&gt;refcnt) {</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :             opal_list_remove_item (peer_list, (opal_list_item_t *) smcm_procs[i]);</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(smcm_procs[i]);</span>
+<span class="lineNum">     338 </span>            :         }
+<span class="lineNum">     339 </span>            :     }
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     free (smcm_procs);</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     *back_files = NULL;</span>
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     345 </span>            :  }
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span>            : /*
+<span class="lineNum">     349 </span>            :  * mmap the specified file as a shared file.  No information exchange with other
+<span class="lineNum">     350 </span>            :  * processes takes place within this routine.
+<span class="lineNum">     351 </span>            :  * This function assumes that the memory has already been allocated, and only the
+<a name="352"><span class="lineNum">     352 </span>            :  * mmap needs to be done.</a>
+<span class="lineNum">     353 </span>            :  */
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 : bcol_basesmuma_smcm_mmap_t *bcol_basesmuma_smcm_mem_reg(void *in_ptr,</span>
+<span class="lineNum">     355 </span>            :                                                         size_t length,
+<span class="lineNum">     356 </span>            :                                                         size_t alignment,
+<span class="lineNum">     357 </span>            :                                                         char* file_name)
+<span class="lineNum">     358 </span>            : {
+<span class="lineNum">     359 </span>            :     /* local variables */
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     int fd = -1;</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     bcol_basesmuma_smcm_mmap_t *map = NULL;</span>
+<span class="lineNum">     362 </span>            :     int rc;
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span>            :     /* if pointer is not allocated - return error.  We have no clue how the user will allocate or
+<span class="lineNum">     365 </span>            :      *   free this memory.
+<span class="lineNum">     366 </span>            :      */
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            :     /* open the shared memory backing file */
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     fd = open(file_name, O_CREAT|O_RDWR,0600);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     if (fd &lt; 0) {</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :         opal_output (ompi_bcol_base_framework.framework_output, &quot;basesmuma shared memory allocation open failed with errno: %d&quot;,</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :                     errno);</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :     } else if (0 != ftruncate(fd,length)) {</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :         opal_output (ompi_bcol_base_framework.framework_output, &quot;basesmuma shared memory allocation ftruncate failed with errno: %d&quot;,</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :                     errno);</span>
+<span class="lineNum">     377 </span>            :     } else {
+<span class="lineNum">     378 </span>            :         /* ensure there is enough space for the backing store */
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :         rc = ftruncate (fd, length);</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :         if (0 &gt; rc) {</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :             opal_output (ompi_bcol_base_framework.framework_output, &quot;failed to truncate the file to be mapped. errno: %d&quot;, errno);</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :             close(fd);</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :             return NULL;</span>
+<span class="lineNum">     384 </span>            :         }
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :         map = bcol_basesmuma_smcm_reg_mmap(in_ptr, fd, length, 0, alignment, file_name);</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :         if (NULL == map) {</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :             close(fd);</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :             return NULL;</span>
+<span class="lineNum">     390 </span>            :         }
+<span class="lineNum">     391 </span>            :     }
+<span class="lineNum">     392 </span>            :     /* no longer need this file descriptor. close it */
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     close (fd);</span>
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span>            :     /* takes us to the top of the control structure */
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :     return map;</span>
+<span class="lineNum">     398 </span>            : 
+<a name="399"><span class="lineNum">     399 </span>            : }</a>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 : static bcol_basesmuma_smcm_mmap_t * bcol_basesmuma_smcm_reg_mmap(void *in_ptr, int fd, size_t length,</span>
+<span class="lineNum">     402 </span>            :                                                                  size_t addr_offset, size_t alignment,
+<span class="lineNum">     403 </span>            :                                                                  char *file_name)
+<span class="lineNum">     404 </span>            : {
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            :     /* local variables */
+<span class="lineNum">     407 </span>            :     bcol_basesmuma_smcm_mmap_t *map;
+<span class="lineNum">     408 </span>            :     bcol_basesmuma_smcm_file_header_t *seg;
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :     unsigned char* myaddr = NULL;</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     int flags = MAP_SHARED;</span>
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span>            :     /* set up the map object */
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     map = OBJ_NEW(bcol_basesmuma_smcm_mmap_t);</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     if (OPAL_UNLIKELY(NULL == map)) {</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     416 </span>            :     }
+<span class="lineNum">     417 </span>            : 
+<span class="lineNum">     418 </span>            :     /* map the file and initialize the segment state */
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :     if (NULL != in_ptr) {</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :         flags |= MAP_FIXED;</span>
+<span class="lineNum">     421 </span>            :     }
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     seg = (bcol_basesmuma_smcm_file_header_t *)</span>
+<span class="lineNum">     423 </span>            :         mmap(in_ptr, length, PROT_READ|PROT_WRITE, flags, fd, 0);
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     if((void*)-1 == seg) {</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :         OBJ_RELEASE(map);</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     427 </span>            :     }
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :     map-&gt;map_path = strdup (file_name);</span>
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span>            :     /* the first entry in the file is the control structure. the first entry
+<span class="lineNum">     432 </span>            :        in the control structure is an mca_common_sm_file_header_t element */
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     map-&gt;map_seg = seg;</span>
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :     myaddr = (unsigned char *) seg + addr_offset;</span>
+<span class="lineNum">     436 </span>            :     /* if we have a data segment (i.e. if 0 != data_seg_alignement) */
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :     if (alignment) {</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :         myaddr = OPAL_ALIGN_PTR(myaddr, alignment, unsigned char*);</span>
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span>            :         /* is addr past the end of the file? */
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :         if ((unsigned char *) seg+length &lt; myaddr) {</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :             opal_output (ompi_bcol_base_framework.framework_output, &quot;mca_bcol_basesmuma_sm_alloc_mmap: memory region too small len %lu add %p&quot;,</span>
+<span class="lineNum">     444 </span>            :                         (unsigned long) length, myaddr);
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :             OBJ_RELEASE(map);</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :             munmap ((void *)seg, length);</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :             return NULL;</span>
+<span class="lineNum">     448 </span>            :         }
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span>            :     }
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     map-&gt;data_addr = (unsigned char*) myaddr;</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :     map-&gt;map_addr = (unsigned char*) seg;</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :     map-&gt;map_size = length;</span>
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :     return map;</span>
+<span class="lineNum">     457 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

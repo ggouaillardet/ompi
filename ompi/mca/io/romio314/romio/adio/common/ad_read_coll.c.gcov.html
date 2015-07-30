@@ -1,0 +1,1142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/io/romio314/romio/adio/common/ad_read_coll.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">ompi/mca/io/romio314/romio/adio/common</a> - ad_read_coll.c<span style="font-size: 80%;"> (source / <a href="ad_read_coll.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">265</td>
+            <td class="headerCovTableEntry">388</td>
+            <td class="headerCovTableEntryLo">68.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryMed">80.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  *   Copyright (C) 1997 University of Chicago.
+<span class="lineNum">       5 </span>            :  *   See COPYRIGHT notice in top-level directory.
+<span class="lineNum">       6 </span>            :  */
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : #include &quot;adio.h&quot;
+<span class="lineNum">       9 </span>            : #include &quot;adio_extern.h&quot;
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : #ifdef USE_DBG_LOGGING
+<span class="lineNum">      12 </span>            :   #define RDCOLL_DEBUG 1
+<span class="lineNum">      13 </span>            : #endif
+<span class="lineNum">      14 </span>            : #ifdef AGGREGATION_PROFILE
+<span class="lineNum">      15 </span>            : #include &quot;mpe.h&quot;
+<span class="lineNum">      16 </span>            : #endif
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : /* prototypes of functions used for collective reads only. */
+<span class="lineNum">      19 </span>            : static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
+<span class="lineNum">      20 </span>            :                                 datatype, int nprocs,
+<span class="lineNum">      21 </span>            :                                 int myrank, ADIOI_Access
+<span class="lineNum">      22 </span>            :                                 *others_req, ADIO_Offset *offset_list,
+<span class="lineNum">      23 </span>            :                                 ADIO_Offset *len_list, int contig_access_count,
+<span class="lineNum">      24 </span>            :                                 ADIO_Offset
+<span class="lineNum">      25 </span>            :                                 min_st_offset, ADIO_Offset fd_size,
+<span class="lineNum">      26 </span>            :                                 ADIO_Offset *fd_start, ADIO_Offset *fd_end,
+<span class="lineNum">      27 </span>            :                                 int *buf_idx, int *error_code);
+<span class="lineNum">      28 </span>            : static void ADIOI_R_Exchange_data(ADIO_File fd, void *buf, ADIOI_Flatlist_node
+<span class="lineNum">      29 </span>            :                                   *flat_buf, ADIO_Offset *offset_list, ADIO_Offset
+<span class="lineNum">      30 </span>            :                                   *len_list, int *send_size, int *recv_size,
+<span class="lineNum">      31 </span>            :                                   int *count, int *start_pos,
+<span class="lineNum">      32 </span>            :                                   int *partial_send,
+<span class="lineNum">      33 </span>            :                                   int *recd_from_proc, int nprocs,
+<span class="lineNum">      34 </span>            :                                   int myrank, int
+<span class="lineNum">      35 </span>            :                                   buftype_is_contig, int contig_access_count,
+<span class="lineNum">      36 </span>            :                                   ADIO_Offset min_st_offset,
+<span class="lineNum">      37 </span>            :                                   ADIO_Offset fd_size,
+<span class="lineNum">      38 </span>            :                                   ADIO_Offset *fd_start, ADIO_Offset *fd_end,
+<span class="lineNum">      39 </span>            :                                   ADIOI_Access *others_req,
+<span class="lineNum">      40 </span>            :                                   int iter,
+<span class="lineNum">      41 </span>            :                                   MPI_Aint buftype_extent, int *buf_idx);
+<span class="lineNum">      42 </span>            : static void ADIOI_Fill_user_buffer(ADIO_File fd, void *buf, ADIOI_Flatlist_node
+<span class="lineNum">      43 </span>            :                                    *flat_buf, char **recv_buf, ADIO_Offset
+<span class="lineNum">      44 </span>            :                                    *offset_list, ADIO_Offset *len_list,
+<span class="lineNum">      45 </span>            :                                    unsigned *recv_size,
+<span class="lineNum">      46 </span>            :                                    MPI_Request *requests, MPI_Status *statuses,
+<span class="lineNum">      47 </span>            :                                    int *recd_from_proc, int nprocs,
+<span class="lineNum">      48 </span>            :                                    int contig_access_count,
+<span class="lineNum">      49 </span>            :                                    ADIO_Offset min_st_offset,
+<span class="lineNum">      50 </span>            :                                    ADIO_Offset fd_size, ADIO_Offset *fd_start,
+<span class="lineNum">      51 </span>            :                                    ADIO_Offset *fd_end,
+<span class="lineNum">      52 </span>            :                                    MPI_Aint buftype_extent);
+<a name="53"><span class="lineNum">      53 </span>            : </a>
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span><span class="lineCov">      24168 : void ADIOI_GEN_ReadStridedColl(ADIO_File fd, void *buf, int count,</span>
+<span class="lineNum">      56 </span>            :                                MPI_Datatype datatype, int file_ptr_type,
+<span class="lineNum">      57 </span>            :                                ADIO_Offset offset, ADIO_Status *status, int
+<span class="lineNum">      58 </span>            :                                *error_code)
+<span class="lineNum">      59 </span>            : {
+<span class="lineNum">      60 </span>            : /* Uses a generalized version of the extended two-phase method described
+<span class="lineNum">      61 </span>            :    in &quot;An Extended Two-Phase Method for Accessing Sections of
+<span class="lineNum">      62 </span>            :    Out-of-Core Arrays&quot;, Rajeev Thakur and Alok Choudhary,
+<span class="lineNum">      63 </span>            :    Scientific Programming, (5)4:301--317, Winter 1996.
+<span class="lineNum">      64 </span>            :    http://www.mcs.anl.gov/home/thakur/ext2ph.ps */
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            :     ADIOI_Access *my_req;
+<span class="lineNum">      67 </span>            :     /* array of nprocs structures, one for each other process in
+<span class="lineNum">      68 </span>            :        whose file domain this process's request lies */
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            :     ADIOI_Access *others_req;
+<span class="lineNum">      71 </span>            :     /* array of nprocs structures, one for each other process
+<span class="lineNum">      72 </span>            :        whose request lies in this process's file domain. */
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            :     int i, filetype_is_contig, nprocs, nprocs_for_coll, myrank;
+<span class="lineNum">      75 </span><span class="lineCov">      24168 :     int contig_access_count=0, interleave_count = 0, buftype_is_contig;</span>
+<span class="lineNum">      76 </span>            :     int *count_my_req_per_proc, count_my_req_procs, count_others_req_procs;
+<span class="lineNum">      77 </span>            :     ADIO_Offset start_offset, end_offset, orig_fp, fd_size, min_st_offset, off;
+<span class="lineNum">      78 </span><span class="lineCov">      24168 :     ADIO_Offset *offset_list = NULL, *st_offsets = NULL, *fd_start = NULL,</span>
+<span class="lineNum">      79 </span><span class="lineCov">      24168 :         *fd_end = NULL, *end_offsets = NULL;</span>
+<span class="lineNum">      80 </span><span class="lineCov">      24168 :     ADIO_Offset *len_list = NULL;</span>
+<span class="lineNum">      81 </span><span class="lineCov">      24168 :     int *buf_idx = NULL;</span>
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            : #ifdef HAVE_STATUS_SET_BYTES
+<span class="lineNum">      84 </span>            :     MPI_Count bufsize, size;
+<span class="lineNum">      85 </span>            : #endif
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineCov">      24168 :     if (fd-&gt;hints-&gt;cb_pfr != ADIOI_HINT_DISABLE) {</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :         ADIOI_IOStridedColl (fd, buf, count, ADIOI_READ, datatype,</span>
+<span class="lineNum">      89 </span>            :                         file_ptr_type, offset, status, error_code);
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">      91 </span>            :     }
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span><span class="lineCov">      24168 :     MPI_Comm_size(fd-&gt;comm, &amp;nprocs);</span>
+<span class="lineNum">      95 </span><span class="lineCov">      24168 :     MPI_Comm_rank(fd-&gt;comm, &amp;myrank);</span>
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            :     /* number of aggregators, cb_nodes, is stored in the hints */
+<span class="lineNum">      98 </span><span class="lineCov">      24168 :     nprocs_for_coll = fd-&gt;hints-&gt;cb_nodes;</span>
+<span class="lineNum">      99 </span><span class="lineCov">      24168 :     orig_fp = fd-&gt;fp_ind;</span>
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span>            :     /* only check for interleaving if cb_read isn't disabled */
+<span class="lineNum">     102 </span><span class="lineCov">      24168 :     if (fd-&gt;hints-&gt;cb_read != ADIOI_HINT_DISABLE) {</span>
+<span class="lineNum">     103 </span>            :     /* For this process's request, calculate the list of offsets and
+<span class="lineNum">     104 </span>            :        lengths in the file and determine the start and end offsets. */
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            :     /* Note: end_offset points to the last byte-offset that will be accessed.
+<span class="lineNum">     107 </span>            :        e.g., if start_offset=0 and 100 bytes to be read, end_offset=99*/
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span><span class="lineCov">      24168 :         ADIOI_Calc_my_off_len(fd, count, datatype, file_ptr_type, offset,</span>
+<span class="lineNum">     110 </span>            :                               &amp;offset_list, &amp;len_list, &amp;start_offset,
+<span class="lineNum">     111 </span>            :                               &amp;end_offset, &amp;contig_access_count);
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            : #ifdef RDCOLL_DEBUG
+<span class="lineNum">     114 </span>            :     for (i=0; i&lt;contig_access_count; i++) {
+<span class="lineNum">     115 </span>            :               DBG_FPRINTF(stderr, &quot;rank %d  off %lld  len %lld\n&quot;,
+<span class="lineNum">     116 </span>            :                               myrank, offset_list[i], len_list[i]);
+<span class="lineNum">     117 </span>            :               }
+<span class="lineNum">     118 </span>            : #endif
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            :         /* each process communicates its start and end offsets to other
+<span class="lineNum">     121 </span>            :            processes. The result is an array each of start and end offsets
+<span class="lineNum">     122 </span>            :            stored in order of process rank. */
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineCov">      24168 :         st_offsets = (ADIO_Offset *) ADIOI_Malloc(nprocs*sizeof(ADIO_Offset));</span>
+<span class="lineNum">     125 </span><span class="lineCov">      24168 :         end_offsets = (ADIO_Offset *) ADIOI_Malloc(nprocs*sizeof(ADIO_Offset));</span>
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span><span class="lineCov">      24168 :         MPI_Allgather(&amp;start_offset, 1, ADIO_OFFSET, st_offsets, 1,</span>
+<span class="lineNum">     128 </span>            :                       ADIO_OFFSET, fd-&gt;comm);
+<span class="lineNum">     129 </span><span class="lineCov">      24168 :         MPI_Allgather(&amp;end_offset, 1, ADIO_OFFSET, end_offsets, 1,</span>
+<span class="lineNum">     130 </span>            :                       ADIO_OFFSET, fd-&gt;comm);
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            :         /* are the accesses of different processes interleaved? */
+<span class="lineNum">     133 </span><span class="lineCov">      80560 :         for (i=1; i&lt;nprocs; i++)</span>
+<span class="lineNum">     134 </span><span class="lineCov">      56392 :             if ((st_offsets[i] &lt; end_offsets[i-1]) &amp;&amp;</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :                 (st_offsets[i] &lt;= end_offsets[i]))</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :                 interleave_count++;</span>
+<span class="lineNum">     137 </span>            :         /* This is a rudimentary check for interleaving, but should suffice
+<span class="lineNum">     138 </span>            :            for the moment. */
+<span class="lineNum">     139 </span>            :     }
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineCov">      24168 :     ADIOI_Datatype_iscontig(datatype, &amp;buftype_is_contig);</span>
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span><span class="lineCov">      24168 :     if (fd-&gt;hints-&gt;cb_read == ADIOI_HINT_DISABLE</span>
+<span class="lineNum">     144 </span><span class="lineCov">      24168 :         || (!interleave_count &amp;&amp; (fd-&gt;hints-&gt;cb_read == ADIOI_HINT_AUTO)))</span>
+<span class="lineNum">     145 </span>            :     {
+<span class="lineNum">     146 </span>            :         /* don't do aggregation */
+<span class="lineNum">     147 </span><span class="lineCov">        144 :         if (fd-&gt;hints-&gt;cb_read != ADIOI_HINT_DISABLE) {</span>
+<span class="lineNum">     148 </span><span class="lineCov">        144 :             ADIOI_Free(offset_list);</span>
+<span class="lineNum">     149 </span><span class="lineCov">        144 :             ADIOI_Free(len_list);</span>
+<span class="lineNum">     150 </span><span class="lineCov">        144 :             ADIOI_Free(st_offsets);</span>
+<span class="lineNum">     151 </span><span class="lineCov">        144 :             ADIOI_Free(end_offsets);</span>
+<span class="lineNum">     152 </span>            :         }
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineCov">        144 :         fd-&gt;fp_ind = orig_fp;</span>
+<span class="lineNum">     155 </span><span class="lineCov">        144 :         ADIOI_Datatype_iscontig(fd-&gt;filetype, &amp;filetype_is_contig);</span>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineCov">        144 :         if (buftype_is_contig &amp;&amp; filetype_is_contig) {</span>
+<span class="lineNum">     158 </span><span class="lineCov">        288 :             if (file_ptr_type == ADIO_EXPLICIT_OFFSET) {</span>
+<span class="lineNum">     159 </span><span class="lineCov">         96 :                 off = fd-&gt;disp + (fd-&gt;etype_size) * offset;</span>
+<span class="lineNum">     160 </span><span class="lineCov">         96 :                 ADIO_ReadContig(fd, buf, count, datatype, ADIO_EXPLICIT_OFFSET,</span>
+<span class="lineNum">     161 </span>            :                        off, status, error_code);
+<span class="lineNum">     162 </span>            :             }
+<span class="lineNum">     163 </span><span class="lineCov">         48 :             else ADIO_ReadContig(fd, buf, count, datatype, ADIO_INDIVIDUAL,</span>
+<span class="lineNum">     164 </span>            :                        0, status, error_code);
+<span class="lineNum">     165 </span>            :         }
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :         else ADIO_ReadStrided(fd, buf, count, datatype, file_ptr_type,</span>
+<span class="lineNum">     167 </span>            :                        offset, status, error_code);
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span><span class="lineCov">        144 :         return;</span>
+<span class="lineNum">     170 </span>            :     }
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            :     /* We're going to perform aggregation of I/O.  Here we call
+<span class="lineNum">     173 </span>            :      * ADIOI_Calc_file_domains() to determine what processes will handle I/O
+<span class="lineNum">     174 </span>            :      * to what regions.  We pass nprocs_for_coll into this function; it is
+<span class="lineNum">     175 </span>            :      * used to determine how many processes will perform I/O, which is also
+<span class="lineNum">     176 </span>            :      * the number of regions into which the range of bytes must be divided.
+<span class="lineNum">     177 </span>            :      * These regions are called &quot;file domains&quot;, or FDs.
+<span class="lineNum">     178 </span>            :      *
+<span class="lineNum">     179 </span>            :      * When this function returns, fd_start, fd_end, fd_size, and
+<span class="lineNum">     180 </span>            :      * min_st_offset will be filled in.  fd_start holds the starting byte
+<span class="lineNum">     181 </span>            :      * location for each file domain.  fd_end holds the ending byte location.
+<span class="lineNum">     182 </span>            :      * min_st_offset holds the minimum byte location that will be accessed.
+<span class="lineNum">     183 </span>            :      *
+<span class="lineNum">     184 </span>            :      * Both fd_start[] and fd_end[] are indexed by an aggregator number; this
+<span class="lineNum">     185 </span>            :      * needs to be mapped to an actual rank in the communicator later.
+<span class="lineNum">     186 </span>            :      *
+<span class="lineNum">     187 </span>            :      */
+<span class="lineNum">     188 </span><span class="lineCov">      48048 :     ADIOI_Calc_file_domains(st_offsets, end_offsets, nprocs,</span>
+<span class="lineNum">     189 </span>            :                             nprocs_for_coll, &amp;min_st_offset,
+<span class="lineNum">     190 </span>            :                             &amp;fd_start, &amp;fd_end,
+<span class="lineNum">     191 </span><span class="lineCov">      24024 :                             fd-&gt;hints-&gt;min_fdomain_size, &amp;fd_size,</span>
+<span class="lineNum">     192 </span><span class="lineCov">      24024 :                             fd-&gt;hints-&gt;striping_unit);</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :     /* calculate where the portions of the access requests of this process
+<span class="lineNum">     195 </span>            :      * are located in terms of the file domains.  this could be on the same
+<span class="lineNum">     196 </span>            :      * process or on other processes.  this function fills in:
+<span class="lineNum">     197 </span>            :      * count_my_req_procs - number of processes (including this one) for which
+<span class="lineNum">     198 </span>            :      *     this process has requests in their file domain
+<span class="lineNum">     199 </span>            :      * count_my_req_per_proc - count of requests for each process, indexed
+<span class="lineNum">     200 </span>            :      *     by rank of the process
+<span class="lineNum">     201 </span>            :      * my_req[] - array of data structures describing the requests to be
+<span class="lineNum">     202 </span>            :      *     performed by each process (including self).  indexed by rank.
+<span class="lineNum">     203 </span>            :      * buf_idx[] - array of locations into which data can be directly moved;
+<span class="lineNum">     204 </span>            :      *     this is only valid for contiguous buffer case
+<span class="lineNum">     205 </span>            :      */
+<span class="lineNum">     206 </span><span class="lineCov">      24024 :     ADIOI_Calc_my_req(fd, offset_list, len_list, contig_access_count,</span>
+<span class="lineNum">     207 </span>            :                       min_st_offset, fd_start, fd_end, fd_size,
+<span class="lineNum">     208 </span>            :                       nprocs, &amp;count_my_req_procs,
+<span class="lineNum">     209 </span>            :                       &amp;count_my_req_per_proc, &amp;my_req,
+<span class="lineNum">     210 </span>            :                       &amp;buf_idx);
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            :     /* perform a collective communication in order to distribute the
+<span class="lineNum">     213 </span>            :      * data calculated above.  fills in the following:
+<span class="lineNum">     214 </span>            :      * count_others_req_procs - number of processes (including this
+<span class="lineNum">     215 </span>            :      *     one) which have requests in this process's file domain.
+<span class="lineNum">     216 </span>            :      * count_others_req_per_proc[] - number of separate contiguous
+<span class="lineNum">     217 </span>            :      *     requests from proc i lie in this process's file domain.
+<span class="lineNum">     218 </span>            :      */
+<span class="lineNum">     219 </span><span class="lineCov">      24024 :     ADIOI_Calc_others_req(fd, count_my_req_procs,</span>
+<span class="lineNum">     220 </span>            :                           count_my_req_per_proc, my_req,
+<span class="lineNum">     221 </span>            :                           nprocs, myrank, &amp;count_others_req_procs,
+<span class="lineNum">     222 </span>            :                           &amp;others_req);
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            :     /* my_req[] and count_my_req_per_proc aren't needed at this point, so
+<span class="lineNum">     225 </span>            :      * let's free the memory
+<span class="lineNum">     226 </span>            :      */
+<span class="lineNum">     227 </span><span class="lineCov">      24024 :     ADIOI_Free(count_my_req_per_proc);</span>
+<span class="lineNum">     228 </span><span class="lineCov">     104104 :     for (i=0; i&lt;nprocs; i++) {</span>
+<span class="lineNum">     229 </span><span class="lineCov">      80080 :         if (my_req[i].count) {</span>
+<span class="lineNum">     230 </span><span class="lineCov">      24024 :             ADIOI_Free(my_req[i].offsets);</span>
+<span class="lineNum">     231 </span><span class="lineCov">      24024 :             ADIOI_Free(my_req[i].lens);</span>
+<span class="lineNum">     232 </span>            :         }
+<span class="lineNum">     233 </span>            :     }
+<span class="lineNum">     234 </span><span class="lineCov">      24024 :     ADIOI_Free(my_req);</span>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span>            :     /* read data in sizes of no more than ADIOI_Coll_bufsize,
+<span class="lineNum">     238 </span>            :      * communicate, and fill user buf.
+<span class="lineNum">     239 </span>            :      */
+<span class="lineNum">     240 </span><span class="lineCov">      24024 :     ADIOI_Read_and_exch(fd, buf, datatype, nprocs, myrank,</span>
+<span class="lineNum">     241 </span>            :                         others_req, offset_list,
+<span class="lineNum">     242 </span>            :                         len_list, contig_access_count, min_st_offset,
+<span class="lineNum">     243 </span>            :                         fd_size, fd_start, fd_end, buf_idx, error_code);
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span><span class="lineCov">      24024 :     if (!buftype_is_contig) ADIOI_Delete_flattened(datatype);</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            :     /* free all memory allocated for collective I/O */
+<span class="lineNum">     248 </span><span class="lineCov">     104104 :     for (i=0; i&lt;nprocs; i++) {</span>
+<span class="lineNum">     249 </span><span class="lineCov">      80080 :         if (others_req[i].count) {</span>
+<span class="lineNum">     250 </span><span class="lineCov">      24024 :             ADIOI_Free(others_req[i].offsets);</span>
+<span class="lineNum">     251 </span><span class="lineCov">      24024 :             ADIOI_Free(others_req[i].lens);</span>
+<span class="lineNum">     252 </span><span class="lineCov">      24024 :             ADIOI_Free(others_req[i].mem_ptrs);</span>
+<span class="lineNum">     253 </span>            :         }
+<span class="lineNum">     254 </span>            :     }
+<span class="lineNum">     255 </span><span class="lineCov">      24024 :     ADIOI_Free(others_req);</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineCov">      24024 :     ADIOI_Free(buf_idx);</span>
+<span class="lineNum">     258 </span><span class="lineCov">      24024 :     ADIOI_Free(offset_list);</span>
+<span class="lineNum">     259 </span><span class="lineCov">      24024 :     ADIOI_Free(len_list);</span>
+<span class="lineNum">     260 </span><span class="lineCov">      24024 :     ADIOI_Free(st_offsets);</span>
+<span class="lineNum">     261 </span><span class="lineCov">      24024 :     ADIOI_Free(end_offsets);</span>
+<span class="lineNum">     262 </span><span class="lineCov">      24024 :     ADIOI_Free(fd_start);</span>
+<span class="lineNum">     263 </span><span class="lineCov">      24024 :     ADIOI_Free(fd_end);</span>
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span>            : #ifdef HAVE_STATUS_SET_BYTES
+<span class="lineNum">     266 </span><span class="lineCov">      24024 :     MPI_Type_size_x(datatype, &amp;size);</span>
+<span class="lineNum">     267 </span><span class="lineCov">      24024 :     bufsize = size * count;</span>
+<span class="lineNum">     268 </span><span class="lineCov">      24024 :     MPIR_Status_set_bytes(status, datatype, bufsize);</span>
+<span class="lineNum">     269 </span>            : /* This is a temporary way of filling in status. The right way is to
+<span class="lineNum">     270 </span>            :    keep track of how much data was actually read and placed in buf
+<span class="lineNum">     271 </span>            :    during collective I/O. */
+<span class="lineNum">     272 </span>            : #endif
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span><span class="lineCov">      24024 :     fd-&gt;fp_sys_posn = -1;   /* set it to null. */</span>
+<a name="275"><span class="lineNum">     275 </span>            : }</a>
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span><span class="lineCov">      48360 : void ADIOI_Calc_my_off_len(ADIO_File fd, int bufcount, MPI_Datatype</span>
+<span class="lineNum">     278 </span>            :                             datatype, int file_ptr_type, ADIO_Offset
+<span class="lineNum">     279 </span>            :                             offset, ADIO_Offset **offset_list_ptr, ADIO_Offset
+<span class="lineNum">     280 </span>            :                             **len_list_ptr, ADIO_Offset *start_offset_ptr,
+<span class="lineNum">     281 </span>            :                             ADIO_Offset *end_offset_ptr, int
+<span class="lineNum">     282 </span>            :                            *contig_access_count_ptr)
+<span class="lineNum">     283 </span>            : {
+<span class="lineNum">     284 </span>            :     MPI_Count filetype_size, etype_size;
+<span class="lineNum">     285 </span>            :     MPI_Count buftype_size;
+<span class="lineNum">     286 </span>            :     int i, j, k;
+<span class="lineNum">     287 </span>            :     ADIO_Offset i_offset;
+<span class="lineNum">     288 </span><span class="lineCov">      48360 :     ADIO_Offset frd_size=0, old_frd_size=0;</span>
+<span class="lineNum">     289 </span><span class="lineCov">      48360 :     int st_index=0;</span>
+<span class="lineNum">     290 </span>            :     ADIO_Offset n_filetypes, etype_in_filetype;
+<span class="lineNum">     291 </span><span class="lineCov">      48360 :     ADIO_Offset abs_off_in_filetype=0;</span>
+<span class="lineNum">     292 </span>            :     ADIO_Offset bufsize;
+<span class="lineNum">     293 </span>            :     ADIO_Offset sum, n_etypes_in_filetype, size_in_filetype;
+<span class="lineNum">     294 </span>            :     int contig_access_count, filetype_is_contig;
+<span class="lineNum">     295 </span>            :     ADIO_Offset *len_list;
+<span class="lineNum">     296 </span>            :     MPI_Aint filetype_extent, filetype_lb;
+<span class="lineNum">     297 </span>            :     ADIOI_Flatlist_node *flat_file;
+<span class="lineNum">     298 </span><span class="lineCov">      48360 :     ADIO_Offset *offset_list, off, end_offset=0, disp;</span>
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span>            : #ifdef AGGREGATION_PROFILE
+<span class="lineNum">     301 </span>            :     MPE_Log_event (5028, 0, NULL);
+<span class="lineNum">     302 </span>            : #endif
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            : /* For this process's request, calculate the list of offsets and
+<span class="lineNum">     305 </span>            :    lengths in the file and determine the start and end offsets. */
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineCov">      48360 :     ADIOI_Datatype_iscontig(fd-&gt;filetype, &amp;filetype_is_contig);</span>
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span><span class="lineCov">      48360 :     MPI_Type_size_x(fd-&gt;filetype, &amp;filetype_size);</span>
+<span class="lineNum">     310 </span><span class="lineCov">      48360 :     MPI_Type_extent(fd-&gt;filetype, &amp;filetype_extent);</span>
+<span class="lineNum">     311 </span><span class="lineCov">      48360 :     MPI_Type_lb(fd-&gt;filetype, &amp;filetype_lb);</span>
+<span class="lineNum">     312 </span><span class="lineCov">      48360 :     MPI_Type_size_x(datatype, &amp;buftype_size);</span>
+<span class="lineNum">     313 </span><span class="lineCov">      48360 :     etype_size = fd-&gt;etype_size;</span>
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span><span class="lineCov">      48360 :     if ( ! filetype_size ) {</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         *contig_access_count_ptr = 0;</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         *offset_list_ptr = (ADIO_Offset *) ADIOI_Malloc(2*sizeof(ADIO_Offset));</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :         *len_list_ptr = (ADIO_Offset *) ADIOI_Malloc(2*sizeof(ADIO_Offset));</span>
+<span class="lineNum">     319 </span>            :         /* 2 is for consistency. everywhere I malloc one more than needed */
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         offset_list = *offset_list_ptr;</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         len_list = *len_list_ptr;</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :         offset_list[0] = (file_ptr_type == ADIO_INDIVIDUAL) ? fd-&gt;fp_ind :</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :                  fd-&gt;disp + (ADIO_Offset)etype_size * offset;</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :         len_list[0] = 0;</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :         *start_offset_ptr = offset_list[0];</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         *end_offset_ptr = offset_list[0] + len_list[0] - 1;</span>
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     330 </span>            :     }
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span><span class="lineCov">      48360 :     if (filetype_is_contig) {</span>
+<span class="lineNum">     333 </span><span class="lineCov">      48312 :         *contig_access_count_ptr = 1;</span>
+<span class="lineNum">     334 </span><span class="lineCov">      48312 :         *offset_list_ptr = (ADIO_Offset *) ADIOI_Malloc(2*sizeof(ADIO_Offset));</span>
+<span class="lineNum">     335 </span><span class="lineCov">      48312 :         *len_list_ptr = (ADIO_Offset *) ADIOI_Malloc(2*sizeof(ADIO_Offset));</span>
+<span class="lineNum">     336 </span>            :         /* 2 is for consistency. everywhere I malloc one more than needed */
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span><span class="lineCov">      48312 :         offset_list = *offset_list_ptr;</span>
+<span class="lineNum">     339 </span><span class="lineCov">      48312 :         len_list = *len_list_ptr;</span>
+<span class="lineNum">     340 </span><span class="lineCov">      48528 :         offset_list[0] = (file_ptr_type == ADIO_INDIVIDUAL) ? fd-&gt;fp_ind :</span>
+<span class="lineNum">     341 </span><span class="lineCov">        216 :                  fd-&gt;disp + (ADIO_Offset)etype_size * offset;</span>
+<span class="lineNum">     342 </span><span class="lineCov">      48312 :         len_list[0] = (ADIO_Offset)bufcount * (ADIO_Offset)buftype_size;</span>
+<span class="lineNum">     343 </span><span class="lineCov">      48312 :         *start_offset_ptr = offset_list[0];</span>
+<span class="lineNum">     344 </span><span class="lineCov">      48312 :         *end_offset_ptr = offset_list[0] + len_list[0] - 1;</span>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            :         /* update file pointer */
+<span class="lineNum">     347 </span><span class="lineCov">      48312 :         if (file_ptr_type == ADIO_INDIVIDUAL) fd-&gt;fp_ind = *end_offset_ptr + 1;</span>
+<span class="lineNum">     348 </span>            :     }
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span>            :     else {
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span>            :        /* First calculate what size of offset_list and len_list to allocate */
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span>            :        /* filetype already flattened in ADIO_Open or ADIO_Fcntl */
+<span class="lineNum">     355 </span><span class="lineCov">         48 :         flat_file = ADIOI_Flatlist;</span>
+<span class="lineNum">     356 </span><span class="lineCov">         48 :         while (flat_file-&gt;type != fd-&gt;filetype) flat_file = flat_file-&gt;next;</span>
+<span class="lineNum">     357 </span><span class="lineCov">         48 :         disp = fd-&gt;disp;</span>
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span>            : #ifdef RDCOLL_DEBUG
+<span class="lineNum">     360 </span>            :         {
+<span class="lineNum">     361 </span>            :             int ii;
+<span class="lineNum">     362 </span>            :             DBG_FPRINTF(stderr, &quot;flattened %3lld : &quot;, flat_file-&gt;count );
+<span class="lineNum">     363 </span>            :             for (ii=0; ii&lt;flat_file-&gt;count; ii++) {
+<span class="lineNum">     364 </span>            :                 DBG_FPRINTF(stderr, &quot;%16lld:%-16lld&quot;, flat_file-&gt;indices[ii], flat_file-&gt;blocklens[ii] );
+<span class="lineNum">     365 </span>            :             }
+<span class="lineNum">     366 </span>            :             DBG_FPRINTF(stderr, &quot;\n&quot; );
+<span class="lineNum">     367 </span>            :         }
+<span class="lineNum">     368 </span>            : #endif
+<span class="lineNum">     369 </span><span class="lineCov">         48 :         if (file_ptr_type == ADIO_INDIVIDUAL) {</span>
+<span class="lineNum">     370 </span>            :            /* Wei-keng reworked type processing to be a bit more efficient */
+<span class="lineNum">     371 </span><span class="lineCov">         48 :             offset       = fd-&gt;fp_ind - disp;</span>
+<span class="lineNum">     372 </span><span class="lineCov">         48 :             n_filetypes  = (offset - flat_file-&gt;indices[0]) / filetype_extent;</span>
+<span class="lineNum">     373 </span><span class="lineCov">         48 :              offset     -= (ADIO_Offset)n_filetypes * filetype_extent;</span>
+<span class="lineNum">     374 </span>            :                 /* now offset is local to this extent */
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            :             /* find the block where offset is located, skip blocklens[i]==0 */
+<span class="lineNum">     377 </span><span class="lineCov">         48 :             for (i=0; i&lt;flat_file-&gt;count; i++) {</span>
+<span class="lineNum">     378 </span>            :                 ADIO_Offset dist;
+<span class="lineNum">     379 </span><span class="lineCov">         48 :                 if (flat_file-&gt;blocklens[i] == 0) continue;</span>
+<span class="lineNum">     380 </span><span class="lineCov">         48 :                 dist = flat_file-&gt;indices[i] + flat_file-&gt;blocklens[i] - offset;</span>
+<span class="lineNum">     381 </span>            :                 /* frd_size is from offset to the end of block i */
+<span class="lineNum">     382 </span><span class="lineCov">         48 :                 if (dist == 0) {</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :                         i++;</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :                         offset   = flat_file-&gt;indices[i];</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :                         frd_size = flat_file-&gt;blocklens[i];</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     387 </span>            :                 }
+<span class="lineNum">     388 </span><span class="lineCov">         48 :                 if (dist &gt; 0) {</span>
+<span class="lineNum">     389 </span><span class="lineCov">         48 :                     frd_size = dist;</span>
+<span class="lineNum">     390 </span><span class="lineCov">         48 :                     break;</span>
+<span class="lineNum">     391 </span>            :                 }
+<span class="lineNum">     392 </span>            :             }
+<span class="lineNum">     393 </span><span class="lineCov">         48 :             st_index = i;  /* starting index in flat_file-&gt;indices[] */</span>
+<span class="lineNum">     394 </span><span class="lineCov">         48 :             offset += disp + (ADIO_Offset)n_filetypes*filetype_extent;</span>
+<span class="lineNum">     395 </span>            :         }
+<span class="lineNum">     396 </span>            :         else {
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :             n_etypes_in_filetype = filetype_size/etype_size;</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :             n_filetypes = offset / n_etypes_in_filetype;</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :             etype_in_filetype = offset % n_etypes_in_filetype;</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :             size_in_filetype = etype_in_filetype * etype_size;</span>
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :             sum = 0;</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :             for (i=0; i&lt;flat_file-&gt;count; i++) {</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :                 sum += flat_file-&gt;blocklens[i];</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :                 if (sum &gt; size_in_filetype) {</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :                     st_index = i;</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :                     frd_size = sum - size_in_filetype;</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :                     abs_off_in_filetype = flat_file-&gt;indices[i] +</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :                         size_in_filetype - (sum - flat_file-&gt;blocklens[i]);</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     411 </span>            :                 }
+<span class="lineNum">     412 </span>            :             }
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span>            :             /* abs. offset in bytes in the file */
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :             offset = disp + n_filetypes* (ADIO_Offset)filetype_extent +</span>
+<span class="lineNum">     416 </span>            :                 abs_off_in_filetype;
+<span class="lineNum">     417 </span>            :         }
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :          /* calculate how much space to allocate for offset_list, len_list */
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span><span class="lineCov">         48 :         old_frd_size = frd_size;</span>
+<span class="lineNum">     422 </span><span class="lineCov">         48 :         contig_access_count = i_offset = 0;</span>
+<span class="lineNum">     423 </span><span class="lineCov">         48 :         j = st_index;</span>
+<span class="lineNum">     424 </span><span class="lineCov">         48 :         bufsize = (ADIO_Offset)buftype_size * (ADIO_Offset)bufcount;</span>
+<span class="lineNum">     425 </span><span class="lineCov">         48 :         frd_size = ADIOI_MIN(frd_size, bufsize);</span>
+<span class="lineNum">     426 </span><span class="lineCov">      96048 :         while (i_offset &lt; bufsize) {</span>
+<span class="lineNum">     427 </span><span class="lineCov">      95952 :             if (frd_size) contig_access_count++;</span>
+<span class="lineNum">     428 </span><span class="lineCov">      95952 :             i_offset += frd_size;</span>
+<span class="lineNum">     429 </span><span class="lineCov">      95952 :             j = (j + 1) % flat_file-&gt;count;</span>
+<span class="lineNum">     430 </span><span class="lineCov">      95952 :             frd_size = ADIOI_MIN(flat_file-&gt;blocklens[j], bufsize-i_offset);</span>
+<span class="lineNum">     431 </span>            :         }
+<span class="lineNum">     432 </span>            : 
+<span class="lineNum">     433 </span>            :         /* allocate space for offset_list and len_list */
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span><span class="lineCov">         48 :         *offset_list_ptr = (ADIO_Offset *)</span>
+<span class="lineNum">     436 </span><span class="lineCov">         48 :                  ADIOI_Malloc((contig_access_count+1)*sizeof(ADIO_Offset));</span>
+<span class="lineNum">     437 </span><span class="lineCov">         48 :         *len_list_ptr = (ADIO_Offset *) ADIOI_Malloc((contig_access_count+1)*sizeof(ADIO_Offset));</span>
+<span class="lineNum">     438 </span>            :         /* +1 to avoid a 0-size malloc */
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span><span class="lineCov">         48 :         offset_list = *offset_list_ptr;</span>
+<span class="lineNum">     441 </span><span class="lineCov">         48 :         len_list = *len_list_ptr;</span>
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span>            :       /* find start offset, end offset, and fill in offset_list and len_list */
+<span class="lineNum">     444 </span>            : 
+<span class="lineNum">     445 </span><span class="lineCov">         48 :         *start_offset_ptr = offset; /* calculated above */</span>
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span><span class="lineCov">         48 :         i_offset = k = 0;</span>
+<span class="lineNum">     448 </span><span class="lineCov">         48 :         j = st_index;</span>
+<span class="lineNum">     449 </span><span class="lineCov">         48 :         off = offset;</span>
+<span class="lineNum">     450 </span><span class="lineCov">         48 :         frd_size = ADIOI_MIN(old_frd_size, bufsize);</span>
+<span class="lineNum">     451 </span><span class="lineCov">      48096 :         while (i_offset &lt; bufsize) {</span>
+<span class="lineNum">     452 </span><span class="lineCov">      48000 :             if (frd_size) {</span>
+<span class="lineNum">     453 </span><span class="lineCov">      48000 :                 offset_list[k] = off;</span>
+<span class="lineNum">     454 </span><span class="lineCov">      48000 :                 len_list[k] = frd_size;</span>
+<span class="lineNum">     455 </span><span class="lineCov">      48000 :                 k++;</span>
+<span class="lineNum">     456 </span>            :             }
+<span class="lineNum">     457 </span><span class="lineCov">      48000 :             i_offset += frd_size;</span>
+<span class="lineNum">     458 </span><span class="lineCov">      48000 :             end_offset = off + frd_size - 1;</span>
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span>            :      /* Note: end_offset points to the last byte-offset that will be accessed.
+<span class="lineNum">     461 </span>            :          e.g., if start_offset=0 and 100 bytes to be read, end_offset=99*/
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span><span class="lineCov">     144000 :             if (off + frd_size &lt; disp + flat_file-&gt;indices[j] +</span>
+<span class="lineNum">     464 </span><span class="lineCov">      96000 :                 flat_file-&gt;blocklens[j] +</span>
+<span class="lineNum">     465 </span><span class="lineCov">      48000 :                  n_filetypes* (ADIO_Offset)filetype_extent)</span>
+<span class="lineNum">     466 </span>            :             {
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :                 off += frd_size;</span>
+<span class="lineNum">     468 </span>            :                 /* did not reach end of contiguous block in filetype.
+<span class="lineNum">     469 </span>            :                  * no more I/O needed. off is incremented by frd_size.
+<span class="lineNum">     470 </span>            :                  */
+<span class="lineNum">     471 </span>            :             }
+<span class="lineNum">     472 </span>            :             else {
+<span class="lineNum">     473 </span><span class="lineCov">      48000 :                 j = (j+1) % flat_file-&gt;count;</span>
+<span class="lineNum">     474 </span><span class="lineCov">      48000 :                 n_filetypes += (j == 0) ? 1 : 0;</span>
+<span class="lineNum">     475 </span><span class="lineCov">     144000 :                 while (flat_file-&gt;blocklens[j]==0) {</span>
+<span class="lineNum">     476 </span><span class="lineCov">      48000 :                         j = (j+1) % flat_file-&gt;count;</span>
+<span class="lineNum">     477 </span><span class="lineCov">      48000 :                     n_filetypes += (j == 0) ? 1 : 0;</span>
+<span class="lineNum">     478 </span>            :                     /* hit end of flattened filetype; start at beginning
+<span class="lineNum">     479 </span>            :                      * again */
+<span class="lineNum">     480 </span>            :                 }
+<span class="lineNum">     481 </span><span class="lineCov">      96000 :                 off = disp + flat_file-&gt;indices[j] +</span>
+<span class="lineNum">     482 </span><span class="lineCov">      48000 :                      n_filetypes* (ADIO_Offset)filetype_extent;</span>
+<span class="lineNum">     483 </span><span class="lineCov">      48000 :                 frd_size = ADIOI_MIN(flat_file-&gt;blocklens[j], bufsize-i_offset);</span>
+<span class="lineNum">     484 </span>            :             }
+<span class="lineNum">     485 </span>            :         }
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span>            :         /* update file pointer */
+<span class="lineNum">     488 </span><span class="lineCov">         48 :         if (file_ptr_type == ADIO_INDIVIDUAL) fd-&gt;fp_ind = off;</span>
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span><span class="lineCov">         48 :         *contig_access_count_ptr = contig_access_count;</span>
+<span class="lineNum">     491 </span><span class="lineCov">         48 :          *end_offset_ptr = end_offset;</span>
+<span class="lineNum">     492 </span>            :     }
+<span class="lineNum">     493 </span>            : #ifdef AGGREGATION_PROFILE
+<span class="lineNum">     494 </span>            :     MPE_Log_event (5029, 0, NULL);
+<span class="lineNum">     495 </span>            : #endif
+<a name="496"><span class="lineNum">     496 </span>            : }</a>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span><span class="lineCov">      24024 : static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype</span>
+<span class="lineNum">     499 </span>            :                          datatype, int nprocs,
+<span class="lineNum">     500 </span>            :                          int myrank, ADIOI_Access
+<span class="lineNum">     501 </span>            :                          *others_req, ADIO_Offset *offset_list,
+<span class="lineNum">     502 </span>            :                          ADIO_Offset *len_list, int contig_access_count, ADIO_Offset
+<span class="lineNum">     503 </span>            :                          min_st_offset, ADIO_Offset fd_size,
+<span class="lineNum">     504 </span>            :                          ADIO_Offset *fd_start, ADIO_Offset *fd_end,
+<span class="lineNum">     505 </span>            :                          int *buf_idx, int *error_code)
+<span class="lineNum">     506 </span>            : {
+<span class="lineNum">     507 </span>            : /* Read in sizes of no more than coll_bufsize, an info parameter.
+<span class="lineNum">     508 </span>            :    Send data to appropriate processes.
+<span class="lineNum">     509 </span>            :    Place recd. data in user buf.
+<span class="lineNum">     510 </span>            :    The idea is to reduce the amount of extra memory required for
+<span class="lineNum">     511 </span>            :    collective I/O. If all data were read all at once, which is much
+<span class="lineNum">     512 </span>            :    easier, it would require temp space more than the size of user_buf,
+<span class="lineNum">     513 </span>            :    which is often unacceptable. For example, to read a distributed
+<span class="lineNum">     514 </span>            :    array from a file, where each local array is 8Mbytes, requiring
+<span class="lineNum">     515 </span>            :    at least another 8Mbytes of temp space is unacceptable. */
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span>            :     int i, j, m, ntimes, max_ntimes, buftype_is_contig;
+<span class="lineNum">     518 </span><span class="lineCov">      24024 :     ADIO_Offset st_loc=-1, end_loc=-1, off, done, real_off, req_off;</span>
+<span class="lineNum">     519 </span><span class="lineCov">      24024 :     char *read_buf = NULL, *tmp_buf;</span>
+<span class="lineNum">     520 </span>            :     int *curr_offlen_ptr, *count, *send_size, *recv_size;
+<span class="lineNum">     521 </span>            :     int *partial_send, *recd_from_proc, *start_pos;
+<span class="lineNum">     522 </span>            :     /* Not convinced end_loc-st_loc couldn't be &gt; int, so make these offsets*/
+<span class="lineNum">     523 </span>            :     ADIO_Offset real_size, size, for_curr_iter, for_next_iter;
+<span class="lineNum">     524 </span>            :     int req_len, flag, rank;
+<span class="lineNum">     525 </span>            :     MPI_Status status;
+<span class="lineNum">     526 </span><span class="lineCov">      24024 :     ADIOI_Flatlist_node *flat_buf=NULL;</span>
+<span class="lineNum">     527 </span>            :     MPI_Aint buftype_extent;
+<span class="lineNum">     528 </span>            :     int coll_bufsize;
+<span class="lineNum">     529 </span>            : 
+<span class="lineNum">     530 </span><span class="lineCov">      24024 :     *error_code = MPI_SUCCESS;  /* changed below if error */</span>
+<span class="lineNum">     531 </span>            :     /* only I/O errors are currently reported */
+<span class="lineNum">     532 </span>            : 
+<span class="lineNum">     533 </span>            : /* calculate the number of reads of size coll_bufsize
+<span class="lineNum">     534 </span>            :    to be done by each process and the max among all processes.
+<span class="lineNum">     535 </span>            :    That gives the no. of communication phases as well.
+<span class="lineNum">     536 </span>            :    coll_bufsize is obtained from the hints object. */
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span><span class="lineCov">      24024 :     coll_bufsize = fd-&gt;hints-&gt;cb_buffer_size;</span>
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span>            :     /* grab some initial values for st_loc and end_loc */
+<span class="lineNum">     541 </span><span class="lineCov">      80080 :     for (i=0; i &lt; nprocs; i++) {</span>
+<span class="lineNum">     542 </span><span class="lineCov">      64064 :         if (others_req[i].count) {</span>
+<span class="lineNum">     543 </span><span class="lineCov">       8008 :             st_loc = others_req[i].offsets[0];</span>
+<span class="lineNum">     544 </span><span class="lineCov">       8008 :             end_loc = others_req[i].offsets[0];</span>
+<span class="lineNum">     545 </span><span class="lineCov">       8008 :             break;</span>
+<span class="lineNum">     546 </span>            :         }
+<span class="lineNum">     547 </span>            :     }
+<span class="lineNum">     548 </span>            : 
+<span class="lineNum">     549 </span>            :     /* now find the real values */
+<span class="lineNum">     550 </span><span class="lineCov">     104104 :     for (i=0; i &lt; nprocs; i++)</span>
+<span class="lineNum">     551 </span><span class="lineCov">     128080 :         for (j=0; j&lt;others_req[i].count; j++) {</span>
+<span class="lineNum">     552 </span><span class="lineCov">      48000 :             st_loc = ADIOI_MIN(st_loc, others_req[i].offsets[j]);</span>
+<span class="lineNum">     553 </span><span class="lineCov">      48000 :             end_loc = ADIOI_MAX(end_loc, (others_req[i].offsets[j]</span>
+<span class="lineNum">     554 </span>            :                                           + others_req[i].lens[j] - 1));
+<span class="lineNum">     555 </span>            :         }
+<span class="lineNum">     556 </span>            : 
+<span class="lineNum">     557 </span>            :     /* calculate ntimes, the number of times this process must perform I/O
+<span class="lineNum">     558 </span>            :      * operations in order to complete all the requests it has received.
+<span class="lineNum">     559 </span>            :      * the need for multiple I/O operations comes from the restriction that
+<span class="lineNum">     560 </span>            :      * we only use coll_bufsize bytes of memory for internal buffering.
+<span class="lineNum">     561 </span>            :      */
+<span class="lineNum">     562 </span><span class="lineCov">      24024 :     if ((st_loc==-1) &amp;&amp; (end_loc==-1)) {</span>
+<span class="lineNum">     563 </span>            :         /* this process does no I/O. */
+<span class="lineNum">     564 </span><span class="lineCov">      16016 :         ntimes = 0;</span>
+<span class="lineNum">     565 </span>            :     }
+<span class="lineNum">     566 </span>            :     else {
+<span class="lineNum">     567 </span>            :         /* ntimes=ceiling_div(end_loc - st_loc + 1, coll_bufsize)*/
+<span class="lineNum">     568 </span><span class="lineCov">       8008 :         ntimes = (int) ((end_loc - st_loc + coll_bufsize)/coll_bufsize);</span>
+<span class="lineNum">     569 </span>            :     }
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span><span class="lineCov">      24024 :     MPI_Allreduce(&amp;ntimes, &amp;max_ntimes, 1, MPI_INT, MPI_MAX, fd-&gt;comm);</span>
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span><span class="lineCov">      24024 :     read_buf = fd-&gt;io_buf;  /* Allocated at open time */</span>
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span><span class="lineCov">      24024 :     curr_offlen_ptr = (int *) ADIOI_Calloc(nprocs, sizeof(int));</span>
+<span class="lineNum">     576 </span>            :     /* its use is explained below. calloc initializes to 0. */
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span><span class="lineCov">      24024 :     count = (int *) ADIOI_Malloc(nprocs * sizeof(int));</span>
+<span class="lineNum">     579 </span>            :     /* to store count of how many off-len pairs per proc are satisfied
+<span class="lineNum">     580 </span>            :        in an iteration. */
+<span class="lineNum">     581 </span>            : 
+<span class="lineNum">     582 </span><span class="lineCov">      24024 :     partial_send = (int *) ADIOI_Calloc(nprocs, sizeof(int));</span>
+<span class="lineNum">     583 </span>            :     /* if only a portion of the last off-len pair is sent to a process
+<span class="lineNum">     584 </span>            :        in a particular iteration, the length sent is stored here.
+<span class="lineNum">     585 </span>            :        calloc initializes to 0. */
+<span class="lineNum">     586 </span>            : 
+<span class="lineNum">     587 </span><span class="lineCov">      24024 :     send_size = (int *) ADIOI_Malloc(nprocs * sizeof(int));</span>
+<span class="lineNum">     588 </span>            :     /* total size of data to be sent to each proc. in an iteration */
+<span class="lineNum">     589 </span>            : 
+<span class="lineNum">     590 </span><span class="lineCov">      24024 :     recv_size = (int *) ADIOI_Malloc(nprocs * sizeof(int));</span>
+<span class="lineNum">     591 </span>            :     /* total size of data to be recd. from each proc. in an iteration.
+<span class="lineNum">     592 </span>            :        Of size nprocs so that I can use MPI_Alltoall later. */
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span><span class="lineCov">      24024 :     recd_from_proc = (int *) ADIOI_Calloc(nprocs, sizeof(int));</span>
+<span class="lineNum">     595 </span>            :     /* amount of data recd. so far from each proc. Used in
+<span class="lineNum">     596 </span>            :        ADIOI_Fill_user_buffer. initialized to 0 here. */
+<span class="lineNum">     597 </span>            : 
+<span class="lineNum">     598 </span><span class="lineCov">      24024 :     start_pos = (int *) ADIOI_Malloc(nprocs*sizeof(int));</span>
+<span class="lineNum">     599 </span>            :     /* used to store the starting value of curr_offlen_ptr[i] in
+<span class="lineNum">     600 </span>            :        this iteration */
+<span class="lineNum">     601 </span>            : 
+<span class="lineNum">     602 </span><span class="lineCov">      24024 :     ADIOI_Datatype_iscontig(datatype, &amp;buftype_is_contig);</span>
+<span class="lineNum">     603 </span><span class="lineCov">      24024 :     if (!buftype_is_contig) {</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :         ADIOI_Flatten_datatype(datatype);</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :         flat_buf = ADIOI_Flatlist;</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :         while (flat_buf-&gt;type != datatype) flat_buf = flat_buf-&gt;next;</span>
+<span class="lineNum">     607 </span>            :     }
+<span class="lineNum">     608 </span><span class="lineCov">      24024 :     MPI_Type_extent(datatype, &amp;buftype_extent);</span>
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span><span class="lineCov">      24024 :     done = 0;</span>
+<span class="lineNum">     611 </span><span class="lineCov">      24024 :     off = st_loc;</span>
+<span class="lineNum">     612 </span><span class="lineCov">      24024 :     for_curr_iter = for_next_iter = 0;</span>
+<span class="lineNum">     613 </span>            : 
+<span class="lineNum">     614 </span><span class="lineCov">      24024 :     MPI_Comm_rank(fd-&gt;comm, &amp;rank);</span>
+<span class="lineNum">     615 </span>            : 
+<span class="lineNum">     616 </span><span class="lineCov">      32032 :     for (m=0; m&lt;ntimes; m++) {</span>
+<span class="lineNum">     617 </span>            :        /* read buf of size coll_bufsize (or less) */
+<span class="lineNum">     618 </span>            :        /* go through all others_req and check if any are satisfied
+<span class="lineNum">     619 </span>            :           by the current read */
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span>            :        /* since MPI guarantees that displacements in filetypes are in
+<span class="lineNum">     622 </span>            :           monotonically nondecreasing order, I can maintain a pointer
+<span class="lineNum">     623 </span>            :           (curr_offlen_ptr) to
+<span class="lineNum">     624 </span>            :           current off-len pair for each process in others_req and scan
+<span class="lineNum">     625 </span>            :           further only from there. There is still a problem of filetypes
+<span class="lineNum">     626 </span>            :           such as:  (1, 2, 3 are not process nos. They are just numbers for
+<span class="lineNum">     627 </span>            :           three chunks of data, specified by a filetype.)
+<span class="lineNum">     628 </span>            : 
+<span class="lineNum">     629 </span>            :                    1  -------!--
+<span class="lineNum">     630 </span>            :                    2    -----!----
+<span class="lineNum">     631 </span>            :                    3       --!-----
+<span class="lineNum">     632 </span>            : 
+<span class="lineNum">     633 </span>            :           where ! indicates where the current read_size limitation cuts
+<span class="lineNum">     634 </span>            :           through the filetype.  I resolve this by reading up to !, but
+<span class="lineNum">     635 </span>            :           filling the communication buffer only for 1. I copy the portion
+<span class="lineNum">     636 </span>            :           left over for 2 into a tmp_buf for use in the next
+<span class="lineNum">     637 </span>            :           iteration. i.e., 2 and 3 will be satisfied in the next
+<span class="lineNum">     638 </span>            :           iteration. This simplifies filling in the user's buf at the
+<span class="lineNum">     639 </span>            :           other end, as only one off-len pair with incomplete data
+<span class="lineNum">     640 </span>            :           will be sent. I also don't need to send the individual
+<span class="lineNum">     641 </span>            :           offsets and lens along with the data, as the data is being
+<span class="lineNum">     642 </span>            :           sent in a particular order. */
+<span class="lineNum">     643 </span>            : 
+<span class="lineNum">     644 </span>            :           /* off = start offset in the file for the data actually read in
+<span class="lineNum">     645 </span>            :                    this iteration
+<span class="lineNum">     646 </span>            :              size = size of data read corresponding to off
+<span class="lineNum">     647 </span>            :              real_off = off minus whatever data was retained in memory from
+<span class="lineNum">     648 </span>            :                   previous iteration for cases like 2, 3 illustrated above
+<span class="lineNum">     649 </span>            :              real_size = size plus the extra corresponding to real_off
+<span class="lineNum">     650 </span>            :              req_off = off in file for a particular contiguous request
+<span class="lineNum">     651 </span>            :                        minus what was satisfied in previous iteration
+<span class="lineNum">     652 </span>            :              req_size = size corresponding to req_off */
+<span class="lineNum">     653 </span>            : 
+<span class="lineNum">     654 </span><span class="lineCov">       8008 :         size = ADIOI_MIN((unsigned)coll_bufsize, end_loc-st_loc+1-done);</span>
+<span class="lineNum">     655 </span><span class="lineCov">       8008 :         real_off = off - for_curr_iter;</span>
+<span class="lineNum">     656 </span><span class="lineCov">       8008 :         real_size = size + for_curr_iter;</span>
+<span class="lineNum">     657 </span>            : 
+<span class="lineNum">     658 </span><span class="lineCov">       8008 :         for (i=0; i&lt;nprocs; i++) count[i] = send_size[i] = 0;</span>
+<span class="lineNum">     659 </span><span class="lineCov">       8008 :         for_next_iter = 0;</span>
+<span class="lineNum">     660 </span>            : 
+<span class="lineNum">     661 </span><span class="lineCov">      32032 :         for (i=0; i&lt;nprocs; i++) {</span>
+<span class="lineNum">     662 </span>            : #ifdef RDCOLL_DEBUG
+<span class="lineNum">     663 </span>            :             DBG_FPRINTF(stderr, &quot;rank %d, i %d, others_count %d\n&quot;, rank, i, others_req[i].count);
+<span class="lineNum">     664 </span>            : #endif
+<span class="lineNum">     665 </span><span class="lineCov">      24024 :             if (others_req[i].count) {</span>
+<span class="lineNum">     666 </span><span class="lineCov">      24024 :                 start_pos[i] = curr_offlen_ptr[i];</span>
+<span class="lineNum">     667 </span><span class="lineCov">      96048 :                 for (j=curr_offlen_ptr[i]; j&lt;others_req[i].count;</span>
+<span class="lineNum">     668 </span><span class="lineCov">      48000 :                      j++) {</span>
+<span class="lineNum">     669 </span><span class="lineCov">      48000 :                     if (partial_send[i]) {</span>
+<span class="lineNum">     670 </span>            :                         /* this request may have been partially
+<span class="lineNum">     671 </span>            :                            satisfied in the previous iteration. */
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :                         req_off = others_req[i].offsets[j] +</span>
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :                             partial_send[i];</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :                         req_len = others_req[i].lens[j] -</span>
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :                             partial_send[i];</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :                         partial_send[i] = 0;</span>
+<span class="lineNum">     677 </span>            :                         /* modify the off-len pair to reflect this change */
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :                         others_req[i].offsets[j] = req_off;</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :                         others_req[i].lens[j] = req_len;</span>
+<span class="lineNum">     680 </span>            :                     }
+<span class="lineNum">     681 </span>            :                     else {
+<span class="lineNum">     682 </span><span class="lineCov">      48000 :                         req_off = others_req[i].offsets[j];</span>
+<span class="lineNum">     683 </span><span class="lineCov">      48000 :                         req_len = others_req[i].lens[j];</span>
+<span class="lineNum">     684 </span>            :                     }
+<span class="lineNum">     685 </span><span class="lineCov">      48000 :                     if (req_off &lt; real_off + real_size) {</span>
+<span class="lineNum">     686 </span><span class="lineCov">      48000 :                         count[i]++;</span>
+<span class="lineNum">     687 </span><span class="lineCov">      48000 :       ADIOI_Assert((((ADIO_Offset)(MPIR_Upint)read_buf)+req_off-real_off) == (ADIO_Offset)(MPIR_Upint)(read_buf+req_off-real_off));</span>
+<span class="lineNum">     688 </span><span class="lineCov">      96000 :                         MPI_Address(read_buf+req_off-real_off,</span>
+<span class="lineNum">     689 </span><span class="lineCov">      96000 :                                &amp;(others_req[i].mem_ptrs[j]));</span>
+<span class="lineNum">     690 </span><span class="lineCov">      48000 :       ADIOI_Assert((real_off + real_size - req_off) == (int)(real_off + real_size - req_off));</span>
+<span class="lineNum">     691 </span><span class="lineCov">      48000 :                         send_size[i] += (int)(ADIOI_MIN(real_off + real_size - req_off,</span>
+<span class="lineNum">     692 </span>            :                                       (ADIO_Offset)(unsigned)req_len));
+<span class="lineNum">     693 </span>            : 
+<span class="lineNum">     694 </span><span class="lineCov">      48000 :                         if (real_off+real_size-req_off &lt; (ADIO_Offset)(unsigned)req_len) {</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :                             partial_send[i] = (int) (real_off + real_size - req_off);</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :                             if ((j+1 &lt; others_req[i].count) &amp;&amp;</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :                                  (others_req[i].offsets[j+1] &lt;</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :                                      real_off+real_size)) {</span>
+<span class="lineNum">     699 </span>            :                                 /* this is the case illustrated in the
+<span class="lineNum">     700 </span>            :                                    figure above. */
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :                                 for_next_iter = ADIOI_MAX(for_next_iter,</span>
+<span class="lineNum">     702 </span>            :                                           real_off + real_size - others_req[i].offsets[j+1]);
+<span class="lineNum">     703 </span>            :                                 /* max because it must cover requests
+<span class="lineNum">     704 </span>            :                                    from different processes */
+<span class="lineNum">     705 </span>            :                             }
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :                             break;</span>
+<span class="lineNum">     707 </span>            :                         }
+<span class="lineNum">     708 </span>            :                     }
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :                     else break;</span>
+<span class="lineNum">     710 </span>            :                 }
+<span class="lineNum">     711 </span><span class="lineCov">      24024 :                 curr_offlen_ptr[i] = j;</span>
+<span class="lineNum">     712 </span>            :             }
+<span class="lineNum">     713 </span>            :         }
+<span class="lineNum">     714 </span>            : 
+<span class="lineNum">     715 </span><span class="lineCov">       8008 :         flag = 0;</span>
+<span class="lineNum">     716 </span><span class="lineCov">      32032 :         for (i=0; i&lt;nprocs; i++)</span>
+<span class="lineNum">     717 </span><span class="lineCov">      24024 :             if (count[i]) flag = 1;</span>
+<span class="lineNum">     718 </span>            : 
+<span class="lineNum">     719 </span><span class="lineCov">       8008 :         if (flag) {</span>
+<span class="lineNum">     720 </span><span class="lineCov">       8008 :       ADIOI_Assert(size == (int)size);</span>
+<span class="lineNum">     721 </span><span class="lineCov">       8008 :             ADIO_ReadContig(fd, read_buf+for_curr_iter, (int)size, MPI_BYTE,</span>
+<span class="lineNum">     722 </span>            :                             ADIO_EXPLICIT_OFFSET, off, &amp;status, error_code);
+<span class="lineNum">     723 </span><span class="lineCov">       8008 :             if (*error_code != MPI_SUCCESS) return;</span>
+<span class="lineNum">     724 </span>            :         }
+<span class="lineNum">     725 </span>            : 
+<span class="lineNum">     726 </span><span class="lineCov">       8008 :         for_curr_iter = for_next_iter;</span>
+<span class="lineNum">     727 </span>            : 
+<span class="lineNum">     728 </span><span class="lineCov">       8008 :         ADIOI_R_Exchange_data(fd, buf, flat_buf, offset_list, len_list,</span>
+<span class="lineNum">     729 </span>            :                             send_size, recv_size, count,
+<span class="lineNum">     730 </span>            :                             start_pos, partial_send, recd_from_proc, nprocs,
+<span class="lineNum">     731 </span>            :                             myrank,
+<span class="lineNum">     732 </span>            :                             buftype_is_contig, contig_access_count,
+<span class="lineNum">     733 </span>            :                             min_st_offset, fd_size, fd_start, fd_end,
+<span class="lineNum">     734 </span>            :                             others_req,
+<span class="lineNum">     735 </span>            :                             m, buftype_extent, buf_idx);
+<span class="lineNum">     736 </span>            : 
+<span class="lineNum">     737 </span>            : 
+<span class="lineNum">     738 </span><span class="lineCov">       8008 :         if (for_next_iter) {</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :             tmp_buf = (char *) ADIOI_Malloc(for_next_iter);</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :       ADIOI_Assert((((ADIO_Offset)(MPIR_Upint)read_buf)+real_size-for_next_iter) == (ADIO_Offset)(MPIR_Upint)(read_buf+real_size-for_next_iter));</span>
+<span class="lineNum">     741 </span>            :       ADIOI_Assert((for_next_iter+coll_bufsize) == (size_t)(for_next_iter+coll_bufsize));
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :             memcpy(tmp_buf, read_buf+real_size-for_next_iter, for_next_iter);</span>
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :             ADIOI_Free(fd-&gt;io_buf);</span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :             fd-&gt;io_buf = (char *) ADIOI_Malloc(for_next_iter+coll_bufsize);</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :             memcpy(fd-&gt;io_buf, tmp_buf, for_next_iter);</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :             read_buf = fd-&gt;io_buf;</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :             ADIOI_Free(tmp_buf);</span>
+<span class="lineNum">     748 </span>            :         }
+<span class="lineNum">     749 </span>            : 
+<span class="lineNum">     750 </span><span class="lineCov">       8008 :         off += size;</span>
+<span class="lineNum">     751 </span><span class="lineCov">       8008 :         done += size;</span>
+<span class="lineNum">     752 </span>            :     }
+<span class="lineNum">     753 </span>            : 
+<span class="lineNum">     754 </span><span class="lineCov">      24024 :     for (i=0; i&lt;nprocs; i++) count[i] = send_size[i] = 0;</span>
+<span class="lineNum">     755 </span><span class="lineCov">      40040 :     for (m=ntimes; m&lt;max_ntimes; m++)</span>
+<span class="lineNum">     756 </span>            : /* nothing to send, but check for recv. */
+<span class="lineNum">     757 </span><span class="lineCov">      16016 :         ADIOI_R_Exchange_data(fd, buf, flat_buf, offset_list, len_list,</span>
+<span class="lineNum">     758 </span>            :                             send_size, recv_size, count,
+<span class="lineNum">     759 </span>            :                             start_pos, partial_send, recd_from_proc, nprocs,
+<span class="lineNum">     760 </span>            :                             myrank,
+<span class="lineNum">     761 </span>            :                             buftype_is_contig, contig_access_count,
+<span class="lineNum">     762 </span>            :                             min_st_offset, fd_size, fd_start, fd_end,
+<span class="lineNum">     763 </span>            :                             others_req, m,
+<span class="lineNum">     764 </span>            :                             buftype_extent, buf_idx);
+<span class="lineNum">     765 </span>            : 
+<span class="lineNum">     766 </span><span class="lineCov">      24024 :     ADIOI_Free(curr_offlen_ptr);</span>
+<span class="lineNum">     767 </span><span class="lineCov">      24024 :     ADIOI_Free(count);</span>
+<span class="lineNum">     768 </span><span class="lineCov">      24024 :     ADIOI_Free(partial_send);</span>
+<span class="lineNum">     769 </span><span class="lineCov">      24024 :     ADIOI_Free(send_size);</span>
+<span class="lineNum">     770 </span><span class="lineCov">      24024 :     ADIOI_Free(recv_size);</span>
+<span class="lineNum">     771 </span><span class="lineCov">      24024 :     ADIOI_Free(recd_from_proc);</span>
+<span class="lineNum">     772 </span><span class="lineCov">      24024 :     ADIOI_Free(start_pos);</span>
+<a name="773"><span class="lineNum">     773 </span>            : }</a>
+<span class="lineNum">     774 </span>            : 
+<span class="lineNum">     775 </span><span class="lineCov">      24024 : static void ADIOI_R_Exchange_data(ADIO_File fd, void *buf, ADIOI_Flatlist_node</span>
+<span class="lineNum">     776 </span>            :                          *flat_buf, ADIO_Offset *offset_list, ADIO_Offset
+<span class="lineNum">     777 </span>            :                          *len_list, int *send_size, int *recv_size,
+<span class="lineNum">     778 </span>            :                          int *count, int *start_pos, int *partial_send,
+<span class="lineNum">     779 </span>            :                          int *recd_from_proc, int nprocs,
+<span class="lineNum">     780 </span>            :                          int myrank, int
+<span class="lineNum">     781 </span>            :                          buftype_is_contig, int contig_access_count,
+<span class="lineNum">     782 </span>            :                          ADIO_Offset min_st_offset, ADIO_Offset fd_size,
+<span class="lineNum">     783 </span>            :                          ADIO_Offset *fd_start, ADIO_Offset *fd_end,
+<span class="lineNum">     784 </span>            :                          ADIOI_Access *others_req,
+<span class="lineNum">     785 </span>            :                          int iter, MPI_Aint buftype_extent, int *buf_idx)
+<span class="lineNum">     786 </span>            : {
+<span class="lineNum">     787 </span><span class="lineCov">      24024 :     int i, j, k=0, tmp=0, nprocs_recv, nprocs_send;</span>
+<span class="lineNum">     788 </span><span class="lineCov">      24024 :     char **recv_buf = NULL;</span>
+<span class="lineNum">     789 </span>            :     MPI_Request *requests;
+<span class="lineNum">     790 </span>            :     MPI_Datatype send_type;
+<span class="lineNum">     791 </span>            :     MPI_Status *statuses;
+<span class="lineNum">     792 </span>            : 
+<span class="lineNum">     793 </span>            : /* exchange send_size info so that each process knows how much to
+<span class="lineNum">     794 </span>            :    receive from whom and how much memory to allocate. */
+<span class="lineNum">     795 </span>            : 
+<span class="lineNum">     796 </span><span class="lineCov">      24024 :     MPI_Alltoall(send_size, 1, MPI_INT, recv_size, 1, MPI_INT, fd-&gt;comm);</span>
+<span class="lineNum">     797 </span>            : 
+<span class="lineNum">     798 </span><span class="lineCov">      24024 :     nprocs_recv = 0;</span>
+<span class="lineNum">     799 </span><span class="lineCov">      24024 :     for (i=0; i &lt; nprocs; i++) if (recv_size[i]) nprocs_recv++;</span>
+<span class="lineNum">     800 </span>            : 
+<span class="lineNum">     801 </span><span class="lineCov">      24024 :     nprocs_send = 0;</span>
+<span class="lineNum">     802 </span><span class="lineCov">      24024 :     for (i=0; i&lt;nprocs; i++) if (send_size[i]) nprocs_send++;</span>
+<span class="lineNum">     803 </span>            : 
+<span class="lineNum">     804 </span><span class="lineCov">      24024 :     requests = (MPI_Request *)</span>
+<span class="lineNum">     805 </span><span class="lineCov">      24024 :         ADIOI_Malloc((nprocs_send+nprocs_recv+1)*sizeof(MPI_Request));</span>
+<span class="lineNum">     806 </span>            : /* +1 to avoid a 0-size malloc */
+<span class="lineNum">     807 </span>            : 
+<span class="lineNum">     808 </span>            : /* post recvs. if buftype_is_contig, data can be directly recd. into
+<span class="lineNum">     809 </span>            :    user buf at location given by buf_idx. else use recv_buf. */
+<span class="lineNum">     810 </span>            : 
+<span class="lineNum">     811 </span>            : #ifdef AGGREGATION_PROFILE
+<span class="lineNum">     812 </span>            :     MPE_Log_event (5032, 0, NULL);
+<span class="lineNum">     813 </span>            : #endif
+<span class="lineNum">     814 </span>            : 
+<span class="lineNum">     815 </span><span class="lineCov">      24024 :     if (buftype_is_contig) {</span>
+<span class="lineNum">     816 </span><span class="lineCov">      24024 :         j = 0;</span>
+<span class="lineNum">     817 </span><span class="lineCov">     104104 :         for (i=0; i &lt; nprocs; i++)</span>
+<span class="lineNum">     818 </span><span class="lineCov">      80080 :             if (recv_size[i]) {</span>
+<span class="lineNum">     819 </span><span class="lineCov">      72072 :                 MPI_Irecv(((char *) buf) + buf_idx[i], recv_size[i],</span>
+<span class="lineNum">     820 </span><span class="lineCov">      48048 :                   MPI_BYTE, i, myrank+i+100*iter, fd-&gt;comm, requests+j);</span>
+<span class="lineNum">     821 </span><span class="lineCov">      24024 :                 j++;</span>
+<span class="lineNum">     822 </span><span class="lineCov">      24024 :                 buf_idx[i] += recv_size[i];</span>
+<span class="lineNum">     823 </span>            :             }
+<span class="lineNum">     824 </span>            :     }
+<span class="lineNum">     825 </span>            :     else {
+<span class="lineNum">     826 </span>            : /* allocate memory for recv_buf and post receives */
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :         recv_buf = (char **) ADIOI_Malloc(nprocs * sizeof(char*));</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :         for (i=0; i &lt; nprocs; i++)</span>
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :             if (recv_size[i]) recv_buf[i] =</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :                                   (char *) ADIOI_Malloc(recv_size[i]);</span>
+<span class="lineNum">     831 </span>            : 
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :             j = 0;</span>
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :             for (i=0; i &lt; nprocs; i++)</span>
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :                 if (recv_size[i]) {</span>
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :                     MPI_Irecv(recv_buf[i], recv_size[i], MPI_BYTE, i,</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :                               myrank+i+100*iter, fd-&gt;comm, requests+j);</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :                     j++;</span>
+<span class="lineNum">     838 </span>            : #ifdef RDCOLL_DEBUG
+<span class="lineNum">     839 </span>            :                     DBG_FPRINTF(stderr, &quot;node %d, recv_size %d, tag %d \n&quot;,
+<span class="lineNum">     840 </span>            :                        myrank, recv_size[i], myrank+i+100*iter);
+<span class="lineNum">     841 </span>            : #endif
+<span class="lineNum">     842 </span>            :                 }
+<span class="lineNum">     843 </span>            :     }
+<span class="lineNum">     844 </span>            : 
+<span class="lineNum">     845 </span>            : /* create derived datatypes and send data */
+<span class="lineNum">     846 </span>            : 
+<span class="lineNum">     847 </span><span class="lineCov">      24024 :     j = 0;</span>
+<span class="lineNum">     848 </span><span class="lineCov">     104104 :     for (i=0; i&lt;nprocs; i++) {</span>
+<span class="lineNum">     849 </span><span class="lineCov">      80080 :         if (send_size[i]) {</span>
+<span class="lineNum">     850 </span>            : /* take care if the last off-len pair is a partial send */
+<span class="lineNum">     851 </span><span class="lineCov">      24024 :             if (partial_send[i]) {</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :                 k = start_pos[i] + count[i] - 1;</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :                 tmp = others_req[i].lens[k];</span>
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :                 others_req[i].lens[k] = partial_send[i];</span>
+<span class="lineNum">     855 </span>            :             }
+<span class="lineNum">     856 </span><span class="lineCov">      96096 :             ADIOI_Type_create_hindexed_x(count[i],</span>
+<span class="lineNum">     857 </span><span class="lineCov">      48048 :                   &amp;(others_req[i].lens[start_pos[i]]),</span>
+<span class="lineNum">     858 </span><span class="lineCov">      48048 :                     &amp;(others_req[i].mem_ptrs[start_pos[i]]),</span>
+<span class="lineNum">     859 </span>            :                          MPI_BYTE, &amp;send_type);
+<span class="lineNum">     860 </span>            :             /* absolute displacement; use MPI_BOTTOM in send */
+<span class="lineNum">     861 </span><span class="lineCov">      24024 :             MPI_Type_commit(&amp;send_type);</span>
+<span class="lineNum">     862 </span><span class="lineCov">      24024 :             MPI_Isend(MPI_BOTTOM, 1, send_type, i, myrank+i+100*iter,</span>
+<span class="lineNum">     863 </span><span class="lineCov">      24024 :                       fd-&gt;comm, requests+nprocs_recv+j);</span>
+<span class="lineNum">     864 </span><span class="lineCov">      24024 :             MPI_Type_free(&amp;send_type);</span>
+<span class="lineNum">     865 </span><span class="lineCov">      24024 :             if (partial_send[i]) others_req[i].lens[k] = tmp;</span>
+<span class="lineNum">     866 </span><span class="lineCov">      24024 :             j++;</span>
+<span class="lineNum">     867 </span>            :         }
+<span class="lineNum">     868 </span>            :     }
+<span class="lineNum">     869 </span>            : 
+<span class="lineNum">     870 </span><span class="lineCov">      24024 :     statuses = (MPI_Status *) ADIOI_Malloc((nprocs_send+nprocs_recv+1) * \</span>
+<span class="lineNum">     871 </span>            :                                      sizeof(MPI_Status));
+<span class="lineNum">     872 </span>            :      /* +1 to avoid a 0-size malloc */
+<span class="lineNum">     873 </span>            : 
+<span class="lineNum">     874 </span>            :     /* wait on the receives */
+<span class="lineNum">     875 </span><span class="lineCov">      24024 :     if (nprocs_recv) {</span>
+<span class="lineNum">     876 </span>            : #ifdef NEEDS_MPI_TEST
+<span class="lineNum">     877 </span>            :         j = 0;
+<span class="lineNum">     878 </span>            :         while (!j) MPI_Testall(nprocs_recv, requests, &amp;j, statuses);
+<span class="lineNum">     879 </span>            : #else
+<span class="lineNum">     880 </span><span class="lineCov">      24024 :         MPI_Waitall(nprocs_recv, requests, statuses);</span>
+<span class="lineNum">     881 </span>            : #endif
+<span class="lineNum">     882 </span>            : 
+<span class="lineNum">     883 </span>            :         /* if noncontiguous, to the copies from the recv buffers */
+<span class="lineNum">     884 </span><span class="lineCov">      24024 :         if (!buftype_is_contig)</span>
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :             ADIOI_Fill_user_buffer(fd, buf, flat_buf, recv_buf,</span>
+<span class="lineNum">     886 </span>            :                                    offset_list, len_list, (unsigned*)recv_size,
+<span class="lineNum">     887 </span>            :                                    requests, statuses, recd_from_proc,
+<span class="lineNum">     888 </span>            :                                    nprocs, contig_access_count,
+<span class="lineNum">     889 </span>            :                                    min_st_offset, fd_size, fd_start, fd_end,
+<span class="lineNum">     890 </span>            :                                    buftype_extent);
+<span class="lineNum">     891 </span>            :     }
+<span class="lineNum">     892 </span>            : 
+<span class="lineNum">     893 </span>            :     /* wait on the sends*/
+<span class="lineNum">     894 </span><span class="lineCov">      24024 :     MPI_Waitall(nprocs_send, requests+nprocs_recv, statuses+nprocs_recv);</span>
+<span class="lineNum">     895 </span>            : 
+<span class="lineNum">     896 </span><span class="lineCov">      24024 :     ADIOI_Free(statuses);</span>
+<span class="lineNum">     897 </span><span class="lineCov">      24024 :     ADIOI_Free(requests);</span>
+<span class="lineNum">     898 </span>            : 
+<span class="lineNum">     899 </span><span class="lineCov">      24024 :     if (!buftype_is_contig) {</span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :         for (i=0; i &lt; nprocs; i++)</span>
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :             if (recv_size[i]) ADIOI_Free(recv_buf[i]);</span>
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :         ADIOI_Free(recv_buf);</span>
+<span class="lineNum">     903 </span>            :     }
+<span class="lineNum">     904 </span>            : #ifdef AGGREGATION_PROFILE
+<span class="lineNum">     905 </span>            :     MPE_Log_event (5033, 0, NULL);
+<span class="lineNum">     906 </span>            : #endif
+<span class="lineNum">     907 </span><span class="lineCov">      24024 : }</span>
+<span class="lineNum">     908 </span>            : 
+<span class="lineNum">     909 </span>            : #define ADIOI_BUF_INCR \
+<span class="lineNum">     910 </span>            : { \
+<span class="lineNum">     911 </span>            :     while (buf_incr) { \
+<span class="lineNum">     912 </span>            :         size_in_buf = ADIOI_MIN(buf_incr, flat_buf_sz); \
+<span class="lineNum">     913 </span>            :         user_buf_idx += size_in_buf; \
+<span class="lineNum">     914 </span>            :         flat_buf_sz -= size_in_buf; \
+<span class="lineNum">     915 </span>            :         if (!flat_buf_sz) { \
+<span class="lineNum">     916 </span>            :             if (flat_buf_idx &lt; (flat_buf-&gt;count - 1)) flat_buf_idx++; \
+<span class="lineNum">     917 </span>            :             else { \
+<span class="lineNum">     918 </span>            :                 flat_buf_idx = 0; \
+<span class="lineNum">     919 </span>            :                 n_buftypes++; \
+<span class="lineNum">     920 </span>            :             } \
+<span class="lineNum">     921 </span>            :             user_buf_idx = flat_buf-&gt;indices[flat_buf_idx] + \
+<span class="lineNum">     922 </span>            :                               (ADIO_Offset)n_buftypes*(ADIO_Offset)buftype_extent; \
+<span class="lineNum">     923 </span>            :             flat_buf_sz = flat_buf-&gt;blocklens[flat_buf_idx]; \
+<span class="lineNum">     924 </span>            :         } \
+<span class="lineNum">     925 </span>            :         buf_incr -= size_in_buf; \
+<span class="lineNum">     926 </span>            :     } \
+<span class="lineNum">     927 </span>            : }
+<span class="lineNum">     928 </span>            : 
+<span class="lineNum">     929 </span>            : 
+<span class="lineNum">     930 </span>            : #define ADIOI_BUF_COPY \
+<span class="lineNum">     931 </span>            : { \
+<span class="lineNum">     932 </span>            :     while (size) { \
+<span class="lineNum">     933 </span>            :         size_in_buf = ADIOI_MIN(size, flat_buf_sz); \
+<span class="lineNum">     934 </span>            :   ADIOI_Assert((((ADIO_Offset)(MPIR_Upint)buf) + user_buf_idx) == (ADIO_Offset)(MPIR_Upint)((MPIR_Upint)buf + user_buf_idx)); \
+<span class="lineNum">     935 </span>            :   ADIOI_Assert(size_in_buf == (size_t)size_in_buf); \
+<span class="lineNum">     936 </span>            :         memcpy(((char *) buf) + user_buf_idx, \
+<span class="lineNum">     937 </span>            :                &amp;(recv_buf[p][recv_buf_idx[p]]), size_in_buf); \
+<span class="lineNum">     938 </span>            :         recv_buf_idx[p] += size_in_buf; /* already tested (size_t)size_in_buf*/ \
+<span class="lineNum">     939 </span>            :         user_buf_idx += size_in_buf; \
+<span class="lineNum">     940 </span>            :         flat_buf_sz -= size_in_buf; \
+<span class="lineNum">     941 </span>            :         if (!flat_buf_sz) { \
+<span class="lineNum">     942 </span>            :             if (flat_buf_idx &lt; (flat_buf-&gt;count - 1)) flat_buf_idx++; \
+<span class="lineNum">     943 </span>            :             else { \
+<span class="lineNum">     944 </span>            :                 flat_buf_idx = 0; \
+<span class="lineNum">     945 </span>            :                 n_buftypes++; \
+<span class="lineNum">     946 </span>            :             } \
+<span class="lineNum">     947 </span>            :             user_buf_idx = flat_buf-&gt;indices[flat_buf_idx] + \
+<span class="lineNum">     948 </span>            :                               (ADIO_Offset)n_buftypes*(ADIO_Offset)buftype_extent; \
+<span class="lineNum">     949 </span>            :             flat_buf_sz = flat_buf-&gt;blocklens[flat_buf_idx]; \
+<span class="lineNum">     950 </span>            :         } \
+<span class="lineNum">     951 </span>            :         size -= size_in_buf; \
+<span class="lineNum">     952 </span>            :         buf_incr -= size_in_buf; \
+<span class="lineNum">     953 </span>            :     } \
+<span class="lineNum">     954 </span>            :     ADIOI_BUF_INCR \
+<a name="955"><span class="lineNum">     955 </span>            : }</a>
+<span class="lineNum">     956 </span>            : 
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 : static void ADIOI_Fill_user_buffer(ADIO_File fd, void *buf, ADIOI_Flatlist_node</span>
+<span class="lineNum">     958 </span>            :                                    *flat_buf, char **recv_buf, ADIO_Offset
+<span class="lineNum">     959 </span>            :                                    *offset_list, ADIO_Offset *len_list,
+<span class="lineNum">     960 </span>            :                                    unsigned *recv_size,
+<span class="lineNum">     961 </span>            :                                    MPI_Request *requests, MPI_Status *statuses,
+<span class="lineNum">     962 </span>            :                                    int *recd_from_proc, int nprocs,
+<span class="lineNum">     963 </span>            :                                    int contig_access_count,
+<span class="lineNum">     964 </span>            :                                    ADIO_Offset min_st_offset,
+<span class="lineNum">     965 </span>            :                                    ADIO_Offset fd_size, ADIO_Offset *fd_start,
+<span class="lineNum">     966 </span>            :                                    ADIO_Offset *fd_end,
+<span class="lineNum">     967 </span>            :                                    MPI_Aint buftype_extent)
+<span class="lineNum">     968 </span>            : {
+<span class="lineNum">     969 </span>            : 
+<span class="lineNum">     970 </span>            : /* this function is only called if buftype is not contig */
+<span class="lineNum">     971 </span>            : 
+<span class="lineNum">     972 </span>            :     int i, p, flat_buf_idx;
+<span class="lineNum">     973 </span>            :     ADIO_Offset flat_buf_sz, size_in_buf, buf_incr, size;
+<span class="lineNum">     974 </span>            :     int n_buftypes;
+<span class="lineNum">     975 </span>            :     ADIO_Offset off, len, rem_len, user_buf_idx;
+<span class="lineNum">     976 </span>            :     /* Not sure unsigned is necessary, but it makes the math safer */
+<span class="lineNum">     977 </span>            :     unsigned *curr_from_proc, *done_from_proc, *recv_buf_idx;
+<span class="lineNum">     978 </span>            : 
+<span class="lineNum">     979 </span>            :     ADIOI_UNREFERENCED_ARG(requests);
+<span class="lineNum">     980 </span>            :     ADIOI_UNREFERENCED_ARG(statuses);
+<span class="lineNum">     981 </span>            : 
+<span class="lineNum">     982 </span>            : /*  curr_from_proc[p] = amount of data recd from proc. p that has already
+<span class="lineNum">     983 </span>            :                         been accounted for so far
+<span class="lineNum">     984 </span>            :     done_from_proc[p] = amount of data already recd from proc. p and
+<span class="lineNum">     985 </span>            :                         filled into user buffer in previous iterations
+<span class="lineNum">     986 </span>            :     user_buf_idx = current location in user buffer
+<span class="lineNum">     987 </span>            :     recv_buf_idx[p] = current location in recv_buf of proc. p  */
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :     curr_from_proc = (unsigned *) ADIOI_Malloc(nprocs * sizeof(unsigned));</span>
+<span class="lineNum">     989 </span><span class="lineNoCov">          0 :     done_from_proc = (unsigned *) ADIOI_Malloc(nprocs * sizeof(unsigned));</span>
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 :     recv_buf_idx   = (unsigned *) ADIOI_Malloc(nprocs * sizeof(unsigned));</span>
+<span class="lineNum">     991 </span>            : 
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; nprocs; i++) {</span>
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :         recv_buf_idx[i] = curr_from_proc[i] = 0;</span>
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :         done_from_proc[i] = recd_from_proc[i];</span>
+<span class="lineNum">     995 </span>            :     }
+<span class="lineNum">     996 </span>            : 
+<span class="lineNum">     997 </span><span class="lineNoCov">          0 :     user_buf_idx = flat_buf-&gt;indices[0];</span>
+<span class="lineNum">     998 </span><span class="lineNoCov">          0 :     flat_buf_idx = 0;</span>
+<span class="lineNum">     999 </span><span class="lineNoCov">          0 :     n_buftypes = 0;</span>
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :     flat_buf_sz = flat_buf-&gt;blocklens[0];</span>
+<span class="lineNum">    1001 </span>            : 
+<span class="lineNum">    1002 </span>            :     /* flat_buf_idx = current index into flattened buftype
+<span class="lineNum">    1003 </span>            :        flat_buf_sz = size of current contiguous component in
+<span class="lineNum">    1004 </span>            :                 flattened buf */
+<span class="lineNum">    1005 </span>            : 
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 :     for (i=0; i&lt;contig_access_count; i++) {</span>
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :         off     = offset_list[i];</span>
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :         rem_len = len_list[i];</span>
+<span class="lineNum">    1009 </span>            : 
+<span class="lineNum">    1010 </span>            :         /* this request may span the file domains of more than one process */
+<span class="lineNum">    1011 </span><span class="lineNoCov">          0 :         while (rem_len != 0) {</span>
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :             len = rem_len;</span>
+<span class="lineNum">    1013 </span>            :             /* NOTE: len value is modified by ADIOI_Calc_aggregator() to be no
+<span class="lineNum">    1014 </span>            :              * longer than the single region that processor &quot;p&quot; is responsible
+<span class="lineNum">    1015 </span>            :              * for.
+<span class="lineNum">    1016 </span>            :              */
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :             p = ADIOI_Calc_aggregator(fd,</span>
+<span class="lineNum">    1018 </span>            :                                       off,
+<span class="lineNum">    1019 </span>            :                                       min_st_offset,
+<span class="lineNum">    1020 </span>            :                                       &amp;len,
+<span class="lineNum">    1021 </span>            :                                       fd_size,
+<span class="lineNum">    1022 </span>            :                                       fd_start,
+<span class="lineNum">    1023 </span>            :                                       fd_end);
+<span class="lineNum">    1024 </span>            : 
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :             if (recv_buf_idx[p] &lt; recv_size[p]) {</span>
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :                 if (curr_from_proc[p]+len &gt; done_from_proc[p]) {</span>
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :                     if (done_from_proc[p] &gt; curr_from_proc[p]) {</span>
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :                         size = ADIOI_MIN(curr_from_proc[p] + len -</span>
+<span class="lineNum">    1029 </span>            :                               done_from_proc[p], recv_size[p]-recv_buf_idx[p]);
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :                         buf_incr = done_from_proc[p] - curr_from_proc[p];</span>
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :                         ADIOI_BUF_INCR</span>
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :                         buf_incr = curr_from_proc[p]+len-done_from_proc[p];</span>
+<span class="lineNum">    1033 </span><span class="lineNoCov">          0 :       ADIOI_Assert((done_from_proc[p] + size) == (unsigned)((ADIO_Offset)done_from_proc[p] + size));</span>
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :                         curr_from_proc[p] = done_from_proc[p] + size;</span>
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :                         ADIOI_BUF_COPY</span>
+<span class="lineNum">    1036 </span>            :                     }
+<span class="lineNum">    1037 </span>            :                     else {
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :                         size = ADIOI_MIN(len,recv_size[p]-recv_buf_idx[p]);</span>
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :                         buf_incr = len;</span>
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :       ADIOI_Assert((curr_from_proc[p] + size) == (unsigned)((ADIO_Offset)curr_from_proc[p] + size));</span>
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :                         curr_from_proc[p] += (unsigned) size;</span>
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :                         ADIOI_BUF_COPY</span>
+<span class="lineNum">    1043 </span>            :                     }
+<span class="lineNum">    1044 </span>            :                 }
+<span class="lineNum">    1045 </span>            :                 else {
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :         ADIOI_Assert((curr_from_proc[p] + len) == (unsigned)((ADIO_Offset)curr_from_proc[p] + len));</span>
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :                     curr_from_proc[p] += (unsigned) len;</span>
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :                     buf_incr = len;</span>
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 :                     ADIOI_BUF_INCR</span>
+<span class="lineNum">    1050 </span>            :                 }
+<span class="lineNum">    1051 </span>            :             }
+<span class="lineNum">    1052 </span>            :             else {
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :                 buf_incr = len;</span>
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :                 ADIOI_BUF_INCR</span>
+<span class="lineNum">    1055 </span>            :             }
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :             off     += len;</span>
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :             rem_len -= len;</span>
+<span class="lineNum">    1058 </span>            :         }
+<span class="lineNum">    1059 </span>            :     }
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :     for (i=0; i &lt; nprocs; i++)</span>
+<span class="lineNum">    1061 </span><span class="lineNoCov">          0 :         if (recv_size[i]) recd_from_proc[i] = curr_from_proc[i];</span>
+<span class="lineNum">    1062 </span>            : 
+<span class="lineNum">    1063 </span><span class="lineNoCov">          0 :     ADIOI_Free(curr_from_proc);</span>
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :     ADIOI_Free(done_from_proc);</span>
+<span class="lineNum">    1065 </span><span class="lineNoCov">          0 :     ADIOI_Free(recv_buf_idx);</span>
+<span class="lineNum">    1066 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,831 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/io/romio314/romio/adio/common/cb_config_list.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">ompi/mca/io/romio314/romio/adio/common</a> - cb_config_list.c<span style="font-size: 80%;"> (source / <a href="cb_config_list.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">183</td>
+            <td class="headerCovTableEntry">230</td>
+            <td class="headerCovTableEntryMed">79.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  *   Copyright (C) 2001 University of Chicago.
+<span class="lineNum">       5 </span>            :  *   See COPYRIGHT notice in top-level directory.
+<span class="lineNum">       6 </span>            :  */
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : /* cb_config_list.c
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  * The important, externally used functions from this file are:
+<span class="lineNum">      11 </span>            :  * ADIOI_cb_bcast_rank_map()
+<span class="lineNum">      12 </span>            :  * ADIOI_cb_gather_name_array()
+<span class="lineNum">      13 </span>            :  * ADIOI_cb_config_list_parse()
+<span class="lineNum">      14 </span>            :  * ADIOI_cb_copy_name_array()
+<span class="lineNum">      15 </span>            :  * ADIOI_cb_delete_name_array()
+<span class="lineNum">      16 </span>            :  *
+<span class="lineNum">      17 </span>            :  * Prototypes for these are in adio/include/adio_cb_config_list.h
+<span class="lineNum">      18 </span>            :  */
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #include &quot;adio.h&quot;
+<span class="lineNum">      21 </span>            : #include &quot;mpi.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;adio_cb_config_list.h&quot;
+<span class="lineNum">      23 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : /* token types */
+<span class="lineNum">      28 </span>            : #define AGG_WILDCARD 1
+<span class="lineNum">      29 </span>            : #define AGG_STRING   2
+<span class="lineNum">      30 </span>            : #define AGG_COMMA    3
+<span class="lineNum">      31 </span>            : #define AGG_COLON    4
+<span class="lineNum">      32 </span>            : #define AGG_ERROR   -1
+<span class="lineNum">      33 </span>            : #define AGG_EOS      0
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #undef CB_CONFIG_LIST_DEBUG
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : /* a couple of globals keep things simple */
+<span class="lineNum">      38 </span>            : int ADIOI_cb_config_list_keyval = MPI_KEYVAL_INVALID;
+<span class="lineNum">      39 </span>            : static char *yylval;
+<span class="lineNum">      40 </span>            : static char *token_ptr;
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : /* internal stuff */
+<span class="lineNum">      43 </span>            : static int get_max_procs(int cb_nodes);
+<span class="lineNum">      44 </span>            : static int match_procs(char *name, int max_per_proc, char *procnames[],
+<span class="lineNum">      45 </span>            :                        char used_procnames[],
+<span class="lineNum">      46 </span>            :                        int nr_procnames, int ranks[], int nr_ranks,
+<span class="lineNum">      47 </span>            :                        int *nr_ranks_allocated);
+<span class="lineNum">      48 </span>            : static int match_this_proc(char *name, int cur_proc, int max_matches,
+<span class="lineNum">      49 </span>            :                            char *procnames[], char used_procnames[],
+<span class="lineNum">      50 </span>            :                            int nr_procnames, int ranks[],
+<span class="lineNum">      51 </span>            :                            int nr_ranks, int nr_ranks_allocated);
+<span class="lineNum">      52 </span>            : static int find_name(char *name, char *procnames[], char used_procnames[],
+<span class="lineNum">      53 </span>            :                      int nr_procnames, int start_ind);
+<span class="lineNum">      54 </span>            : static int cb_config_list_lex(void);
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : /* ADIOI_cb_bcast_rank_map() - broadcast the rank array
+<span class="lineNum">      58 </span>            :  *
+<span class="lineNum">      59 </span>            :  * Parameters:
+<span class="lineNum">      60 </span>            :  * fd - ADIO_File for which update is occurring.  cb_nodes and ranklist
+<span class="lineNum">      61 </span>            :  * parameters must be up-to-date on rank 0 of the fd-&gt;comm.
+<span class="lineNum">      62 </span>            :  *
+<a name="63"><span class="lineNum">      63 </span>            :  * should probably be a void fn.</a>
+<span class="lineNum">      64 </span>            :  */
+<span class="lineNum">      65 </span><span class="lineCov">       2192 : int ADIOI_cb_bcast_rank_map(ADIO_File fd)</span>
+<span class="lineNum">      66 </span>            : {
+<span class="lineNum">      67 </span>            :     int my_rank;
+<span class="lineNum">      68 </span>            :     char *value;
+<span class="lineNum">      69 </span><span class="lineCov">       2192 :         int error_code = MPI_SUCCESS;</span>
+<span class="lineNum">      70 </span>            :         static char myname[] = &quot;ADIOI_cb_bcast_rank_map&quot;;
+<span class="lineNum">      71 </span>            :     char *p;
+<span class="lineNum">      72 </span>            :     int i;
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span><span class="lineCov">       2192 :     MPI_Bcast(&amp;(fd-&gt;hints-&gt;cb_nodes), 1, MPI_INT, 0, fd-&gt;comm);</span>
+<span class="lineNum">      75 </span><span class="lineCov">       2192 :     if (fd-&gt;hints-&gt;cb_nodes &gt; 0) {</span>
+<span class="lineNum">      76 </span><span class="lineCov">       2192 :         MPI_Comm_rank(fd-&gt;comm, &amp;my_rank);</span>
+<span class="lineNum">      77 </span><span class="lineCov">       2192 :         if (my_rank != 0) {</span>
+<span class="lineNum">      78 </span><span class="lineCov">       1288 :             fd-&gt;hints-&gt;ranklist = ADIOI_Malloc(fd-&gt;hints-&gt;cb_nodes*sizeof(int));</span>
+<span class="lineNum">      79 </span><span class="lineCov">       1288 :             if (fd-&gt;hints-&gt;ranklist == NULL) {</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :                 error_code = MPIO_Err_create_code(error_code,</span>
+<span class="lineNum">      81 </span>            :                                                   MPIR_ERR_RECOVERABLE,
+<span class="lineNum">      82 </span>            :                                                   myname,
+<span class="lineNum">      83 </span>            :                                                   __LINE__,
+<span class="lineNum">      84 </span>            :                                                   MPI_ERR_OTHER,
+<span class="lineNum">      85 </span>            :                                                   &quot;**nomem2&quot;,0);
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :                 return error_code;</span>
+<span class="lineNum">      87 </span>            :             }
+<span class="lineNum">      88 </span>            :         }
+<span class="lineNum">      89 </span><span class="lineCov">       2192 :         MPI_Bcast(fd-&gt;hints-&gt;ranklist, fd-&gt;hints-&gt;cb_nodes, MPI_INT, 0,</span>
+<span class="lineNum">      90 </span>            :                   fd-&gt;comm);
+<span class="lineNum">      91 </span>            :     }
+<span class="lineNum">      92 </span>            :     /* TEMPORARY -- REMOVE WHEN NO LONGER UPDATING INFO FOR
+<span class="lineNum">      93 </span>            :      * FS-INDEP. */
+<span class="lineNum">      94 </span><span class="lineCov">       2192 :     value = (char *) ADIOI_Malloc((MPI_MAX_INFO_VAL+1)*sizeof(char));</span>
+<span class="lineNum">      95 </span><span class="lineCov">       2192 :     ADIOI_Snprintf(value, MPI_MAX_INFO_VAL+1, &quot;%d&quot;, fd-&gt;hints-&gt;cb_nodes);</span>
+<span class="lineNum">      96 </span><span class="lineCov">       2192 :     ADIOI_Info_set(fd-&gt;info, &quot;cb_nodes&quot;, value);</span>
+<span class="lineNum">      97 </span><span class="lineCov">       2192 :     p = value;</span>
+<span class="lineNum">      98 </span>            :     /* the (by MPI rank) list of aggregators can be larger than
+<span class="lineNum">      99 </span>            :      * MPI_MAX_INFO_VAL, so we will simply truncate when we reach capacity. I
+<span class="lineNum">     100 </span>            :      * wasn't clever enough to figure out how to rewind and put '...' at the
+<span class="lineNum">     101 </span>            :      * end in the truncate case */
+<span class="lineNum">     102 </span><span class="lineCov">       4384 :     for (i=0; i&lt; fd-&gt;hints-&gt;cb_nodes; i++) {</span>
+<span class="lineNum">     103 </span><span class="lineCov">       2192 :         int incr, remain = (MPI_MAX_INFO_VAL) - (p-value);</span>
+<span class="lineNum">     104 </span><span class="lineCov">       2192 :         incr = ADIOI_Snprintf(p, remain, &quot;%d &quot;, fd-&gt;hints-&gt;ranklist[i]);</span>
+<span class="lineNum">     105 </span><span class="lineCov">       2192 :     if (incr &gt;= remain) break;</span>
+<span class="lineNum">     106 </span><span class="lineCov">       2192 :         p += incr;</span>
+<span class="lineNum">     107 </span>            :     }
+<span class="lineNum">     108 </span><span class="lineCov">       2192 :     ADIOI_Info_set(fd-&gt;info, &quot;romio_aggregator_list&quot;, value);</span>
+<span class="lineNum">     109 </span><span class="lineCov">       2192 :     ADIOI_Free(value);</span>
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span><span class="lineCov">       2192 :     return 0;</span>
+<span class="lineNum">     112 </span>            : }
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            : /* ADIOI_cb_gather_name_array() - gather a list of processor names from all processes
+<span class="lineNum">     115 </span>            :  *                          in a communicator and store them on rank 0.
+<span class="lineNum">     116 </span>            :  *
+<span class="lineNum">     117 </span>            :  * This is a collective call on the communicator(s) passed in.
+<span class="lineNum">     118 </span>            :  *
+<span class="lineNum">     119 </span>            :  * Obtains a rank-ordered list of processor names from the processes in
+<span class="lineNum">     120 </span>            :  * &quot;dupcomm&quot;.
+<span class="lineNum">     121 </span>            :  *
+<span class="lineNum">     122 </span>            :  * Returns 0 on success, -1 on failure.
+<span class="lineNum">     123 </span>            :  *
+<a name="124"><span class="lineNum">     124 </span>            :  * NOTE: Needs some work to cleanly handle out of memory cases!</a>
+<span class="lineNum">     125 </span>            :  */
+<span class="lineNum">     126 </span><span class="lineCov">       2192 : int ADIOI_cb_gather_name_array(MPI_Comm comm,</span>
+<span class="lineNum">     127 </span>            :                                MPI_Comm dupcomm,
+<span class="lineNum">     128 </span>            :                                ADIO_cb_name_array *arrayp)
+<span class="lineNum">     129 </span>            : {
+<span class="lineNum">     130 </span><span class="lineCov">       2192 :     char my_procname[MPI_MAX_PROCESSOR_NAME], **procname = 0;</span>
+<span class="lineNum">     131 </span><span class="lineCov">       2192 :     int *procname_len = NULL, my_procname_len, *disp = NULL, i;</span>
+<span class="lineNum">     132 </span>            :     int commsize, commrank, found;
+<span class="lineNum">     133 </span><span class="lineCov">       2192 :     ADIO_cb_name_array array = NULL;</span>
+<span class="lineNum">     134 </span>            :     int alloc_size;
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineCov">       2192 :     if (ADIOI_cb_config_list_keyval == MPI_KEYVAL_INVALID) {</span>
+<span class="lineNum">     137 </span>            :         /* cleaned up by ADIOI_End_call */
+<span class="lineNum">     138 </span><span class="lineCov">          4 :         MPI_Keyval_create((MPI_Copy_function *) ADIOI_cb_copy_name_array,</span>
+<span class="lineNum">     139 </span>            :                           (MPI_Delete_function *) ADIOI_cb_delete_name_array,
+<span class="lineNum">     140 </span>            :                           &amp;ADIOI_cb_config_list_keyval, NULL);
+<span class="lineNum">     141 </span>            :     }
+<span class="lineNum">     142 </span>            :     else {
+<span class="lineNum">     143 </span><span class="lineCov">       2188 :         MPI_Attr_get(comm, ADIOI_cb_config_list_keyval, (void *) &amp;array, &amp;found);</span>
+<span class="lineNum">     144 </span><span class="lineCov">       2188 :         if (found) {</span>
+<span class="lineNum">     145 </span><span class="lineCov">       2164 :             ADIOI_Assert(array != NULL);</span>
+<span class="lineNum">     146 </span><span class="lineCov">       2164 :             *arrayp = array;</span>
+<span class="lineNum">     147 </span><span class="lineCov">       2164 :             return 0;</span>
+<span class="lineNum">     148 </span>            :         }
+<span class="lineNum">     149 </span>            :     }
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span><span class="lineCov">         28 :     MPI_Comm_size(dupcomm, &amp;commsize);</span>
+<span class="lineNum">     152 </span><span class="lineCov">         28 :     MPI_Comm_rank(dupcomm, &amp;commrank);</span>
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineCov">         28 :     MPI_Get_processor_name(my_procname, &amp;my_procname_len);</span>
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            :     /* allocate space for everything */
+<span class="lineNum">     157 </span><span class="lineCov">         28 :     array = (ADIO_cb_name_array) ADIOI_Malloc(sizeof(*array));</span>
+<span class="lineNum">     158 </span><span class="lineCov">         28 :     if (array == NULL) {</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     160 </span>            :     }
+<span class="lineNum">     161 </span><span class="lineCov">         28 :     array-&gt;refct = 2; /* we're going to associate this with two comms */</span>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineCov">         28 :     if (commrank == 0) {</span>
+<span class="lineNum">     164 </span>            :         /* process 0 keeps the real list */
+<span class="lineNum">     165 </span><span class="lineCov">         12 :         array-&gt;namect = commsize;</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineCov">         12 :         array-&gt;names = (char **) ADIOI_Malloc(sizeof(char *) * commsize);</span>
+<span class="lineNum">     168 </span><span class="lineCov">         12 :         if (array-&gt;names == NULL) {</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :             return -1;</span>
+<span class="lineNum">     170 </span>            :         }
+<span class="lineNum">     171 </span><span class="lineCov">         12 :         procname = array-&gt;names; /* simpler to read */</span>
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineCov">         12 :         procname_len = (int *) ADIOI_Malloc(commsize * sizeof(int));</span>
+<span class="lineNum">     174 </span><span class="lineCov">         12 :         if (procname_len == NULL) {</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :             return -1;</span>
+<span class="lineNum">     176 </span>            :         }
+<span class="lineNum">     177 </span>            :     }
+<span class="lineNum">     178 </span>            :     else {
+<span class="lineNum">     179 </span>            :         /* everyone else just keeps an empty list as a placeholder */
+<span class="lineNum">     180 </span><span class="lineCov">         16 :         array-&gt;namect = 0;</span>
+<span class="lineNum">     181 </span><span class="lineCov">         16 :         array-&gt;names = NULL;</span>
+<span class="lineNum">     182 </span>            :     }
+<span class="lineNum">     183 </span>            :     /* gather lengths first */
+<span class="lineNum">     184 </span><span class="lineCov">         28 :     MPI_Gather(&amp;my_procname_len, 1, MPI_INT,</span>
+<span class="lineNum">     185 </span>            :                procname_len, 1, MPI_INT, 0, dupcomm);
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span><span class="lineCov">         28 :     if (commrank == 0) {</span>
+<span class="lineNum">     188 </span>            : #ifdef CB_CONFIG_LIST_DEBUG
+<span class="lineNum">     189 </span>            :         for (i=0; i &lt; commsize; i++) {
+<span class="lineNum">     190 </span>            :             FPRINTF(stderr, &quot;len[%d] = %d\n&quot;, i, procname_len[i]);
+<span class="lineNum">     191 </span>            :         }
+<span class="lineNum">     192 </span>            : #endif
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineCov">         12 :         alloc_size = 0;</span>
+<span class="lineNum">     195 </span><span class="lineCov">         40 :         for (i=0; i &lt; commsize; i++) {</span>
+<span class="lineNum">     196 </span>            :             /* add one to the lengths because we need to count the
+<span class="lineNum">     197 </span>            :              * terminator, and we are going to use this list of lengths
+<span class="lineNum">     198 </span>            :              * again in the gatherv.
+<span class="lineNum">     199 </span>            :              */
+<span class="lineNum">     200 </span><span class="lineCov">         28 :             alloc_size += ++procname_len[i];</span>
+<span class="lineNum">     201 </span>            :         }
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span><span class="lineCov">         12 :         procname[0] = ADIOI_Malloc(alloc_size);</span>
+<span class="lineNum">     204 </span><span class="lineCov">         12 :         if (procname[0] == NULL) {</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :             return -1;</span>
+<span class="lineNum">     206 </span>            :         }
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineCov">         28 :         for (i=1; i &lt; commsize; i++) {</span>
+<span class="lineNum">     209 </span><span class="lineCov">         16 :             procname[i] = procname[i-1] + procname_len[i-1];</span>
+<span class="lineNum">     210 </span>            :         }
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            :         /* create our list of displacements for the gatherv.  we're going
+<span class="lineNum">     213 </span>            :          * to do everything relative to the start of the region allocated
+<span class="lineNum">     214 </span>            :          * for procname[0]
+<span class="lineNum">     215 </span>            :          */
+<span class="lineNum">     216 </span><span class="lineCov">         12 :         disp = ADIOI_Malloc(commsize * sizeof(int));</span>
+<span class="lineNum">     217 </span><span class="lineCov">         12 :         disp[0] = 0;</span>
+<span class="lineNum">     218 </span><span class="lineCov">         28 :         for (i=1; i &lt; commsize; i++) {</span>
+<span class="lineNum">     219 </span><span class="lineCov">         16 :             disp[i] = (int) (procname[i] - procname[0]);</span>
+<span class="lineNum">     220 </span>            :         }
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            :     }
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            :     /* now gather strings */
+<span class="lineNum">     225 </span><span class="lineCov">         28 :     if (commrank == 0) {</span>
+<span class="lineNum">     226 </span><span class="lineCov">         12 :         MPI_Gatherv(my_procname, my_procname_len + 1, MPI_CHAR,</span>
+<span class="lineNum">     227 </span>            :                     procname[0], procname_len, disp, MPI_CHAR,
+<span class="lineNum">     228 </span>            :                     0, dupcomm);
+<span class="lineNum">     229 </span>            :     }
+<span class="lineNum">     230 </span>            :     else {
+<span class="lineNum">     231 </span>            :         /* if we didn't do this, we would need to allocate procname[]
+<span class="lineNum">     232 </span>            :          * on all processes...which seems a little silly.
+<span class="lineNum">     233 </span>            :          */
+<span class="lineNum">     234 </span><span class="lineCov">         16 :         MPI_Gatherv(my_procname, my_procname_len + 1, MPI_CHAR,</span>
+<span class="lineNum">     235 </span>            :                     NULL, NULL, NULL, MPI_CHAR, 0, dupcomm);
+<span class="lineNum">     236 </span>            :     }
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span><span class="lineCov">         28 :     if (commrank == 0) {</span>
+<span class="lineNum">     239 </span>            :         /* no longer need the displacements or lengths */
+<span class="lineNum">     240 </span><span class="lineCov">         12 :         ADIOI_Free(disp);</span>
+<span class="lineNum">     241 </span><span class="lineCov">         12 :         ADIOI_Free(procname_len);</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            : #ifdef CB_CONFIG_LIST_DEBUG
+<span class="lineNum">     244 </span>            :         for (i=0; i &lt; commsize; i++) {
+<span class="lineNum">     245 </span>            :             FPRINTF(stderr, &quot;name[%d] = %s\n&quot;, i, procname[i]);
+<span class="lineNum">     246 </span>            :         }
+<span class="lineNum">     247 </span>            : #endif
+<span class="lineNum">     248 </span>            :     }
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span>            :     /* store the attribute; we want to store SOMETHING on all processes
+<span class="lineNum">     251 </span>            :      * so that they can all tell if we have gone through this procedure
+<span class="lineNum">     252 </span>            :      * or not for the given communicator.
+<span class="lineNum">     253 </span>            :      *
+<span class="lineNum">     254 </span>            :      * specifically we put it on both the original comm, so we can find
+<span class="lineNum">     255 </span>            :      * it next time an open is performed on this same comm, and on the
+<span class="lineNum">     256 </span>            :      * dupcomm, so we can use it in I/O operations.
+<span class="lineNum">     257 </span>            :      */
+<span class="lineNum">     258 </span><span class="lineCov">         28 :     MPI_Attr_put(comm, ADIOI_cb_config_list_keyval, array);</span>
+<span class="lineNum">     259 </span><span class="lineCov">         28 :     MPI_Attr_put(dupcomm, ADIOI_cb_config_list_keyval, array);</span>
+<span class="lineNum">     260 </span><span class="lineCov">         28 :     *arrayp = array;</span>
+<span class="lineNum">     261 </span><span class="lineCov">         28 :     return 0;</span>
+<span class="lineNum">     262 </span>            : }
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span>            : /* ADIOI_cb_config_list_parse() - parse the cb_config_list and build the
+<span class="lineNum">     266 </span>            :  * ranklist
+<span class="lineNum">     267 </span>            :  *
+<span class="lineNum">     268 </span>            :  * Parameters:
+<span class="lineNum">     269 </span>            :  * (pretty self explanatory)
+<span class="lineNum">     270 </span>            :  *
+<a name="271"><span class="lineNum">     271 </span>            :  * Returns number of ranks allocated in parsing, -1 on error.</a>
+<span class="lineNum">     272 </span>            :  */
+<span class="lineNum">     273 </span><span class="lineCov">        904 : int ADIOI_cb_config_list_parse(char *config_list,</span>
+<span class="lineNum">     274 </span>            :                          ADIO_cb_name_array array,
+<span class="lineNum">     275 </span>            :                          int ranklist[],
+<span class="lineNum">     276 </span>            :                          int cb_nodes)
+<span class="lineNum">     277 </span>            : {
+<span class="lineNum">     278 </span><span class="lineCov">        904 :     int token, max_procs, cur_rank = 0, nr_procnames;</span>
+<span class="lineNum">     279 </span>            :     char *cur_procname, *cur_procname_p, **procnames;
+<span class="lineNum">     280 </span>            :     char *used_procnames;
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span><span class="lineCov">        904 :     nr_procnames = array-&gt;namect;</span>
+<span class="lineNum">     283 </span><span class="lineCov">        904 :     procnames = array-&gt;names;</span>
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            :     /* nothing big goes on the stack */
+<span class="lineNum">     286 </span>            :     /* we use info val here and for yylval because we know the string
+<span class="lineNum">     287 </span>            :      * cannot be any bigger than this.
+<span class="lineNum">     288 </span>            :      */
+<span class="lineNum">     289 </span><span class="lineCov">        904 :     cur_procname = ADIOI_Malloc((MPI_MAX_INFO_VAL+1) * sizeof(char));</span>
+<span class="lineNum">     290 </span><span class="lineCov">        904 :     if (cur_procname == NULL) {</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     292 </span>            :     }
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineCov">        904 :     yylval = ADIOI_Malloc((MPI_MAX_INFO_VAL+1) * sizeof(char));</span>
+<span class="lineNum">     295 </span><span class="lineCov">        904 :     if (yylval == NULL) {</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :         ADIOI_Free(cur_procname);</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     298 </span>            :     }
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span><span class="lineCov">        904 :     token_ptr = config_list;</span>
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            :     /* right away let's make sure cb_nodes isn't too big */
+<span class="lineNum">     303 </span><span class="lineCov">        904 :     if (cb_nodes &gt; nr_procnames) cb_nodes = nr_procnames;</span>
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            :     /* used_procnames is used as a mask so that we don't have to destroy
+<span class="lineNum">     306 </span>            :      * our procnames array
+<span class="lineNum">     307 </span>            :      */
+<span class="lineNum">     308 </span><span class="lineCov">        904 :     used_procnames = ADIOI_Malloc(array-&gt;namect * sizeof(char));</span>
+<span class="lineNum">     309 </span><span class="lineCov">        904 :     if (used_procnames == NULL) {</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :         ADIOI_Free(cur_procname);</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :         ADIOI_Free(yylval);</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :         yylval = NULL;</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     314 </span>            :     }
+<span class="lineNum">     315 </span><span class="lineCov">        904 :     memset(used_procnames, 0, array-&gt;namect);</span>
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span>            :     /* optimization for &quot;*:*&quot;; arguably this could be done before we
+<span class="lineNum">     318 </span>            :      * build the list of processor names...but that would make things
+<span class="lineNum">     319 </span>            :      * messy.
+<span class="lineNum">     320 </span>            :      */
+<span class="lineNum">     321 </span><span class="lineCov">        904 :     if (strcmp(config_list, &quot;*:*&quot;) == 0) {</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         for (cur_rank = 0; cur_rank &lt; cb_nodes; cur_rank++) {</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :             ranklist[cur_rank] = cur_rank;</span>
+<span class="lineNum">     324 </span>            :         }
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :         ADIOI_Free(cur_procname);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :         ADIOI_Free(yylval);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         yylval = NULL;</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :         ADIOI_Free(used_procnames);</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         return cb_nodes;</span>
+<span class="lineNum">     330 </span>            :     }
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span><span class="lineCov">       2712 :     while (cur_rank &lt; cb_nodes) {</span>
+<span class="lineNum">     333 </span><span class="lineCov">       1544 :         token = cb_config_list_lex();</span>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineCov">       1544 :         if (token == AGG_EOS) {</span>
+<span class="lineNum">     336 </span><span class="lineCov">        640 :             ADIOI_Free(cur_procname);</span>
+<span class="lineNum">     337 </span><span class="lineCov">        640 :             ADIOI_Free(yylval);</span>
+<span class="lineNum">     338 </span><span class="lineCov">        640 :             yylval = NULL;</span>
+<span class="lineNum">     339 </span><span class="lineCov">        640 :             ADIOI_Free(used_procnames);</span>
+<span class="lineNum">     340 </span><span class="lineCov">        640 :             return cur_rank;</span>
+<span class="lineNum">     341 </span>            :         }
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineCov">        904 :         if (token != AGG_WILDCARD &amp;&amp; token != AGG_STRING) {</span>
+<span class="lineNum">     344 </span>            :             /* maybe ignore and try to keep going? */
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :             FPRINTF(stderr, &quot;error parsing config list\n&quot;);</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :             ADIOI_Free(cur_procname);</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :             ADIOI_Free(yylval);</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :             yylval = NULL;</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :             ADIOI_Free(used_procnames);</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :             return cur_rank;</span>
+<span class="lineNum">     351 </span>            :         }
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span><span class="lineCov">        904 :         if (token == AGG_WILDCARD) {</span>
+<span class="lineNum">     354 </span><span class="lineCov">        904 :             cur_procname_p = NULL;</span>
+<span class="lineNum">     355 </span>            :         }
+<span class="lineNum">     356 </span>            :         else {
+<span class="lineNum">     357 </span>            :             /* AGG_STRING is the only remaining case */
+<span class="lineNum">     358 </span>            :             /* save procname (for now) */
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :             ADIOI_Strncpy(cur_procname, yylval, MPI_MAX_INFO_VAL+1);</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :             cur_procname_p = cur_procname;</span>
+<span class="lineNum">     361 </span>            :         }
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span>            :         /* after we have saved the current procname, we can grab max_procs */
+<span class="lineNum">     364 </span><span class="lineCov">        904 :         max_procs = get_max_procs(cb_nodes);</span>
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            : #ifdef CB_CONFIG_LIST_DEBUG
+<span class="lineNum">     367 </span>            :         if (token == AGG_WILDCARD) {
+<span class="lineNum">     368 </span>            :             FPRINTF(stderr, &quot;looking for *:%d\n&quot;, max_procs);
+<span class="lineNum">     369 </span>            :         }
+<span class="lineNum">     370 </span>            :         else {
+<span class="lineNum">     371 </span>            :             FPRINTF(stderr, &quot;looking for %s:%d\n&quot;, cur_procname, max_procs);
+<span class="lineNum">     372 </span>            :         }
+<span class="lineNum">     373 </span>            : #endif
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span>            :         /* do the matching for this piece of the cb_config_list */
+<span class="lineNum">     376 </span><span class="lineCov">        904 :         match_procs(cur_procname_p, max_procs, procnames, used_procnames,</span>
+<span class="lineNum">     377 </span>            :                     nr_procnames, ranklist, cb_nodes, &amp;cur_rank);
+<span class="lineNum">     378 </span>            :     }
+<span class="lineNum">     379 </span><span class="lineCov">        264 :     ADIOI_Free(cur_procname);</span>
+<span class="lineNum">     380 </span><span class="lineCov">        264 :     ADIOI_Free(yylval);</span>
+<span class="lineNum">     381 </span><span class="lineCov">        264 :     yylval = NULL;</span>
+<span class="lineNum">     382 </span><span class="lineCov">        264 :     ADIOI_Free(used_procnames);</span>
+<span class="lineNum">     383 </span><span class="lineCov">        264 :     return cur_rank;</span>
+<span class="lineNum">     384 </span>            : }
+<span class="lineNum">     385 </span>            : 
+<a name="386"><span class="lineNum">     386 </span>            : /* ADIOI_cb_copy_name_array() - attribute copy routine</a>
+<span class="lineNum">     387 </span>            :  */
+<span class="lineNum">     388 </span><span class="lineCov">       2164 : int ADIOI_cb_copy_name_array(MPI_Comm comm,</span>
+<span class="lineNum">     389 </span>            :                        int keyval,
+<span class="lineNum">     390 </span>            :                        void *extra,
+<span class="lineNum">     391 </span>            :                        void *attr_in,
+<span class="lineNum">     392 </span>            :                        void **attr_out,
+<span class="lineNum">     393 </span>            :                        int *flag)
+<span class="lineNum">     394 </span>            : {
+<span class="lineNum">     395 </span>            :     ADIO_cb_name_array array;
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span>            :     ADIOI_UNREFERENCED_ARG(comm);
+<span class="lineNum">     398 </span>            :     ADIOI_UNREFERENCED_ARG(keyval);
+<span class="lineNum">     399 </span>            :     ADIOI_UNREFERENCED_ARG(extra);
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineCov">       2164 :     array = (ADIO_cb_name_array) attr_in;</span>
+<span class="lineNum">     402 </span><span class="lineCov">       2164 :     if (array != NULL) array-&gt;refct++;</span>
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineCov">       2164 :     *attr_out = attr_in;</span>
+<span class="lineNum">     405 </span><span class="lineCov">       2164 :     *flag = 1; /* make a copy in the new communicator */</span>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span><span class="lineCov">       2164 :     return MPI_SUCCESS;</span>
+<span class="lineNum">     408 </span>            : }
+<span class="lineNum">     409 </span>            : 
+<a name="410"><span class="lineNum">     410 </span>            : /* ADIOI_cb_delete_name_array() - attribute destructor</a>
+<span class="lineNum">     411 </span>            :  */
+<span class="lineNum">     412 </span><span class="lineCov">       2200 : int ADIOI_cb_delete_name_array(MPI_Comm comm,</span>
+<span class="lineNum">     413 </span>            :                          int keyval,
+<span class="lineNum">     414 </span>            :                          void *attr_val,
+<span class="lineNum">     415 </span>            :                          void *extra)
+<span class="lineNum">     416 </span>            : {
+<span class="lineNum">     417 </span>            :     ADIO_cb_name_array array;
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :     ADIOI_UNREFERENCED_ARG(comm);
+<span class="lineNum">     420 </span>            :     ADIOI_UNREFERENCED_ARG(extra);
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span><span class="lineCov">       2200 :     array = (ADIO_cb_name_array) attr_val;</span>
+<span class="lineNum">     423 </span><span class="lineCov">       2200 :     ADIOI_Assert(array != NULL);</span>
+<span class="lineNum">     424 </span><span class="lineCov">       2200 :     array-&gt;refct--;</span>
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span><span class="lineCov">       2200 :     if (array-&gt;refct &lt;= 0) {</span>
+<span class="lineNum">     427 </span>            :         /* time to free the structures (names, array of ptrs to names, struct)
+<span class="lineNum">     428 </span>            :          */
+<span class="lineNum">     429 </span><span class="lineCov">          8 :         if (array-&gt;namect) {</span>
+<span class="lineNum">     430 </span>            :             /* Note that array-&gt;names[i], where i &gt; 0,
+<span class="lineNum">     431 </span>            :              * are just pointers into the allocated region array-&gt;names[0]
+<span class="lineNum">     432 </span>            :              */
+<span class="lineNum">     433 </span><span class="lineCov">          5 :             ADIOI_Free(array-&gt;names[0]);</span>
+<span class="lineNum">     434 </span>            :         }
+<span class="lineNum">     435 </span><span class="lineCov">          8 :         if (array-&gt;names != NULL) ADIOI_Free(array-&gt;names);</span>
+<span class="lineNum">     436 </span><span class="lineCov">          8 :         ADIOI_Free(array);</span>
+<span class="lineNum">     437 </span>            :     }
+<span class="lineNum">     438 </span><span class="lineCov">       2200 :     return MPI_SUCCESS;</span>
+<span class="lineNum">     439 </span>            : }
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span>            : /* match_procs() - given a name (or NULL for wildcard) and a max. number
+<span class="lineNum">     442 </span>            :  *                 of aggregator processes (per processor name), this
+<span class="lineNum">     443 </span>            :  *                 matches in the procnames[] array and puts appropriate
+<span class="lineNum">     444 </span>            :  *                 ranks in the ranks array.
+<span class="lineNum">     445 </span>            :  *
+<span class="lineNum">     446 </span>            :  * Parameters:
+<span class="lineNum">     447 </span>            :  * name - processor name (or NULL for wildcard)
+<span class="lineNum">     448 </span>            :  * max_per_proc - maximum # of processes to use for aggregation from a
+<span class="lineNum">     449 </span>            :  *                single processor
+<span class="lineNum">     450 </span>            :  * procnames - array of processor names
+<span class="lineNum">     451 </span>            :  * nr_procnames - length of procnames array
+<span class="lineNum">     452 </span>            :  * ranks - array of process ranks
+<span class="lineNum">     453 </span>            :  * nr_ranks - length of process ranks array (also max. # of aggregators)
+<span class="lineNum">     454 </span>            :  * nr_ranks_allocated - # of array entries which have been filled in,
+<span class="lineNum">     455 </span>            :  *                      which is also the index to the first empty entry
+<span class="lineNum">     456 </span>            :  *
+<a name="457"><span class="lineNum">     457 </span>            :  * Returns number of matches.</a>
+<span class="lineNum">     458 </span>            :  */
+<span class="lineNum">     459 </span><span class="lineCov">        904 : static int match_procs(char *name,</span>
+<span class="lineNum">     460 </span>            :                        int max_per_proc,
+<span class="lineNum">     461 </span>            :                        char *procnames[],
+<span class="lineNum">     462 </span>            :                        char used_procnames[],
+<span class="lineNum">     463 </span>            :                        int nr_procnames,
+<span class="lineNum">     464 </span>            :                        int ranks[],
+<span class="lineNum">     465 </span>            :                        int nr_ranks,
+<span class="lineNum">     466 </span>            :                        int *nr_ranks_allocated)
+<span class="lineNum">     467 </span>            : {
+<span class="lineNum">     468 </span>            :     int wildcard_proc, cur_proc, old_nr_allocated, ret;
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span>            :     /* save this so we can report on progress */
+<span class="lineNum">     471 </span><span class="lineCov">        904 :     old_nr_allocated = *nr_ranks_allocated;</span>
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span><span class="lineCov">        904 :     if (name == NULL) {</span>
+<span class="lineNum">     474 </span>            :         /* wildcard case */
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span>            :         /* optimize for *:0 case */
+<span class="lineNum">     477 </span><span class="lineCov">        904 :         if (max_per_proc == 0) {</span>
+<span class="lineNum">     478 </span>            :             /* loop through procnames and mark them all as used */
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :             for (cur_proc = 0; cur_proc &lt; nr_procnames; cur_proc++) {</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :                 used_procnames[cur_proc] = 1;</span>
+<span class="lineNum">     481 </span>            :             }
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :             return 0;</span>
+<span class="lineNum">     483 </span>            :         }
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span>            :         /* the plan here is to start at the beginning of the procnames
+<span class="lineNum">     486 </span>            :          * array looking for processor names to apply the wildcard to.
+<span class="lineNum">     487 </span>            :          *
+<span class="lineNum">     488 </span>            :          * we set wildcard_proc to 0 here but do the search inside the
+<span class="lineNum">     489 </span>            :          * while loop so that we aren't starting our search from the
+<span class="lineNum">     490 </span>            :          * beginning of the procnames array each time.
+<span class="lineNum">     491 </span>            :          */
+<span class="lineNum">     492 </span><span class="lineCov">        904 :         wildcard_proc = 0;</span>
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span><span class="lineCov">       2712 :         while (nr_ranks - *nr_ranks_allocated &gt; 0) {</span>
+<span class="lineNum">     495 </span>            :             /* find a name */
+<span class="lineNum">     496 </span><span class="lineCov">       6568 :             while ((wildcard_proc &lt; nr_procnames) &amp;&amp;</span>
+<span class="lineNum">     497 </span><span class="lineCov">       2192 :                    (used_procnames[wildcard_proc] != 0))</span>
+<span class="lineNum">     498 </span>            :             {
+<span class="lineNum">     499 </span><span class="lineCov">       1288 :                 wildcard_proc++;</span>
+<span class="lineNum">     500 </span>            :             }
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span><span class="lineCov">       1544 :             if (wildcard_proc == nr_procnames) {</span>
+<span class="lineNum">     503 </span>            :                 /* we have used up the entire procnames list */
+<span class="lineNum">     504 </span><span class="lineCov">        640 :                 return *nr_ranks_allocated - old_nr_allocated;</span>
+<span class="lineNum">     505 </span>            :             }
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span>            : #ifdef CB_CONFIG_LIST_DEBUG
+<span class="lineNum">     508 </span>            :             FPRINTF(stderr, &quot;performing wildcard match (*:%d) starting with %s (%d)\n&quot;,
+<span class="lineNum">     509 </span>            :                    max_per_proc, procnames[wildcard_proc], wildcard_proc);
+<span class="lineNum">     510 </span>            : #endif
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span><span class="lineCov">        904 :             cur_proc = wildcard_proc;</span>
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span>            : #ifdef CB_CONFIG_LIST_DEBUG
+<span class="lineNum">     515 </span>            :             FPRINTF(stderr, &quot;  assigning name %s (%d) to rank %d in mapping\n&quot;,
+<span class="lineNum">     516 </span>            :                    procnames[cur_proc], cur_proc, *nr_ranks_allocated);
+<span class="lineNum">     517 </span>            : #endif
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span>            :             /* alloc max_per_proc from this host; cur_proc points to
+<span class="lineNum">     520 </span>            :              * the first one.  We want to save this name for use in
+<span class="lineNum">     521 </span>            :              * our while loop.
+<span class="lineNum">     522 </span>            :              */
+<span class="lineNum">     523 </span><span class="lineCov">        904 :             ranks[*nr_ranks_allocated] = cur_proc;</span>
+<span class="lineNum">     524 </span><span class="lineCov">        904 :             *nr_ranks_allocated = *nr_ranks_allocated + 1;</span>
+<span class="lineNum">     525 </span><span class="lineCov">        904 :             cur_proc++;</span>
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span>            :             /* so, to accomplish this we use the match_this_proc() to
+<span class="lineNum">     528 </span>            :              * alloc max_per_proc-1.  we increment cur_proc so that the
+<span class="lineNum">     529 </span>            :              * procnames[] entry doesn't get trashed.  then AFTER the call
+<span class="lineNum">     530 </span>            :              * we clean up the first instance of the name.
+<span class="lineNum">     531 </span>            :              */
+<span class="lineNum">     532 </span><span class="lineCov">        904 :             ret = match_this_proc(procnames[wildcard_proc],  cur_proc,</span>
+<span class="lineNum">     533 </span>            :                                   max_per_proc-1, procnames, used_procnames,
+<span class="lineNum">     534 </span>            :                                   nr_procnames,
+<span class="lineNum">     535 </span>            :                                   ranks, nr_ranks, *nr_ranks_allocated);
+<span class="lineNum">     536 </span><span class="lineCov">        904 :             if (ret &gt; 0) *nr_ranks_allocated = *nr_ranks_allocated + ret;</span>
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span>            :             /* clean up and point wildcard_proc to the next entry, since
+<span class="lineNum">     539 </span>            :              * we know that this one is NULL now.
+<span class="lineNum">     540 </span>            :              */
+<span class="lineNum">     541 </span><span class="lineCov">        904 :             used_procnames[wildcard_proc] = 1;</span>
+<span class="lineNum">     542 </span><span class="lineCov">        904 :             wildcard_proc++;</span>
+<span class="lineNum">     543 </span>            :         }
+<span class="lineNum">     544 </span>            :     }
+<span class="lineNum">     545 </span>            :     else {
+<span class="lineNum">     546 </span>            :         /* specific host was specified; this one is easy */
+<span class="lineNum">     547 </span>            : #ifdef CB_CONFIG_LIST_DEBUG
+<span class="lineNum">     548 </span>            :         FPRINTF(stderr, &quot;performing name match (%s:%d)\n&quot;, name, max_per_proc);
+<span class="lineNum">     549 </span>            : #endif
+<span class="lineNum">     550 </span>            : 
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :         ret = match_this_proc(name, 0, max_per_proc, procnames, used_procnames,</span>
+<span class="lineNum">     552 </span>            :                               nr_procnames, ranks, nr_ranks,
+<span class="lineNum">     553 </span>            :                               *nr_ranks_allocated);
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :         if (ret &gt; 0) *nr_ranks_allocated = *nr_ranks_allocated + ret;</span>
+<span class="lineNum">     555 </span>            :     }
+<span class="lineNum">     556 </span><span class="lineCov">        264 :     return *nr_ranks_allocated - old_nr_allocated;</span>
+<span class="lineNum">     557 </span>            : }
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span>            : /* match_this_proc() - find each instance of processor name &quot;name&quot; in
+<span class="lineNum">     560 </span>            :  *                     the &quot;procnames&quot; array, starting with index &quot;cur_proc&quot;
+<span class="lineNum">     561 </span>            :  *                     and add the first &quot;max_matches&quot; into the &quot;ranks&quot;
+<span class="lineNum">     562 </span>            :  *                     array.  remove all instances of &quot;name&quot; from
+<span class="lineNum">     563 </span>            :  *                     &quot;procnames&quot;.
+<span class="lineNum">     564 </span>            :  *
+<span class="lineNum">     565 </span>            :  * Parameters:
+<span class="lineNum">     566 </span>            :  * name - processor name to match
+<span class="lineNum">     567 </span>            :  * cur_proc - index into procnames[] at which to start matching
+<span class="lineNum">     568 </span>            :  * procnames - array of processor names
+<span class="lineNum">     569 </span>            :  * used_procnames - array of values indicating if a given procname has
+<span class="lineNum">     570 </span>            :  *                  been allocated or removed already
+<span class="lineNum">     571 </span>            :  * nr_procnames - length of procnames array
+<span class="lineNum">     572 </span>            :  * ranks - array of processor ranks
+<span class="lineNum">     573 </span>            :  * nr_ranks - length of ranks array
+<span class="lineNum">     574 </span>            :  * nr_ranks_allocated - number of ranks already filled in, or the next
+<span class="lineNum">     575 </span>            :  *                      entry to fill in (equivalent)
+<span class="lineNum">     576 </span>            :  *
+<a name="577"><span class="lineNum">     577 </span>            :  * Returns number of ranks filled in (allocated).</a>
+<span class="lineNum">     578 </span>            :  */
+<span class="lineNum">     579 </span><span class="lineCov">        904 : static int match_this_proc(char *name,</span>
+<span class="lineNum">     580 </span>            :                            int cur_proc,
+<span class="lineNum">     581 </span>            :                            int max_matches,
+<span class="lineNum">     582 </span>            :                            char *procnames[],
+<span class="lineNum">     583 </span>            :                            char used_procnames[],
+<span class="lineNum">     584 </span>            :                            int nr_procnames,
+<span class="lineNum">     585 </span>            :                            int ranks[],
+<span class="lineNum">     586 </span>            :                            int nr_ranks,
+<span class="lineNum">     587 </span>            :                            int nr_ranks_allocated)
+<span class="lineNum">     588 </span>            : {
+<span class="lineNum">     589 </span>            :     int ranks_remaining, nr_to_alloc, old_nr_allocated;
+<span class="lineNum">     590 </span>            : 
+<span class="lineNum">     591 </span><span class="lineCov">        904 :     old_nr_allocated = nr_ranks_allocated;</span>
+<span class="lineNum">     592 </span>            : 
+<span class="lineNum">     593 </span>            :     /* calculate how many ranks we want to allocate */
+<span class="lineNum">     594 </span><span class="lineCov">        904 :     ranks_remaining = nr_ranks - nr_ranks_allocated;</span>
+<span class="lineNum">     595 </span><span class="lineCov">        904 :     nr_to_alloc = (max_matches &lt; ranks_remaining) ?</span>
+<span class="lineNum">     596 </span>            :         max_matches : ranks_remaining;
+<span class="lineNum">     597 </span>            : 
+<span class="lineNum">     598 </span><span class="lineCov">       1808 :     while (nr_to_alloc &gt; 0) {</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :         cur_proc = find_name(name, procnames, used_procnames, nr_procnames,</span>
+<span class="lineNum">     600 </span>            :                              cur_proc);
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :         if (cur_proc &lt; 0) {</span>
+<span class="lineNum">     602 </span>            :             /* didn't find it */
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :             return nr_ranks_allocated - old_nr_allocated;</span>
+<span class="lineNum">     604 </span>            :         }
+<span class="lineNum">     605 </span>            : 
+<span class="lineNum">     606 </span>            :         /* need bounds checking on ranks */
+<span class="lineNum">     607 </span>            : #ifdef CB_CONFIG_LIST_DEBUG
+<span class="lineNum">     608 </span>            :         FPRINTF(stderr, &quot;  assigning name %s (%d) to rank %d in mapping\n&quot;,
+<span class="lineNum">     609 </span>            :                procnames[cur_proc], cur_proc, nr_ranks_allocated);
+<span class="lineNum">     610 </span>            : #endif
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :         ranks[nr_ranks_allocated] = cur_proc;</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :         nr_ranks_allocated++;</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :         used_procnames[cur_proc] = 1;</span>
+<span class="lineNum">     615 </span>            : 
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :         cur_proc++;</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :         nr_to_alloc--;</span>
+<span class="lineNum">     618 </span>            :     }
+<span class="lineNum">     619 </span>            : 
+<span class="lineNum">     620 </span>            :     /* take all other instances of this host out of the list */
+<span class="lineNum">     621 </span><span class="lineCov">       4000 :     while (cur_proc &gt;= 0) {</span>
+<span class="lineNum">     622 </span><span class="lineCov">       2192 :         cur_proc = find_name(name, procnames, used_procnames, nr_procnames,</span>
+<span class="lineNum">     623 </span>            :                              cur_proc);
+<span class="lineNum">     624 </span><span class="lineCov">       2192 :         if (cur_proc &gt;= 0) {</span>
+<span class="lineNum">     625 </span>            : #ifdef CB_CONFIG_LIST_DEBUG
+<span class="lineNum">     626 </span>            :             FPRINTF(stderr, &quot;  taking name %s (%d) out of procnames\n&quot;,
+<span class="lineNum">     627 </span>            :                    procnames[cur_proc], cur_proc);
+<span class="lineNum">     628 </span>            : #endif
+<span class="lineNum">     629 </span><span class="lineCov">       1288 :             used_procnames[cur_proc] = 1;</span>
+<span class="lineNum">     630 </span><span class="lineCov">       1288 :             cur_proc++;</span>
+<span class="lineNum">     631 </span>            :         }
+<span class="lineNum">     632 </span>            :     }
+<span class="lineNum">     633 </span><span class="lineCov">        904 :     return nr_ranks_allocated - old_nr_allocated;</span>
+<span class="lineNum">     634 </span>            : }
+<span class="lineNum">     635 </span>            : 
+<span class="lineNum">     636 </span>            : 
+<span class="lineNum">     637 </span>            : /* find_name() - finds the first entry in procnames[] which matches name,
+<span class="lineNum">     638 </span>            :  *               starting at index start_ind
+<span class="lineNum">     639 </span>            :  *
+<a name="640"><span class="lineNum">     640 </span>            :  * Returns an index [0..nr_procnames-1] on success, -1 if not found.</a>
+<span class="lineNum">     641 </span>            :  */
+<span class="lineNum">     642 </span><span class="lineCov">       2192 : static int find_name(char *name,</span>
+<span class="lineNum">     643 </span>            :                      char *procnames[],
+<span class="lineNum">     644 </span>            :                      char used_procnames[],
+<span class="lineNum">     645 </span>            :                      int nr_procnames,
+<span class="lineNum">     646 </span>            :                      int start_ind)
+<span class="lineNum">     647 </span>            : {
+<span class="lineNum">     648 </span>            :     int i;
+<span class="lineNum">     649 </span>            : 
+<span class="lineNum">     650 </span><span class="lineCov">       2192 :     for (i=start_ind; i &lt; nr_procnames; i++) {</span>
+<span class="lineNum">     651 </span><span class="lineCov">       1288 :         if (!used_procnames[i] &amp;&amp; !strcmp(name, procnames[i])) break;</span>
+<span class="lineNum">     652 </span>            :     }
+<span class="lineNum">     653 </span>            : 
+<span class="lineNum">     654 </span><span class="lineCov">       2192 :     if (i &lt; nr_procnames) return i;</span>
+<span class="lineNum">     655 </span><span class="lineCov">        904 :     else return -1;</span>
+<span class="lineNum">     656 </span>            : }
+<span class="lineNum">     657 </span>            : 
+<span class="lineNum">     658 </span>            : /* get_max_procs() - grab the maximum number of processes to use out of
+<span class="lineNum">     659 </span>            :  *                   the cb_config_list string
+<span class="lineNum">     660 </span>            :  *
+<span class="lineNum">     661 </span>            :  * Parameters:
+<span class="lineNum">     662 </span>            :  * cb_nodes - cb_nodes value.  this is returned when a &quot;*&quot; is encountered
+<span class="lineNum">     663 </span>            :  *            as the max_procs value.
+<span class="lineNum">     664 </span>            :  *
+<a name="665"><span class="lineNum">     665 </span>            :  * Returns # of processes, or -1 on error.</a>
+<span class="lineNum">     666 </span>            :  */
+<span class="lineNum">     667 </span><span class="lineCov">        904 : static int get_max_procs(int cb_nodes)</span>
+<span class="lineNum">     668 </span>            : {
+<span class="lineNum">     669 </span><span class="lineCov">        904 :     int token, max_procs = -1;</span>
+<span class="lineNum">     670 </span>            :     char *errptr;
+<span class="lineNum">     671 </span>            : 
+<span class="lineNum">     672 </span><span class="lineCov">        904 :     token = cb_config_list_lex();</span>
+<span class="lineNum">     673 </span>            : 
+<span class="lineNum">     674 </span><span class="lineCov">        904 :     switch(token) {</span>
+<span class="lineNum">     675 </span>            :     case AGG_EOS:
+<span class="lineNum">     676 </span>            :     case AGG_COMMA:
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :         return 1;</span>
+<span class="lineNum">     678 </span>            :     case AGG_COLON:
+<span class="lineNum">     679 </span><span class="lineCov">        904 :         token = cb_config_list_lex();</span>
+<span class="lineNum">     680 </span><span class="lineCov">        904 :         if (token != AGG_WILDCARD &amp;&amp; token != AGG_STRING) return -1;</span>
+<span class="lineNum">     681 </span><span class="lineCov">        904 :         if (token == AGG_WILDCARD) max_procs = cb_nodes;</span>
+<span class="lineNum">     682 </span><span class="lineCov">        904 :         else if (token == AGG_STRING) {</span>
+<span class="lineNum">     683 </span><span class="lineCov">        904 :             max_procs = (int)strtol(yylval, &amp;errptr, 10);</span>
+<span class="lineNum">     684 </span><span class="lineCov">        904 :             if (*errptr != '\0') {</span>
+<span class="lineNum">     685 </span>            :                 /* some garbage value; default to 1 */
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :                 max_procs = 1;</span>
+<span class="lineNum">     687 </span>            :             }
+<span class="lineNum">     688 </span>            :         }
+<span class="lineNum">     689 </span>            :         /* strip off next comma (if there is one) */
+<span class="lineNum">     690 </span><span class="lineCov">        904 :         token = cb_config_list_lex();</span>
+<span class="lineNum">     691 </span><span class="lineCov">        904 :         if (token != AGG_COMMA &amp;&amp; token != AGG_EOS) return -1;</span>
+<span class="lineNum">     692 </span>            : 
+<span class="lineNum">     693 </span>            :         /* return max_procs */
+<span class="lineNum">     694 </span><span class="lineCov">        904 :         if (max_procs &lt; 0) return -1;</span>
+<span class="lineNum">     695 </span><span class="lineCov">        904 :         else return max_procs;</span>
+<span class="lineNum">     696 </span>            :     }
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     698 </span>            : }
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span>            : 
+<span class="lineNum">     701 </span>            : /* cb_config_list_lex() - lexical analyzer for cb_config_list language
+<span class="lineNum">     702 </span>            :  *
+<span class="lineNum">     703 </span>            :  * Returns a token of types defined at top of this file.
+<span class="lineNum">     704 </span>            :  */
+<span class="lineNum">     705 </span>            : #if defined(ROMIO_GPFS)
+<span class="lineNum">     706 </span>            : /* On BlueGene, the ',' character shows up in get_processor_name, so we have to
+<span class="lineNum">     707 </span>            :  * use a different delimiter */
+<span class="lineNum">     708 </span>            : #define COLON ':'
+<span class="lineNum">     709 </span>            : #define COMMA ';'
+<span class="lineNum">     710 </span>            : #define DELIMS &quot;:;&quot;
+<span class="lineNum">     711 </span>            : #else
+<span class="lineNum">     712 </span>            : /* these tokens work for every other platform */
+<span class="lineNum">     713 </span>            : #define COLON ':'
+<span class="lineNum">     714 </span>            : #define COMMA ','
+<span class="lineNum">     715 </span>            : #define DELIMS &quot;:,&quot;
+<a name="716"><span class="lineNum">     716 </span>            : #endif</a>
+<span class="lineNum">     717 </span>            : 
+<span class="lineNum">     718 </span><span class="lineCov">       4256 : static int cb_config_list_lex(void)</span>
+<span class="lineNum">     719 </span>            : {
+<span class="lineNum">     720 </span>            :     int slen;
+<span class="lineNum">     721 </span>            : 
+<span class="lineNum">     722 </span><span class="lineCov">       4256 :     if (*token_ptr == '\0') return AGG_EOS;</span>
+<span class="lineNum">     723 </span>            : 
+<span class="lineNum">     724 </span><span class="lineCov">       2712 :     slen = (int)strcspn(token_ptr, DELIMS);</span>
+<span class="lineNum">     725 </span>            : 
+<span class="lineNum">     726 </span><span class="lineCov">       2712 :     if (*token_ptr == COLON) {</span>
+<span class="lineNum">     727 </span><span class="lineCov">        904 :         token_ptr++;</span>
+<span class="lineNum">     728 </span><span class="lineCov">        904 :         return AGG_COLON;</span>
+<span class="lineNum">     729 </span>            :     }
+<span class="lineNum">     730 </span><span class="lineCov">       1808 :     if (*token_ptr == COMMA) {</span>
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :         token_ptr++;</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :         return AGG_COMMA;</span>
+<span class="lineNum">     733 </span>            :     }
+<span class="lineNum">     734 </span>            : 
+<span class="lineNum">     735 </span><span class="lineCov">       1808 :     if (*token_ptr == '*') {</span>
+<span class="lineNum">     736 </span>            :         /* make sure that we don't have characters after the '*' */
+<span class="lineNum">     737 </span><span class="lineCov">        904 :         if (slen == 1) {</span>
+<span class="lineNum">     738 </span><span class="lineCov">        904 :             token_ptr++;</span>
+<span class="lineNum">     739 </span><span class="lineCov">        904 :             return AGG_WILDCARD;</span>
+<span class="lineNum">     740 </span>            :         }
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :         else return AGG_ERROR;</span>
+<span class="lineNum">     742 </span>            :     }
+<span class="lineNum">     743 </span>            : 
+<span class="lineNum">     744 </span>            :     /* last case: some kind of string.  for now we copy the string. */
+<span class="lineNum">     745 </span>            : 
+<span class="lineNum">     746 </span>            :     /* it would be a good idea to look at the string and make sure that
+<span class="lineNum">     747 </span>            :      * it doesn't have any illegal characters in it.  in particular we
+<span class="lineNum">     748 </span>            :      * should ensure that no one tries to use wildcards with strings
+<span class="lineNum">     749 </span>            :      * (e.g. &quot;ccn*&quot;).
+<span class="lineNum">     750 </span>            :      */
+<span class="lineNum">     751 </span><span class="lineCov">        904 :     ADIOI_Strncpy(yylval, token_ptr, slen);</span>
+<span class="lineNum">     752 </span><span class="lineCov">        904 :     yylval[slen] = '\0';</span>
+<span class="lineNum">     753 </span><span class="lineCov">        904 :     token_ptr += slen;</span>
+<span class="lineNum">     754 </span><span class="lineCov">        904 :     return AGG_STRING;</span>
+<span class="lineNum">     755 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

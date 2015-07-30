@@ -1,0 +1,428 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/bcol/basesmuma/bcol_basesmuma_allgather.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">ompi/mca/bcol/basesmuma</a> - bcol_basesmuma_allgather.c<span style="font-size: 80%;"> (source / <a href="bcol_basesmuma_allgather.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">132</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2009-2013 Oak Ridge National Laboratory.  All rights reserved.
+<span class="lineNum">       4 </span>            :  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2013-2014 Los Alamos National Security, LLC. All rights
+<span class="lineNum">       6 </span>            :  *                         reserved.
+<span class="lineNum">       7 </span>            :  * $COPYRIGHT$
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * $HEADER$
+<span class="lineNum">      12 </span>            :  */
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : #include &quot;ompi_config.h&quot;
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : #include &quot;ompi/include/ompi/constants.h&quot;
+<span class="lineNum">      17 </span>            : #include &quot;ompi/mca/bcol/base/base.h&quot;
+<span class="lineNum">      18 </span>            : #include &quot;ompi/mca/bcol/bcol.h&quot;
+<span class="lineNum">      19 </span>            : #include &quot;ompi/mca/bcol/basesmuma/bcol_basesmuma.h&quot;
+<span class="lineNum">      20 </span>            : /*
+<span class="lineNum">      21 </span>            :   #define IS_AGDATA_READY(peer, my_flag, my_sequence_number)\
+<span class="lineNum">      22 </span>            :   (((peer)-&gt;sequence_number == (my_sequence_number) &amp;&amp; \
+<span class="lineNum">      23 </span>            :   (peer)-&gt;flags[ALLGATHER_FLAG][bcol_id] &gt;= (my_flag) \
+<span class="lineNum">      24 </span>            :   )? true : false )
+<span class="lineNum">      25 </span>            : */
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #define CALC_ACTIVE_REQUESTS(active_requests,peers, tree_order) \
+<span class="lineNum">      28 </span>            :     do{                                                         \
+<span class="lineNum">      29 </span>            :         for( j = 0; j &lt; (tree_order - 1); j++){                 \
+<span class="lineNum">      30 </span>            :             if( 0 &gt; peers[j] ) {                                \
+<span class="lineNum">      31 </span>            :                 /* set the bit */                               \
+<span class="lineNum">      32 </span>            :                 *active_requests ^= (1&lt;&lt;j);                     \
+<span class="lineNum">      33 </span>            :             }                                                   \
+<span class="lineNum">      34 </span>            :         }                                                       \
+<span class="lineNum">      35 </span>            :     }while(0)
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : /*
+<span class="lineNum">      40 </span>            :  * Recursive K-ing allgather
+<span class="lineNum">      41 </span>            :  */
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : /*
+<span class="lineNum">      44 </span>            :  *
+<span class="lineNum">      45 </span>            :  * Recurssive k-ing algorithm
+<span class="lineNum">      46 </span>            :  * Example k=3 n=9
+<span class="lineNum">      47 </span>            :  *
+<span class="lineNum">      48 </span>            :  *
+<span class="lineNum">      49 </span>            :  * Number of Exchange steps = log (basek) n
+<span class="lineNum">      50 </span>            :  * Number of steps in exchange step = k (radix)
+<a name="51"><span class="lineNum">      51 </span>            :  *</a>
+<span class="lineNum">      52 </span>            :  */
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 : int bcol_basesmuma_k_nomial_allgather_init(bcol_function_args_t *input_args,</span>
+<span class="lineNum">      54 </span>            :                                            struct mca_bcol_base_function_t *const_args)
+<span class="lineNum">      55 </span>            : {
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     mca_bcol_basesmuma_module_t *bcol_module = (mca_bcol_basesmuma_module_t *) const_args-&gt;bcol_module;</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     netpatterns_k_exchange_node_t *exchange_node = &amp;bcol_module-&gt;knomial_allgather_tree;</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :     int bcol_id = (int) bcol_module-&gt;super.bcol_id;</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :     uint32_t buffer_index = input_args-&gt;buffer_index;</span>
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :     int *active_requests =</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :         &amp;(bcol_module-&gt;ml_mem.nb_coll_desc[buffer_index].active_requests);</span>
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :     int *iteration = &amp;bcol_module-&gt;ml_mem.nb_coll_desc[buffer_index].iteration;</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     int *status = &amp;bcol_module-&gt;ml_mem.nb_coll_desc[buffer_index].status;</span>
+<span class="lineNum">      65 </span>            :     int leading_dim, buff_idx, idx;
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     int64_t sequence_number = input_args-&gt;sequence_num;</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :     int my_rank = bcol_module-&gt;super.sbgp_partner_module-&gt;my_index;</span>
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            :     volatile mca_bcol_basesmuma_payload_t *data_buffs;
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            :     /* control structures */
+<span class="lineNum">      73 </span>            :     volatile mca_bcol_basesmuma_header_t *my_ctl_pointer;
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            :     volatile int8_t ready_flag;
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            :     /* initialize the iteration counter */
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     buff_idx = input_args-&gt;src_desc-&gt;buffer_index;</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     leading_dim = bcol_module-&gt;colls_no_user_data.size_of_group;</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :     idx=SM_ARRAY_INDEX(leading_dim,buff_idx,0);</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     data_buffs=(volatile mca_bcol_basesmuma_payload_t *)</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :         bcol_module-&gt;colls_with_user_data.data_buffs+idx;</span>
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            :     /* Set pointer to current proc ctrl region */
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :     my_ctl_pointer = data_buffs[my_rank].ctl_struct;</span>
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            :     /* initialize headers and ready flag */
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     BASESMUMA_HEADER_INIT(my_ctl_pointer, ready_flag, sequence_number, bcol_id);</span>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :     /* initialize these */
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     *iteration = -1;</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :     *active_requests = 0;</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     *status = ready_flag;</span>
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     if (EXTRA_NODE == exchange_node-&gt;node_type) {</span>
+<span class="lineNum">      96 </span>            :         /* I am ready at this level */
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :         opal_atomic_wmb ();</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         my_ctl_pointer-&gt;flags[ALLGATHER_FLAG][bcol_id] = ready_flag;</span>
+<span class="lineNum">      99 </span>            :     }
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     return bcol_basesmuma_k_nomial_allgather_progress (input_args, const_args);</span>
+<span class="lineNum">     102 </span>            : }
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            : 
+<a name="105"><span class="lineNum">     105 </span>            : /* allgather progress function */</a>
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 : int bcol_basesmuma_k_nomial_allgather_progress(bcol_function_args_t *input_args,</span>
+<span class="lineNum">     108 </span>            :                                                struct mca_bcol_base_function_t *const_args)
+<span class="lineNum">     109 </span>            : {
+<span class="lineNum">     110 </span>            :     /* local variables */
+<span class="lineNum">     111 </span>            :     int8_t flag_offset;
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     uint32_t buffer_index = input_args-&gt;buffer_index;</span>
+<span class="lineNum">     113 </span>            :     volatile int8_t ready_flag;
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     mca_bcol_basesmuma_module_t *bcol_module = (mca_bcol_basesmuma_module_t *) const_args-&gt;bcol_module;</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     netpatterns_k_exchange_node_t *exchange_node = &amp;bcol_module-&gt;knomial_allgather_tree;</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     int group_size = bcol_module-&gt;colls_no_user_data.size_of_group;</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     int *list_connected = bcol_module-&gt;super.list_n_connected; /* critical for hierarchical colls */</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     int bcol_id = (int) bcol_module-&gt;super.bcol_id;</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     mca_bcol_basesmuma_component_t *cm = &amp;mca_bcol_basesmuma_component;</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     int *active_requests =</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         &amp;(bcol_module-&gt;ml_mem.nb_coll_desc[buffer_index].active_requests);</span>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     int *iteration = &amp;bcol_module-&gt;ml_mem.nb_coll_desc[buffer_index].iteration;</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     int *status = &amp;bcol_module-&gt;ml_mem.nb_coll_desc[buffer_index].status;</span>
+<span class="lineNum">     125 </span>            :     int leading_dim, idx, buff_idx;
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            :     int i, j, probe;
+<span class="lineNum">     128 </span>            :     int knt;
+<span class="lineNum">     129 </span>            :     int src;
+<span class="lineNum">     130 </span>            :     int recv_offset, recv_len;
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :     int max_requests = 0; /* critical to set this */</span>
+<span class="lineNum">     132 </span>            :     int pow_k, tree_order;
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     int64_t sequence_number=input_args-&gt;sequence_num;</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     int my_rank = bcol_module-&gt;super.sbgp_partner_module-&gt;my_index;</span>
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     int pack_len = input_args-&gt;count * input_args-&gt;dtype-&gt;super.size;</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     void *data_addr = (void*)(</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :         (unsigned char *) input_args-&gt;sbuf +</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         (size_t) input_args-&gt;sbuf_offset);</span>
+<span class="lineNum">     142 </span>            :     volatile mca_bcol_basesmuma_payload_t *data_buffs;
+<span class="lineNum">     143 </span>            :     volatile char *peer_data_pointer;
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            :     /* control structures */
+<span class="lineNum">     146 </span>            :     volatile mca_bcol_basesmuma_header_t *my_ctl_pointer;
+<span class="lineNum">     147 </span>            :     volatile mca_bcol_basesmuma_header_t *peer_ctl_pointer;
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span>            : #if 0
+<span class="lineNum">     150 </span>            :     fprintf(stderr,&quot;%d: entering sm allgather progress active requests %d iter %d ready_flag %d\n&quot;, my_rank,
+<span class="lineNum">     151 </span>            :             *active_requests, *iteration, *status);
+<span class="lineNum">     152 </span>            : #endif
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     buff_idx = input_args-&gt;src_desc-&gt;buffer_index;</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     leading_dim=bcol_module-&gt;colls_no_user_data.size_of_group;</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     idx=SM_ARRAY_INDEX(leading_dim,buff_idx,0);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     data_buffs=(volatile mca_bcol_basesmuma_payload_t *)</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :         bcol_module-&gt;colls_with_user_data.data_buffs+idx;</span>
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            :     /* Set pointer to current proc ctrl region */
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :     my_ctl_pointer = data_buffs[my_rank].ctl_struct;</span>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            :     /* increment the starting flag by one and return */
+<span class="lineNum">     164 </span>            :     /* flag offset seems unnecessary here */
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     flag_offset = my_ctl_pointer-&gt;starting_flag_value[bcol_id];</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     ready_flag = *status;</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     my_ctl_pointer-&gt;sequence_number = sequence_number;</span>
+<span class="lineNum">     168 </span>            :     /* k-nomial parameters */
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :     tree_order = exchange_node-&gt;tree_order;</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     pow_k = exchange_node-&gt;log_tree_order;</span>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            :     /* calculate the maximum number of requests
+<span class="lineNum">     173 </span>            :      * at each level each rank communicates with
+<span class="lineNum">     174 </span>            :      * at most (k - 1) peers
+<span class="lineNum">     175 </span>            :      * so if we set k - 1 bit fields in &quot;max_requests&quot;, then
+<span class="lineNum">     176 </span>            :      * we have max_request  == 2^(k - 1) -1
+<span class="lineNum">     177 </span>            :      */
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :     for(i = 0; i &lt; (tree_order - 1); i++){</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         max_requests ^= (1&lt;&lt;i);</span>
+<span class="lineNum">     180 </span>            :     }
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            :     /* let's begin the collective, starting with extra ranks and their
+<span class="lineNum">     183 </span>            :      * respective proxies
+<span class="lineNum">     184 </span>            :      */
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :     if (OPAL_UNLIKELY(-1 == *iteration)) {</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :         if (EXTRA_NODE == exchange_node-&gt;node_type) {</span>
+<span class="lineNum">     188 </span>            :             /* If I'm in here, then I must be looking for data */
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :             ready_flag = flag_offset + 1 + pow_k + 2;</span>
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :             src = exchange_node-&gt;rank_extra_sources_array[0];</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :             peer_data_pointer = data_buffs[src].payload;</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :             peer_ctl_pointer = data_buffs[src].ctl_struct;</span>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            :             /* calculate the count */
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :             for (i = 0, knt = 0 ; i &lt; group_size ; ++i){</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :                 knt += list_connected[i];</span>
+<span class="lineNum">     198 </span>            :             }
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :             for (i = 0 ; i &lt; cm-&gt;num_to_probe ; ++i) {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :                 if (IS_PEER_READY(peer_ctl_pointer, ready_flag, sequence_number, ALLGATHER_FLAG, bcol_id)) {</span>
+<span class="lineNum">     202 </span>            :                     /* we receive the entire message */
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :                     opal_atomic_mb ();</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :                     memcpy (data_addr, (void *) peer_data_pointer, knt * pack_len);</span>
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :                     goto FINISHED;</span>
+<span class="lineNum">     207 </span>            :                 }
+<span class="lineNum">     208 </span>            :             }
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            :             /* haven't found it, state is saved, bail out */
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :             return BCOL_FN_STARTED;</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :         } else if (0 &lt; exchange_node-&gt;n_extra_sources) {</span>
+<span class="lineNum">     213 </span>            :             /* I am a proxy for someone */
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :             src = exchange_node-&gt;rank_extra_sources_array[0];</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :             peer_data_pointer = data_buffs[src].payload;</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :             peer_ctl_pointer = data_buffs[src].ctl_struct;</span>
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            :             /* calculate the offset */
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :             for (i = 0, knt = 0 ; i &lt; src ; ++i){</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :                 knt += list_connected[i];</span>
+<span class="lineNum">     221 </span>            :             }
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            :             /* probe for extra rank's arrival */
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :             for (i = 0 ; i &lt; cm-&gt;num_to_probe ; ++i) {</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :                 if (IS_PEER_READY(peer_ctl_pointer, ready_flag, sequence_number, ALLGATHER_FLAG, bcol_id)) {</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :                     opal_atomic_mb ();</span>
+<span class="lineNum">     227 </span>            :                     /* copy it in */
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :                     memcpy ((void *) ((uintptr_t) data_addr + knt * pack_len),</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :                             (void *) ((uintptr_t) peer_data_pointer + knt * pack_len),</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :                             pack_len * list_connected[src]);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     232 </span>            :                 }
+<span class="lineNum">     233 </span>            :             }
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :             if (i == cm-&gt;num_to_probe) {</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :                 return BCOL_FN_STARTED;</span>
+<span class="lineNum">     237 </span>            :             }
+<span class="lineNum">     238 </span>            :         }
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            :         /* bump the ready flag to indicate extra node exchange complete */
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         ++ready_flag;</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :         *iteration = 0;</span>
+<span class="lineNum">     243 </span>            :     }
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            :     /* start the recursive k - ing phase */
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     for (i = *iteration ; i &lt; pow_k ; ++i) {</span>
+<span class="lineNum">     247 </span>            :         /* I am ready at this level */
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :         opal_atomic_wmb ();</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :         my_ctl_pointer-&gt;flags[ALLGATHER_FLAG][bcol_id] = ready_flag;</span>
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :         if (0 == *active_requests) {</span>
+<span class="lineNum">     252 </span>            :             /* flip some bits, if we don't have active requests from a previous visit */
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :             CALC_ACTIVE_REQUESTS(active_requests,exchange_node-&gt;rank_exchanges[i],tree_order);</span>
+<span class="lineNum">     254 </span>            :         }
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         for (j = 0; j &lt; (tree_order - 1); ++j) {</span>
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            :             /* recv phase */
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :             src = exchange_node-&gt;rank_exchanges[i][j];</span>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :             if (src &lt; 0) {</span>
+<span class="lineNum">     262 </span>            :                 /* then not a valid rank, continue */
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     264 </span>            :             }
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :             if (!(*active_requests&amp;(1&lt;&lt;j))) {</span>
+<span class="lineNum">     267 </span>            :                 /* then this peer hasn't been processed at this level */
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :                 peer_data_pointer = data_buffs[src].payload;</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :                 peer_ctl_pointer = data_buffs[src].ctl_struct;</span>
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :                 recv_offset = exchange_node-&gt;payload_info[i][j].r_offset * pack_len;</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :                 recv_len = exchange_node-&gt;payload_info[i][j].r_len * pack_len;</span>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span>            :                 /* I am putting the probe loop as the inner most loop to achieve
+<span class="lineNum">     275 </span>            :                  * better temporal locality
+<span class="lineNum">     276 </span>            :                  */
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :                 for (probe = 0 ; probe &lt; cm-&gt;num_to_probe ; ++probe) {</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :                     if (IS_PEER_READY(peer_ctl_pointer, ready_flag, sequence_number, ALLGATHER_FLAG, bcol_id)) {</span>
+<span class="lineNum">     279 </span>            :                         /* flip the request's bit */
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :                         *active_requests ^= (1&lt;&lt;j);</span>
+<span class="lineNum">     281 </span>            :                         /* copy the data */
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :                         memcpy((void *)((unsigned char *) data_addr + recv_offset),</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :                                (void *)((unsigned char *) peer_data_pointer + recv_offset),</span>
+<span class="lineNum">     284 </span>            :                                recv_len);
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     286 </span>            :                     }
+<span class="lineNum">     287 </span>            :                 }
+<span class="lineNum">     288 </span>            :             }
+<span class="lineNum">     289 </span>            :         }
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         if( max_requests == *active_requests ){</span>
+<span class="lineNum">     292 </span>            :             /* bump the ready flag */
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :             ready_flag++;</span>
+<span class="lineNum">     294 </span>            :             /* reset the active requests for the next level */
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :             *active_requests = 0;</span>
+<span class="lineNum">     296 </span>            :             /* calculate the number of active requests
+<span class="lineNum">     297 </span>            :              * logically makes sense to do it here. We don't
+<span class="lineNum">     298 </span>            :              * want to inadvertantly flip a bit to zero that we
+<span class="lineNum">     299 </span>            :              * set previously
+<span class="lineNum">     300 </span>            :              */
+<span class="lineNum">     301 </span>            :         } else {
+<span class="lineNum">     302 </span>            :             /* state is saved hop out
+<span class="lineNum">     303 </span>            :              */
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :             *status = my_ctl_pointer-&gt;flags[ALLGATHER_FLAG][bcol_id];</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :             *iteration = i;</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :             return BCOL_FN_STARTED;</span>
+<span class="lineNum">     307 </span>            :         }
+<span class="lineNum">     308 </span>            :     }
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            :     /* bump the flag one more time for the extra rank */
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     ready_flag = flag_offset + 1 + pow_k + 2;</span>
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            :     /* finish off the last piece, send the data back to the extra  */
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     if( 0 &lt; exchange_node-&gt;n_extra_sources ) {</span>
+<span class="lineNum">     315 </span>            :         /* simply announce my arrival */
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         opal_atomic_wmb ();</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         my_ctl_pointer-&gt;flags[ALLGATHER_FLAG][bcol_id] = ready_flag;</span>
+<span class="lineNum">     318 </span>            :     }
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            : FINISHED:
+<span class="lineNum">     321 </span>            :     /* bump this up for others to see */
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :     my_ctl_pointer-&gt;starting_flag_value[bcol_id]++;</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     return BCOL_FN_COMPLETE;</span>
+<span class="lineNum">     324 </span>            : }
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span>            : /* Register allreduce functions to the BCOL function table,
+<a name="327"><span class="lineNum">     327 </span>            :  * so they can be selected</a>
+<span class="lineNum">     328 </span>            :  */
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 : int bcol_basesmuma_allgather_init(mca_bcol_base_module_t *super)</span>
+<span class="lineNum">     330 </span>            : {
+<span class="lineNum">     331 </span>            :     mca_bcol_base_coll_fn_comm_attributes_t comm_attribs;
+<span class="lineNum">     332 </span>            :     mca_bcol_base_coll_fn_invoke_attributes_t inv_attribs;
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :     comm_attribs.bcoll_type = BCOL_ALLGATHER;</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :     comm_attribs.comm_size_min = 0;</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :     comm_attribs.comm_size_max = 1024 * 1024;</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     comm_attribs.waiting_semantics = NON_BLOCKING;</span>
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     inv_attribs.bcol_msg_min = 0;</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     inv_attribs.bcol_msg_max = 20000; /* range 1 */</span>
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     inv_attribs.datatype_bitmap = 0xffffffff;</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :     inv_attribs.op_types_bitmap = 0xffffffff;</span>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     comm_attribs.data_src = DATA_SRC_KNOWN;</span>
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     mca_bcol_base_set_attributes(super, &amp;comm_attribs, &amp;inv_attribs,</span>
+<span class="lineNum">     348 </span>            :                                  bcol_basesmuma_k_nomial_allgather_init,
+<span class="lineNum">     349 </span>            :                                  bcol_basesmuma_k_nomial_allgather_progress);
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     return OMPI_SUCCESS;</span>
+<span class="lineNum">     352 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

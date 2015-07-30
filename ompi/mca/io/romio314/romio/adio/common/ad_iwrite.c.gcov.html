@@ -1,0 +1,418 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel - ompi/mca/io/romio314/romio/adio/common/ad_iwrite.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">ompi/mca/io/romio314/romio/adio/common</a> - ad_iwrite.c<span style="font-size: 80%;"> (source / <a href="ad_iwrite.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-30 16:38:48</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  *   Copyright (C) 2004 University of Chicago.
+<span class="lineNum">       5 </span>            :  *   See COPYRIGHT notice in top-level directory.
+<span class="lineNum">       6 </span>            :  */
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : #include &quot;adio.h&quot;
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            : #ifdef HAVE_UNISTD_H
+<span class="lineNum">      11 </span>            : #include &lt;unistd.h&gt;
+<span class="lineNum">      12 </span>            : #endif
+<span class="lineNum">      13 </span>            : #ifdef HAVE_SIGNAL_H
+<span class="lineNum">      14 </span>            : #include &lt;signal.h&gt;
+<span class="lineNum">      15 </span>            : #endif
+<span class="lineNum">      16 </span>            : #ifdef HAVE_SYS_TYPES_H
+<span class="lineNum">      17 </span>            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      18 </span>            : #endif
+<span class="lineNum">      19 </span>            : #ifdef HAVE_AIO_H
+<span class="lineNum">      20 </span>            : #include &lt;aio.h&gt;
+<span class="lineNum">      21 </span>            : #endif
+<span class="lineNum">      22 </span>            : #ifdef HAVE_SYS_AIO_H
+<span class="lineNum">      23 </span>            : #include &lt;sys/aio.h&gt;
+<span class="lineNum">      24 </span>            : #endif
+<span class="lineNum">      25 </span>            : #include &lt;time.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &quot;../../mpi-io/mpioimpl.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;../../mpi-io/mpioprof.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;mpiu_greq.h&quot;
+<span class="lineNum">      30 </span>            : /* Workaround for incomplete set of definitions if __REDIRECT is not
+<span class="lineNum">      31 </span>            :    defined and large file support is used in aio.h */
+<span class="lineNum">      32 </span>            : #if !defined(__REDIRECT) &amp;&amp; defined(__USE_FILE_OFFSET64)
+<span class="lineNum">      33 </span>            : #define aiocb aiocb64
+<span class="lineNum">      34 </span>            : #endif
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : #ifdef ROMIO_HAVE_WORKING_AIO
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : static MPIX_Grequest_class ADIOI_GEN_greq_class = 0;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : /* ADIOI_GEN_IwriteContig
+<span class="lineNum">      41 </span>            :  *
+<span class="lineNum">      42 </span>            :  * This code handles only the case where ROMIO_HAVE_WORKING_AIO is
+<span class="lineNum">      43 </span>            :  * defined. We post an asynchronous I/O operations using the appropriate aio
+<span class="lineNum">      44 </span>            :  * routines.  Otherwise, the ADIOI_Fns_struct will point to the FAKE
+<span class="lineNum">      45 </span>            :  * version.
+<span class="lineNum">      46 </span>            :  */
+<span class="lineNum">      47 </span>            : void ADIOI_GEN_IwriteContig(ADIO_File fd, const void *buf, int count,
+<span class="lineNum">      48 </span>            :                             MPI_Datatype datatype, int file_ptr_type,
+<span class="lineNum">      49 </span>            :                             ADIO_Offset offset, ADIO_Request *request,
+<span class="lineNum">      50 </span>            :                             int *error_code)
+<span class="lineNum">      51 </span>            : {
+<span class="lineNum">      52 </span>            :     MPI_Count len, typesize;
+<span class="lineNum">      53 </span>            :     int aio_errno = 0;
+<span class="lineNum">      54 </span>            :     static char myname[] = &quot;ADIOI_GEN_IWRITECONTIG&quot;;
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            :     MPI_Type_size_x(datatype, &amp;typesize);
+<span class="lineNum">      57 </span>            :     len = count * typesize;
+<span class="lineNum">      58 </span>            :     ADIOI_Assert(len == (int)((ADIO_Offset)count * (ADIO_Offset)typesize)); /* the count is an int parm */
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            :     if (file_ptr_type == ADIO_INDIVIDUAL) offset = fd-&gt;fp_ind;
+<span class="lineNum">      61 </span>            :     /* Cast away the const'ness of 'buf' as ADIOI_GEN_aio is used for
+<span class="lineNum">      62 </span>            :      * both read and write calls */
+<span class="lineNum">      63 </span>            :     aio_errno = ADIOI_GEN_aio(fd, (char *) buf, len, offset, 1, request);
+<span class="lineNum">      64 </span>            :     if (file_ptr_type == ADIO_INDIVIDUAL) fd-&gt;fp_ind += len;
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            :     fd-&gt;fp_sys_posn = -1;
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            :     /* --BEGIN ERROR HANDLING-- */
+<span class="lineNum">      69 </span>            :     if (aio_errno != 0) {
+<span class="lineNum">      70 </span>            :         MPIO_ERR_CREATE_CODE_ERRNO(myname, aio_errno, error_code);
+<span class="lineNum">      71 </span>            :         return;
+<span class="lineNum">      72 </span>            :     }
+<span class="lineNum">      73 </span>            :     /* --END ERROR HANDLING-- */
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            :     *error_code = MPI_SUCCESS;
+<span class="lineNum">      76 </span>            : }
+<span class="lineNum">      77 </span>            : /* This function is for implementation convenience.
+<span class="lineNum">      78 </span>            :  * It takes care of the differences in the interface for nonblocking I/O
+<span class="lineNum">      79 </span>            :  * on various Unix machines! If wr==1 write, wr==0 read.
+<span class="lineNum">      80 </span>            :  *
+<span class="lineNum">      81 </span>            :  * Returns 0 on success, -errno on failure.
+<span class="lineNum">      82 </span>            :  */
+<span class="lineNum">      83 </span>            : int ADIOI_GEN_aio(ADIO_File fd, void *buf, int len, ADIO_Offset offset,
+<span class="lineNum">      84 </span>            :                   int wr, MPI_Request *request)
+<span class="lineNum">      85 </span>            : {
+<span class="lineNum">      86 </span>            :     int err=-1, fd_sys;
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            :     int error_code;
+<span class="lineNum">      89 </span>            :     struct aiocb *aiocbp=NULL;
+<span class="lineNum">      90 </span>            :     ADIOI_AIO_Request *aio_req=NULL;
+<span class="lineNum">      91 </span>            :     MPI_Status status;
+<span class="lineNum">      92 </span>            : #if defined(ROMIO_XFS)
+<span class="lineNum">      93 </span>            :     unsigned maxiosz = wr ? fd-&gt;hints-&gt;fs_hints.xfs.write_chunk_sz :
+<span class="lineNum">      94 </span>            :             fd-&gt;hints-&gt;fs_hints.xfs.read_chunk_sz;
+<span class="lineNum">      95 </span>            : #endif /* ROMIO_XFS */
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            :     fd_sys = fd-&gt;fd_sys;
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            : #if defined(ROMIO_XFS)
+<span class="lineNum">     100 </span>            :     /* Use Direct I/O if desired and properly aligned */
+<span class="lineNum">     101 </span>            :     if (fd-&gt;fns == &amp;ADIO_XFS_operations &amp;&amp;
+<span class="lineNum">     102 </span>            :          ((wr &amp;&amp; fd-&gt;direct_write) || (!wr &amp;&amp; fd-&gt;direct_read)) &amp;&amp;
+<span class="lineNum">     103 </span>            :          !(((long) buf) % fd-&gt;d_mem) &amp;&amp; !(offset % fd-&gt;d_miniosz) &amp;&amp;
+<span class="lineNum">     104 </span>            :          !(len % fd-&gt;d_miniosz) &amp;&amp; (len &gt;= fd-&gt;d_miniosz) &amp;&amp;
+<span class="lineNum">     105 </span>            :          (len &lt;= maxiosz)) {
+<span class="lineNum">     106 </span>            :             fd_sys = fd-&gt;fd_direct;
+<span class="lineNum">     107 </span>            :     }
+<span class="lineNum">     108 </span>            : #endif /* ROMIO_XFS */
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            :     aio_req = (ADIOI_AIO_Request*)ADIOI_Calloc(sizeof(ADIOI_AIO_Request), 1);
+<span class="lineNum">     111 </span>            :     aiocbp = (struct aiocb *) ADIOI_Calloc(sizeof(struct aiocb), 1);
+<span class="lineNum">     112 </span>            :     aiocbp-&gt;aio_offset = offset;
+<span class="lineNum">     113 </span>            :     aiocbp-&gt;aio_buf    = buf;
+<span class="lineNum">     114 </span>            :     aiocbp-&gt;aio_nbytes = len;
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span>            : #ifdef ROMIO_HAVE_STRUCT_AIOCB_WITH_AIO_WHENCE
+<span class="lineNum">     117 </span>            :     aiocbp-&gt;aio_whence = SEEK_SET;
+<span class="lineNum">     118 </span>            : #endif
+<span class="lineNum">     119 </span>            : #ifdef ROMIO_HAVE_STRUCT_AIOCB_WITH_AIO_FILDES
+<span class="lineNum">     120 </span>            :     aiocbp-&gt;aio_fildes = fd_sys;
+<span class="lineNum">     121 </span>            : #endif
+<span class="lineNum">     122 </span>            : #ifdef ROMIO_HAVE_STRUCT_AIOCB_WITH_AIO_SIGEVENT
+<span class="lineNum">     123 </span>            : # ifdef AIO_SIGNOTIFY_NONE
+<span class="lineNum">     124 </span>            :     aiocbp-&gt;aio_sigevent.sigev_notify = SIGEV_NONE;
+<span class="lineNum">     125 </span>            : # endif
+<span class="lineNum">     126 </span>            :     aiocbp-&gt;aio_sigevent.sigev_signo = 0;
+<span class="lineNum">     127 </span>            : #endif
+<span class="lineNum">     128 </span>            : #ifdef ROMIO_HAVE_STRUCT_AIOCB_WITH_AIO_REQPRIO
+<span class="lineNum">     129 </span>            : # ifdef AIO_PRIO_DFL
+<span class="lineNum">     130 </span>            :     aiocbp-&gt;aio_reqprio = AIO_PRIO_DFL;   /* not needed in DEC Unix 4.0 */
+<span class="lineNum">     131 </span>            : # else
+<span class="lineNum">     132 </span>            :     aiocbp-&gt;aio_reqprio = 0;
+<span class="lineNum">     133 </span>            : # endif
+<span class="lineNum">     134 </span>            : #endif
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            : #ifndef ROMIO_HAVE_AIO_CALLS_NEED_FILEDES
+<span class="lineNum">     137 </span>            : #ifndef ROMIO_HAVE_STRUCT_AIOCB_WITH_AIO_FILDES
+<span class="lineNum">     138 </span>            : #error 'No fildes set for aio structure'
+<span class="lineNum">     139 </span>            : #endif
+<span class="lineNum">     140 </span>            :     if (wr) err = aio_write(aiocbp);
+<span class="lineNum">     141 </span>            :     else err = aio_read(aiocbp);
+<span class="lineNum">     142 </span>            : #else
+<span class="lineNum">     143 </span>            :     /* Broken IBM interface */
+<span class="lineNum">     144 </span>            :     if (wr) err = aio_write(fd_sys, aiocbp);
+<span class="lineNum">     145 </span>            :     else err = aio_read(fd_sys, aiocbp);
+<span class="lineNum">     146 </span>            : #endif
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            :     if (err == -1) {
+<span class="lineNum">     149 </span>            :         if (errno == EAGAIN || errno == ENOSYS) {
+<span class="lineNum">     150 </span>            :             /* exceeded the max. no. of outstanding requests.
+<span class="lineNum">     151 </span>            :                or, aio routines are not actually implemented
+<span class="lineNum">     152 </span>            :             treat this as a blocking request and return.  */
+<span class="lineNum">     153 </span>            :             if (wr)
+<span class="lineNum">     154 </span>            :                 ADIO_WriteContig(fd, buf, len, MPI_BYTE,
+<span class="lineNum">     155 </span>            :                             ADIO_EXPLICIT_OFFSET, offset, &amp;status, &amp;error_code);
+<span class="lineNum">     156 </span>            :             else
+<span class="lineNum">     157 </span>            :                 ADIO_ReadContig(fd, buf, len, MPI_BYTE,
+<span class="lineNum">     158 </span>            :                             ADIO_EXPLICIT_OFFSET, offset, &amp;status, &amp;error_code);
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            :             MPIO_Completed_request_create(&amp;fd, len, &amp;error_code, request);
+<span class="lineNum">     161 </span>            :             if (aiocbp != NULL) ADIOI_Free(aiocbp);
+<span class="lineNum">     162 </span>            :             if (aio_req != NULL) ADIOI_Free(aio_req);
+<span class="lineNum">     163 </span>            :             return 0;
+<span class="lineNum">     164 </span>            :         } else {
+<span class="lineNum">     165 </span>            :             return errno;
+<span class="lineNum">     166 </span>            :         }
+<span class="lineNum">     167 </span>            :     }
+<span class="lineNum">     168 </span>            :     aio_req-&gt;aiocbp = aiocbp;
+<span class="lineNum">     169 </span>            :     if (ADIOI_GEN_greq_class == 0) {
+<span class="lineNum">     170 </span>            :             MPIX_Grequest_class_create(ADIOI_GEN_aio_query_fn,
+<span class="lineNum">     171 </span>            :                             ADIOI_GEN_aio_free_fn, MPIU_Greq_cancel_fn,
+<span class="lineNum">     172 </span>            :                             ADIOI_GEN_aio_poll_fn, ADIOI_GEN_aio_wait_fn,
+<span class="lineNum">     173 </span>            :                             &amp;ADIOI_GEN_greq_class);
+<span class="lineNum">     174 </span>            :     }
+<span class="lineNum">     175 </span>            :     MPIX_Grequest_class_allocate(ADIOI_GEN_greq_class, aio_req, request);
+<span class="lineNum">     176 </span>            :     memcpy(&amp;(aio_req-&gt;req), request, sizeof(MPI_Request));
+<span class="lineNum">     177 </span>            :     return 0;
+<span class="lineNum">     178 </span>            : }
+<span class="lineNum">     179 </span>            : #endif
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            : /* Generic implementation of IwriteStrided calls the blocking WriteStrided
+<a name="183"><span class="lineNum">     183 </span>            :  * immediately.</a>
+<span class="lineNum">     184 </span>            :  */
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 : void ADIOI_GEN_IwriteStrided(ADIO_File fd, const void *buf, int count,</span>
+<span class="lineNum">     186 </span>            :                              MPI_Datatype datatype, int file_ptr_type,
+<span class="lineNum">     187 </span>            :                              ADIO_Offset offset, MPI_Request *request,
+<span class="lineNum">     188 </span>            :                              int *error_code)
+<span class="lineNum">     189 </span>            : {
+<span class="lineNum">     190 </span>            :     ADIO_Status status;
+<span class="lineNum">     191 </span>            :     MPI_Count typesize;
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     MPI_Offset nbytes=0;</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :     /* Call the blocking function.  It will create an error code
+<span class="lineNum">     195 </span>            :      * if necessary.
+<span class="lineNum">     196 </span>            :      */
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :     ADIO_WriteStrided(fd, buf, count, datatype, file_ptr_type,</span>
+<span class="lineNum">     198 </span>            :                       offset, &amp;status, error_code);
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     if (*error_code == MPI_SUCCESS) {</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :         MPI_Type_size_x(datatype, &amp;typesize);</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         nbytes = (MPI_Offset)count * (MPI_Offset)typesize;</span>
+<span class="lineNum">     203 </span>            :     }
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     MPIO_Completed_request_create(&amp;fd, nbytes, error_code, request);</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            : #ifdef ROMIO_HAVE_WORKING_AIO
+<span class="lineNum">     208 </span>            : /* generic POSIX aio completion test routine */
+<span class="lineNum">     209 </span>            : int ADIOI_GEN_aio_poll_fn(void *extra_state, MPI_Status *status)
+<span class="lineNum">     210 </span>            : {
+<span class="lineNum">     211 </span>            :     ADIOI_AIO_Request *aio_req;
+<span class="lineNum">     212 </span>            :     int errcode=MPI_SUCCESS;
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span>            :     aio_req = (ADIOI_AIO_Request *)extra_state;
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            :     /* aio_error returns an ERRNO value */
+<span class="lineNum">     217 </span>            :     errno = aio_error(aio_req-&gt;aiocbp);
+<span class="lineNum">     218 </span>            :     if (errno == EINPROGRESS) {
+<span class="lineNum">     219 </span>            :             /* TODO: need to diddle with status somehow */
+<span class="lineNum">     220 </span>            :     }
+<span class="lineNum">     221 </span>            :     else if (errno == ECANCELED) {
+<span class="lineNum">     222 </span>            :             /* TODO: unsure how to handle this */
+<span class="lineNum">     223 </span>            :     } else if (errno == 0) {
+<span class="lineNum">     224 </span>            :             ssize_t n = aio_return(aio_req-&gt;aiocbp);
+<span class="lineNum">     225 </span>            :             aio_req-&gt;nbytes = n;
+<span class="lineNum">     226 </span>            :             errcode = MPI_Grequest_complete(aio_req-&gt;req);
+<span class="lineNum">     227 </span>            :             /* --BEGIN ERROR HANDLING-- */
+<span class="lineNum">     228 </span>            :             if (errcode != MPI_SUCCESS) {
+<span class="lineNum">     229 </span>            :                     errcode = MPIO_Err_create_code(MPI_SUCCESS,
+<span class="lineNum">     230 </span>            :                                     MPIR_ERR_RECOVERABLE,
+<span class="lineNum">     231 </span>            :                                     &quot;ADIOI_GEN_aio_poll_fn&quot;, __LINE__,
+<span class="lineNum">     232 </span>            :                                     MPI_ERR_IO, &quot;**mpi_grequest_complete&quot;,
+<span class="lineNum">     233 </span>            :                                     0);
+<span class="lineNum">     234 </span>            :             }
+<span class="lineNum">     235 </span>            :             /* --END ERROR HANDLING-- */
+<span class="lineNum">     236 </span>            :     }
+<span class="lineNum">     237 </span>            :     return errcode;
+<span class="lineNum">     238 </span>            : }
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            : /* wait for multiple requests to complete */
+<span class="lineNum">     241 </span>            : int ADIOI_GEN_aio_wait_fn(int count, void ** array_of_states,
+<span class="lineNum">     242 </span>            :                 double timeout, MPI_Status *status)
+<span class="lineNum">     243 </span>            : {
+<span class="lineNum">     244 </span>            :         const struct aiocb **cblist;
+<span class="lineNum">     245 </span>            :         int err, errcode=MPI_SUCCESS;
+<span class="lineNum">     246 </span>            :         int nr_complete=0;
+<span class="lineNum">     247 </span>            :         double starttime;
+<span class="lineNum">     248 </span>            :         struct timespec aio_timer;
+<span class="lineNum">     249 </span>            :         struct timespec *aio_timer_p = NULL;
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            :         ADIOI_AIO_Request **aio_reqlist;
+<span class="lineNum">     252 </span>            :         int i;
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            :         aio_reqlist = (ADIOI_AIO_Request **)array_of_states;
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            :         cblist = (const struct aiocb**) ADIOI_Calloc(count, sizeof(struct aiocb*));
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            :         starttime = MPI_Wtime();
+<span class="lineNum">     259 </span>            :         if (timeout &gt;0) {
+<span class="lineNum">     260 </span>            :             aio_timer.tv_sec = (time_t)timeout;
+<span class="lineNum">     261 </span>            :             aio_timer.tv_nsec = timeout - aio_timer.tv_sec;
+<span class="lineNum">     262 </span>            :             aio_timer_p = &amp;aio_timer;
+<span class="lineNum">     263 </span>            :         }
+<span class="lineNum">     264 </span>            :         for (i=0; i&lt; count; i++)
+<span class="lineNum">     265 </span>            :         {
+<span class="lineNum">     266 </span>            :                 cblist[i] = aio_reqlist[i]-&gt;aiocbp;
+<span class="lineNum">     267 </span>            :         }
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span>            :         while(nr_complete &lt; count) {
+<span class="lineNum">     270 </span>            :             do {
+<span class="lineNum">     271 </span>            :                 err = aio_suspend(cblist, count, aio_timer_p);
+<span class="lineNum">     272 </span>            :             } while (err &lt; 0 &amp;&amp; errno == EINTR);
+<span class="lineNum">     273 </span>            :             if (err == 0)
+<span class="lineNum">     274 </span>            :             { /* run through the list of requests, and mark all the completed
+<span class="lineNum">     275 </span>            :                  ones as done */
+<span class="lineNum">     276 </span>            :                 for (i=0; i&lt; count; i++)
+<span class="lineNum">     277 </span>            :                 {
+<span class="lineNum">     278 </span>            :                     /* aio_error returns an ERRNO value */
+<span class="lineNum">     279 </span>            :                     if (aio_reqlist[i]-&gt;aiocbp == NULL)
+<span class="lineNum">     280 </span>            :                         continue;
+<span class="lineNum">     281 </span>            :                     errno = aio_error(aio_reqlist[i]-&gt;aiocbp);
+<span class="lineNum">     282 </span>            :                     if (errno == 0) {
+<span class="lineNum">     283 </span>            :                         ssize_t n = aio_return(aio_reqlist[i]-&gt;aiocbp);
+<span class="lineNum">     284 </span>            :                         aio_reqlist[i]-&gt;nbytes = n;
+<span class="lineNum">     285 </span>            :                         errcode = MPI_Grequest_complete(aio_reqlist[i]-&gt;req);
+<span class="lineNum">     286 </span>            :                         if (errcode != MPI_SUCCESS) {
+<span class="lineNum">     287 </span>            :                             errcode = MPIO_Err_create_code(MPI_SUCCESS,
+<span class="lineNum">     288 </span>            :                                     MPIR_ERR_RECOVERABLE,
+<span class="lineNum">     289 </span>            :                                     &quot;ADIOI_GEN_aio_wait_fn&quot;,
+<span class="lineNum">     290 </span>            :                                     __LINE__, MPI_ERR_IO,
+<span class="lineNum">     291 </span>            :                                     &quot;**mpi_grequest_complete&quot;, 0);
+<span class="lineNum">     292 </span>            :                         }
+<span class="lineNum">     293 </span>            :                         ADIOI_Free(aio_reqlist[i]-&gt;aiocbp);
+<span class="lineNum">     294 </span>            :                         aio_reqlist[i]-&gt;aiocbp = NULL;
+<span class="lineNum">     295 </span>            :                         cblist[i] = NULL;
+<span class="lineNum">     296 </span>            :                         nr_complete++;
+<span class="lineNum">     297 </span>            :                     }
+<span class="lineNum">     298 </span>            :                     /* TODO: need to handle error conditions somehow*/
+<span class="lineNum">     299 </span>            :                 }
+<span class="lineNum">     300 </span>            :             } /* TODO: also need to handle errors here  */
+<span class="lineNum">     301 </span>            :             if ( (timeout &gt; 0) &amp;&amp; (timeout &lt; (MPI_Wtime() - starttime) ))
+<span class="lineNum">     302 </span>            :                 break;
+<span class="lineNum">     303 </span>            :         }
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            :         if (cblist != NULL) ADIOI_Free(cblist);
+<span class="lineNum">     306 </span>            :         return errcode;
+<span class="lineNum">     307 </span>            : }
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span>            : int ADIOI_GEN_aio_free_fn(void *extra_state)
+<span class="lineNum">     310 </span>            : {
+<span class="lineNum">     311 </span>            :         ADIOI_AIO_Request *aio_req;
+<span class="lineNum">     312 </span>            :         aio_req = (ADIOI_AIO_Request*)extra_state;
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span>            :         if (aio_req-&gt;aiocbp != NULL)
+<span class="lineNum">     315 </span>            :                 ADIOI_Free(aio_req-&gt;aiocbp);
+<span class="lineNum">     316 </span>            :         ADIOI_Free(aio_req);
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span>            :         return MPI_SUCCESS;
+<span class="lineNum">     319 </span>            : }
+<a name="320"><span class="lineNum">     320 </span>            : #endif /* working AIO */</a>
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 : int ADIOI_GEN_aio_query_fn(void *extra_state, MPI_Status *status)</span>
+<span class="lineNum">     323 </span>            : {
+<span class="lineNum">     324 </span>            :         ADIOI_AIO_Request *aio_req;
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :         aio_req = (ADIOI_AIO_Request *)extra_state;</span>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :         MPI_Status_set_elements_x(status, MPI_BYTE, aio_req-&gt;nbytes);</span>
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span>            :         /* can never cancel so always true */
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :         MPI_Status_set_cancelled(status, 0);</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span>            :         /* choose not to return a value for this */
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :         status-&gt;MPI_SOURCE = MPI_UNDEFINED;</span>
+<span class="lineNum">     335 </span>            :         /* tag has no meaning for this generalized request */
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :         status-&gt;MPI_TAG = MPI_UNDEFINED;</span>
+<span class="lineNum">     337 </span>            :         /* this generalized request never fails */
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         return MPI_SUCCESS;</span>
+<span class="lineNum">     339 </span>            : }
+<span class="lineNum">     340 </span>            : /*
+<span class="lineNum">     341 </span>            :  * vim: ts=8 sts=4 sw=4 noexpandtab
+<span class="lineNum">     342 </span>            :  */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
