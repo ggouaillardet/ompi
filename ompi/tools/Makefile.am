@@ -11,6 +11,8 @@
 # Copyright (c) 2004-2005 The Regents of the University of California.
 #                         All rights reserved.
 # Copyright (c) 2014      Intel, Inc. All rights reserved.
+# Copyright (c) 2016      Research Organization for Information Science
+#                         and Technology (RIST). All rights reserved.
 # $COPYRIGHT$
 #
 # Additional copyrights may follow
@@ -23,9 +25,10 @@
 SUBDIRS += \
 	tools/ompi_info \
 	tools/wrappers \
-        tools/mpisync
+	tools/xwrappers \
+	tools/mpisync
 
 DIST_SUBDIRS += \
 	tools/ompi_info \
 	tools/wrappers \
-        tools/mpisync
+	tools/mpisync

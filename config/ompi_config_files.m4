@@ -1,6 +1,8 @@
 # -*- shell-script -*-
 #
 # Copyright (c) 2009-2014 Cisco Systems, Inc.  All rights reserved.
+# Copyright (c) 2016      Research Organization for Information Science
+#                         and Technology (RIST). All rights reserved.
 # $COPYRIGHT$
 #
 # Additional copyrights may follow
@@ -47,6 +49,7 @@ AC_DEFUN([OMPI_CONFIG_FILES],[
         ompi/tools/wrappers/ompi-cxx.pc
         ompi/tools/wrappers/ompi-fort.pc
         ompi/tools/wrappers/mpijavac.pl
+        ompi/tools/xwrappers/Makefile
         ompi/tools/mpisync/Makefile
     ])
 ])

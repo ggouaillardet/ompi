@@ -10,6 +10,8 @@
 #                         University of Stuttgart.  All rights reserved.
 # Copyright (c) 2004-2005 The Regents of the University of California.
 #                         All rights reserved.
+# Copyright (c) 2016      Research Organization for Information Science
+#                         and Technology (RIST). All rights reserved.
 # $COPYRIGHT$
 #
 # Additional copyrights may follow
@@ -21,10 +23,12 @@
 # opal/Makefile.am
 
 SUBDIRS += \
-	tools/wrappers
+	tools/wrappers \
+	tools/xwrappers
 
 DIST_SUBDIRS += \
 	tools/wrappers \
+	tools/xwrappers \
 	tools/opal-checkpoint \
 	tools/opal-restart
 
