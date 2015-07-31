@@ -1,0 +1,381 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel-check - test/class/opal_proc_table.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">test/class</a> - opal_proc_table.c<span style="font-size: 80%;"> (source / <a href="opal_proc_table.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel-check</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">54</td>
+            <td class="headerCovTableEntry">64</td>
+            <td class="headerCovTableEntryMed">84.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-31 16:35:34</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       3 </span>            :  *                         University Research and Technology
+<span class="lineNum">       4 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       5 </span>            :  * Copyright (c) 2004-2005 The University of Tennessee and The University
+<span class="lineNum">       6 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       7 </span>            :  *                         reserved.
+<span class="lineNum">       8 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">       9 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      10 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      11 </span>            :  *                         All rights reserved.
+<span class="lineNum">      12 </span>            :  * Copyright (c) 2008-2014 Cisco Systems, Inc.  All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2014-2015 Hewlett-Packard Development Company, LP.
+<span class="lineNum">      14 </span>            :  *                         All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2014-2015 Mellanox Technologies, Inc.
+<span class="lineNum">      16 </span>            :  *                         All rights reserved.
+<span class="lineNum">      17 </span>            :  * Copyright (c) 2014      Research Organization for Information Science
+<span class="lineNum">      18 </span>            :  *                         and Technology (RIST). All rights reserved.
+<span class="lineNum">      19 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      22 </span>            :  *
+<span class="lineNum">      23 </span>            :  * $HEADER$
+<span class="lineNum">      24 </span>            :  */
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      27 </span>            : #include &lt;stdint.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      29 </span>            : #include &quot;support.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;opal/class/opal_object.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;opal/class/opal_hash_table.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;opal/runtime/opal.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;opal/constants.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : static FILE *error_out=NULL;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : char *num_keys[] = {
+<span class="lineNum">      38 </span>            :     &quot;0&quot;, &quot;1234&quot;, &quot;1234&quot;,
+<span class="lineNum">      39 </span>            :     &quot;0&quot;, &quot;5678&quot;, &quot;5678&quot;,
+<span class="lineNum">      40 </span>            :     &quot;1&quot;, &quot;12450&quot;, &quot;12450&quot;,
+<span class="lineNum">      41 </span>            :     &quot;1&quot;, &quot;45623&quot;, &quot;45623&quot;,
+<span class="lineNum">      42 </span>            :     NULL
+<span class="lineNum">      43 </span>            : };
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : char *str_keys[] = {
+<span class="lineNum">      47 </span>            :     &quot;foo&quot;, &quot;bar&quot;,
+<span class="lineNum">      48 </span>            :     &quot;2&quot;, &quot;this cow jumped over the moon&quot;,
+<span class="lineNum">      49 </span>            :     &quot;this is another key&quot;, &quot;this is another value&quot;,
+<span class="lineNum">      50 </span>            :     &quot;key key&quot;, &quot;value value&quot;,
+<span class="lineNum">      51 </span>            :     NULL
+<span class="lineNum">      52 </span>            : };
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : char *perm_keys[] = {
+<span class="lineNum">      56 </span>            :     &quot;abcdef&quot;, &quot;abcdef&quot;,
+<span class="lineNum">      57 </span>            :     &quot;bcdefa&quot;, &quot;bcdefa&quot;,
+<span class="lineNum">      58 </span>            :     &quot;cdefab&quot;, &quot;cdefab&quot;,
+<span class="lineNum">      59 </span>            :     &quot;defabc&quot;, &quot;defabc&quot;,
+<span class="lineNum">      60 </span>            :     &quot;efabcd&quot;, &quot;efabcd&quot;,
+<span class="lineNum">      61 </span>            :     &quot;fabcde&quot;, &quot;fabcde&quot;,
+<span class="lineNum">      62 </span>            :     &quot;badcfe&quot;, &quot;badcfe&quot;,
+<span class="lineNum">      63 </span>            :     &quot;badcef&quot;, &quot;badcef&quot;,
+<span class="lineNum">      64 </span>            :     &quot;abdcfe&quot;, &quot;abdcfe&quot;,
+<span class="lineNum">      65 </span>            :     &quot;bcdaef&quot;, &quot;bcdaef&quot;,
+<span class="lineNum">      66 </span>            :     NULL
+<span class="lineNum">      67 </span>            : };
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : /*
+<span class="lineNum">      70 </span>            :  * This data specifically knows about the April'2014 version of hash tables.
+<span class="lineNum">      71 </span>            :  * It inserts some keys.
+<span class="lineNum">      72 </span>            :  * It inserts some more with a capacity offset to generate collisions.
+<span class="lineNum">      73 </span>            :  * Then it checks the table via traversal.
+<span class="lineNum">      74 </span>            :  * Then... it removes a key and checks again (via traversal)
+<span class="lineNum">      75 </span>            :  * and removes another key and re-checks.
+<span class="lineNum">      76 </span>            :  */
+<span class="lineNum">      77 </span>            : static char* remove_keys[] = {
+<span class="lineNum">      78 </span>            :     &quot;1&quot;, &quot;A&quot;, &quot;2&quot;, &quot;B&quot;, &quot;4&quot;, &quot;D&quot;, &quot;6&quot;, &quot;F&quot;, &quot;10&quot;, &quot;J&quot;, NULL, /* insert as-is: ...AB.D.F...J... */
+<span class="lineNum">      79 </span>            :     &quot;2&quot;, &quot;b&quot;, &quot;4&quot;, &quot;d&quot;, &quot;5&quot;, &quot;e&quot;, &quot;3&quot;, &quot;c&quot;, NULL, /* insert with capacity-offset: ...ABbDdFec.J... */
+<span class="lineNum">      80 </span>            :     &quot;ABbDdFecJ&quot;,              /* traversal expectation */
+<span class="lineNum">      81 </span>            :     &quot;4&quot;, &quot;ABbdeFcJ&quot;,                /* remove D (...ABbdeFc..J...) then expected traversal */
+<span class="lineNum">      82 </span>            :     &quot;2&quot;, &quot;AbcdeFJ&quot;,         /* remove B (...AbcdeF...J...) then expected traversal */
+<span class="lineNum">      83 </span>            :     NULL                        /* end removals and expectations */
+<span class="lineNum">      84 </span>            : };
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            : typedef union {
+<span class="lineNum">      87 </span>            :     opal_process_name_t uvalue;
+<span class="lineNum">      88 </span>            :     void *vvalue;
+<a name="89"><span class="lineNum">      89 </span>            : } value_t;</a>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">          2 : static void validate_table(opal_proc_table_t *table, char *keys[])</span>
+<span class="lineNum">      92 </span>            : {
+<span class="lineNum">      93 </span>            :     int         j, ret;
+<span class="lineNum">      94 </span>            :     value_t value;
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span><span class="lineCov">         10 :     for ( j = 0; keys[j]; j += 3) {</span>
+<span class="lineNum">      97 </span>            :         opal_process_name_t key;
+<span class="lineNum">      98 </span><span class="lineCov">          8 :         key.jobid = atoi(keys[j]);</span>
+<span class="lineNum">      99 </span><span class="lineCov">          8 :         key.vpid = atoi(keys[j+1]);</span>
+<span class="lineNum">     100 </span><span class="lineCov">          8 :         ret = opal_proc_table_get_value(table, key,</span>
+<span class="lineNum">     101 </span>            :                                         (void**) &amp;value.uvalue);
+<span class="lineNum">     102 </span><span class="lineCov">          8 :         if (OPAL_SUCCESS != ret) {</span>
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :             test_failure(&quot;opal_proc_table_get_value failed&quot;);</span>
+<span class="lineNum">     104 </span>            :         }
+<span class="lineNum">     105 </span><span class="lineCov">          8 :         test_verify_str(keys[j+2], value.vvalue);</span>
+<span class="lineNum">     106 </span>            :     }
+<span class="lineNum">     107 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            : #if 0
+<span class="lineNum">     110 </span>            : static void
+<span class="lineNum">     111 </span>            : validate_remove_traversal(opal_hash_table_t * table, const char * expected_chars)
+<span class="lineNum">     112 </span>            : {
+<span class="lineNum">     113 </span>            :     /* all values are single-character strings */
+<span class="lineNum">     114 </span>            :     /* expected_chars are those single characters as a string */
+<span class="lineNum">     115 </span>            :     const int debug = 0;        /* turn this on if you want to see the details */
+<span class="lineNum">     116 </span>            :     int rc, problems = 0;
+<span class="lineNum">     117 </span>            :     const char * expected_scanner = expected_chars;
+<span class="lineNum">     118 </span>            :     uint32_t key;
+<span class="lineNum">     119 </span>            :     void * raw_value;
+<span class="lineNum">     120 </span>            :     void * node;
+<span class="lineNum">     121 </span>            :     if (debug) {
+<span class="lineNum">     122 </span>            :         fprintf(stderr, &quot;debug: expecting '%s' capacity is %d\n&quot;,
+<span class="lineNum">     123 </span>            :                 expected_chars, (int) table-&gt;ht_capacity);
+<span class="lineNum">     124 </span>            :     }
+<span class="lineNum">     125 </span>            :     for (rc = opal_hash_table_get_first_key_uint32(table, &amp;key, &amp;raw_value, &amp;node);
+<span class="lineNum">     126 </span>            :          OPAL_SUCCESS == rc;
+<span class="lineNum">     127 </span>            :          rc = opal_hash_table_get_next_key_uint32(table, &amp;key, &amp;raw_value, node, &amp;node)) {
+<span class="lineNum">     128 </span>            :         const char * value = (const char *) raw_value;
+<span class="lineNum">     129 </span>            :         char expected, actual;
+<span class="lineNum">     130 </span>            :         if (debug) {
+<span class="lineNum">     131 </span>            :             fprintf(stderr, &quot;key %d (probe at %d) value '%s' excpected_scanner '%s'\n&quot;,
+<span class="lineNum">     132 </span>            :                     key, (int) (key%table-&gt;ht_capacity), value, expected_scanner);
+<span class="lineNum">     133 </span>            :         }
+<span class="lineNum">     134 </span>            :         if (1 != strlen(value)) {
+<span class="lineNum">     135 </span>            :             fprintf(stderr, &quot;key %d's value '%s' is not a one-character string\n&quot;, key, value);
+<span class="lineNum">     136 </span>            :             problems += 1;
+<span class="lineNum">     137 </span>            :             continue;           /* might as well be completely noisy */
+<span class="lineNum">     138 </span>            :         }
+<span class="lineNum">     139 </span>            :         if ('\0' == *expected_scanner) {
+<span class="lineNum">     140 </span>            :             fprintf(stderr, &quot;Found key %d value '%s' but not expected!\n&quot;, key, value);
+<span class="lineNum">     141 </span>            :             problems += 1;
+<span class="lineNum">     142 </span>            :             continue;
+<span class="lineNum">     143 </span>            :         }
+<span class="lineNum">     144 </span>            :         expected = *expected_scanner++;
+<span class="lineNum">     145 </span>            :         actual = *value;
+<span class="lineNum">     146 </span>            :         if (actual != expected) {
+<span class="lineNum">     147 </span>            :             fprintf(stderr, &quot;Expected '%c' but got '%c'\n&quot;, expected, actual);
+<span class="lineNum">     148 </span>            :             problems += 1;
+<span class="lineNum">     149 </span>            :             continue;
+<span class="lineNum">     150 </span>            :         }
+<span class="lineNum">     151 </span>            :     }
+<span class="lineNum">     152 </span>            :     /* final checks */
+<span class="lineNum">     153 </span>            :     if (OPAL_ERROR != rc) {
+<span class="lineNum">     154 </span>            :         fprintf(stderr, &quot;table traversal did not end in OPAL_ERROR?!?\n&quot;);
+<span class="lineNum">     155 </span>            :         problems += 1;
+<span class="lineNum">     156 </span>            :     }
+<span class="lineNum">     157 </span>            :     if ('\0' != *expected_scanner) {
+<span class="lineNum">     158 </span>            :         fprintf(stderr, &quot;Still expecting more key/values: '%s'\n&quot;, expected_scanner);
+<span class="lineNum">     159 </span>            :         problems += 1;
+<span class="lineNum">     160 </span>            :     }
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span>            :     /* resolution */
+<span class="lineNum">     163 </span>            :     if (problems &gt; 0) {
+<span class="lineNum">     164 </span>            :         fflush(stderr);
+<span class="lineNum">     165 </span>            :         test_failure(&quot;validate_remove_traversal&quot;);
+<span class="lineNum">     166 </span>            :     } else {
+<span class="lineNum">     167 </span>            :         test_success();
+<span class="lineNum">     168 </span>            :     }
+<span class="lineNum">     169 </span>            : }
+<a name="170"><span class="lineNum">     170 </span>            : #endif</a>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineCov">          2 : static void test_ptable(opal_proc_table_t *table)</span>
+<span class="lineNum">     173 </span>            : {
+<span class="lineNum">     174 </span>            :     int j;
+<span class="lineNum">     175 </span>            :     char *n1, *n2;
+<span class="lineNum">     176 </span>            :     char * v;
+<span class="lineNum">     177 </span>            :     int rc;
+<span class="lineNum">     178 </span>            :     opal_process_name_t key;
+<span class="lineNum">     179 </span><span class="lineCov">          2 :     fprintf(error_out, &quot;\nTesting integer keys...\n&quot;);</span>
+<span class="lineNum">     180 </span><span class="lineCov">         10 :     for ( j = 0; num_keys[j]; j += 3)</span>
+<span class="lineNum">     181 </span>            :     {
+<span class="lineNum">     182 </span>            :         opal_process_name_t key;
+<span class="lineNum">     183 </span><span class="lineCov">          8 :         key.jobid = atoi(num_keys[j]);</span>
+<span class="lineNum">     184 </span><span class="lineCov">          8 :         key.vpid = atoi(num_keys[j+1]);</span>
+<span class="lineNum">     185 </span><span class="lineCov">          8 :         opal_proc_table_set_value(table, key, num_keys[j+2]);</span>
+<span class="lineNum">     186 </span>            :     }
+<span class="lineNum">     187 </span><span class="lineCov">          2 :     validate_table(table, num_keys);</span>
+<span class="lineNum">     188 </span><span class="lineCov">          2 :     rc = opal_proc_table_get_first_key(table, &amp;key, (void **)&amp;v, (void **)&amp;n1, (void **)&amp;n2);</span>
+<span class="lineNum">     189 </span><span class="lineCov">          2 :     if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :         fprintf(error_out, &quot;*** FAILED opal_proc_table_get_first_key ***\n&quot;);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :         return ;</span>
+<span class="lineNum">     192 </span>            :     }
+<span class="lineNum">     193 </span><span class="lineCov">         10 :     for (j=0; num_keys[j]; j+=3) {</span>
+<span class="lineNum">     194 </span><span class="lineCov">          8 :         if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :             fprintf(error_out, &quot;*** FAILED opal_proc_table_get_next_key (%d) ***\n&quot;, j/3);</span>
+<span class="lineNum">     196 </span>            :         }
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span><span class="lineCov">         16 :         if (key.jobid != atoi(num_keys[j]) ||</span>
+<span class="lineNum">     199 </span><span class="lineCov">         12 :             key.vpid != atoi(num_keys[j+1]) ||</span>
+<span class="lineNum">     200 </span><span class="lineCov">          4 :             0 != strcmp(num_keys[j+2], v)) {</span>
+<span class="lineNum">     201 </span><span class="lineCov">         12 :                 fprintf(error_out, &quot;*** FAILED at %d, expected ((%s,%s),%s) got ((%d,%d),%s)\n&quot;, j/3,</span>
+<span class="lineNum">     202 </span><span class="lineCov">          8 :                         num_keys[j], num_keys[j+1], num_keys[j+2],</span>
+<span class="lineNum">     203 </span>            :                         key.jobid, key.vpid, v);
+<span class="lineNum">     204 </span>            :         }
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span><span class="lineCov">          8 :         rc = opal_proc_table_get_next_key(table, &amp;key, (void **)&amp;v, n1, (void **)&amp;n1, n2, (void **)&amp;n2);</span>
+<span class="lineNum">     207 </span>            :     }
+<span class="lineNum">     208 </span><span class="lineCov">          2 :     if (OPAL_SUCCESS == rc) {</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :         fprintf(error_out, &quot;*** DID NOT FAIL last opal_proc_table_get_next_key %d\n&quot;, j/3);</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     211 </span>            :     }
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span>            : #if 0
+<span class="lineNum">     215 </span>            :     /* remove all values for next test */
+<span class="lineNum">     216 </span>            :     opal_proc_table_remove_all(table);
+<span class="lineNum">     217 </span>            :     test_verify_int(0, opal_hash_table_get_size(table));
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            :     fprintf(error_out, &quot;\nTesting removal and traversal...\n&quot;);
+<span class="lineNum">     220 </span>            :     j = 0;
+<span class="lineNum">     221 </span>            :     char * str;
+<span class="lineNum">     222 </span>            :     while (NULL != (str = remove_keys[j++])) {
+<span class="lineNum">     223 </span>            :         opal_hash_table_set_value_uint32(table, atoi(str), remove_keys[j++]);
+<span class="lineNum">     224 </span>            :     }
+<span class="lineNum">     225 </span>            :     while (NULL != (str = remove_keys[j++])) {
+<span class="lineNum">     226 </span>            :         /* generate collisions */
+<span class="lineNum">     227 </span>            :         opal_hash_table_set_value_uint32(table, atoi(str) + table-&gt;ht_capacity, remove_keys[j++]);
+<span class="lineNum">     228 </span>            :     }
+<span class="lineNum">     229 </span>            :     validate_remove_traversal(table, remove_keys[j++]);
+<span class="lineNum">     230 </span>            :     while (NULL != (str = remove_keys[j++])) {
+<span class="lineNum">     231 </span>            :         opal_hash_table_remove_value_uint32(table, atoi(str));
+<span class="lineNum">     232 </span>            :         validate_remove_traversal(table, remove_keys[j++]);
+<span class="lineNum">     233 </span>            :     }
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span>            :     /* remove all values for next test */
+<span class="lineNum">     236 </span>            :     opal_hash_table_remove_all(table);
+<span class="lineNum">     237 </span>            :     test_verify_int(0, opal_hash_table_get_size(table));
+<span class="lineNum">     238 </span>            : #endif
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineCov">          2 :     fprintf(error_out, &quot;\n\n&quot;);</span>
+<span class="lineNum">     241 </span>            : }
+<a name="242"><span class="lineNum">     242 </span>            : </a>
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span><span class="lineCov">          1 : static void test_dynamic(void)</span>
+<span class="lineNum">     245 </span>            : {
+<span class="lineNum">     246 </span>            :     opal_proc_table_t     *table;
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span><span class="lineCov">          1 :     table = OBJ_NEW(opal_proc_table_t);</span>
+<span class="lineNum">     249 </span><span class="lineCov">          1 :     if ( NULL == table )</span>
+<span class="lineNum">     250 </span>            :     {
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :         fprintf(error_out, &quot;Error: Unable to create hash table.\n&quot;);</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         exit(-1);</span>
+<span class="lineNum">     253 </span>            :     }
+<span class="lineNum">     254 </span><span class="lineCov">          1 :     fprintf(error_out, &quot;Testing with dynamically created table...\n&quot;);</span>
+<span class="lineNum">     255 </span><span class="lineCov">          1 :     opal_proc_table_init(table, 2, 4);</span>
+<span class="lineNum">     256 </span><span class="lineCov">          1 :     test_ptable(table);</span>
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineCov">          2 :     OBJ_RELEASE(table);</span>
+<span class="lineNum">     259 </span><span class="lineCov">          1 : }</span>
+<a name="260"><span class="lineNum">     260 </span>            : </a>
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span><span class="lineCov">          1 : static void test_static(void)</span>
+<span class="lineNum">     263 </span>            : {
+<span class="lineNum">     264 </span>            :     opal_proc_table_t     table;
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span><span class="lineCov">          1 :     OBJ_CONSTRUCT(&amp;table, opal_proc_table_t);</span>
+<span class="lineNum">     267 </span><span class="lineCov">          1 :     opal_proc_table_init(&amp;table, 8, 128);</span>
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span><span class="lineCov">          1 :     fprintf(error_out, &quot;Testing with statically created table...\n&quot;);</span>
+<span class="lineNum">     270 </span><span class="lineCov">          1 :     test_ptable(&amp;table);</span>
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span><span class="lineCov">          1 :     OBJ_DESTRUCT(&amp;table);</span>
+<span class="lineNum">     273 </span><span class="lineCov">          1 : }</span>
+<a name="274"><span class="lineNum">     274 </span>            : </a>
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineCov">          1 : int main(int argc, char **argv)</span>
+<span class="lineNum">     277 </span>            : {
+<span class="lineNum">     278 </span>            :     int rc;
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span><span class="lineCov">          1 :     test_init(&quot;opal_proc_table_t&quot;);</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span><span class="lineCov">          1 :     rc = opal_init_util(&amp;argc, &amp;argv);</span>
+<span class="lineNum">     283 </span><span class="lineCov">          1 :     test_verify_int(OPAL_SUCCESS, rc);</span>
+<span class="lineNum">     284 </span><span class="lineCov">          1 :     if (OPAL_SUCCESS != rc) {</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :         test_finalize();</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         exit(1);</span>
+<span class="lineNum">     287 </span>            :     }
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span>            : #ifdef STANDALONE
+<span class="lineNum">     290 </span>            :     error_out = stderr;
+<span class="lineNum">     291 </span>            : #else
+<span class="lineNum">     292 </span><span class="lineCov">          1 :     error_out = fopen( &quot;./opal_proc_table_test_out.txt&quot;, &quot;w&quot; );</span>
+<span class="lineNum">     293 </span><span class="lineCov">          1 :     if( error_out == NULL ) error_out = stderr;</span>
+<span class="lineNum">     294 </span>            : #endif
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineCov">          1 :     test_dynamic();</span>
+<span class="lineNum">     297 </span><span class="lineCov">          1 :     test_static();</span>
+<span class="lineNum">     298 </span>            : #ifndef STANDALONE
+<span class="lineNum">     299 </span><span class="lineCov">          1 :     fclose( error_out );</span>
+<span class="lineNum">     300 </span>            : #endif
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span><span class="lineCov">          1 :     opal_finalize_util ();</span>
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span><span class="lineCov">          1 :     return test_finalize();</span>
+<span class="lineNum">     305 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

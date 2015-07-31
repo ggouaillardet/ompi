@@ -1,0 +1,391 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel-check - opal/class/opal_fifo.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">opal/class</a> - opal_fifo.h<span style="font-size: 80%;"> (source / <a href="opal_fifo.h.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel-check</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">58</td>
+            <td class="headerCovTableEntry">59</td>
+            <td class="headerCovTableEntryHi">98.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-07-31 16:35:34</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */</a>
+<span class="lineNum">       2 </span>            : /*
+<span class="lineNum">       3 </span>            :  * Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
+<span class="lineNum">       4 </span>            :  *                         University Research and Technology
+<span class="lineNum">       5 </span>            :  *                         Corporation.  All rights reserved.
+<span class="lineNum">       6 </span>            :  * Copyright (c) 2004-2007 The University of Tennessee and The University
+<span class="lineNum">       7 </span>            :  *                         of Tennessee Research Foundation.  All rights
+<span class="lineNum">       8 </span>            :  *                         reserved.
+<span class="lineNum">       9 </span>            :  * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+<span class="lineNum">      10 </span>            :  *                         University of Stuttgart.  All rights reserved.
+<span class="lineNum">      11 </span>            :  * Copyright (c) 2004-2005 The Regents of the University of California.
+<span class="lineNum">      12 </span>            :  *                         All rights reserved.
+<span class="lineNum">      13 </span>            :  * Copyright (c) 2007      Voltaire All rights reserved.
+<span class="lineNum">      14 </span>            :  * Copyright (c) 2010      IBM Corporation.  All rights reserved.
+<span class="lineNum">      15 </span>            :  * Copyright (c) 2014-2015 Los Alamos National Security, LLC. All rights
+<span class="lineNum">      16 </span>            :  *                         reseved.
+<span class="lineNum">      17 </span>            :  * $COPYRIGHT$
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * Additional copyrights may follow
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * $HEADER$
+<span class="lineNum">      22 </span>            :  */
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #ifndef OPAL_FIFO_H_HAS_BEEN_INCLUDED
+<span class="lineNum">      25 </span>            : #define OPAL_FIFO_H_HAS_BEEN_INCLUDED
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &quot;opal_config.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;opal/class/opal_lifo.h&quot;
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #include &quot;opal/sys/atomic.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;opal/threads/mutex.h&quot;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : BEGIN_C_DECLS
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : /* Atomic First In First Out lists. If we are in a multi-threaded environment then the
+<span class="lineNum">      36 </span>            :  * atomicity is insured via the compare-and-swap operation, if not we simply do a read
+<span class="lineNum">      37 </span>            :  * and/or a write.
+<span class="lineNum">      38 </span>            :  *
+<span class="lineNum">      39 </span>            :  * There is a trick. The ghost element at the end of the list. This ghost element has
+<span class="lineNum">      40 </span>            :  * the next pointer pointing to itself, therefore we cannot go past the end of the list.
+<span class="lineNum">      41 </span>            :  * With this approach we will never have a NULL element in the list, so we never have
+<span class="lineNum">      42 </span>            :  * to test for the NULL.
+<span class="lineNum">      43 </span>            :  */
+<span class="lineNum">      44 </span>            : struct opal_fifo_t {
+<span class="lineNum">      45 </span>            :     opal_object_t super;
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            :     /** first element on the fifo */
+<span class="lineNum">      48 </span>            :     volatile opal_counted_pointer_t opal_fifo_head;
+<span class="lineNum">      49 </span>            :     /** last element on the fifo */
+<span class="lineNum">      50 </span>            :     volatile opal_counted_pointer_t opal_fifo_tail;
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            :     /** list sentinel (always points to self) */
+<span class="lineNum">      53 </span>            :     opal_list_item_t opal_fifo_ghost;
+<span class="lineNum">      54 </span>            : };
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : typedef struct opal_fifo_t opal_fifo_t;
+<span class="lineNum">      57 </span>            : 
+<a name="58"><span class="lineNum">      58 </span>            : OPAL_DECLSPEC OBJ_CLASS_DECLARATION(opal_fifo_t);</a>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineCov">    3000303 : static inline opal_list_item_t *opal_fifo_head (opal_fifo_t* fifo)</span>
+<span class="lineNum">      61 </span>            : {
+<span class="lineNum">      62 </span><span class="lineCov">    3000303 :     return (opal_list_item_t *) fifo-&gt;opal_fifo_head.data.item;</span>
+<a name="63"><span class="lineNum">      63 </span>            : }</a>
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span><span class="lineCov">    1000101 : static inline opal_list_item_t *opal_fifo_tail (opal_fifo_t* fifo)</span>
+<span class="lineNum">      66 </span>            : {
+<span class="lineNum">      67 </span><span class="lineCov">    1000101 :     return (opal_list_item_t *) fifo-&gt;opal_fifo_tail.data.item;</span>
+<span class="lineNum">      68 </span>            : }
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : /* The ghost pointer will never change. The head will change via an atomic
+<span class="lineNum">      71 </span>            :  * compare-and-swap. On most architectures the reading of a pointer is an
+<span class="lineNum">      72 </span>            :  * atomic operation so we don't have to protect it.
+<span class="lineNum">      73 </span>            :  */
+<span class="lineNum">      74 </span>            : static inline bool opal_fifo_is_empty( opal_fifo_t* fifo )
+<span class="lineNum">      75 </span>            : {
+<span class="lineNum">      76 </span>            :     return opal_fifo_head (fifo) == &amp;fifo-&gt;opal_fifo_ghost;
+<span class="lineNum">      77 </span>            : }
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : #if OPAL_HAVE_ATOMIC_CMPSET_128
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : /* Add one element to the FIFO. We will return the last head of the list
+<span class="lineNum">      82 </span>            :  * to allow the upper level to detect if this element is the first one in the
+<a name="83"><span class="lineNum">      83 </span>            :  * list (if the list was empty before this operation).</a>
+<span class="lineNum">      84 </span>            :  */
+<span class="lineNum">      85 </span><span class="lineCov">   14399950 : static inline opal_list_item_t *opal_fifo_push_atomic (opal_fifo_t *fifo,</span>
+<span class="lineNum">      86 </span>            :                                                        opal_list_item_t *item)
+<span class="lineNum">      87 </span>            : {
+<span class="lineNum">      88 </span>            :     opal_counted_pointer_t tail;
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineCov">   14399950 :     item-&gt;opal_list_next = &amp;fifo-&gt;opal_fifo_ghost;</span>
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            :     do {
+<span class="lineNum">      93 </span><span class="lineCov">   21259365 :         tail.value = fifo-&gt;opal_fifo_tail.value;</span>
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineCov">   21259365 :         if (opal_update_counted_pointer (&amp;fifo-&gt;opal_fifo_tail, tail, item)) {</span>
+<span class="lineNum">      96 </span><span class="lineCov">   14817412 :             break;</span>
+<span class="lineNum">      97 </span>            :         }
+<span class="lineNum">      98 </span><span class="lineCov">    6859415 :     } while (1);</span>
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span><span class="lineCov">   14817412 :     opal_atomic_wmb ();</span>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span><span class="lineCov">   14603085 :     if (&amp;fifo-&gt;opal_fifo_ghost == tail.data.item) {</span>
+<span class="lineNum">     103 </span>            :         /* update the head */
+<span class="lineNum">     104 </span><span class="lineCov">     205417 :         fifo-&gt;opal_fifo_head.data.item = item;</span>
+<span class="lineNum">     105 </span>            :     } else {
+<span class="lineNum">     106 </span>            :         /* update previous item */
+<span class="lineNum">     107 </span><span class="lineCov">   14397668 :         tail.data.item-&gt;opal_list_next = item;</span>
+<span class="lineNum">     108 </span>            :     }
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineCov">   14603085 :     return (opal_list_item_t *) tail.data.item;</span>
+<span class="lineNum">     111 </span>            : }
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            : /* Retrieve one element from the FIFO. If we reach the ghost element then the FIFO
+<a name="114"><span class="lineNum">     114 </span>            :  * is empty so we return NULL.</a>
+<span class="lineNum">     115 </span>            :  */
+<span class="lineNum">     116 </span><span class="lineCov">   87271315 : static inline opal_list_item_t *opal_fifo_pop_atomic (opal_fifo_t *fifo)</span>
+<span class="lineNum">     117 </span>            : {
+<span class="lineNum">     118 </span>            :     opal_list_item_t *item, *next;
+<span class="lineNum">     119 </span>            :     opal_counted_pointer_t head, tail;
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            :     do {
+<span class="lineNum">     122 </span><span class="lineCov">   87271315 :         head.value = fifo-&gt;opal_fifo_head.value;</span>
+<span class="lineNum">     123 </span><span class="lineCov">   87271315 :         tail.value = fifo-&gt;opal_fifo_tail.value;</span>
+<span class="lineNum">     124 </span><span class="lineCov">   87271315 :         opal_atomic_rmb ();</span>
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineCov">   65463489 :         item = (opal_list_item_t *) head.data.item;</span>
+<span class="lineNum">     127 </span><span class="lineCov">   65463489 :         next = (opal_list_item_t *) item-&gt;opal_list_next;</span>
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span><span class="lineCov">   65463489 :         if (&amp;fifo-&gt;opal_fifo_ghost == tail.data.item &amp;&amp; &amp;fifo-&gt;opal_fifo_ghost == item) {</span>
+<span class="lineNum">     130 </span><span class="lineCov">    1143198 :             return NULL;</span>
+<span class="lineNum">     131 </span>            :         }
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span>            :         /* the head or next pointer are in an inconsistent state. keep looping. */
+<span class="lineNum">     134 </span><span class="lineCov">  144145368 :         if (tail.data.item != item &amp;&amp; &amp;fifo-&gt;opal_fifo_ghost != tail.data.item &amp;&amp;</span>
+<span class="lineNum">     135 </span><span class="lineCov">   79825077 :             &amp;fifo-&gt;opal_fifo_ghost == next) {</span>
+<span class="lineNum">     136 </span><span class="lineCov">   58582369 :             continue;</span>
+<span class="lineNum">     137 </span>            :         }
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            :         /* try popping the head */
+<span class="lineNum">     140 </span><span class="lineCov">    5737922 :         if (opal_update_counted_pointer (&amp;fifo-&gt;opal_fifo_head, head, next)) {</span>
+<span class="lineNum">     141 </span><span class="lineCov">   14734604 :             break;</span>
+<span class="lineNum">     142 </span>            :         }
+<span class="lineNum">     143 </span><span class="lineCov">   71949816 :     } while (1);</span>
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span><span class="lineCov">   14734604 :     opal_atomic_wmb ();</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            :     /* check for tail and head consistency */
+<span class="lineNum">     148 </span><span class="lineCov">   14772634 :     if (&amp;fifo-&gt;opal_fifo_ghost == next) {</span>
+<span class="lineNum">     149 </span>            :         /* the head was just set to &amp;fifo-&gt;opal_fifo_ghost. try to update the tail as well */
+<span class="lineNum">     150 </span><span class="lineCov">     143024 :         if (!opal_update_counted_pointer (&amp;fifo-&gt;opal_fifo_tail, tail, &amp;fifo-&gt;opal_fifo_ghost)) {</span>
+<span class="lineNum">     151 </span>            :             /* tail was changed by a push operation. wait for the item's next pointer to be se then
+<span class="lineNum">     152 </span>            :              * update the head */
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span>            :             /* wait for next pointer to be updated by push */
+<span class="lineNum">     155 </span><span class="lineCov">     151829 :             while (&amp;fifo-&gt;opal_fifo_ghost == item-&gt;opal_list_next) {</span>
+<span class="lineNum">     156 </span><span class="lineCov">      21793 :                 opal_atomic_rmb ();</span>
+<span class="lineNum">     157 </span>            :             }
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineCov">      65018 :             opal_atomic_rmb ();</span>
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span>            :             /* update the head with the real next value. note that no other thread
+<span class="lineNum">     162 </span>            :              * will be attempting to update the head until after it has been updated
+<span class="lineNum">     163 </span>            :              * with the next pointer. push will not see an empty list and other pop
+<span class="lineNum">     164 </span>            :              * operations will loop until the head is consistent. */
+<span class="lineNum">     165 </span><span class="lineCov">      65018 :             head.value = fifo-&gt;opal_fifo_head.value;</span>
+<span class="lineNum">     166 </span><span class="lineCov">      65018 :             next = (opal_list_item_t *) item-&gt;opal_list_next;</span>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineCov">      65018 :             assert (&amp;fifo-&gt;opal_fifo_ghost == head.data.item);</span>
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineCov">      65018 :             fifo-&gt;opal_fifo_head.data.item = next;</span>
+<span class="lineNum">     171 </span><span class="lineCov">      65018 :             opal_atomic_wmb ();</span>
+<span class="lineNum">     172 </span>            :         }
+<span class="lineNum">     173 </span>            :     }
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineCov">   14463224 :     item-&gt;opal_list_next = NULL;</span>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineCov">   14463224 :     return item;</span>
+<span class="lineNum">     178 </span>            : }
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span>            : #else
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            : /* When compare-and-set 128 is not available we avoid the ABA problem by
+<span class="lineNum">     183 </span>            :  * using a spin-lock on the head (using the head counter). Otherwise
+<span class="lineNum">     184 </span>            :  * the algorithm is identical to the compare-and-set 128 version. */
+<span class="lineNum">     185 </span>            : static inline opal_list_item_t *opal_fifo_push_atomic (opal_fifo_t *fifo,
+<span class="lineNum">     186 </span>            :                                                        opal_list_item_t *item)
+<span class="lineNum">     187 </span>            : {
+<span class="lineNum">     188 </span>            :     opal_list_item_t *tail_item;
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            :     item-&gt;opal_list_next = &amp;fifo-&gt;opal_fifo_ghost;
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            :     /* try to get the tail */
+<span class="lineNum">     193 </span>            :     tail_item = opal_atomic_swap_ptr (&amp;fifo-&gt;opal_fifo_tail.data.item, item);
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            :     opal_atomic_wmb ();
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            :     if (&amp;fifo-&gt;opal_fifo_ghost == tail_item) {
+<span class="lineNum">     198 </span>            :         /* update the head */
+<span class="lineNum">     199 </span>            :         fifo-&gt;opal_fifo_head.data.item = item;
+<span class="lineNum">     200 </span>            :     } else {
+<span class="lineNum">     201 </span>            :         /* update previous item */
+<span class="lineNum">     202 </span>            :         tail_item-&gt;opal_list_next = item;
+<span class="lineNum">     203 </span>            :     }
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            :     opal_atomic_wmb ();
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            :     return (opal_list_item_t *) tail_item;
+<span class="lineNum">     208 </span>            : }
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            : /* Retrieve one element from the FIFO. If we reach the ghost element then the FIFO
+<span class="lineNum">     211 </span>            :  * is empty so we return NULL.
+<span class="lineNum">     212 </span>            :  */
+<span class="lineNum">     213 </span>            : static inline opal_list_item_t *opal_fifo_pop_atomic (opal_fifo_t *fifo)
+<span class="lineNum">     214 </span>            : {
+<span class="lineNum">     215 </span>            :     opal_list_item_t *item, *next;
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            :     do {
+<span class="lineNum">     218 </span>            :         if (opal_atomic_cmpset_32 ((int32_t *) &amp;fifo-&gt;opal_fifo_head.data.counter, 0, 1)) {
+<span class="lineNum">     219 </span>            :             break;
+<span class="lineNum">     220 </span>            :         }
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            :         opal_atomic_wmb ();
+<span class="lineNum">     223 </span>            :     } while (1);
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span>            :     opal_atomic_wmb();
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span>            :     item = opal_fifo_head (fifo);
+<span class="lineNum">     228 </span>            :     if (&amp;fifo-&gt;opal_fifo_ghost == item) {
+<span class="lineNum">     229 </span>            :         fifo-&gt;opal_fifo_head.data.counter = 0;
+<span class="lineNum">     230 </span>            :         return NULL;
+<span class="lineNum">     231 </span>            :     }
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            :     next = (opal_list_item_t *) item-&gt;opal_list_next;
+<span class="lineNum">     234 </span>            :     fifo-&gt;opal_fifo_head.data.item = next;
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            :     if (&amp;fifo-&gt;opal_fifo_ghost == next) {
+<span class="lineNum">     237 </span>            :         if (!opal_atomic_cmpset_ptr (&amp;fifo-&gt;opal_fifo_tail.data.item, item, &amp;fifo-&gt;opal_fifo_ghost)) {
+<span class="lineNum">     238 </span>            :             while (&amp;fifo-&gt;opal_fifo_ghost == item-&gt;opal_list_next) {
+<span class="lineNum">     239 </span>            :                 opal_atomic_rmb ();
+<span class="lineNum">     240 </span>            :             }
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            :             fifo-&gt;opal_fifo_head.data.item = (opal_list_item_t *) item-&gt;opal_list_next;
+<span class="lineNum">     243 </span>            :         }
+<span class="lineNum">     244 </span>            :     }
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            :     opal_atomic_wmb ();
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span>            :     /* unlock the head */
+<span class="lineNum">     249 </span>            :     fifo-&gt;opal_fifo_head.data.counter = 0;
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            :     item-&gt;opal_list_next = NULL;
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            :     return item;
+<span class="lineNum">     254 </span>            : }
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            : #endif
+<a name="257"><span class="lineNum">     257 </span>            : </a>
+<span class="lineNum">     258 </span>            : /* single threaded versions of push/pop */
+<span class="lineNum">     259 </span><span class="lineCov">    1000101 : static inline opal_list_item_t *opal_fifo_push_st (opal_fifo_t *fifo,</span>
+<span class="lineNum">     260 </span>            :                                                    opal_list_item_t *item)
+<span class="lineNum">     261 </span>            : {
+<span class="lineNum">     262 </span><span class="lineCov">    1000101 :     opal_list_item_t *prev = opal_fifo_tail (fifo);</span>
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span><span class="lineCov">    1000101 :     item-&gt;opal_list_next = &amp;fifo-&gt;opal_fifo_ghost;</span>
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span><span class="lineCov">    1000101 :     fifo-&gt;opal_fifo_tail.data.item = item;</span>
+<span class="lineNum">     267 </span><span class="lineCov">    1000101 :     if (&amp;fifo-&gt;opal_fifo_ghost == opal_fifo_head (fifo)) {</span>
+<span class="lineNum">     268 </span><span class="lineCov">          2 :         fifo-&gt;opal_fifo_head.data.item = item;</span>
+<span class="lineNum">     269 </span>            :     } else {
+<span class="lineNum">     270 </span><span class="lineCov">    1000099 :         prev-&gt;opal_list_next = item;</span>
+<span class="lineNum">     271 </span>            :     }
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineCov">    1000101 :     return (opal_list_item_t *) item-&gt;opal_list_next;</span>
+<a name="274"><span class="lineNum">     274 </span>            : }</a>
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineCov">    1000101 : static inline opal_list_item_t *opal_fifo_pop_st (opal_fifo_t *fifo)</span>
+<span class="lineNum">     277 </span>            : {
+<span class="lineNum">     278 </span><span class="lineCov">    1000101 :     opal_list_item_t *item = opal_fifo_head (fifo);</span>
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span><span class="lineCov">    1000101 :     if (item == &amp;fifo-&gt;opal_fifo_ghost) {</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     282 </span>            :     }
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineCov">    1000101 :     fifo-&gt;opal_fifo_head.data.item = (opal_list_item_t *) item-&gt;opal_list_next;</span>
+<span class="lineNum">     285 </span><span class="lineCov">    1000101 :     if (&amp;fifo-&gt;opal_fifo_ghost == opal_fifo_head (fifo)) {</span>
+<span class="lineNum">     286 </span><span class="lineCov">          2 :         fifo-&gt;opal_fifo_tail.data.item = &amp;fifo-&gt;opal_fifo_ghost;</span>
+<span class="lineNum">     287 </span>            :     }
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineCov">    1000101 :     item-&gt;opal_list_next = NULL;</span>
+<span class="lineNum">     290 </span><span class="lineCov">    1000101 :     return item;</span>
+<span class="lineNum">     291 </span>            : }
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            : /* push/pop versions conditioned off opal_using_threads() */
+<span class="lineNum">     294 </span>            : static inline opal_list_item_t *opal_fifo_push (opal_fifo_t *fifo,
+<span class="lineNum">     295 </span>            :                                                 opal_list_item_t *item)
+<span class="lineNum">     296 </span>            : {
+<span class="lineNum">     297 </span>            :     if (opal_using_threads ()) {
+<span class="lineNum">     298 </span>            :         return opal_fifo_push_atomic (fifo, item);
+<span class="lineNum">     299 </span>            :     }
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            :     return opal_fifo_push_st (fifo, item);
+<span class="lineNum">     302 </span>            : }
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            : static inline opal_list_item_t *opal_fifo_pop (opal_fifo_t *fifo)
+<span class="lineNum">     305 </span>            : {
+<span class="lineNum">     306 </span>            :     if (opal_using_threads ()) {
+<span class="lineNum">     307 </span>            :         return opal_fifo_pop_atomic (fifo);
+<span class="lineNum">     308 </span>            :     }
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            :     return opal_fifo_pop_st (fifo);
+<span class="lineNum">     311 </span>            : }
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            : END_C_DECLS
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span>            : #endif  /* OPAL_FIFO_H_HAS_BEEN_INCLUDED */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
