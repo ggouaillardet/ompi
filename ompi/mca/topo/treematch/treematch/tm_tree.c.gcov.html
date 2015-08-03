@@ -1,0 +1,1724 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - master-ibm-intel-check - ompi/mca/topo/treematch/treematch/tm_tree.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../index.html">top level</a> - <a href="index.html">ompi/mca/topo/treematch/treematch</a> - tm_tree.c<span style="font-size: 80%;"> (source / <a href="tm_tree.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">master-ibm-intel-check</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">31</td>
+            <td class="headerCovTableEntry">839</td>
+            <td class="headerCovTableEntryLo">3.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-08-03 17:10:23</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">58</td>
+            <td class="headerCovTableEntryLo">3.4 %</td>
+          </tr>
+          <tr><td><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #include &lt;float.h&gt;</a>
+<span class="lineNum">       2 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">       3 </span>            : #include &lt;stdio.h&gt;
+<span class="lineNum">       4 </span>            : #include &lt;math.h&gt;
+<span class="lineNum">       5 </span>            : #include &lt;assert.h&gt;
+<span class="lineNum">       6 </span>            : #include &quot;tm_tree.h&quot;
+<span class="lineNum">       7 </span>            : #include &quot;tm_timings.h&quot;
+<span class="lineNum">       8 </span>            : #include &quot;tm_bucket.h&quot;
+<span class="lineNum">       9 </span>            : #include &quot;tm_kpartitioning.h&quot;
+<span class="lineNum">      10 </span>            : #include &quot;tm_mapping.h&quot;
+<span class="lineNum">      11 </span>            : #include &quot;tm_verbose.h&quot;
+<span class="lineNum">      12 </span>            : #include &quot;tm_thread_pool.h&quot;
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : #define MIN(a,b) ((a)&lt;(b)?(a):(b))
+<span class="lineNum">      16 </span>            : #define MAX(a,b) ((a)&gt;(b)?(a):(b))
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : #ifndef __CHARMC__
+<span class="lineNum">      19 </span>            : #define __CHARMC__ 0
+<span class="lineNum">      20 </span>            : #endif
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #if __CHARMC__
+<a name="23"><span class="lineNum">      23 </span>            : #include &quot;converse.h&quot;</a>
+<span class="lineNum">      24 </span>            : #else
+<span class="lineNum">      25 </span><span class="lineNoCov">          0 : static int ilog2(int val)</span>
+<span class="lineNum">      26 </span>            : {
+<span class="lineNum">      27 </span><span class="lineNoCov">          0 :   int i = 0;</span>
+<span class="lineNum">      28 </span><span class="lineNoCov">          0 :   for( ; val != 0; val &gt;&gt;= 1, i++ );</span>
+<span class="lineNum">      29 </span><span class="lineNoCov">          0 :   return i;</span>
+<span class="lineNum">      30 </span>            : }
+<span class="lineNum">      31 </span>            : #define CmiLog2(VAL)  ilog2((int)(VAL))
+<span class="lineNum">      32 </span>            : #endif
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : static int verbose_level = ERROR;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : void FREE_list_child(tree_t *);
+<span class="lineNum">      40 </span>            : void FREE_tab_child(tree_t *);
+<span class="lineNum">      41 </span>            : unsigned long int choose (long,long);
+<span class="lineNum">      42 </span>            : void display_node(tree_t *);
+<span class="lineNum">      43 </span>            : void clone_tree(tree_t *,tree_t *);
+<span class="lineNum">      44 </span>            : double *aggregate_obj_weight(tree_t *,double *,int);
+<span class="lineNum">      45 </span>            : affinity_mat_t *aggregate_com_mat(tree_t *,affinity_mat_t *,int);
+<span class="lineNum">      46 </span>            : double eval_grouping(affinity_mat_t *,tree_t **,int);
+<span class="lineNum">      47 </span>            : group_list_t *new_group_list(tree_t **,double,group_list_t *);
+<span class="lineNum">      48 </span>            : void add_to_list(group_list_t *,tree_t **,int,double);
+<span class="lineNum">      49 </span>            : void  list_all_possible_groups(affinity_mat_t *,tree_t *,int,int,int,tree_t **,group_list_t *);
+<span class="lineNum">      50 </span>            : int independent_groups(group_list_t **,int,group_list_t *,int);
+<span class="lineNum">      51 </span>            : void display_selection (group_list_t**,int,int,double);
+<span class="lineNum">      52 </span>            : void display_grouping (tree_t *,int,int,double);
+<span class="lineNum">      53 </span>            : int recurs_select_independent_groups(group_list_t **,int,int,int,int,
+<span class="lineNum">      54 </span>            :                                      int,double,double *,group_list_t **,group_list_t **);
+<span class="lineNum">      55 </span>            : int test_independent_groups(group_list_t **,int,int,int,int,int,double,double *,
+<span class="lineNum">      56 </span>            :                             group_list_t **,group_list_t **);
+<span class="lineNum">      57 </span>            : void delete_group_list(group_list_t *);
+<span class="lineNum">      58 </span>            : int group_list_id(const void*,const void*);
+<span class="lineNum">      59 </span>            : int group_list_asc(const void*,const void*);
+<span class="lineNum">      60 </span>            : int group_list_dsc(const void*,const void*);
+<span class="lineNum">      61 </span>            : int weighted_degree_asc(const void*,const void*);
+<span class="lineNum">      62 </span>            : int weighted_degree_dsc(const void*,const void*);
+<span class="lineNum">      63 </span>            : int  select_independent_groups(group_list_t **,int,int,int,double *,group_list_t **,int,double);
+<span class="lineNum">      64 </span>            : int  select_independent_groups_by_largest_index(group_list_t **,int,int,int,double *,
+<span class="lineNum">      65 </span>            :                                                 group_list_t **,int,double);
+<span class="lineNum">      66 </span>            : void list_to_tab(group_list_t *,group_list_t **,int);
+<span class="lineNum">      67 </span>            : void display_tab_group(group_list_t **,int,int);
+<span class="lineNum">      68 </span>            : int independent_tab(tree_t **,tree_t **,int);
+<span class="lineNum">      69 </span>            : void compute_weighted_degree(group_list_t **,int,int);
+<span class="lineNum">      70 </span>            : void  group(affinity_mat_t *,tree_t *,tree_t *,int,int,int,double *,tree_t **);
+<span class="lineNum">      71 </span>            : void  fast_group(affinity_mat_t *,tree_t *,tree_t *,int,int,int,double *,tree_t **, int *, int);
+<span class="lineNum">      72 </span>            : int adjacency_asc(const void*,const void*);
+<span class="lineNum">      73 </span>            : int adjacency_dsc(const void*,const void*);
+<span class="lineNum">      74 </span>            :                  void super_fast_grouping(affinity_mat_t *,tree_t *,tree_t *,int, int);
+<span class="lineNum">      75 </span>            : affinity_mat_t *build_cost_matrix(affinity_mat_t *,double *,double);
+<span class="lineNum">      76 </span>            : void group_nodes(affinity_mat_t *,tree_t *,tree_t *,int ,int,double*,double);
+<span class="lineNum">      77 </span>            : void fast_grouping(affinity_mat_t *,tree_t *,tree_t *,int,int,long int);
+<span class="lineNum">      78 </span>            : void complete_aff_mat(affinity_mat_t **,int,int);
+<span class="lineNum">      79 </span>            : void complete_obj_weight(double **,int,int);
+<span class="lineNum">      80 </span>            : void create_dumb_tree(tree_t *,int,tm_topology_t *);
+<span class="lineNum">      81 </span>            : void complete_tab_node(tree_t **,int,int,int,tm_topology_t *);
+<span class="lineNum">      82 </span>            : void set_deb_tab_child(tree_t *,tree_t *,int);
+<span class="lineNum">      83 </span>            : tree_t *build_level_topology(tree_t *,affinity_mat_t *,int,int,tm_topology_t *,double *,double *);
+<span class="lineNum">      84 </span>            : int check_constraints(tm_topology_t  *,int **);
+<span class="lineNum">      85 </span>            : tree_t *bottom_up_build_tree_from_topology(tm_topology_t *,double **, int ,double *,double *);
+<span class="lineNum">      86 </span>            : void FREE_non_constraint_tree(tree_t *);
+<span class="lineNum">      87 </span>            : void FREE_constraint_tree(tree_t *);
+<span class="lineNum">      88 </span>            : void FREE_tab_double(double**,int);
+<span class="lineNum">      89 </span>            : void FREE_tab_int(int**,int );
+<span class="lineNum">      90 </span>            : void partial_aggregate_com_mat (int, void **);
+<span class="lineNum">      91 </span>            : affinity_mat_t *new_affinity_mat(double **, double *, int);
+<span class="lineNum">      92 </span>            : void partial_aggregate_aff_mat (int, void **);
+<span class="lineNum">      93 </span>            : affinity_mat_t *aggregate_aff_mat(tree_t *, affinity_mat_t *, int);
+<a name="94"><span class="lineNum">      94 </span>            : affinity_mat_t * build_affinity_mat(double **, int);</a>
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 : affinity_mat_t *new_affinity_mat(double **mat, double *sum_row, int order){</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :   affinity_mat_t *res = (affinity_mat_t *) MALLOC (sizeof(affinity_mat_t));</span>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :   res -&gt; mat     = mat;</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :   res -&gt; sum_row = sum_row;</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :   res -&gt; order   = order;</span>
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   return res;</span>
+<a name="104"><span class="lineNum">     104 </span>            : }</a>
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 : void FREE_list_child(tree_t *tree)</span>
+<span class="lineNum">     107 </span>            : {
+<span class="lineNum">     108 </span>            :   int i;
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :   if(tree)</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     for(i=0;i&lt;tree-&gt;arity;i++)</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :       FREE_list_child(tree-&gt;child[i]);</span>
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :   FREE(tree-&gt;child);</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :   if(tree-&gt;dumb)</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     FREE(tree);</span>
+<a name="117"><span class="lineNum">     117 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 : void FREE_tab_child(tree_t *tree)</span>
+<span class="lineNum">     120 </span>            : {
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   if(tree){</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     FREE_tab_child(tree-&gt;tab_child);</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     FREE(tree-&gt;tab_child);</span>
+<span class="lineNum">     124 </span>            :   }
+<a name="125"><span class="lineNum">     125 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 : void FREE_non_constraint_tree(tree_t *tree)</span>
+<span class="lineNum">     128 </span>            : {
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :   FREE_list_child(tree);</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :   FREE_tab_child(tree);</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :   FREE(tree);</span>
+<a name="133"><span class="lineNum">     133 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 : void FREE_constraint_tree(tree_t *tree)</span>
+<span class="lineNum">     136 </span>            : {
+<span class="lineNum">     137 </span>            :   int i;
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :   if(tree){</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     for(i=0;i&lt;tree-&gt;arity;i++)</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :       FREE_constraint_tree(tree-&gt;child[i]);</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     FREE(tree-&gt;child);</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     FREE(tree);</span>
+<span class="lineNum">     143 </span>            :   }
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 : }</span>
+<a name="145"><span class="lineNum">     145 </span>            : </a>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 : void FREE_tree(tree_t *tree)</span>
+<span class="lineNum">     148 </span>            : {
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :   if(tree-&gt;constraint)</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     FREE_constraint_tree(tree);</span>
+<span class="lineNum">     151 </span>            :   else
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     FREE_non_constraint_tree(tree);</span>
+<a name="153"><span class="lineNum">     153 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 : unsigned long int choose (long n,long k)</span>
+<span class="lineNum">     156 </span>            : {
+<span class="lineNum">     157 </span>            :   /* compute C_n_k */
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :   double res = 1;</span>
+<span class="lineNum">     159 </span>            :   int i;
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; k ; i++ )</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     res *= (double)(n-i)/(double)(k-i);</span>
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :   return (unsigned long int)res;</span>
+<a name="165"><span class="lineNum">     165 </span>            : }</a>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 : void set_node(tree_t *node,tree_t ** child, int arity,tree_t *parent,</span>
+<span class="lineNum">     168 </span>            :               int id,double val,tree_t *tab_child,int depth)
+<span class="lineNum">     169 </span>            : {
+<span class="lineNum">     170 </span>            :   static int uniq = 0;
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :   node-&gt;child = child;</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :   node-&gt;arity = arity;</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :   node-&gt;tab_child = tab_child;</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :   node-&gt;parent = parent;</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :   node-&gt;id = id;</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :   node-&gt;val = val;</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   node-&gt;uniq = uniq++;</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :   node-&gt;depth= depth;</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :   node-&gt;dumb = 0;</span>
+<a name="180"><span class="lineNum">     180 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 : void display_node(tree_t *node)</span>
+<span class="lineNum">     183 </span>            : {
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :   if (verbose_level &gt;= DEBUG)</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     printf(&quot;child : %p\narity : %d\nparent : %p\nid : %d\nval : %f\nuniq : %d\n\n&quot;,</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :            (void *)(node-&gt;child),node-&gt;arity,(void *)(node-&gt;parent),node-&gt;id,node-&gt;val,node-&gt;uniq);</span>
+<a name="187"><span class="lineNum">     187 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 : void clone_tree(tree_t *new,tree_t *old)</span>
+<span class="lineNum">     190 </span>            : {
+<span class="lineNum">     191 </span>            :   int i;
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :   new-&gt;child = old-&gt;child;</span>
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :   new-&gt;parent = old-&gt;parent;</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :   new-&gt;tab_child = old-&gt;tab_child;</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :   new-&gt;val = old-&gt;val;</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :   new-&gt;arity = old-&gt;arity;</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :   new-&gt;depth = old-&gt;depth;</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :   new-&gt;id = old-&gt;id;</span>
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :   new-&gt;uniq = old-&gt;uniq;</span>
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :   new-&gt;dumb = old-&gt;dumb;</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; new-&gt;arity ; i++ )</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     new-&gt;child[i]-&gt;parent = new;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 : }</span>
+<a name="204"><span class="lineNum">     204 </span>            : </a>
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 : double *aggregate_obj_weight(tree_t *new_tab_node, double *tab, int M)</span>
+<span class="lineNum">     207 </span>            : {
+<span class="lineNum">     208 </span>            :   int i,i1,id1;
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :   double *res = NULL;</span>
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   if(!tab)</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :   res = (double*)MALLOC(M*sizeof(double));</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; M ; i++ ){</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     res[i] = 0.0;</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     for( i1 = 0 ; i1 &lt; new_tab_node[i].arity ; i1++ ){</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :       id1 = new_tab_node[i].child[i1]-&gt;id;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :       res[i] += tab[id1];</span>
+<span class="lineNum">     221 </span>            :     }
+<span class="lineNum">     222 </span>            :   }
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :   return res;</span>
+<span class="lineNum">     224 </span>            : }
+<span class="lineNum">     225 </span>            : 
+<a name="226"><span class="lineNum">     226 </span>            : </a>
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 : void partial_aggregate_aff_mat (int nb_args, void **args){</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :   int inf = *(int*)args[0];</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :   int sup = *(int*)args[1];</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :   double **old_mat = (double**)args[2];</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :   tree_t *tab_node = (tree_t*)args[3];</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :   int M = *(int*)args[4];</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :   double **mat = (double**)args[5];</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :   double *sum_row = (double*)args[6];</span>
+<span class="lineNum">     236 </span>            :   int i,j,i1,j1;
+<span class="lineNum">     237 </span>            :   int id1, id2;
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :   if(nb_args != 6){</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     if(verbose_level &gt;= ERROR)</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :       fprintf(stderr,&quot;Wrong number of args in %s: %d\n&quot;,__FUNCTION__, nb_args);</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     exit(-1);</span>
+<span class="lineNum">     244 </span>            :   }
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   if(verbose_level &gt;= INFO)</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     printf(&quot;Aggregate in parallel (%d-%d)\n&quot;,inf,sup-1);</span>
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :   for( i = inf ; i &lt; sup ; i++ )</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     for( j = 0 ; j &lt; M ; j++ ){</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :       if(i != j){</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         for( i1 = 0 ; i1 &lt; tab_node[i].arity ; i1++ ){</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :           id1 = tab_node[i].child[i1]-&gt;id;</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :           for( j1 = 0 ; j1 &lt; tab_node[j].arity ; j1++ ){</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :             id2 = tab_node[j].child[j1]-&gt;id;</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :             mat[i][j] += old_mat[id1][id2];</span>
+<span class="lineNum">     257 </span>            :             /* printf(&quot;mat[%d][%d]+=old_mat[%d][%d]=%f\n&quot;,i,j,id1,id2,old_mat[id1][id2]);*/
+<span class="lineNum">     258 </span>            :           }
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :           sum_row[i] += mat[i][j];</span>
+<span class="lineNum">     260 </span>            :         }
+<span class="lineNum">     261 </span>            :       }
+<span class="lineNum">     262 </span>            :     }
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 : }</span>
+<a name="264"><span class="lineNum">     264 </span>            : </a>
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 : affinity_mat_t *aggregate_aff_mat(tree_t *tab_node, affinity_mat_t *aff_mat, int M)</span>
+<span class="lineNum">     267 </span>            : {
+<span class="lineNum">     268 </span>            :   int i,j,i1,j1,id1,id2;
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :   double **new_mat = NULL, **old_mat = aff_mat-&gt;mat;</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :   double *sum_row = NULL;</span>
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :   new_mat = (double**)MALLOC(M*sizeof(double*));</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; M ; i++ )</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     new_mat[i] = (double*)CALLOC((M),sizeof(double));</span>
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :   sum_row = (double*)CALLOC(M,sizeof(double));</span>
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :   if(M&gt;512){ /* perform this part in parallel*/</span>
+<span class="lineNum">     279 </span>            :     int id;
+<span class="lineNum">     280 </span>            :     int nb_threads;
+<span class="lineNum">     281 </span>            :     work_t **works;
+<span class="lineNum">     282 </span>            :     int *inf;
+<span class="lineNum">     283 </span>            :     int *sup;
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     nb_threads = MIN(M/512,get_nb_threads());</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     works = (work_t**)MALLOC(sizeof(work_t*)*nb_threads);</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     inf = (int*)MALLOC(sizeof(int)*nb_threads);</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     sup = (int*)MALLOC(sizeof(int)*nb_threads);</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     for(id=0;id&lt;nb_threads;id++){</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :       void **args=(void**)MALLOC(sizeof(void*)*7);</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :       inf[id]=id*M/nb_threads;</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :       sup[id]=(id+1)*M/nb_threads;</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :       if(id == nb_threads-1) sup[id]=M;</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :       args[0]=(void*)(inf+id);</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :       args[1]=(void*)(sup+id);</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :       args[2]=(void*)old_mat;</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :       args[3]=(void*)tab_node;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :       args[4]=&amp;M;</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :       args[5]=(void*)new_mat;</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :       args[6]=(void*)sum_row;</span>
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :       works[id]= create_work(7,args,partial_aggregate_aff_mat);</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :       if(verbose_level &gt;= DEBUG)</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         printf(&quot;Executing %p\n&quot;,(void *)works[id]);</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :       submit_work( works[id], id);</span>
+<span class="lineNum">     307 </span>            :     }
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     for(id=0;id&lt;nb_threads;id++){</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :       wait_work_completion(works[id]);</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :       FREE(works[id]-&gt;args);</span>
+<span class="lineNum">     312 </span>            :     }
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     FREE(inf);</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     FREE(sup);</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     FREE(works);</span>
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span>            :   }else{
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; M ; i++ )</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     for( j = 0 ; j &lt; M ; j++ ){</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :       if(i != j){</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :         for( i1 = 0 ; i1 &lt; tab_node[i].arity ; i1++ ){</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :           id1 = tab_node[i].child[i1]-&gt;id;</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :           for( j1 = 0 ; j1 &lt; tab_node[j].arity ; j1++ ){</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :             id2 = tab_node[j].child[j1]-&gt;id;</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :             new_mat[i][j] += old_mat[id1][id2];</span>
+<span class="lineNum">     328 </span>            :             /* printf(&quot;mat[%d][%d]+=old_mat[%d][%d]=%f\n&quot;,i,j,id1,id2,old_mat[id1][id2]);*/
+<span class="lineNum">     329 </span>            :           }
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :           sum_row[i] += new_mat[i][j];</span>
+<span class="lineNum">     331 </span>            :         }
+<span class="lineNum">     332 </span>            :       }
+<span class="lineNum">     333 </span>            :     }
+<span class="lineNum">     334 </span>            :   }
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :   return new_affinity_mat(new_mat,sum_row,M);</span>
+<a name="336"><span class="lineNum">     336 </span>            : }</a>
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 : void FREE_tab_double(double**tab,int N)</span>
+<span class="lineNum">     339 </span>            : {
+<span class="lineNum">     340 </span>            :   int i;
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; N ; i++ )</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     FREE(tab[i]);</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :   FREE(tab);</span>
+<a name="344"><span class="lineNum">     344 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 : void FREE_tab_int(int**tab,int N)</span>
+<span class="lineNum">     347 </span>            : {
+<span class="lineNum">     348 </span>            :   int i;
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; N ; i++ )</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     FREE(tab[i]);</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :   FREE(tab);</span>
+<a name="352"><span class="lineNum">     352 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 : void display_tab(double **tab,int N)</span>
+<span class="lineNum">     355 </span>            : {
+<span class="lineNum">     356 </span>            :   int i,j;
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :   double line,total = 0;</span>
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; N ; i++ ){</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     line = 0;</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :     for( j = 0 ; j &lt; N ; j++ ){</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :       printf(&quot;%g &quot;,tab[i][j]);</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :       line += tab[i][j];</span>
+<span class="lineNum">     365 </span>            :     }
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     total += line;</span>
+<span class="lineNum">     367 </span>            :     /* printf(&quot;: %g&quot;,line);*/
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :     printf(&quot;\n&quot;);</span>
+<span class="lineNum">     369 </span>            :   }
+<span class="lineNum">     370 </span>            :   /* printf(&quot;Total: %.2f\n&quot;,total);*/
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 : }</span>
+<a name="372"><span class="lineNum">     372 </span>            : </a>
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 : double eval_grouping(affinity_mat_t *aff_mat,tree_t **cur_group,int arity)</span>
+<span class="lineNum">     375 </span>            : {
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :   double res = 0;</span>
+<span class="lineNum">     377 </span>            :   int i,j,id,id1,id2;
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :   double **mat = aff_mat-&gt;mat;</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :   double * sum_row = aff_mat -&gt; sum_row;</span>
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            :   /*display_tab(tab,N);*/
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; arity ; i++ ){</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :     id = cur_group[i]-&gt;id;</span>
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     res += sum_row[id];</span>
+<span class="lineNum">     386 </span>            :   }
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; arity ; i++ ){</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     id1 = cur_group[i]-&gt;id;</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     for( j = 0 ; j &lt; arity ; j++ ){</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :       id2 = cur_group[j]-&gt;id;</span>
+<span class="lineNum">     392 </span>            :       /*printf(&quot;res-=tab[%d][%d]=%f\n&quot;,id1,id2,tab[id1][id2]);*/
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :       res -= mat[id1][id2];</span>
+<span class="lineNum">     394 </span>            :     }
+<span class="lineNum">     395 </span>            :   }
+<span class="lineNum">     396 </span>            :   /*printf(&quot; = %f\n&quot;,res);*/
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :   return res;</span>
+<span class="lineNum">     398 </span>            : }
+<a name="399"><span class="lineNum">     399 </span>            : </a>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 : group_list_t *new_group_list(tree_t **tab,double val,group_list_t *next)</span>
+<span class="lineNum">     402 </span>            : {
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :   group_list_t *res = NULL;</span>
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :   res = (group_list_t *)MALLOC(sizeof(group_list_t));</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :   res-&gt;tab = tab;</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :   res-&gt;val = val;</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :   res-&gt;next = next;</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :   res-&gt;sum_neighbour = 0;</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :   return res;</span>
+<span class="lineNum">     411 </span>            : }
+<a name="412"><span class="lineNum">     412 </span>            : </a>
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 : void add_to_list(group_list_t *list,tree_t **cur_group, int arity, double val)</span>
+<span class="lineNum">     415 </span>            : {
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :   group_list_t *elem = NULL;</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :   tree_t **tab = NULL;</span>
+<span class="lineNum">     418 </span>            :   int i;
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :   tab=(tree_t **)MALLOC(sizeof(tree_t *)*arity);</span>
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; arity ; i++ ){</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     tab[i] = cur_group[i];</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :       printf(&quot;cur_group[%d]=%d &quot;,i,cur_group[i]-&gt;id);</span>
+<span class="lineNum">     426 </span>            :   }
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :   if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :     printf(&quot;: %f\n&quot;,val);</span>
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span>            :   /*printf(&quot;\n&quot;);*/
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :   elem = new_group_list(tab,val,list-&gt;next);</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :   list-&gt;next = elem;</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :   list-&gt;val++;</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 : }</span>
+<a name="435"><span class="lineNum">     435 </span>            : </a>
+<span class="lineNum">     436 </span>            : 
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 : void  list_all_possible_groups(affinity_mat_t *aff_mat,tree_t *tab_node,int id,int arity, int depth,</span>
+<span class="lineNum">     438 </span>            :                                tree_t **cur_group, group_list_t *list)
+<span class="lineNum">     439 </span>            : {
+<span class="lineNum">     440 </span>            :   double val;
+<span class="lineNum">     441 </span>            :   int i;
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :   int N = aff_mat-&gt;order;</span>
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :   if(depth == arity){</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :     val = eval_grouping(aff_mat,cur_group,arity);</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :     add_to_list(list,cur_group,arity,val);</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :   }else if( (N+depth) &gt;= (arity+id) ){</span>
+<span class="lineNum">     449 </span>            :     /*}else if(1){*/
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     for( i = id ; i &lt; N ; i++ ){</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :       if(tab_node[i].parent)</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :         continue;</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :       cur_group[depth] = &amp;tab_node[i];</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :       if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :         printf(&quot;%d&lt;-%d\n&quot;,depth,i);</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :       list_all_possible_groups(aff_mat,tab_node,i+1,arity,depth+1,cur_group,list);</span>
+<span class="lineNum">     457 </span>            :     }
+<span class="lineNum">     458 </span>            :   }
+<a name="459"><span class="lineNum">     459 </span>            : }</a>
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 : void update_val(affinity_mat_t *aff_mat,tree_t *parent)</span>
+<span class="lineNum">     462 </span>            : {
+<span class="lineNum">     463 </span>            :   /* int i; */
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :   parent-&gt;val = eval_grouping(aff_mat,parent-&gt;child,parent-&gt;arity);</span>
+<span class="lineNum">     466 </span>            :   /*printf(&quot;connecting: &quot;);*/
+<span class="lineNum">     467 </span>            :   /*for( i = 0 ; i &lt; parent-&gt;arity ; i++ ){ */
+<span class="lineNum">     468 </span>            :     /*printf(&quot;%d &quot;,parent-&gt;child[i]-&gt;id);*/
+<span class="lineNum">     469 </span>            :     /*  if(parent-&gt;child[i]-&gt;parent!=parent){
+<span class="lineNum">     470 </span>            :         parent-&gt;child[i]-&gt;parent=parent;
+<span class="lineNum">     471 </span>            :         }else{
+<span class="lineNum">     472 </span>            :         fprintf(stderr,&quot;redundant operation!\n&quot;);
+<span class="lineNum">     473 </span>            :         exit(-1);
+<span class="lineNum">     474 </span>            :         }*/
+<span class="lineNum">     475 </span>            :   /* } */
+<span class="lineNum">     476 </span>            :   /*printf(&quot;: %f\n&quot;,parent-&gt;val);*/
+<a name="477"><span class="lineNum">     477 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 : int independent_groups(group_list_t **selection,int d,group_list_t *elem,int arity)</span>
+<span class="lineNum">     480 </span>            : {
+<span class="lineNum">     481 </span>            :   int i,j,k;
+<span class="lineNum">     482 </span>            : 
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :   if(d == 0)</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     return 1;</span>
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; arity ; i++ )</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     for( j = 0 ; j &lt; d ; j++ )</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :       for( k = 0 ; k &lt; arity ; k++ )</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :         if(elem-&gt;tab[i]-&gt;id == selection[j]-&gt;tab[k]-&gt;id)</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :           return 0;</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :   return 1;</span>
+<a name="492"><span class="lineNum">     492 </span>            : }</a>
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 : void display_selection (group_list_t** selection,int M,int arity,double val)</span>
+<span class="lineNum">     495 </span>            : {
+<span class="lineNum">     496 </span>            :   int i,j;
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :   if(verbose_level&lt;INFO)</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; M ; i++ ) {</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :     for( j = 0 ; j &lt; arity ; j++ )</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :       printf(&quot;%d &quot;,selection[i]-&gt;tab[j]-&gt;id);</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :     printf(&quot;-- &quot;);</span>
+<span class="lineNum">     506 </span>            :   }
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :   printf(&quot;:%f\n&quot;,val);</span>
+<a name="508"><span class="lineNum">     508 </span>            : }</a>
+<span class="lineNum">     509 </span>            : 
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 : void display_grouping (tree_t *father,int M,int arity,double val)</span>
+<span class="lineNum">     511 </span>            : {
+<span class="lineNum">     512 </span>            :   int i,j;
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :   if(verbose_level &lt; INFO)</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :   printf(&quot;Grouping : &quot;);</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :   for( i = 0  ; i &lt; M ; i++ ){</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     for( j = 0 ; j &lt; arity ; j++ )</span>
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :       printf(&quot;%d &quot;,father[i].child[j]-&gt;id);</span>
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     printf(&quot;-- &quot;);</span>
+<span class="lineNum">     522 </span>            :   }
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :   printf(&quot;:%f\n&quot;,val);</span>
+<span class="lineNum">     524 </span>            : }
+<a name="525"><span class="lineNum">     525 </span>            : </a>
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 : int recurs_select_independent_groups(group_list_t **tab,int i,int n,int arity,int d,int M,double val,double *best_val,group_list_t **selection,group_list_t **best_selection)</span>
+<span class="lineNum">     528 </span>            : {
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :   group_list_t *elem = NULL;</span>
+<span class="lineNum">     530 </span>            :   /*
+<span class="lineNum">     531 </span>            :     if(val&gt;=*best_val)
+<span class="lineNum">     532 </span>            :     return 0;
+<span class="lineNum">     533 </span>            :   */
+<span class="lineNum">     534 </span>            : 
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :   if( d == M ){</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :     if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :       display_selection(selection,M,arity,val);</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     if( val &lt; *best_val ){</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :       *best_val = val;</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :       for( i = 0 ; i &lt; M ; i++ )</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :         best_selection[i] = selection[i];</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :       return 1;</span>
+<span class="lineNum">     543 </span>            :     }
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     545 </span>            :   }
+<span class="lineNum">     546 </span>            : 
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :   while( i &lt; n ){</span>
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     elem = tab[i];</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :     if(independent_groups(selection,d,elem,arity)){</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :       if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :         printf(&quot;%d: %d\n&quot;,d,i);</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :       selection[d] = elem;</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :       val += elem-&gt;val;</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :       return recurs_select_independent_groups(tab,i+1,n,arity,d+1,M,val,best_val,selection,best_selection);</span>
+<span class="lineNum">     555 </span>            :     }
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :     i++;</span>
+<span class="lineNum">     557 </span>            :   }
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     559 </span>            : }
+<a name="560"><span class="lineNum">     560 </span>            : </a>
+<span class="lineNum">     561 </span>            : 
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 : int test_independent_groups(group_list_t **tab,int i,int n,int arity,int d,int M,double val,double *best_val,group_list_t **selection,group_list_t **best_selection)</span>
+<span class="lineNum">     563 </span>            : {
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :   group_list_t *elem = NULL;</span>
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :   if( d == M ){</span>
+<span class="lineNum">     567 </span>            :     /*display_selection(selection,M,arity,val);*/
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     return 1;</span>
+<span class="lineNum">     569 </span>            :   }
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :   while( i &lt; n ){</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :     elem = tab[i];</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :     if(independent_groups(selection,d,elem,arity)){</span>
+<span class="lineNum">     574 </span>            :       /*printf(&quot;%d: %d\n&quot;,d,i);*/
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :       selection[d] = elem;</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :       val += elem-&gt;val;</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :       return recurs_select_independent_groups(tab,i+1,n,arity,d+1,M,val,best_val,selection,best_selection);</span>
+<span class="lineNum">     578 </span>            :     }
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :     i++;</span>
+<span class="lineNum">     580 </span>            :   }
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="582"><span class="lineNum">     582 </span>            : }</a>
+<span class="lineNum">     583 </span>            : 
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 : void  delete_group_list(group_list_t *list)</span>
+<span class="lineNum">     585 </span>            : {
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :   if(list){</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :     delete_group_list(list-&gt;next);</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :     FREE(list-&gt;tab);</span>
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :     FREE(list);</span>
+<span class="lineNum">     590 </span>            :   }
+<a name="591"><span class="lineNum">     591 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     592 </span>            : 
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 : int group_list_id(const void* x1,const void* x2)</span>
+<span class="lineNum">     594 </span>            : {
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :   group_list_t *e1 = NULL,*e2= NULL;</span>
+<span class="lineNum">     596 </span>            : 
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :   e1 = *((group_list_t**)x1);</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :   e2 = *((group_list_t**)x2);</span>
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :   return (e1-&gt;tab[0]-&gt;id &lt; e2-&gt;tab[0]-&gt;id) ? - 1 : 1;</span>
+<a name="601"><span class="lineNum">     601 </span>            : }</a>
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 : int group_list_asc(const void* x1,const void* x2)</span>
+<span class="lineNum">     604 </span>            : {
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :   group_list_t *e1 = NULL,*e2 = NULL;</span>
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :   e1 = *((group_list_t**)x1);</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :   e2 = *((group_list_t**)x2);</span>
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :   return (e1-&gt;val &lt; e2-&gt;val) ? - 1 : 1;</span>
+<a name="611"><span class="lineNum">     611 </span>            : }</a>
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 : int group_list_dsc(const void* x1,const void* x2)</span>
+<span class="lineNum">     614 </span>            : {
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :   group_list_t *e1 = NULL,*e2 = NULL;</span>
+<span class="lineNum">     616 </span>            : 
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :   e1 = *((group_list_t**)x1);</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :   e2 = *((group_list_t**)x2);</span>
+<span class="lineNum">     619 </span>            : 
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :   return (e1-&gt;val &gt; e2-&gt;val) ? -1 : 1;</span>
+<a name="621"><span class="lineNum">     621 </span>            : }</a>
+<span class="lineNum">     622 </span>            : 
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 : int weighted_degree_asc(const void* x1,const void* x2)</span>
+<span class="lineNum">     624 </span>            : {
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :   group_list_t *e1= NULL,*e2 = NULL;</span>
+<span class="lineNum">     626 </span>            : 
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :   e1 = *((group_list_t**)x1);</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :   e2 = *((group_list_t**)x2);</span>
+<span class="lineNum">     629 </span>            : 
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :   return (e1-&gt;wg &gt; e2-&gt;wg) ? 1 : -1;</span>
+<a name="631"><span class="lineNum">     631 </span>            : }</a>
+<span class="lineNum">     632 </span>            : 
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 : int weighted_degree_dsc(const void* x1,const void* x2)</span>
+<span class="lineNum">     634 </span>            : {
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :   group_list_t *e1 = NULL,*e2 = NULL;</span>
+<span class="lineNum">     636 </span>            : 
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :   e1 = *((group_list_t**)x1);</span>
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :   e2 = *((group_list_t**)x2);</span>
+<span class="lineNum">     639 </span>            : 
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :   return (e1-&gt;wg &gt; e2-&gt;wg) ? - 1 : 1;</span>
+<a name="641"><span class="lineNum">     641 </span>            : }</a>
+<span class="lineNum">     642 </span>            : 
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 : int  select_independent_groups(group_list_t **tab_group,int n,int arity,int M,double *best_val,</span>
+<span class="lineNum">     644 </span>            :                                group_list_t **best_selection,int bound,double max_duration)
+<span class="lineNum">     645 </span>            : {
+<span class="lineNum">     646 </span>            :   int i,j;
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :   group_list_t **selection = NULL;</span>
+<span class="lineNum">     648 </span>            :   double val,duration;
+<span class="lineNum">     649 </span>            :   CLOCK_T time1,time0;
+<span class="lineNum">     650 </span>            : 
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :   if(verbose_level&gt;=INFO){</span>
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :     for(i=0;i&lt;n;i++){</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :       for(j=0;j&lt;arity;j++){</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :         printf(&quot;%d &quot;,tab_group[i]-&gt;tab[j]-&gt;id);</span>
+<span class="lineNum">     655 </span>            :       }
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :       printf(&quot; : %f\n&quot;,tab_group[i]-&gt;val);</span>
+<span class="lineNum">     657 </span>            :     }
+<span class="lineNum">     658 </span>            :   }
+<span class="lineNum">     659 </span>            : 
+<span class="lineNum">     660 </span>            : 
+<span class="lineNum">     661 </span>            : 
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :   selection = (group_list_t **)MALLOC(sizeof(group_list_t*)*M);</span>
+<span class="lineNum">     663 </span><span class="lineNoCov">          0 :   CLOCK(time0);</span>
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; MIN(bound,n) ; i++ ){</span>
+<span class="lineNum">     665 </span>            :     /* if(!(i%100)) {printf(&quot;%d/%d &quot;,i, MIN(bound,n)); fflush(stdout);} */
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :     selection[0] = tab_group[i];</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :     val = tab_group[i]-&gt;val;</span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :     recurs_select_independent_groups(tab_group,i+1,n,arity,1,M,val,best_val,selection,best_selection);</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :     if((!(i%5)) &amp;&amp; (max_duration&gt;0)){</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :      CLOCK(time1);</span>
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :       duration = CLOCK_DIFF(time1,time0);</span>
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :       if(duration&gt;max_duration){</span>
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :         FREE(selection);</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :         return 1;</span>
+<span class="lineNum">     675 </span>            :       }
+<span class="lineNum">     676 </span>            :     }
+<span class="lineNum">     677 </span>            :   }
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :   FREE(selection);</span>
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span>            : 
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :   if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :     display_selection(best_selection,M,arity,*best_val);</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="684"><span class="lineNum">     684 </span>            : }</a>
+<span class="lineNum">     685 </span>            : 
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 : int  select_independent_groups_by_largest_index(group_list_t **tab_group,int n,int arity,int M,double *best_val,group_list_t **best_selection,int bound,double max_duration)</span>
+<span class="lineNum">     687 </span>            : {
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :   int i,dec,nb_groups=0;</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :   group_list_t **selection = NULL;</span>
+<span class="lineNum">     690 </span>            :   double val,duration;
+<span class="lineNum">     691 </span>            :   CLOCK_T time1,time0;
+<span class="lineNum">     692 </span>            : 
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :   selection = (group_list_t **)MALLOC(sizeof(group_list_t*)*M);</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :   CLOCK(time0);</span>
+<span class="lineNum">     695 </span>            : 
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :   dec = MAX(n/10000,2);</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :   for( i = n-1 ; i &gt;= 0 ; i -= dec*dec){</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :     selection[0] = tab_group[i];</span>
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :     val = tab_group[i]-&gt;val;</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :     nb_groups += test_independent_groups(tab_group,i+1,n,arity,1,M,val,best_val,selection,best_selection);</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :     if(verbose_level&gt;=DEBUG)</span>
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :       printf(&quot;%d:%d\n&quot;,i,nb_groups);</span>
+<span class="lineNum">     703 </span>            : 
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :     if(nb_groups &gt;= bound){</span>
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :       FREE(selection);</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :       return 0;</span>
+<span class="lineNum">     707 </span>            :     }
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :     if((!(i%5)) &amp;&amp; (max_duration&gt;0)){</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :       CLOCK(time1);</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :       duration=CLOCK_DIFF(time1,time0);</span>
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :       if(duration&gt;max_duration){</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :         FREE(selection);</span>
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :         return 1;</span>
+<span class="lineNum">     714 </span>            :       }
+<span class="lineNum">     715 </span>            :     }
+<span class="lineNum">     716 </span>            :   }
+<span class="lineNum">     717 </span>            : 
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :   FREE(selection);</span>
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :   return 0;</span>
+<a name="720"><span class="lineNum">     720 </span>            : }</a>
+<span class="lineNum">     721 </span>            : 
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 : void list_to_tab(group_list_t *list,group_list_t **tab,int n)</span>
+<span class="lineNum">     723 </span>            : {
+<span class="lineNum">     724 </span>            :   int i;
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; n ; i++ ){</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :     if(!list){</span>
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :       if(verbose_level&gt;=CRITICAL)</span>
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :         fprintf(stderr,&quot;Error not enough elements. Only %d on %d\n&quot;,i,n);</span>
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :       exit(-1);</span>
+<span class="lineNum">     730 </span>            :     }
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :     tab[n-i-1] = list;</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :     list = list-&gt;next;</span>
+<span class="lineNum">     733 </span>            :   }
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :   if(list){</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :     if(verbose_level&gt;=DEBUG)</span>
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :       fprintf(stderr,&quot;Error too many elements\n&quot;);</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :     exit(-1);</span>
+<span class="lineNum">     738 </span>            :   }
+<a name="739"><span class="lineNum">     739 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     740 </span>            : 
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 : void display_tab_group(group_list_t **tab, int n,int arity)</span>
+<span class="lineNum">     742 </span>            : {
+<span class="lineNum">     743 </span>            :   int i,j;
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :   if(verbose_level&lt;DEBUG)</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; n ; i++ ){</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :     for( j = 0 ; j &lt; arity ; j++ )</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :       printf(&quot;%d &quot;,tab[i]-&gt;tab[j]-&gt;id);</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :     printf(&quot;: %.2f %.2f\n&quot;,tab[i]-&gt;val,tab[i]-&gt;wg);</span>
+<span class="lineNum">     750 </span>            :   }
+<a name="751"><span class="lineNum">     751 </span>            : }</a>
+<span class="lineNum">     752 </span>            : 
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 : int independent_tab(tree_t **tab1,tree_t **tab2,int n)</span>
+<span class="lineNum">     754 </span>            : {
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :   int i = 0,j = 0;</span>
+<span class="lineNum">     756 </span>            : 
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :   while( (i&lt;n) &amp;&amp; (j&lt;n) ){</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :     if(tab1[i]-&gt;id == tab2[j]-&gt;id)</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :       return 0;</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :     else if(tab1[i]-&gt;id &gt; tab2[j]-&gt;id)</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :       j++;</span>
+<span class="lineNum">     762 </span>            :     else
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :       i++;</span>
+<span class="lineNum">     764 </span>            :   }
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :   return 1;</span>
+<a name="766"><span class="lineNum">     766 </span>            : }</a>
+<span class="lineNum">     767 </span>            : 
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 : void compute_weighted_degree(group_list_t **tab, int n,int arity)</span>
+<span class="lineNum">     769 </span>            : {
+<span class="lineNum">     770 </span>            :   int i,j;
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; n ; i++)</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :     tab[i]-&gt;sum_neighbour = 0;</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; n ; i++ ){</span>
+<span class="lineNum">     774 </span>            :     /*printf(&quot;%d/%d=%f%%\n&quot;,i,n,(100.0*i)/n);*/
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :     for( j = i+1 ; j &lt; n ; j++ )</span>
+<span class="lineNum">     776 </span>            :       /*if(!independent_groups(&amp;tab[i],1,tab[j],arity)){*/
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :       if(!independent_tab(tab[i]-&gt;tab,tab[j]-&gt;tab,arity)){</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :         tab[i]-&gt;sum_neighbour += tab[j]-&gt;val;</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :         tab[j]-&gt;sum_neighbour += tab[i]-&gt;val;</span>
+<span class="lineNum">     780 </span>            :       }
+<span class="lineNum">     781 </span>            : 
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :     tab[i]-&gt;wg = tab[i]-&gt;sum_neighbour/tab[i]-&gt;val;</span>
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :     if(tab[i]-&gt;sum_neighbour == 0)</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :       tab[i]-&gt;wg = 0;</span>
+<span class="lineNum">     785 </span>            :     /*printf(&quot;%d:%f/%f=%f\n&quot;,i,tab[i]-&gt;sum_neighbour,tab[i]-&gt;val,tab[i]-&gt;wg);*/
+<span class="lineNum">     786 </span>            :   }
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     788 </span>            : 
+<span class="lineNum">     789 </span>            : /*
+<span class="lineNum">     790 </span>            :   Very slow: explore all possibilities
+<span class="lineNum">     791 </span>            :   aff_mat : the affiity matrix at the considered level (used to evaluate a grouping)
+<span class="lineNum">     792 </span>            :   tab_node: array of the node to group
+<span class="lineNum">     793 </span>            :   parent: node to which attached the computed group
+<span class="lineNum">     794 </span>            :   id: current considered node of tab_node
+<span class="lineNum">     795 </span>            :   arity: number of children of parent (i.e.) size of the group to compute
+<span class="lineNum">     796 </span>            :   best_val: current value of th grouping
+<a name="797"><span class="lineNum">     797 </span>            :   cur_group: current grouping</a>
+<span class="lineNum">     798 </span>            :  */
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 : void  group(affinity_mat_t *aff_mat,tree_t *tab_node,tree_t *parent,int id,int arity, int n,double *best_val,tree_t **cur_group)</span>
+<span class="lineNum">     800 </span>            : {
+<span class="lineNum">     801 </span>            : 
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :   int N = aff_mat-&gt;order;</span>
+<span class="lineNum">     803 </span>            :   double val;
+<span class="lineNum">     804 </span>            :   int i;
+<span class="lineNum">     805 </span>            : 
+<span class="lineNum">     806 </span>            :   /*if we have found enough noide in the group*/
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :   if( n == arity){</span>
+<span class="lineNum">     808 </span>            :     /* evaluate this group*/
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :     val = eval_grouping(aff_mat,cur_group,arity);</span>
+<span class="lineNum">     810 </span>            :     /* If we improve compared to previous grouping: uodate the children of parent accordingly */
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :     if( val &lt; *best_val ){</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :       *best_val = val;</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :       for( i = 0 ; i &lt; arity ; i++ )</span>
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :           parent-&gt;child[i] = cur_group[i];</span>
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :       parent-&gt;arity = arity;</span>
+<span class="lineNum">     816 </span>            :     }
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     818 </span>            :   }
+<span class="lineNum">     819 </span>            : 
+<span class="lineNum">     820 </span>            :   /*
+<span class="lineNum">     821 </span>            :     If we need more node in the group
+<span class="lineNum">     822 </span>            :     Continue to explore avilable nodes
+<span class="lineNum">     823 </span>            :   */
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :   for( i = id+1 ; i &lt; N ; i++ ){</span>
+<span class="lineNum">     825 </span>            :     /* If this node is allready in a group: skip it*/
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :     if(tab_node[i].parent)</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     828 </span>            :     /*Otherwise, add it to the group at place n*/
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :     cur_group[n] = &amp;tab_node[i];</span>
+<span class="lineNum">     830 </span>            :     /*
+<span class="lineNum">     831 </span>            :     printf(&quot;%d&lt;-%d\n&quot;,n,i);
+<span class="lineNum">     832 </span>            :     recursively add the next element to this group
+<span class="lineNum">     833 </span>            :     */
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :     group(aff_mat,tab_node,parent,i,arity,n+1,best_val,cur_group);</span>
+<span class="lineNum">     835 </span>            :   }
+<span class="lineNum">     836 </span>            : }
+<span class="lineNum">     837 </span>            : 
+<span class="lineNum">     838 </span>            : /*
+<span class="lineNum">     839 </span>            :   aff_mat : the affiity matrix at the considered level (used to evaluate a grouping)
+<span class="lineNum">     840 </span>            :   tab_node: array of the node to group
+<span class="lineNum">     841 </span>            :   parent: node to which attached the computed group
+<span class="lineNum">     842 </span>            :   id: current considered node of tab_node
+<span class="lineNum">     843 </span>            :   arity: number of children of parent (i.e.) size of the group to compute
+<span class="lineNum">     844 </span>            :   best_val: current value of th grouping
+<span class="lineNum">     845 </span>            :   cur_group: current grouping
+<a name="846"><span class="lineNum">     846 </span>            :   N: size of tab and tab_node. i.e. number of nodes at the considered level</a>
+<span class="lineNum">     847 </span>            :  */
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 : void  fast_group(affinity_mat_t *aff_mat,tree_t *tab_node,tree_t *parent,int id,int arity, int n,</span>
+<span class="lineNum">     849 </span>            :                  double *best_val,tree_t **cur_group, int *nb_groups,int max_groups)
+<span class="lineNum">     850 </span>            : {
+<span class="lineNum">     851 </span>            :   double val;
+<span class="lineNum">     852 </span>            :   int i;
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :   int N = aff_mat-&gt;order;</span>
+<span class="lineNum">     854 </span>            : 
+<span class="lineNum">     855 </span>            :   /*printf(&quot;Max groups=%d\n&quot;,max_groups);*/
+<span class="lineNum">     856 </span>            : 
+<span class="lineNum">     857 </span>            :   /*if we have found enough node in the group*/
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :   if( n == arity ){</span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :     (*nb_groups)++;</span>
+<span class="lineNum">     860 </span>            :     /*evaluate this group*/
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :     val = eval_grouping(aff_mat,cur_group,arity);</span>
+<span class="lineNum">     862 </span>            :     /* If we improve compared to previous grouping: uodate the children of parent accordingly*/
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :     if( val &lt; *best_val ){</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :       *best_val = val;</span>
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :       for( i = 0 ; i &lt; arity ; i++ )</span>
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :         parent-&gt;child[i] = cur_group[i];</span>
+<span class="lineNum">     867 </span>            : 
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :       parent-&gt;arity = arity;</span>
+<span class="lineNum">     869 </span>            :     }
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">     871 </span>            :   }
+<span class="lineNum">     872 </span>            : 
+<span class="lineNum">     873 </span>            :   /*
+<span class="lineNum">     874 </span>            :     If we need more node in the group
+<span class="lineNum">     875 </span>            :     Continue to explore avilable nodes
+<span class="lineNum">     876 </span>            :   */
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :   for( i = id+1 ; i &lt; N ; i++ ){</span>
+<span class="lineNum">     878 </span>            :     /* If this node is allready in a group: skip it*/
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :     if(tab_node[i].parent)</span>
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :       continue;</span>
+<span class="lineNum">     881 </span>            :     /*Otherwise, add it to the group at place n */
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :     cur_group[n] = &amp;tab_node[i];</span>
+<span class="lineNum">     883 </span>            :     /*
+<span class="lineNum">     884 </span>            :     printf(&quot;%d&lt;-%d %d/%d\n&quot;,n,i,*nb_groups,max_groups);
+<span class="lineNum">     885 </span>            :     exit(-1);
+<span class="lineNum">     886 </span>            :     recursively add the next element to this group
+<span class="lineNum">     887 </span>            :     */
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :     fast_group(aff_mat,tab_node,parent,i,arity,n+1,best_val,cur_group,nb_groups,max_groups);</span>
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :     if(*nb_groups &gt; max_groups)</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :       return;</span>
+<span class="lineNum">     891 </span>            :   }
+<span class="lineNum">     892 </span>            : }
+<a name="893"><span class="lineNum">     893 </span>            : </a>
+<span class="lineNum">     894 </span>            : 
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 : void fast_grouping(affinity_mat_t *aff_mat,tree_t *tab_node, tree_t *new_tab_node, int arity, int M,long int k)</span>
+<span class="lineNum">     896 </span>            : {
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :   tree_t **cur_group = NULL;</span>
+<span class="lineNum">     898 </span>            :   int l,i,nb_groups;
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :   double best_val,val=0;</span>
+<span class="lineNum">     900 </span>            : 
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :   cur_group = (tree_t**)MALLOC(sizeof(tree_t*)*arity);</span>
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :   for( l = 0 ; l &lt; M ; l++ ){</span>
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :     best_val = DBL_MAX;</span>
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :     nb_groups = 0;</span>
+<span class="lineNum">     905 </span>            :     /*printf(&quot;k%d/%d, k=%ld\n&quot;,l,M,k);*/
+<span class="lineNum">     906 </span>            :     /* select the best greedy grouping among the 10 first one*/
+<span class="lineNum">     907 </span>            :     /*fast_group(tab,tab_node,&amp;new_tab_node[l],-1,arity,0,&amp;best_val,cur_group,N,&amp;nb_groups,MAX(2,(int)(50-log2(k))-M/10));*/
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :     fast_group(aff_mat,tab_node,&amp;new_tab_node[l],-1,arity,0,&amp;best_val,cur_group,&amp;nb_groups,MAX(1,(int)(50-CmiLog2(k))-M/10));</span>
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :     val += best_val;</span>
+<span class="lineNum">     910 </span><span class="lineNoCov">          0 :     for( i = 0 ; i &lt; new_tab_node[l].arity ; i++ )</span>
+<span class="lineNum">     911 </span><span class="lineNoCov">          0 :       new_tab_node[l].child[i]-&gt;parent=&amp;new_tab_node[l];</span>
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :     update_val(aff_mat,&amp;new_tab_node[l]);</span>
+<span class="lineNum">     913 </span>            :   }
+<span class="lineNum">     914 </span>            : 
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :   FREE(cur_group);</span>
+<span class="lineNum">     916 </span>            : 
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :   if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :     printf(&quot;val=%f\n&quot;,val);</span>
+<span class="lineNum">     919 </span>            :   /*exit(-1);*/
+<span class="lineNum">     920 </span>            : 
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :   if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :     display_grouping(new_tab_node,M,arity,val);</span>
+<span class="lineNum">     923 </span>            : 
+<span class="lineNum">     924 </span><span class="lineNoCov">          0 : }</span>
+<a name="925"><span class="lineNum">     925 </span>            : </a>
+<span class="lineNum">     926 </span>            : 
+<span class="lineNum">     927 </span><span class="lineNoCov">          0 : int adjacency_asc(const void* x1,const void* x2)</span>
+<span class="lineNum">     928 </span>            : {
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :   adjacency_t *e1 = NULL,*e2 = NULL;</span>
+<span class="lineNum">     930 </span>            : 
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :   e1 = ((adjacency_t*)x1);</span>
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :   e2 = ((adjacency_t*)x2);</span>
+<span class="lineNum">     933 </span>            : 
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :   return (e1-&gt;val &lt; e2-&gt;val) ? - 1 : 1;</span>
+<a name="935"><span class="lineNum">     935 </span>            : }</a>
+<span class="lineNum">     936 </span>            : 
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 : int adjacency_dsc(const void* x1,const void* x2)</span>
+<span class="lineNum">     938 </span>            : {
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :   adjacency_t *e1 = NULL,*e2 = NULL;</span>
+<span class="lineNum">     940 </span>            : 
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :   e1 = ((adjacency_t*)x1);</span>
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :   e2 = ((adjacency_t*)x2);</span>
+<span class="lineNum">     943 </span>            : 
+<span class="lineNum">     944 </span>            : 
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :   return (e1-&gt;val &gt; e2-&gt;val) ? -1 : 1;</span>
+<a name="946"><span class="lineNum">     946 </span>            : }</a>
+<span class="lineNum">     947 </span>            : 
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 : void super_fast_grouping(affinity_mat_t *aff_mat,tree_t *tab_node, tree_t *new_tab_node, int arity, int M)</span>
+<span class="lineNum">     949 </span>            : {
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :   double val = 0,duration;</span>
+<span class="lineNum">     951 </span>            :   adjacency_t *graph;
+<span class="lineNum">     952 </span>            :   int i,j,e,l,nb_groups;
+<span class="lineNum">     953 </span><span class="lineNoCov">          0 :   int N = aff_mat-&gt;order;</span>
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :   double **mat = aff_mat-&gt;mat;</span>
+<span class="lineNum">     955 </span>            : 
+<span class="lineNum">     956 </span><span class="lineNoCov">          0 :   assert( 2 == arity);</span>
+<span class="lineNum">     957 </span>            : 
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :   TIC;</span>
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :   graph = (adjacency_t*)MALLOC(sizeof(adjacency_t)*((N*N-N)/2));</span>
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :   e = 0;</span>
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; N ; i++ )</span>
+<span class="lineNum">     962 </span><span class="lineNoCov">          0 :     for( j = i+1 ; j &lt; N ; j++){</span>
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :       graph[e].i = i;</span>
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :       graph[e].j = j;</span>
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :       graph[e].val = mat[i][j];</span>
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :       e++;</span>
+<span class="lineNum">     967 </span>            :     }
+<span class="lineNum">     968 </span>            : 
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :   duration = TOC;</span>
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :   if(verbose_level&gt;=DEBUG)</span>
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :     printf(&quot;linearization=%fs\n&quot;,duration);</span>
+<span class="lineNum">     972 </span>            : 
+<span class="lineNum">     973 </span>            : 
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :   assert( e == (N*N-N)/2);</span>
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :   TIC;</span>
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :   qsort(graph,e,sizeof(adjacency_t),adjacency_dsc);</span>
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :   duration = TOC;</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :   if(verbose_level&gt;=DEBUG)</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :     printf(&quot;sorting=%fs\n&quot;,duration);</span>
+<span class="lineNum">     980 </span>            : 
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :   TIC;</span>
+<span class="lineNum">     982 </span>            : 
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 : TIC;</span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :   l = 0;</span>
+<span class="lineNum">     985 </span><span class="lineNoCov">          0 :   nb_groups = 0;</span>
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :   for( i = 0 ; (i &lt; e) &amp;&amp; (l &lt; M) ; i++ )</span>
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :     if(try_add_edge(tab_node,&amp;new_tab_node[l],arity,graph[i].i,graph[i].j,&amp;nb_groups))</span>
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :       l++;</span>
+<span class="lineNum">     989 </span>            : 
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 :   for( l = 0 ; l &lt; M ; l++ ){</span>
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :     update_val(aff_mat,&amp;new_tab_node[l]);</span>
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :     val += new_tab_node[l].val;</span>
+<span class="lineNum">     993 </span>            :   }
+<span class="lineNum">     994 </span>            : 
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :   duration = TOC;</span>
+<span class="lineNum">     996 </span><span class="lineNoCov">          0 :   if(verbose_level&gt;=DEBUG)</span>
+<span class="lineNum">     997 </span><span class="lineNoCov">          0 :     printf(&quot;Grouping=%fs\n&quot;,duration);</span>
+<span class="lineNum">     998 </span>            : 
+<span class="lineNum">     999 </span>            : 
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :   if(verbose_level&gt;=DEBUG)</span>
+<span class="lineNum">    1001 </span><span class="lineNoCov">          0 :     printf(&quot;val=%f\n&quot;,val);</span>
+<span class="lineNum">    1002 </span>            : 
+<span class="lineNum">    1003 </span>            : 
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :   display_grouping(new_tab_node,M,arity,val);</span>
+<span class="lineNum">    1005 </span>            : 
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 : }</span>
+<a name="1007"><span class="lineNum">    1007 </span>            : </a>
+<span class="lineNum">    1008 </span>            : 
+<span class="lineNum">    1009 </span><span class="lineNoCov">          0 : affinity_mat_t *build_cost_matrix(affinity_mat_t *aff_mat, double* obj_weight, double comm_speed)</span>
+<span class="lineNum">    1010 </span>            : {
+<span class="lineNum">    1011 </span><span class="lineNoCov">          0 :   double **mat = NULL, *sum_row;</span>
+<span class="lineNum">    1012 </span>            :   double **old_mat;
+<span class="lineNum">    1013 </span>            :   double avg;
+<span class="lineNum">    1014 </span>            :   int i,j,N;
+<span class="lineNum">    1015 </span>            : 
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :   if(!obj_weight)</span>
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :     return aff_mat;</span>
+<span class="lineNum">    1018 </span>            : 
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :   N = aff_mat-&gt;order;</span>
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :   old_mat = aff_mat -&gt; mat;</span>
+<span class="lineNum">    1021 </span>            : 
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :   mat = (double**)MALLOC(N*sizeof(double*));</span>
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; N ; i++ )</span>
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :     mat[i] = (double*)MALLOC(N*sizeof(double));</span>
+<span class="lineNum">    1025 </span>            : 
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :   sum_row = (double*)CALLOC(N,sizeof(double));</span>
+<span class="lineNum">    1027 </span>            : 
+<span class="lineNum">    1028 </span>            : 
+<span class="lineNum">    1029 </span>            : 
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :   avg = 0;</span>
+<span class="lineNum">    1031 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; N ; i++ )</span>
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :     avg += obj_weight[i];</span>
+<span class="lineNum">    1033 </span><span class="lineNoCov">          0 :   avg /= N;</span>
+<span class="lineNum">    1034 </span>            : 
+<span class="lineNum">    1035 </span>            : 
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :   if(verbose_level&gt;=DEBUG)</span>
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :     printf(&quot;avg=%f\n&quot;,avg);</span>
+<span class="lineNum">    1038 </span>            : 
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; N ; i++ )</span>
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :     for( j = 0 ; j &lt; N ; j++){</span>
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :       if( i == j )</span>
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :         mat[i][j] = 0;</span>
+<span class="lineNum">    1043 </span>            :       else{
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 :         mat[i][j] = 1e-4*old_mat[i][j]/comm_speed-fabs(avg-(obj_weight[i]+obj_weight[j])/2);</span>
+<span class="lineNum">    1045 </span><span class="lineNoCov">          0 :         sum_row[i] += mat[i][j];</span>
+<span class="lineNum">    1046 </span>            :       }
+<span class="lineNum">    1047 </span>            :     }
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :   return new_affinity_mat(mat,sum_row,N);</span>
+<span class="lineNum">    1049 </span>            : 
+<span class="lineNum">    1050 </span>            : }
+<span class="lineNum">    1051 </span>            : 
+<span class="lineNum">    1052 </span>            : 
+<span class="lineNum">    1053 </span>            : /*
+<span class="lineNum">    1054 </span>            :   aff_mat: affinity matrix at the considered level (use to evaluate a grouping)
+<span class="lineNum">    1055 </span>            :   tab_node: array of the node to group
+<span class="lineNum">    1056 </span>            :   new_tab_node: array of nodes at the next level (the parents of the node in tab_node once the grouping will be done).
+<span class="lineNum">    1057 </span>            :   arity: number of children of parent (i.e.) size of the group to compute
+<a name="1058"><span class="lineNum">    1058 </span>            :   M: size of new_tab_node (i.e) the number of parents</a>
+<span class="lineNum">    1059 </span>            : */
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 : void group_nodes(affinity_mat_t *aff_mat,tree_t *tab_node, tree_t *new_tab_node, int arity, int M, double* obj_weigth, double comm_speed)</span>
+<span class="lineNum">    1061 </span>            : {
+<span class="lineNum">    1062 </span>            : 
+<span class="lineNum">    1063 </span>            :  /*
+<span class="lineNum">    1064 </span>            :     N: size of tab and tab_node. i.e. number of nodes at the considered level
+<span class="lineNum">    1065 </span>            :     Hence we have: M*arity=N
+<span class="lineNum">    1066 </span>            :  */
+<span class="lineNum">    1067 </span><span class="lineNoCov">          0 :   int N = aff_mat -&gt; order;</span>
+<span class="lineNum">    1068 </span><span class="lineNoCov">          0 :   tree_t **cur_group = NULL;</span>
+<span class="lineNum">    1069 </span>            :   int j,l;
+<span class="lineNum">    1070 </span>            :   unsigned int n;
+<span class="lineNum">    1071 </span>            :   unsigned long int k;
+<span class="lineNum">    1072 </span><span class="lineNoCov">          0 :   group_list_t list,**best_selection = NULL,**tab_group = NULL;</span>
+<span class="lineNum">    1073 </span>            :   double best_val,last_best;
+<span class="lineNum">    1074 </span>            :   int timeout;
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :   affinity_mat_t *cost_mat = NULL; /*cost matrix taking into account the communiocation cost but also the weight of the object*/</span>
+<span class="lineNum">    1076 </span>            :   double duration;
+<span class="lineNum">    1077 </span>            : 
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :   TIC;</span>
+<span class="lineNum">    1079 </span>            : 
+<span class="lineNum">    1080 </span>            :   /* might return aff_mat (if obj_weight==NULL): do not FREE this tab in this case*/
+<span class="lineNum">    1081 </span><span class="lineNoCov">          0 :   cost_mat = build_cost_matrix(aff_mat,obj_weigth,comm_speed);</span>
+<span class="lineNum">    1082 </span>            : 
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :   k = choose(N,arity);</span>
+<span class="lineNum">    1084 </span><span class="lineNoCov">          0 :   if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">    1085 </span><span class="lineNoCov">          0 :     printf(&quot;Number of groups:%ld\n&quot;,k);</span>
+<span class="lineNum">    1086 </span>            : 
+<span class="lineNum">    1087 </span>            :   /* Todo: check if the depth is a criteria for speeding up the computation*/
+<span class="lineNum">    1088 </span>            :   /*  if(k&gt;30000||depth&gt;5){*/
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :   if( k &gt; 30000 ){</span>
+<span class="lineNum">    1090 </span>            : 
+<span class="lineNum">    1091 </span>            :     double duration;
+<span class="lineNum">    1092 </span>            : 
+<span class="lineNum">    1093 </span><span class="lineNoCov">          0 :     TIC;</span>
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :     if( arity &lt;= 2 ){</span>
+<span class="lineNum">    1095 </span>            :       /*super_fast_grouping(tab,tab_node,new_tab_node,arity,N,M,k);*/
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 :       if(verbose_level &gt;= INFO )</span>
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :         printf(&quot;Bucket Grouping...\n&quot;);</span>
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :       bucket_grouping(cost_mat,tab_node,new_tab_node,arity,M);</span>
+<span class="lineNum">    1099 </span>            :     }else{
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :       if(verbose_level &gt;= INFO)</span>
+<span class="lineNum">    1101 </span><span class="lineNoCov">          0 :         printf(&quot;Fast Grouping...\n&quot;);</span>
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :       fast_grouping(cost_mat,tab_node,new_tab_node,arity,M,k);</span>
+<span class="lineNum">    1103 </span>            :     }
+<span class="lineNum">    1104 </span>            : 
+<span class="lineNum">    1105 </span><span class="lineNoCov">          0 :     duration = TOC;</span>
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :     if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">    1107 </span><span class="lineNoCov">          0 :       printf(&quot;Fast grouping duration=%f\n&quot;,duration);</span>
+<span class="lineNum">    1108 </span>            : 
+<span class="lineNum">    1109 </span><span class="lineNoCov">          0 :     if(verbose_level&gt;=DEBUG)</span>
+<span class="lineNum">    1110 </span><span class="lineNoCov">          0 :       display_grouping(new_tab_node,M,arity,-1);</span>
+<span class="lineNum">    1111 </span>            : 
+<span class="lineNum">    1112 </span>            :   }else{
+<span class="lineNum">    1113 </span><span class="lineNoCov">          0 :     if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :       printf(&quot;Grouping nodes...\n&quot;);</span>
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :     list.next = NULL;</span>
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :     list.val = 0; /*number of elements in the list*/</span>
+<span class="lineNum">    1117 </span><span class="lineNoCov">          0 :     cur_group = (tree_t**)MALLOC(sizeof(tree_t*)*arity);</span>
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :     best_selection = (group_list_t **)MALLOC(sizeof(group_list_t*)*M);</span>
+<span class="lineNum">    1119 </span>            : 
+<span class="lineNum">    1120 </span><span class="lineNoCov">          0 :     list_all_possible_groups(cost_mat,tab_node,0,arity,0,cur_group,&amp;list);</span>
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :     n = (int)list.val;</span>
+<span class="lineNum">    1122 </span><span class="lineNoCov">          0 :     assert( n == k );</span>
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :     tab_group = (group_list_t**)MALLOC(sizeof(group_list_t*)*n);</span>
+<span class="lineNum">    1124 </span><span class="lineNoCov">          0 :     list_to_tab(list.next,tab_group,n);</span>
+<span class="lineNum">    1125 </span><span class="lineNoCov">          0 :     if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">    1126 </span><span class="lineNoCov">          0 :       printf(&quot;List to tab done\n&quot;);</span>
+<span class="lineNum">    1127 </span>            : 
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :     best_val = DBL_MAX;</span>
+<span class="lineNum">    1129 </span>            : 
+<span class="lineNum">    1130 </span>            :     /* perform the pack mapping fist*/
+<span class="lineNum">    1131 </span>            :     /* timeout = select_independent_groups(tab_group,n,arity,M,&amp;best_val,best_selection,1,0.1); */
+<span class="lineNum">    1132 </span><span class="lineNoCov">          0 :     timeout = select_independent_groups(tab_group,n,arity,M,&amp;best_val,best_selection,1,100);</span>
+<span class="lineNum">    1133 </span><span class="lineNoCov">          0 :     if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">    1134 </span><span class="lineNoCov">          0 :       if(timeout)</span>
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :         printf(&quot;Packed mapping timeout!\n&quot;);</span>
+<span class="lineNum">    1136 </span>            :     /* give this mapping an exra credit (in general MPI application are made such that
+<span class="lineNum">    1137 </span>            :        neighbour process communicates more than distant ones) */
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :     best_val /= 1.001;</span>
+<span class="lineNum">    1139 </span>            :     /* best_val *= 1.001; */
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :     if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :       printf(&quot;Packing computed\n&quot;);</span>
+<span class="lineNum">    1142 </span>            : 
+<span class="lineNum">    1143 </span>            :     /* perform a mapping trying to use group that cost less first*/
+<span class="lineNum">    1144 </span><span class="lineNoCov">          0 :     qsort(tab_group,n,sizeof(group_list_t*),group_list_asc);</span>
+<span class="lineNum">    1145 </span><span class="lineNoCov">          0 :     last_best = best_val;</span>
+<span class="lineNum">    1146 </span><span class="lineNoCov">          0 :     timeout = select_independent_groups(tab_group,n,arity,M,&amp;best_val,best_selection,10,0.1);</span>
+<span class="lineNum">    1147 </span>            :     /* timeout = select_independent_groups(tab_group,n,arity,M,&amp;best_val,best_selection,n,0); */
+<span class="lineNum">    1148 </span><span class="lineNoCov">          0 :     if(verbose_level&gt;=INFO){</span>
+<span class="lineNum">    1149 </span><span class="lineNoCov">          0 :       if(timeout){</span>
+<span class="lineNum">    1150 </span><span class="lineNoCov">          0 :         printf(&quot;Cost less first timeout!\n&quot;);</span>
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 :       }else if(last_best&gt;best_val){</span>
+<span class="lineNum">    1152 </span><span class="lineNoCov">          0 :         printf(&quot;Cost less first Impoved solution\n&quot;);</span>
+<span class="lineNum">    1153 </span>            :       }
+<span class="lineNum">    1154 </span><span class="lineNoCov">          0 :       printf(&quot;----\n&quot;);</span>
+<span class="lineNum">    1155 </span>            :     }
+<span class="lineNum">    1156 </span>            :     /* perform a mapping trying to minimize the use of groups that cost a lot */
+<span class="lineNum">    1157 </span><span class="lineNoCov">          0 :     qsort(tab_group,n,sizeof(group_list_t*),group_list_dsc);</span>
+<span class="lineNum">    1158 </span><span class="lineNoCov">          0 :     last_best=best_val;</span>
+<span class="lineNum">    1159 </span><span class="lineNoCov">          0 :     timeout=select_independent_groups_by_largest_index(tab_group,n,arity,M,&amp;best_val,best_selection,10,0.1);</span>
+<span class="lineNum">    1160 </span><span class="lineNoCov">          0 :     if(verbose_level&gt;=DEBUG){</span>
+<span class="lineNum">    1161 </span><span class="lineNoCov">          0 :       if(timeout)</span>
+<span class="lineNum">    1162 </span><span class="lineNoCov">          0 :         printf(&quot;Cost most last timeout!\n&quot;);</span>
+<span class="lineNum">    1163 </span><span class="lineNoCov">          0 :       else if(last_best&gt;best_val)</span>
+<span class="lineNum">    1164 </span><span class="lineNoCov">          0 :         printf(&quot;Cost most last impoved solution\n&quot;);</span>
+<span class="lineNum">    1165 </span>            :     }
+<span class="lineNum">    1166 </span><span class="lineNoCov">          0 :       if( n &lt; 10000 ){</span>
+<span class="lineNum">    1167 </span>            :       /* perform a mapping in the weighted degree order */
+<span class="lineNum">    1168 </span>            : 
+<span class="lineNum">    1169 </span>            : 
+<span class="lineNum">    1170 </span><span class="lineNoCov">          0 :     if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">    1171 </span><span class="lineNoCov">          0 :       printf(&quot;----WG----\n&quot;);</span>
+<span class="lineNum">    1172 </span>            : 
+<span class="lineNum">    1173 </span><span class="lineNoCov">          0 :       compute_weighted_degree(tab_group,n,arity);</span>
+<span class="lineNum">    1174 </span>            : 
+<span class="lineNum">    1175 </span><span class="lineNoCov">          0 :       if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">    1176 </span><span class="lineNoCov">          0 :         printf(&quot;Weigted degree computed\n&quot;);</span>
+<span class="lineNum">    1177 </span>            : 
+<span class="lineNum">    1178 </span><span class="lineNoCov">          0 :       qsort(tab_group,n,sizeof(group_list_t*),weighted_degree_dsc);</span>
+<span class="lineNum">    1179 </span>            :       /* display_tab_group(tab_group,n,arity);*/
+<span class="lineNum">    1180 </span><span class="lineNoCov">          0 :       last_best = best_val;</span>
+<span class="lineNum">    1181 </span><span class="lineNoCov">          0 :       timeout = select_independent_groups(tab_group,n,arity,M,&amp;best_val,best_selection,10,0.1);</span>
+<span class="lineNum">    1182 </span>            :       /* timeout = select_independent_groups(tab_group,n,arity,M,&amp;best_val,best_selection,n,0); */
+<span class="lineNum">    1183 </span>            : 
+<span class="lineNum">    1184 </span><span class="lineNoCov">          0 :       if(verbose_level&gt;=DEBUG){</span>
+<span class="lineNum">    1185 </span><span class="lineNoCov">          0 :         if(timeout)</span>
+<span class="lineNum">    1186 </span><span class="lineNoCov">          0 :           printf(&quot;WG timeout!\n&quot;);</span>
+<span class="lineNum">    1187 </span><span class="lineNoCov">          0 :         else if(last_best&gt;best_val)</span>
+<span class="lineNum">    1188 </span><span class="lineNoCov">          0 :           printf(&quot;WG impoved solution\n&quot;);</span>
+<span class="lineNum">    1189 </span>            :       }
+<span class="lineNum">    1190 </span>            :     }
+<span class="lineNum">    1191 </span>            : 
+<span class="lineNum">    1192 </span><span class="lineNoCov">          0 :     qsort(best_selection,M,sizeof(group_list_t*),group_list_id);</span>
+<span class="lineNum">    1193 </span>            : 
+<span class="lineNum">    1194 </span><span class="lineNoCov">          0 :     for( l = 0 ; l &lt; M ; l++ ){</span>
+<span class="lineNum">    1195 </span><span class="lineNoCov">          0 :       for( j = 0 ; j &lt; arity ; j++ ){</span>
+<span class="lineNum">    1196 </span><span class="lineNoCov">          0 :         new_tab_node[l].child[j]         = best_selection[l]-&gt;tab[j];</span>
+<span class="lineNum">    1197 </span><span class="lineNoCov">          0 :         new_tab_node[l].child[j]-&gt;parent = &amp;new_tab_node[l];</span>
+<span class="lineNum">    1198 </span>            :       }
+<span class="lineNum">    1199 </span><span class="lineNoCov">          0 :       new_tab_node[l].arity = arity;</span>
+<span class="lineNum">    1200 </span>            : 
+<span class="lineNum">    1201 </span>            :       /* printf(&quot;arity=%d\n&quot;,new_tab_node[l].arity); */
+<span class="lineNum">    1202 </span><span class="lineNoCov">          0 :       update_val(cost_mat,&amp;new_tab_node[l]);</span>
+<span class="lineNum">    1203 </span>            :     }
+<span class="lineNum">    1204 </span>            : 
+<span class="lineNum">    1205 </span><span class="lineNoCov">          0 :     delete_group_list((&amp;list)-&gt;next);</span>
+<span class="lineNum">    1206 </span><span class="lineNoCov">          0 :     FREE(best_selection);</span>
+<span class="lineNum">    1207 </span><span class="lineNoCov">          0 :     FREE(tab_group);</span>
+<span class="lineNum">    1208 </span><span class="lineNoCov">          0 :     FREE(cur_group);</span>
+<span class="lineNum">    1209 </span>            :   }
+<span class="lineNum">    1210 </span>            : 
+<span class="lineNum">    1211 </span><span class="lineNoCov">          0 :   if(cost_mat != aff_mat){</span>
+<span class="lineNum">    1212 </span><span class="lineNoCov">          0 :     FREE_tab_double(cost_mat-&gt;mat,N);</span>
+<span class="lineNum">    1213 </span><span class="lineNoCov">          0 :     FREE(cost_mat-&gt;sum_row);</span>
+<span class="lineNum">    1214 </span><span class="lineNoCov">          0 :     FREE(cost_mat);</span>
+<span class="lineNum">    1215 </span>            :   }
+<span class="lineNum">    1216 </span>            : 
+<span class="lineNum">    1217 </span><span class="lineNoCov">          0 :   duration = TOC;</span>
+<span class="lineNum">    1218 </span>            : 
+<span class="lineNum">    1219 </span><span class="lineNoCov">          0 :   if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">    1220 </span><span class="lineNoCov">          0 :     display_grouping(new_tab_node,M,arity,-1);</span>
+<span class="lineNum">    1221 </span>            : 
+<span class="lineNum">    1222 </span>            : 
+<span class="lineNum">    1223 </span><span class="lineNoCov">          0 :   if(verbose_level&gt;=INFO)</span>
+<span class="lineNum">    1224 </span><span class="lineNoCov">          0 :     printf(&quot;Grouping done in %.4fs!\n&quot;,duration);</span>
+<a name="1225"><span class="lineNum">    1225 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1226 </span>            : 
+<span class="lineNum">    1227 </span><span class="lineNoCov">          0 : void complete_aff_mat(affinity_mat_t **aff_mat ,int N, int K)</span>
+<span class="lineNum">    1228 </span>            : {
+<span class="lineNum">    1229 </span><span class="lineNoCov">          0 :   double **old_mat = NULL,**new_mat = NULL; double *sum_row;</span>
+<span class="lineNum">    1230 </span>            :   int M,i;
+<span class="lineNum">    1231 </span>            : 
+<span class="lineNum">    1232 </span><span class="lineNoCov">          0 :   old_mat = (*aff_mat) -&gt; mat;</span>
+<span class="lineNum">    1233 </span>            : 
+<span class="lineNum">    1234 </span><span class="lineNoCov">          0 :   M = N+K;</span>
+<span class="lineNum">    1235 </span><span class="lineNoCov">          0 :   new_mat = (double**)MALLOC(M*sizeof(double*));</span>
+<span class="lineNum">    1236 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; M ; i++ )</span>
+<span class="lineNum">    1237 </span><span class="lineNoCov">          0 :     new_mat[i] = (double*)CALLOC((M),sizeof(double));</span>
+<span class="lineNum">    1238 </span>            : 
+<span class="lineNum">    1239 </span><span class="lineNoCov">          0 :   sum_row = (double*) CALLOC(M,sizeof(double));</span>
+<span class="lineNum">    1240 </span>            : 
+<span class="lineNum">    1241 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; N ; i++ ){</span>
+<span class="lineNum">    1242 </span><span class="lineNoCov">          0 :     memcpy(new_mat[i],old_mat[i],N*sizeof(double));</span>
+<span class="lineNum">    1243 </span><span class="lineNoCov">          0 :     sum_row[i] = (*aff_mat)-&gt;sum_row[i];</span>
+<span class="lineNum">    1244 </span>            :   }
+<span class="lineNum">    1245 </span>            : 
+<span class="lineNum">    1246 </span><span class="lineNoCov">          0 :   *aff_mat = new_affinity_mat(new_mat,sum_row,M);</span>
+<a name="1247"><span class="lineNum">    1247 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1248 </span>            : 
+<span class="lineNum">    1249 </span><span class="lineNoCov">          0 : void complete_obj_weight(double **tab,int N, int K)</span>
+<span class="lineNum">    1250 </span>            : {
+<span class="lineNum">    1251 </span><span class="lineNoCov">          0 :   double *old_tab = NULL,*new_tab = NULL,avg;</span>
+<span class="lineNum">    1252 </span>            :   int M,i;
+<span class="lineNum">    1253 </span>            : 
+<span class="lineNum">    1254 </span><span class="lineNoCov">          0 :   old_tab = *tab;</span>
+<span class="lineNum">    1255 </span>            : 
+<span class="lineNum">    1256 </span><span class="lineNoCov">          0 :   if(!old_tab)</span>
+<span class="lineNum">    1257 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">    1258 </span>            : 
+<span class="lineNum">    1259 </span><span class="lineNoCov">          0 :   avg = 0;</span>
+<span class="lineNum">    1260 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; N ; i++ )</span>
+<span class="lineNum">    1261 </span><span class="lineNoCov">          0 :     avg += old_tab[i];</span>
+<span class="lineNum">    1262 </span><span class="lineNoCov">          0 :   avg /= N;</span>
+<span class="lineNum">    1263 </span>            : 
+<span class="lineNum">    1264 </span><span class="lineNoCov">          0 :   M = N+K;</span>
+<span class="lineNum">    1265 </span><span class="lineNoCov">          0 :   new_tab = (double*)MALLOC(M*sizeof(double));</span>
+<span class="lineNum">    1266 </span>            : 
+<span class="lineNum">    1267 </span><span class="lineNoCov">          0 :   *tab = new_tab;</span>
+<span class="lineNum">    1268 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; M ; i++ )</span>
+<span class="lineNum">    1269 </span><span class="lineNoCov">          0 :     if(i &lt; N)</span>
+<span class="lineNum">    1270 </span><span class="lineNoCov">          0 :       new_tab[i] = old_tab[i];</span>
+<span class="lineNum">    1271 </span>            :     else
+<span class="lineNum">    1272 </span><span class="lineNoCov">          0 :       new_tab[i] = avg;</span>
+<a name="1273"><span class="lineNum">    1273 </span>            : }</a>
+<span class="lineNum">    1274 </span>            : 
+<span class="lineNum">    1275 </span><span class="lineNoCov">          0 : void create_dumb_tree(tree_t *node,int depth,tm_topology_t *topology)</span>
+<span class="lineNum">    1276 </span>            : {
+<span class="lineNum">    1277 </span><span class="lineNoCov">          0 :   tree_t **list_child = NULL;</span>
+<span class="lineNum">    1278 </span>            :   int arity,i;
+<span class="lineNum">    1279 </span>            : 
+<span class="lineNum">    1280 </span><span class="lineNoCov">          0 :   if( depth == topology-&gt;nb_levels-1) {</span>
+<span class="lineNum">    1281 </span><span class="lineNoCov">          0 :     set_node(node,NULL,0,NULL,-1,0,NULL,depth);</span>
+<span class="lineNum">    1282 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">    1283 </span>            :   }
+<span class="lineNum">    1284 </span>            : 
+<span class="lineNum">    1285 </span><span class="lineNoCov">          0 :   arity = topology-&gt;arity[depth];</span>
+<span class="lineNum">    1286 </span><span class="lineNoCov">          0 :   assert(arity&gt;0);</span>
+<span class="lineNum">    1287 </span><span class="lineNoCov">          0 :   list_child = (tree_t**)CALLOC(arity,sizeof(tree_t*));</span>
+<span class="lineNum">    1288 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; arity ; i++ ){</span>
+<span class="lineNum">    1289 </span><span class="lineNoCov">          0 :     list_child[i] = (tree_t*)MALLOC(sizeof(tree_t));</span>
+<span class="lineNum">    1290 </span><span class="lineNoCov">          0 :     create_dumb_tree(list_child[i],depth+1,topology);</span>
+<span class="lineNum">    1291 </span><span class="lineNoCov">          0 :     list_child[i]-&gt;parent = node;</span>
+<span class="lineNum">    1292 </span><span class="lineNoCov">          0 :     list_child[i]-&gt;dumb = 1;</span>
+<span class="lineNum">    1293 </span>            :   }
+<span class="lineNum">    1294 </span>            : 
+<span class="lineNum">    1295 </span><span class="lineNoCov">          0 :   set_node(node,list_child,arity,NULL,-1,0,list_child[0], depth);</span>
+<a name="1296"><span class="lineNum">    1296 </span>            : }</a>
+<span class="lineNum">    1297 </span>            : 
+<span class="lineNum">    1298 </span><span class="lineNoCov">          0 : void complete_tab_node(tree_t **tab,int N, int K,int depth,tm_topology_t *topology)</span>
+<span class="lineNum">    1299 </span>            : {
+<span class="lineNum">    1300 </span><span class="lineNoCov">          0 :   tree_t *old_tab = NULL,*new_tab = NULL;</span>
+<span class="lineNum">    1301 </span>            :   int M,i;
+<span class="lineNum">    1302 </span>            : 
+<span class="lineNum">    1303 </span><span class="lineNoCov">          0 :   if( K == 0 )</span>
+<span class="lineNum">    1304 </span><span class="lineNoCov">          0 :     return;</span>
+<span class="lineNum">    1305 </span>            : 
+<span class="lineNum">    1306 </span><span class="lineNoCov">          0 :   old_tab = *tab;</span>
+<span class="lineNum">    1307 </span>            : 
+<span class="lineNum">    1308 </span><span class="lineNoCov">          0 :   M = N+K;</span>
+<span class="lineNum">    1309 </span><span class="lineNoCov">          0 :   new_tab = (tree_t*)MALLOC(M*sizeof(tree_t));</span>
+<span class="lineNum">    1310 </span>            : 
+<span class="lineNum">    1311 </span><span class="lineNoCov">          0 :   *tab = new_tab;</span>
+<span class="lineNum">    1312 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; M ; i++ )</span>
+<span class="lineNum">    1313 </span><span class="lineNoCov">          0 :     if(i &lt; N)</span>
+<span class="lineNum">    1314 </span><span class="lineNoCov">          0 :       clone_tree(&amp;new_tab[i],&amp;old_tab[i]);</span>
+<span class="lineNum">    1315 </span>            :     else{
+<span class="lineNum">    1316 </span><span class="lineNoCov">          0 :       create_dumb_tree(&amp;new_tab[i],depth,topology);</span>
+<span class="lineNum">    1317 </span><span class="lineNoCov">          0 :       new_tab[i].id = i;</span>
+<span class="lineNum">    1318 </span>            :     }
+<span class="lineNum">    1319 </span>            : 
+<span class="lineNum">    1320 </span>            :   /* do not suppress tab if you are at the depth-most level it will be used at the mapping stage */
+<span class="lineNum">    1321 </span><span class="lineNoCov">          0 :   FREE(old_tab);</span>
+<a name="1322"><span class="lineNum">    1322 </span>            : }</a>
+<span class="lineNum">    1323 </span>            : 
+<span class="lineNum">    1324 </span><span class="lineNoCov">          0 : void set_deb_tab_child(tree_t *tree, tree_t *child,int depth)</span>
+<span class="lineNum">    1325 </span>            : {
+<span class="lineNum">    1326 </span>            :   /* printf(&quot;depth=%d\t%p\t%p\n&quot;,depth,child,tree);*/
+<span class="lineNum">    1327 </span><span class="lineNoCov">          0 :   if( depth &gt; 0 )</span>
+<span class="lineNum">    1328 </span><span class="lineNoCov">          0 :     set_deb_tab_child(tree-&gt;tab_child,child,depth-1);</span>
+<span class="lineNum">    1329 </span>            :   else
+<span class="lineNum">    1330 </span><span class="lineNoCov">          0 :     tree-&gt;tab_child=child;</span>
+<span class="lineNum">    1331 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1332 </span>            : 
+<span class="lineNum">    1333 </span>            : /*
+<span class="lineNum">    1334 </span>            : Build the tree of the matching. It is a bottom up algorithm: it starts from the bottom of the tree on proceed by decreasing the depth
+<span class="lineNum">    1335 </span>            : It groups nodes of the matrix tab and link these groups to the nodes of the under level.
+<span class="lineNum">    1336 </span>            : Then it calls recursively the function to prefrom the grouping at the above level.
+<span class="lineNum">    1337 </span>            : 
+<span class="lineNum">    1338 </span>            : tab_node: array of nodes of the under level.
+<span class="lineNum">    1339 </span>            : aff_mat: local affinity matrix
+<span class="lineNum">    1340 </span>            : arity: arity of the nodes of the above level.
+<span class="lineNum">    1341 </span>            : depth: current depth of the algorithm
+<span class="lineNum">    1342 </span>            : toplogy: description of the hardware topology.
+<a name="1343"><span class="lineNum">    1343 </span>            : constraints:  set of constraints: core ids where to bind the processes</a>
+<span class="lineNum">    1344 </span>            : */
+<span class="lineNum">    1345 </span><span class="lineNoCov">          0 : tree_t *build_level_topology(tree_t *tab_node, affinity_mat_t *aff_mat,int arity,int depth,tm_topology_t *topology,</span>
+<span class="lineNum">    1346 </span>            :                              double *obj_weight, double *comm_speed)
+<span class="lineNum">    1347 </span>            : {
+<span class="lineNum">    1348 </span>            : 
+<span class="lineNum">    1349 </span>            :   /* N: number of nodes. Order of com_mat, size of obj_weight */
+<span class="lineNum">    1350 </span><span class="lineNoCov">          0 :   int N=aff_mat-&gt;order ;</span>
+<span class="lineNum">    1351 </span><span class="lineNoCov">          0 :   int i,K=0,M; /*M = N/Arity: number the groups*/</span>
+<span class="lineNum">    1352 </span><span class="lineNoCov">          0 :   tree_t *new_tab_node = NULL; /*array of node for this level (of size M): there will be linked to the nodes of tab_nodes*/</span>
+<span class="lineNum">    1353 </span><span class="lineNoCov">          0 :   affinity_mat_t * new_aff_mat= NULL; /*New communication matrix (after grouyping nodes together)*/</span>
+<span class="lineNum">    1354 </span><span class="lineNoCov">          0 :   tree_t *res = NULL; /*resulting tree*/</span>
+<span class="lineNum">    1355 </span><span class="lineNoCov">          0 :   int completed = 0;</span>
+<span class="lineNum">    1356 </span>            :   double speed; /* communication speed at this level*/
+<span class="lineNum">    1357 </span><span class="lineNoCov">          0 :   double *new_obj_weight = NULL;</span>
+<span class="lineNum">    1358 </span>            :   double duration;
+<span class="lineNum">    1359 </span>            : 
+<span class="lineNum">    1360 </span><span class="lineNoCov">          0 :   if( 0 == depth ){</span>
+<span class="lineNum">    1361 </span><span class="lineNoCov">          0 :     if((1 == N) &amp;&amp; (0 == depth))</span>
+<span class="lineNum">    1362 </span><span class="lineNoCov">          0 :       return &amp;tab_node[0];</span>
+<span class="lineNum">    1363 </span>            :     else {
+<span class="lineNum">    1364 </span><span class="lineNoCov">          0 :       if(verbose_level &gt;= CRITICAL)</span>
+<span class="lineNum">    1365 </span><span class="lineNoCov">          0 :         fprintf(stderr,&quot;Error: matrix size: %d and depth:%d (should be 1 and -1 respectively)\n&quot;,N,depth);</span>
+<span class="lineNum">    1366 </span><span class="lineNoCov">          0 :       exit(-1);</span>
+<span class="lineNum">    1367 </span>            :     }
+<span class="lineNum">    1368 </span>            :   }
+<span class="lineNum">    1369 </span>            : 
+<span class="lineNum">    1370 </span>            :   /* If the number of nodes does not divide the arity: we add K nodes  */
+<span class="lineNum">    1371 </span><span class="lineNoCov">          0 :   if( N%arity != 0 ){</span>
+<span class="lineNum">    1372 </span><span class="lineNoCov">          0 :     TIC;</span>
+<span class="lineNum">    1373 </span><span class="lineNoCov">          0 :     K = arity*((N/arity)+1)-N;</span>
+<span class="lineNum">    1374 </span>            :     /*printf(&quot;****N=%d arity=%d K=%d\n&quot;,N,arity,K);  */
+<span class="lineNum">    1375 </span>            :     /*display_tab(tab,N);*/
+<span class="lineNum">    1376 </span>            :     /* add K rows and columns to comm_matrix*/
+<span class="lineNum">    1377 </span><span class="lineNoCov">          0 :     complete_aff_mat(&amp;aff_mat,N,K);</span>
+<span class="lineNum">    1378 </span>            :     /* add K element to the object weight*/
+<span class="lineNum">    1379 </span><span class="lineNoCov">          0 :     complete_obj_weight(&amp;obj_weight,N,K);</span>
+<span class="lineNum">    1380 </span>            :     /*display_tab(tab,N+K);*/
+<span class="lineNum">    1381 </span>            :     /* add a dumb tree to the K new &quot;virtual nodes&quot;*/
+<span class="lineNum">    1382 </span><span class="lineNoCov">          0 :     complete_tab_node(&amp;tab_node,N,K,depth,topology);</span>
+<span class="lineNum">    1383 </span><span class="lineNoCov">          0 :     completed = 1; /*flag this addition*/</span>
+<span class="lineNum">    1384 </span><span class="lineNoCov">          0 :     N += K; /*increase the number of nodes accordingly*/</span>
+<span class="lineNum">    1385 </span><span class="lineNoCov">          0 :     duration = TOC;</span>
+<span class="lineNum">    1386 </span><span class="lineNoCov">          0 :     if(verbose_level &gt;= INFO)</span>
+<span class="lineNum">    1387 </span><span class="lineNoCov">          0 :       fprintf(stderr,&quot;Completing matrix duration= %fs\n &quot;, duration);</span>
+<span class="lineNum">    1388 </span>            :   } /*display_tab(tab,N);*/
+<span class="lineNum">    1389 </span>            : 
+<span class="lineNum">    1390 </span><span class="lineNoCov">          0 :   M = N/arity;</span>
+<span class="lineNum">    1391 </span><span class="lineNoCov">          0 :   if(verbose_level &gt;= INFO)</span>
+<span class="lineNum">    1392 </span><span class="lineNoCov">          0 :     printf(&quot;Depth=%d\tnb_nodes=%d\tnb_groups=%d\tsize of groups(arity)=%d\n&quot;,depth,N,M,arity);</span>
+<span class="lineNum">    1393 </span>            : 
+<span class="lineNum">    1394 </span><span class="lineNoCov">          0 :   TIC;</span>
+<span class="lineNum">    1395 </span>            :   /*create the new nodes*/
+<span class="lineNum">    1396 </span><span class="lineNoCov">          0 :   new_tab_node = (tree_t*)MALLOC(sizeof(tree_t)*M);</span>
+<span class="lineNum">    1397 </span>            :   /*intitialize each node*/
+<span class="lineNum">    1398 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; M ; i++ ){</span>
+<span class="lineNum">    1399 </span><span class="lineNoCov">          0 :     tree_t **list_child = NULL;</span>
+<span class="lineNum">    1400 </span><span class="lineNoCov">          0 :     list_child = (tree_t**)CALLOC(arity,sizeof(tree_t*));</span>
+<span class="lineNum">    1401 </span><span class="lineNoCov">          0 :     set_node(&amp;new_tab_node[i],list_child,arity,NULL,i,0,tab_node,depth);</span>
+<span class="lineNum">    1402 </span>            :   }
+<span class="lineNum">    1403 </span><span class="lineNoCov">          0 :   duration = TOC;</span>
+<span class="lineNum">    1404 </span><span class="lineNoCov">          0 :   if(verbose_level &gt;= INFO)</span>
+<span class="lineNum">    1405 </span><span class="lineNoCov">          0 :     printf(&quot;New nodes creation= %fs\n &quot;, duration);</span>
+<span class="lineNum">    1406 </span>            : 
+<span class="lineNum">    1407 </span>            :   /*Core of the algorithm: perfrom the grouping*/
+<span class="lineNum">    1408 </span><span class="lineNoCov">          0 :   if(comm_speed)</span>
+<span class="lineNum">    1409 </span><span class="lineNoCov">          0 :     speed = comm_speed[depth];</span>
+<span class="lineNum">    1410 </span>            :   else
+<span class="lineNum">    1411 </span><span class="lineNoCov">          0 :     speed = -1;</span>
+<span class="lineNum">    1412 </span><span class="lineNoCov">          0 :   group_nodes(aff_mat, tab_node, new_tab_node, arity, M, obj_weight, speed);</span>
+<span class="lineNum">    1413 </span>            : 
+<span class="lineNum">    1414 </span><span class="lineNoCov">          0 :   TIC;</span>
+<span class="lineNum">    1415 </span>            :   /*based on that grouping aggregate the communication matrix*/
+<span class="lineNum">    1416 </span><span class="lineNoCov">          0 :   new_aff_mat = aggregate_aff_mat(new_tab_node,aff_mat,M);</span>
+<span class="lineNum">    1417 </span><span class="lineNoCov">          0 :   duration = TOC;</span>
+<span class="lineNum">    1418 </span><span class="lineNoCov">          0 :   if(verbose_level &gt;= INFO)</span>
+<span class="lineNum">    1419 </span><span class="lineNoCov">          0 :     printf(&quot;Aggregate_com_mat= %fs\n&quot;, duration);</span>
+<span class="lineNum">    1420 </span><span class="lineNoCov">          0 :   TIC;</span>
+<span class="lineNum">    1421 </span>            : 
+<span class="lineNum">    1422 </span>            : 
+<span class="lineNum">    1423 </span>            :   /*based on that grouping aggregate the object weight matrix*/
+<span class="lineNum">    1424 </span><span class="lineNoCov">          0 :   new_obj_weight = aggregate_obj_weight(new_tab_node,obj_weight,M);</span>
+<span class="lineNum">    1425 </span><span class="lineNoCov">          0 :   duration = TOC;</span>
+<span class="lineNum">    1426 </span><span class="lineNoCov">          0 :   if(verbose_level &gt;= INFO)</span>
+<span class="lineNum">    1427 </span><span class="lineNoCov">          0 :     printf(&quot;Aggregate obj_weight= %fs\n &quot;, duration);</span>
+<span class="lineNum">    1428 </span>            : 
+<span class="lineNum">    1429 </span>            :   /* set ID of virtual nodes to -1*/
+<span class="lineNum">    1430 </span><span class="lineNoCov">          0 :   for( i = N-K ; i &lt; N ; i++ )</span>
+<span class="lineNum">    1431 </span><span class="lineNoCov">          0 :     tab_node[i].id = -1;</span>
+<span class="lineNum">    1432 </span>            :   /*
+<span class="lineNum">    1433 </span>            :   for(i=0;i&lt;N;i++)
+<span class="lineNum">    1434 </span>            :     display_node(&amp;tab_node[i]);
+<span class="lineNum">    1435 </span>            :   display_tab(new_com_mat,M);
+<span class="lineNum">    1436 </span>            :   */
+<span class="lineNum">    1437 </span>            : 
+<span class="lineNum">    1438 </span>            :   /* decrease depth and compute arity of the above level*/
+<span class="lineNum">    1439 </span><span class="lineNoCov">          0 :   depth--;</span>
+<span class="lineNum">    1440 </span><span class="lineNoCov">          0 :   if(depth &gt; 0)</span>
+<span class="lineNum">    1441 </span><span class="lineNoCov">          0 :     arity = topology-&gt;arity[depth-1];</span>
+<span class="lineNum">    1442 </span>            :   else
+<span class="lineNum">    1443 </span><span class="lineNoCov">          0 :     arity = 1;</span>
+<span class="lineNum">    1444 </span>            :   /* assume all objects have the same arity*/
+<span class="lineNum">    1445 </span><span class="lineNoCov">          0 :   res = build_level_topology(new_tab_node, new_aff_mat, arity, depth,topology, new_obj_weight, comm_speed);</span>
+<span class="lineNum">    1446 </span>            : 
+<span class="lineNum">    1447 </span><span class="lineNoCov">          0 :   set_deb_tab_child(res,tab_node,depth);</span>
+<span class="lineNum">    1448 </span>            : 
+<span class="lineNum">    1449 </span>            :   /* if we have extended the matrix with zero, free the data here as they are local to this recursive step only*/
+<span class="lineNum">    1450 </span><span class="lineNoCov">          0 :   if(completed){</span>
+<span class="lineNum">    1451 </span><span class="lineNoCov">          0 :     FREE_tab_double(aff_mat-&gt;mat,aff_mat-&gt;order);</span>
+<span class="lineNum">    1452 </span><span class="lineNoCov">          0 :     FREE(aff_mat-&gt;sum_row);</span>
+<span class="lineNum">    1453 </span><span class="lineNoCov">          0 :     FREE(aff_mat);</span>
+<span class="lineNum">    1454 </span><span class="lineNoCov">          0 :     FREE(obj_weight);</span>
+<span class="lineNum">    1455 </span>            :   }
+<span class="lineNum">    1456 </span><span class="lineNoCov">          0 :   FREE_tab_double(new_aff_mat-&gt;mat,new_aff_mat-&gt;order);</span>
+<span class="lineNum">    1457 </span><span class="lineNoCov">          0 :   FREE(new_aff_mat-&gt;sum_row);</span>
+<span class="lineNum">    1458 </span><span class="lineNoCov">          0 :   FREE(new_aff_mat);</span>
+<span class="lineNum">    1459 </span><span class="lineNoCov">          0 :   FREE(new_obj_weight);</span>
+<span class="lineNum">    1460 </span>            : 
+<span class="lineNum">    1461 </span><span class="lineNoCov">          0 :   FREE(new_obj_weight);</span>
+<span class="lineNum">    1462 </span>            : 
+<span class="lineNum">    1463 </span><span class="lineNoCov">          0 :   return res;</span>
+<a name="1464"><span class="lineNum">    1464 </span>            : }</a>
+<span class="lineNum">    1465 </span>            : 
+<span class="lineNum">    1466 </span><span class="lineNoCov">          0 : double speed(int depth)</span>
+<span class="lineNum">    1467 </span>            : {
+<span class="lineNum">    1468 </span>            :   /*
+<span class="lineNum">    1469 </span>            :     Bertha values
+<span class="lineNum">    1470 </span>            :     double tab[5]={21,9,4.5,2.5,0.001};
+<span class="lineNum">    1471 </span>            :     double tab[5]={1,1,1,1,1};
+<span class="lineNum">    1472 </span>            :     double tab[6]={100000,10000,1000,500,100,10};
+<span class="lineNum">    1473 </span>            :   */
+<span class="lineNum">    1474 </span><span class="lineNoCov">          0 :   double tab[11] = {1024,512,256,128,64,32,16,8,4,2,1};</span>
+<span class="lineNum">    1475 </span>            : 
+<span class="lineNum">    1476 </span><span class="lineNoCov">          0 :   return 1.0/tab[depth];</span>
+<span class="lineNum">    1477 </span>            :   /*
+<span class="lineNum">    1478 </span>            :    return 10*log(depth+2);
+<span class="lineNum">    1479 </span>            :    return (depth+1);
+<span class="lineNum">    1480 </span>            :    return (long int)pow(100,depth);
+<span class="lineNum">    1481 </span>            :   */
+<span class="lineNum">    1482 </span>            : }
+<span class="lineNum">    1483 </span>            : 
+<span class="lineNum">    1484 </span>            : 
+<span class="lineNum">    1485 </span>            : 
+<span class="lineNum">    1486 </span>            : /* check the leaf numbering of the topology
+<span class="lineNum">    1487 </span>            :    this number must be between 0 and n-1 (the number of leaves)
+<span class="lineNum">    1488 </span>            :    teh number must all be different
+<span class="lineNum">    1489 </span>            :    However if a given leaf number is -1, it means that this
+<span class="lineNum">    1490 </span>            :    leaf cannot bee used for the mapping
+<span class="lineNum">    1491 </span>            : 
+<span class="lineNum">    1492 </span>            :    The function returns the number of constraints (leaves that can be used)
+<span class="lineNum">    1493 </span>            :    and their numbers (in increasing order) in the array pointed by contraints
+<span class="lineNum">    1494 </span>            : 
+<a name="1495"><span class="lineNum">    1495 </span>            : */</a>
+<span class="lineNum">    1496 </span>            : 
+<span class="lineNum">    1497 </span><span class="lineCov">          2 : int check_constraints(tm_topology_t  *topology, int **constraints)</span>
+<span class="lineNum">    1498 </span>            : {
+<span class="lineNum">    1499 </span><span class="lineCov">          2 :   int j,i,n = nb_processing_units(topology);</span>
+<span class="lineNum">    1500 </span><span class="lineCov">          2 :   int *tab_constraints = NULL, nb_constraints = 0;</span>
+<span class="lineNum">    1501 </span><span class="lineCov">          2 :   int *tab_node = NULL;</span>
+<span class="lineNum">    1502 </span><span class="lineCov">          2 :   int *count = NULL;</span>
+<span class="lineNum">    1503 </span>            : 
+<span class="lineNum">    1504 </span>            :   /* tab_node: array of core numbers.
+<span class="lineNum">    1505 </span>            :      tab_node[i]=-1 if this core is forbiden
+<span class="lineNum">    1506 </span>            :      numbering is such that
+<span class="lineNum">    1507 </span>            :      0&lt;=tab_node[i]&lt;n
+<span class="lineNum">    1508 </span>            :      and that there is only one core of a given number
+<span class="lineNum">    1509 </span>            :   */
+<span class="lineNum">    1510 </span><span class="lineCov">          2 :   tab_node = topology-&gt;node_id[topology-&gt;nb_levels-1];</span>
+<span class="lineNum">    1511 </span>            : 
+<span class="lineNum">    1512 </span>            :   /* &quot;count&quot; counts the number of cores of a given  number.
+<span class="lineNum">    1513 </span>            :      count[i]: number of cores of number i.
+<span class="lineNum">    1514 </span>            :      0&lt;=count[i]&lt;=1
+<span class="lineNum">    1515 </span>            :   */
+<span class="lineNum">    1516 </span><span class="lineCov">          2 :   count = (int *)CALLOC(n,sizeof(int));</span>
+<span class="lineNum">    1517 </span><span class="lineCov">          4 :   for( i = 0 ; i &lt; n ; i++ )</span>
+<span class="lineNum">    1518 </span><span class="lineCov">          2 :     if (tab_node[i] != -1){</span>
+<span class="lineNum">    1519 </span><span class="lineCov">          2 :       if( (tab_node[i] &gt;= 0) &amp;&amp; (tab_node[i] &lt; n)){</span>
+<span class="lineNum">    1520 </span>            :         /* In the remaining, we assume that the core numbering is logical from 0 to n
+<span class="lineNum">    1521 </span>            :            so if tab_node[i]!=-1 this mean sthat we have to use core number i*/
+<span class="lineNum">    1522 </span><span class="lineCov">          2 :         count[i]++;</span>
+<span class="lineNum">    1523 </span><span class="lineCov">          2 :         nb_constraints++;</span>
+<span class="lineNum">    1524 </span>            :       }else{
+<span class="lineNum">    1525 </span><span class="lineNoCov">          0 :         if(verbose_level &gt;= ERROR)</span>
+<span class="lineNum">    1526 </span><span class="lineNoCov">          0 :           fprintf(stderr, &quot;*** Error: Core numbering not between 0 and %d: tab_node[%d]=%d\n&quot;, n , i, tab_node[i]);</span>
+<span class="lineNum">    1527 </span><span class="lineNoCov">          0 :         *constraints = NULL;</span>
+<span class="lineNum">    1528 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">    1529 </span>            :       }
+<span class="lineNum">    1530 </span>            :     }
+<span class="lineNum">    1531 </span>            : 
+<span class="lineNum">    1532 </span><span class="lineCov">          2 :   if(nb_constraints == 0){</span>
+<span class="lineNum">    1533 </span><span class="lineNoCov">          0 :     FREE(count);</span>
+<span class="lineNum">    1534 </span><span class="lineNoCov">          0 :     *constraints = NULL;</span>
+<span class="lineNum">    1535 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">    1536 </span>            :   }
+<span class="lineNum">    1537 </span>            : 
+<span class="lineNum">    1538 </span><span class="lineCov">          2 :   tab_constraints = (int*) MALLOC(sizeof(int)*nb_constraints);</span>
+<span class="lineNum">    1539 </span>            : 
+<span class="lineNum">    1540 </span>            :   /* we can now use the &quot;counting sort&quot; to sort the constraint tab in increasing order in linear time*/
+<span class="lineNum">    1541 </span><span class="lineCov">          2 :   j = 0;</span>
+<span class="lineNum">    1542 </span><span class="lineCov">          4 :   for( i = 0 ; i &lt; n ; i++ )</span>
+<span class="lineNum">    1543 </span><span class="lineCov">          2 :     if(count[i])</span>
+<span class="lineNum">    1544 </span><span class="lineCov">          2 :       tab_constraints[j++] = i;</span>
+<span class="lineNum">    1545 </span>            : 
+<span class="lineNum">    1546 </span>            :   /* if the constraint_tab is not full, this means that some count[i]&gt;1*/
+<span class="lineNum">    1547 </span><span class="lineCov">          2 :   if( j != nb_constraints ){</span>
+<span class="lineNum">    1548 </span><span class="lineNoCov">          0 :     if(verbose_level &gt;= ERROR)</span>
+<span class="lineNum">    1549 </span><span class="lineNoCov">          0 :     fprintf(stderr,&quot;*** Error: Duplicate numbering: j=%d, nb_constraints= %d\n&quot;,j, nb_constraints);</span>
+<span class="lineNum">    1550 </span><span class="lineNoCov">          0 :     FREE(tab_constraints);</span>
+<span class="lineNum">    1551 </span><span class="lineNoCov">          0 :     FREE(count);</span>
+<span class="lineNum">    1552 </span><span class="lineNoCov">          0 :     *constraints = NULL;</span>
+<span class="lineNum">    1553 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">    1554 </span>            :   }
+<span class="lineNum">    1555 </span>            : 
+<span class="lineNum">    1556 </span>            :   /* FREE local variables, assign result, return result*/
+<span class="lineNum">    1557 </span><span class="lineCov">          2 :   FREE(count);</span>
+<span class="lineNum">    1558 </span><span class="lineCov">          2 :   *constraints = tab_constraints;</span>
+<span class="lineNum">    1559 </span><span class="lineCov">          2 :   return nb_constraints;</span>
+<a name="1560"><span class="lineNum">    1560 </span>            : }</a>
+<span class="lineNum">    1561 </span>            : 
+<span class="lineNum">    1562 </span><span class="lineNoCov">          0 : affinity_mat_t * build_affinity_mat(double **mat, int order){</span>
+<span class="lineNum">    1563 </span>            :   int i,j;
+<span class="lineNum">    1564 </span><span class="lineNoCov">          0 :   double *sum_row = (double*) CALLOC (order, sizeof(double));</span>
+<span class="lineNum">    1565 </span>            : 
+<span class="lineNum">    1566 </span><span class="lineNoCov">          0 :   for (i=0 ; i&lt;order ; i++)</span>
+<span class="lineNum">    1567 </span><span class="lineNoCov">          0 :     for (j=0 ; j&lt;order ; j++)</span>
+<span class="lineNum">    1568 </span><span class="lineNoCov">          0 :       sum_row[i] += mat[i][j];</span>
+<span class="lineNum">    1569 </span>            : 
+<span class="lineNum">    1570 </span><span class="lineNoCov">          0 :   return new_affinity_mat(mat,sum_row,order);</span>
+<span class="lineNum">    1571 </span>            : }
+<a name="1572"><span class="lineNum">    1572 </span>            : </a>
+<span class="lineNum">    1573 </span>            : 
+<span class="lineNum">    1574 </span><span class="lineNoCov">          0 : tree_t *bottom_up_build_tree_from_topology(tm_topology_t *topology,double **com_mat,int N, double *obj_weight, double *comm_speed)</span>
+<span class="lineNum">    1575 </span>            : {
+<span class="lineNum">    1576 </span>            :   int depth,i;
+<span class="lineNum">    1577 </span><span class="lineNoCov">          0 :   tree_t *res = NULL,*tab_node = NULL;</span>
+<span class="lineNum">    1578 </span>            :   affinity_mat_t *aff_mat;
+<span class="lineNum">    1579 </span>            : 
+<span class="lineNum">    1580 </span><span class="lineNoCov">          0 :   tab_node = (tree_t*)MALLOC(sizeof(tree_t)*N);</span>
+<span class="lineNum">    1581 </span><span class="lineNoCov">          0 :   depth = topology-&gt;nb_levels;</span>
+<span class="lineNum">    1582 </span><span class="lineNoCov">          0 :   for( i = 0 ; i &lt; N ; i++ )</span>
+<span class="lineNum">    1583 </span><span class="lineNoCov">          0 :     set_node(&amp;tab_node[i],NULL,0,NULL,i,0,NULL,depth);</span>
+<span class="lineNum">    1584 </span>            : 
+<span class="lineNum">    1585 </span><span class="lineNoCov">          0 :   aff_mat = build_affinity_mat(com_mat,N);</span>
+<span class="lineNum">    1586 </span>            : 
+<span class="lineNum">    1587 </span><span class="lineNoCov">          0 :   if(verbose_level &gt;= INFO)</span>
+<span class="lineNum">    1588 </span><span class="lineNoCov">          0 :     printf(&quot;nb_levels=%d\n&quot;,depth);</span>
+<span class="lineNum">    1589 </span>            :   /* assume all objects have the same arity*/
+<span class="lineNum">    1590 </span><span class="lineNoCov">          0 :   res = build_level_topology(tab_node, aff_mat , topology-&gt;arity[depth-2], depth-1, topology, obj_weight, comm_speed);</span>
+<span class="lineNum">    1591 </span><span class="lineNoCov">          0 :   if(verbose_level &gt;= INFO)</span>
+<span class="lineNum">    1592 </span><span class="lineNoCov">          0 :     printf(&quot;Build (top down) tree done!\n&quot;);</span>
+<span class="lineNum">    1593 </span>            : 
+<span class="lineNum">    1594 </span>            :   /* tell the system it is not a constraint tree, this is usefull for freeing pointers*/
+<span class="lineNum">    1595 </span><span class="lineNoCov">          0 :   res-&gt;constraint = 0;</span>
+<span class="lineNum">    1596 </span><span class="lineNoCov">          0 :   FREE(aff_mat -&gt; sum_row);</span>
+<span class="lineNum">    1597 </span><span class="lineNoCov">          0 :   FREE(aff_mat);</span>
+<span class="lineNum">    1598 </span>            : 
+<span class="lineNum">    1599 </span><span class="lineNoCov">          0 :   return res;</span>
+<span class="lineNum">    1600 </span>            : }
+<span class="lineNum">    1601 </span>            : 
+<span class="lineNum">    1602 </span>            : 
+<a name="1603"><span class="lineNum">    1603 </span>            : </a>
+<span class="lineNum">    1604 </span>            : 
+<span class="lineNum">    1605 </span><span class="lineCov">          2 : tree_t * build_tree_from_topology(tm_topology_t *topology, double **com_mat, int N, double *obj_weight, double *com_speed)</span>
+<span class="lineNum">    1606 </span>            : {
+<span class="lineNum">    1607 </span><span class="lineCov">          2 :   int *constraints = NULL, nb_constraints;</span>
+<span class="lineNum">    1608 </span>            :   tree_t * result;
+<span class="lineNum">    1609 </span>            : 
+<span class="lineNum">    1610 </span><span class="lineCov">          2 :   verbose_level = get_verbose_level();</span>
+<span class="lineNum">    1611 </span>            : 
+<span class="lineNum">    1612 </span><span class="lineCov">          2 :   nb_constraints = check_constraints (topology, &amp;constraints);</span>
+<span class="lineNum">    1613 </span>            : 
+<span class="lineNum">    1614 </span><span class="lineCov">          2 :   printf(&quot;nb_constraints = %d, N= %d; nb_processing units = %d\n&quot;,nb_constraints, N, nb_processing_units(topology));</span>
+<span class="lineNum">    1615 </span>            : 
+<span class="lineNum">    1616 </span><span class="lineCov">          2 :   if(N&gt;nb_constraints){</span>
+<span class="lineNum">    1617 </span><span class="lineCov">          2 :     if(verbose_level &gt;= CRITICAL){</span>
+<span class="lineNum">    1618 </span><span class="lineCov">          2 :       printf(&quot;Error : More processes (%d) than number of constraints (%d)!\n&quot;,N ,nb_constraints);</span>
+<span class="lineNum">    1619 </span>            :     }
+<span class="lineNum">    1620 </span><span class="lineCov">          2 :     exit(-1);</span>
+<span class="lineNum">    1621 </span>            :   }
+<span class="lineNum">    1622 </span>            : 
+<span class="lineNum">    1623 </span><span class="lineNoCov">          0 :   if(verbose_level &gt;= INFO){</span>
+<span class="lineNum">    1624 </span><span class="lineNoCov">          0 :     printf(&quot;Com matrix size: %d\n&quot;,N);</span>
+<span class="lineNum">    1625 </span><span class="lineNoCov">          0 :     printf(&quot;nb_constraints: %d\n&quot;,nb_constraints);</span>
+<span class="lineNum">    1626 </span>            :   }
+<span class="lineNum">    1627 </span>            : 
+<span class="lineNum">    1628 </span><span class="lineNoCov">          0 :   if(nb_constraints == nb_processing_units(topology))</span>
+<span class="lineNum">    1629 </span>            :     {
+<span class="lineNum">    1630 </span><span class="lineNoCov">          0 :       nb_constraints = 0;</span>
+<span class="lineNum">    1631 </span><span class="lineNoCov">          0 :       FREE(constraints);</span>
+<span class="lineNum">    1632 </span>            :     }
+<span class="lineNum">    1633 </span>            : 
+<span class="lineNum">    1634 </span><span class="lineNoCov">          0 :   if(nb_constraints){</span>
+<span class="lineNum">    1635 </span><span class="lineNoCov">          0 :     if(verbose_level &gt;= INFO){</span>
+<span class="lineNum">    1636 </span><span class="lineNoCov">          0 :       printf(&quot;Partitionning with constraints\n&quot;);</span>
+<span class="lineNum">    1637 </span>            :     }
+<span class="lineNum">    1638 </span><span class="lineNoCov">          0 :     result = kpartition_build_tree_from_topology(topology, com_mat, N, constraints, nb_constraints, obj_weight, com_speed);</span>
+<span class="lineNum">    1639 </span><span class="lineNoCov">          0 :     FREE(constraints);</span>
+<span class="lineNum">    1640 </span><span class="lineNoCov">          0 :     return result;</span>
+<span class="lineNum">    1641 </span>            :   }
+<span class="lineNum">    1642 </span>            :   else{
+<span class="lineNum">    1643 </span><span class="lineNoCov">          0 :     if(verbose_level &gt;= INFO){</span>
+<span class="lineNum">    1644 </span><span class="lineNoCov">          0 :       printf(&quot;Partitionning without constraints\n&quot;);</span>
+<span class="lineNum">    1645 </span>            :     }
+<span class="lineNum">    1646 </span><span class="lineNoCov">          0 :     return bottom_up_build_tree_from_topology(topology, com_mat, N, obj_weight, com_speed);</span>
+<span class="lineNum">    1647 </span>            :   }
+<span class="lineNum">    1648 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.11</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
