@@ -6,7 +6,7 @@
  *                         reserved.
  * Copyright (c) 2008-2009 Sun Microsystems, Inc.  All rights reserved.
  * Copyright (c) 2012-2013 Inria.  All rights reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2014      Intel, Inc. All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC.  All rights
@@ -63,21 +63,22 @@ static int host_is_big_endian = 0;
 #ifndef ompi_field_offset
 #define ompi_field_offset(out_name, qh_type, struct_name, field_name)   \
     {                                                                   \
-        out_name = mqs_field_offset((qh_type), #field_name);            \
-        if (out_name < 0) {                                             \
+        int offset = mqs_field_offset((qh_type), #field_name);          \
+        if (offset < 0) {                                                \
             fprintf(stderr, "WARNING: Open MPI is unable to find "      \
                     "field " #field_name " in the " #struct_name        \
                     " type.  This can happen can if Open MPI is built " \
                     "without debugging information, or is stripped "    \
                     "after building.\n");                               \
         }                                                               \
+        out_name = offset;                                              \
     }
 #endif
 
 /*
  * Open MPI use a bunch of lists in order to keep track of the
  * internal objects. We have to make sure we're able to find all of
- * them in the image and compute their ofset in order to be able to
+ * them in the image and compute their offset in order to be able to
  * parse them later.  We need to find the opal_list_item_t, the
  * opal_list_t, the opal_free_list_item_t, and the opal_free_list_t.
  *
