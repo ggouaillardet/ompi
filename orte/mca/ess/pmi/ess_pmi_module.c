@@ -13,6 +13,8 @@
  * Copyright (c) 2012-2013 Los Alamos National Security, LLC.
  *                         All rights reserved.
  * Copyright (c) 2013-2015 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2015      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -226,11 +228,6 @@ static int rte_init(void)
             goto error;
         }
         free(val);
-        /* filter the cpus thru any default cpu set */
-        if (OPAL_SUCCESS != (ret = opal_hwloc_base_filter_cpus(opal_hwloc_topology))) {
-            error = "filtering topology";
-            goto error;
-        }
     } else {
         /* it wasn't passed down to us, so go get it */
         if (OPAL_SUCCESS != (ret = opal_hwloc_base_get_topology())) {

@@ -16,6 +16,7 @@
 #include <unistd.h>
 #endif  /* HAVE_UNISTD_H */
 #include <string.h>
+#include <poll.h>
 
 #include "opal/mca/hwloc/hwloc.h"
 #include "opal/util/argv.h"
@@ -62,7 +63,6 @@ static void set(orte_job_t *jobdat,
 {
     hwloc_cpuset_t cpuset;
     hwloc_obj_t root;
-    opal_hwloc_topo_data_t *sum;
     orte_app_context_t *context;
     int rc=ORTE_ERROR;
     char *msg, *param;
@@ -98,9 +98,8 @@ static void set(orte_job_t *jobdat,
                                                   orte_process_info.nodename, context->app,
                                                   __FILE__, __LINE__);
             }
-            sum = (opal_hwloc_topo_data_t*)root->userdata;
             /* bind this proc to all available processors */
-            rc = hwloc_set_cpubind(opal_hwloc_topology, sum->available, 0);
+            rc = hwloc_set_cpubind(opal_hwloc_topology, root->cpuset, 0);
             /* if we got an error and this wasn't a default binding policy, then report it */
             if (rc < 0  && OPAL_BINDING_POLICY_IS_SET(jobdat->map->binding)) {
                 if (errno == ENOSYS) {
@@ -109,7 +108,7 @@ static void set(orte_job_t *jobdat,
                     msg = "hwloc indicates cpu binding cannot be enforced";
                 } else {
                     char *tmp;
-                    (void)hwloc_bitmap_list_asprintf(&tmp, sum->available);
+                    (void)hwloc_bitmap_list_asprintf(&tmp, root->cpuset);
                     asprintf(&msg, "hwloc_set_cpubind returned \"%s\" for bitmap \"%s\"",
                              opal_strerror(rc), tmp);
                     free(tmp);
@@ -206,6 +205,8 @@ static void set(orte_job_t *jobdat,
         if (0 == rc && opal_hwloc_report_bindings) {
             char tmp1[1024], tmp2[1024];
             hwloc_cpuset_t mycpus;
+            volatile int _dbg = 0;
+            while (_dbg) poll(NULL, 0, 1);
             /* get the cpus we are bound to */
             mycpus = hwloc_bitmap_alloc();
             if (hwloc_get_cpubind(opal_hwloc_topology,

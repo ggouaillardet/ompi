@@ -1661,7 +1661,6 @@ static char * get_native_slot_list(orte_node_t *cur_node, hwloc_obj_t *pu_obj, i
     hwloc_obj_t *binding_parent = NULL;
     hwloc_obj_t *cur_parent = NULL;
     hwloc_cpuset_t binding_cpuset;
-    hwloc_cpuset_t scratch_cpuset;
     char *type_str = NULL;
 
     /*
@@ -1689,8 +1688,6 @@ static char * get_native_slot_list(orte_node_t *cur_node, hwloc_obj_t *pu_obj, i
     binding_cpuset = hwloc_bitmap_alloc();
     hwloc_bitmap_zero(binding_cpuset);
 
-    scratch_cpuset = hwloc_bitmap_alloc();
-
     cur_parent = binding_parent;
 
     for(i = 0; i < lama_binding_num_levels; ++i) {
@@ -1703,15 +1700,8 @@ static char * get_native_slot_list(orte_node_t *cur_node, hwloc_obj_t *pu_obj, i
 
         /*
          * Accumulate the bitmask
-         *
-         * JJH: TODO: Add resource offline check (?)
          */
-        hwloc_bitmap_zero(scratch_cpuset);
-        /* JJH: Maybe use opal_hwloc_base_get_available_cpus(cur_node->topology, (*cur_parent)) ?
-         * They do pretty much the same thing, but with more checks...
-         */
-        hwloc_bitmap_and(scratch_cpuset, (*cur_parent)->allowed_cpuset, (*cur_parent)->online_cpuset);
-        hwloc_bitmap_or(binding_cpuset, scratch_cpuset, binding_cpuset);
+        hwloc_bitmap_or(binding_cpuset, (*cur_parent)->cpuset, binding_cpuset);
 
 #if 0
         {
@@ -1720,11 +1710,7 @@ static char * get_native_slot_list(orte_node_t *cur_node, hwloc_obj_t *pu_obj, i
                    i, lama_binding_level,
                    (*binding_parent)->logical_index, (*cur_parent)->logical_index);
 
-            hwloc_bitmap_snprintf(str, sizeof(str), (*cur_parent)->allowed_cpuset );
-            printf("-->            CPU A : %-20s\n", str);
-            hwloc_bitmap_snprintf(str, sizeof(str), (*cur_parent)->online_cpuset );
-            printf("-->            CPU B : %-20s\n", str);
-            hwloc_bitmap_snprintf(str, sizeof(str), scratch_cpuset);
+            hwloc_bitmap_snprintf(str, sizeof(str), (*cur_parent)->cpuset);
             printf("-->            CPU C : %-20s\n", str);
             hwloc_bitmap_snprintf(str, sizeof(str), binding_cpuset);
             printf("-->            CPU D : %-20s\n", str);

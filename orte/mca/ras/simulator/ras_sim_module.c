@@ -205,13 +205,6 @@ static int allocate(orte_job_t *jdata, opal_list_t *nodes)
                 hwloc_topology_destroy(topo);
                 goto error_silent;
             }
-            if (OPAL_SUCCESS != opal_hwloc_base_filter_cpus(topo)) {
-                orte_show_help("help-ras-simulator.txt",
-                               "hwloc API fail", true,
-                               __FILE__, __LINE__, "opal_hwloc_base_filter_cpus");
-                hwloc_topology_destroy(topo);
-                goto error_silent;
-            }
             /* remove the hostname from the topology. Unfortunately, hwloc
              * decided to add the source hostname to the "topology", thus
              * rendering it unusable as a pure topological description. So

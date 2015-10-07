@@ -465,7 +465,6 @@ OBJ_CLASS_INSTANCE(opal_hwloc_summary_t,
                    sum_const, sum_dest);
 static void topo_data_const(opal_hwloc_topo_data_t *ptr)
 {
-    ptr->available = NULL;
     OBJ_CONSTRUCT(&ptr->summaries, opal_list_t);
     ptr->userdata = NULL;
 }
@@ -473,9 +472,6 @@ static void topo_data_dest(opal_hwloc_topo_data_t *ptr)
 {
     opal_list_item_t *item;
 
-    if (NULL != ptr->available) {
-        hwloc_bitmap_free(ptr->available);
-    }
     while (NULL != (item = opal_list_remove_first(&ptr->summaries))) {
         OBJ_RELEASE(item);
     }

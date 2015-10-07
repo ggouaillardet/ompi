@@ -16,7 +16,7 @@
  *                         All rights reserved.
  * Copyright (c) 2012-2015 NVIDIA Corporation.  All rights reserved.
  * Copyright (c) 2012      Oracle and/or its affiliates.  All rights reserved.
- * Copyright (c) 2014      Research Organization for Information Science
+ * Copyright (c) 2014-2015 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2015      Intel, Inc. All rights reserved.
  * $COPYRIGHT$
@@ -245,7 +245,6 @@ smcuda_btl_first_time_init(mca_btl_smcuda_t *smcuda_btl,
         if (i > 0) {
             int numa=0, w;
             unsigned n_bound=0;
-            hwloc_cpuset_t avail;
             hwloc_obj_t obj;
 
             /* JMS This tells me how many numa nodes are *available*,
@@ -265,10 +264,8 @@ smcuda_btl_first_time_init(mca_btl_smcuda_t *smcuda_btl,
                                                                        OPAL_HWLOC_AVAILABLE))) {
                         continue;
                     }
-                    /* get that NUMA node's available cpus */
-                    avail = opal_hwloc_base_get_available_cpus(opal_hwloc_topology, obj);
-                    /* see if we intersect */
-                    if (hwloc_bitmap_intersects(avail, opal_hwloc_my_cpuset)) {
+                    /* see if we intersect with that NUMA node's cpus */
+                    if (hwloc_bitmap_intersects(obj->cpuset, opal_hwloc_my_cpuset)) {
                         n_bound++;
                         numa = w;
                     }

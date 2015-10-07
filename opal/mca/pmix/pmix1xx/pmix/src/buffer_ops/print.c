@@ -752,18 +752,6 @@ static void print_hwloc_obj(char **output, char *prefix,
         free(tmp);
         tmp = tmp2;
     }
-    if (NULL != obj->online_cpuset) {
-        hwloc_bitmap_snprintf(string, PMIX_HWLOC_MAX_STRING, obj->online_cpuset);
-        asprintf(&tmp2, "%s%sOnline:  %s", tmp, pfx, string);
-        free(tmp);
-        tmp = tmp2;
-    }
-    if (NULL != obj->allowed_cpuset) {
-        hwloc_bitmap_snprintf(string, PMIX_HWLOC_MAX_STRING, obj->allowed_cpuset);
-        asprintf(&tmp2, "%s%sAllowed: %s", tmp, pfx, string);
-        free(tmp);
-        tmp = tmp2;
-    }
     if (HWLOC_OBJ_MACHINE == obj->type) {
         /* root level object - add support values */
         support = (struct hwloc_topology_support*)hwloc_topology_get_support(topo);

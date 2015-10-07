@@ -133,7 +133,6 @@ static int bind_upwards(orte_job_t *jdata,
     orte_job_map_t *map;
     orte_proc_t *proc;
     hwloc_obj_t obj;
-    hwloc_cpuset_t cpus;
     unsigned int idx, ncpus;
     opal_hwloc_obj_data_t *data;
     hwloc_obj_t locale;
@@ -210,8 +209,7 @@ static int bind_upwards(orte_job_t *jdata,
                     }
                 }
                 /* bind it here */
-                cpus = opal_hwloc_base_get_available_cpus(node->topology, obj);
-                hwloc_bitmap_list_asprintf(&cpu_bitmap, cpus);
+                hwloc_bitmap_list_asprintf(&cpu_bitmap, obj->cpuset);
                 orte_set_attribute(&proc->attributes, ORTE_PROC_CPU_BITMAP, ORTE_ATTR_GLOBAL, cpu_bitmap, OPAL_STRING);
                 /* record the location */
                 orte_set_attribute(&proc->attributes, ORTE_PROC_HWLOC_BOUND, ORTE_ATTR_LOCAL, obj, OPAL_PTR);
@@ -250,7 +248,6 @@ static int bind_downwards(orte_job_t *jdata,
     orte_job_map_t *map;
     orte_proc_t *proc;
     hwloc_obj_t trg_obj, nxt_obj;
-    hwloc_cpuset_t cpus;
     unsigned int ncpus;
     opal_hwloc_obj_data_t *data;
     int total_cpus;
@@ -344,8 +341,7 @@ static int bind_downwards(orte_job_t *jdata,
                 }
             }
             /* bind the proc here */
-            cpus = opal_hwloc_base_get_available_cpus(node->topology, trg_obj);
-            hwloc_bitmap_or(totalcpuset, totalcpuset, cpus);
+            hwloc_bitmap_or(totalcpuset, totalcpuset, trg_obj->cpuset);
             /* track total #cpus */
             total_cpus += ncpus;
             /* move to the next location, in case we need it */
@@ -395,7 +391,6 @@ static int bind_in_place(orte_job_t *jdata,
     orte_job_map_t *map;
     orte_node_t *node;
     orte_proc_t *proc;
-    hwloc_cpuset_t cpus;
     unsigned int idx, ncpus;
     struct hwloc_topology_support *support;
     opal_hwloc_obj_data_t *data;
@@ -562,8 +557,7 @@ static int bind_in_place(orte_job_t *jdata,
                                 ORTE_NAME_PRINT(&proc->name),
                                 hwloc_obj_type_string(locale->type), idx);
             /* bind the proc here */
-            cpus = opal_hwloc_base_get_available_cpus(node->topology, locale);
-            hwloc_bitmap_list_asprintf(&cpu_bitmap, cpus);
+            hwloc_bitmap_list_asprintf(&cpu_bitmap, locale->cpuset);
             orte_set_attribute(&proc->attributes, ORTE_PROC_CPU_BITMAP, ORTE_ATTR_GLOBAL, cpu_bitmap, OPAL_STRING);
             /* update the location, in case it changed */
             orte_set_attribute(&proc->attributes, ORTE_PROC_HWLOC_BOUND, ORTE_ATTR_LOCAL, locale, OPAL_PTR);
@@ -590,7 +584,6 @@ static int bind_to_cpuset(orte_job_t *jdata)
     orte_node_t *node;
     orte_proc_t *proc;
     struct hwloc_topology_support *support;
-    opal_hwloc_topo_data_t *sum;
     hwloc_obj_t root;
     char *cpu_bitmap;
 
@@ -648,12 +641,6 @@ static int bind_to_cpuset(orte_job_t *jdata)
             ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
             return ORTE_ERR_NOT_FOUND;
         }
-        sum = (opal_hwloc_topo_data_t*)root->userdata;
-        if (NULL == sum->available) {
-            /* another error */
-            ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
-            return ORTE_ERR_NOT_FOUND;
-        }
         for (j=0; j < node->procs->size; j++) {
             if (NULL == (proc = (orte_proc_t*)opal_pointer_array_get_item(node->procs, j))) {
                 continue;
@@ -662,7 +649,7 @@ static int bind_to_cpuset(orte_job_t *jdata)
             if (proc->name.jobid != jdata->jobid) {
                 continue;
             }
-            hwloc_bitmap_list_asprintf(&cpu_bitmap, sum->available);
+            hwloc_bitmap_list_asprintf(&cpu_bitmap, root->cpuset);
             orte_set_attribute(&proc->attributes, ORTE_PROC_CPU_BITMAP, ORTE_ATTR_GLOBAL, cpu_bitmap, OPAL_STRING);
             if (NULL != cpu_bitmap) {
                 free(cpu_bitmap);

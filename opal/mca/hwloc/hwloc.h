@@ -159,7 +159,6 @@ OBJ_CLASS_DECLARATION(opal_hwloc_summary_t);
 
 typedef struct {
     opal_object_t super;
-    hwloc_cpuset_t available;
     opal_list_t summaries;
 
     /** \brief Additional space for custom data */

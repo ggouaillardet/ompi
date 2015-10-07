@@ -3,6 +3,8 @@
  * Copyright (c) 2011      Los Alamos National Security, LLC.
  *                         All rights reserved.
  * Copyright (c) 2014-2015 Intel, Inc. All rights reserved.
+ * Copyright (c) 2015      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -474,7 +476,7 @@ static void prune(orte_jobid_t jobid,
                                               lvl, cache_level,
                                               i, OPAL_HWLOC_AVAILABLE);
         /* get the available cpuset */
-        avail = opal_hwloc_base_get_available_cpus(node->topology, obj);
+        avail = obj->cpuset;
 
         /* look at the intersection of this object's cpuset and that
          * of each proc in the job/app - if they intersect, then count this proc
@@ -494,7 +496,7 @@ static void prune(orte_jobid_t jobid,
                 ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
                 return;
             }
-            cpus = opal_hwloc_base_get_available_cpus(node->topology, locale);
+            cpus = locale->cpuset;
             if (hwloc_bitmap_intersects(avail, cpus)) {
                 nprocs++;
             }
@@ -532,7 +534,7 @@ static void prune(orte_jobid_t jobid,
             /* find the child with the most procs underneath it */
             for (k=0; k < top->arity && limit < nprocs; k++) {
                 /* get this object's available cpuset */
-                childcpus = opal_hwloc_base_get_available_cpus(node->topology, top->children[k]);
+                childcpus = top->children[k]->cpuset;
                 nunder = 0;
                 pptr = NULL;
                 for (n=0; n < node->procs->size; n++) {
@@ -548,7 +550,7 @@ static void prune(orte_jobid_t jobid,
                         ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
                         return;
                     }
-                    cpus = opal_hwloc_base_get_available_cpus(node->topology, locale);
+                    cpus = locale->cpuset;
                     if (hwloc_bitmap_intersects(childcpus, cpus)) {
                         nunder++;
                         if (NULL == pptr) {
