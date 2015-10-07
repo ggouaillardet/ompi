@@ -1776,11 +1776,34 @@ static int build_map(int *num_sockets_arg, int *num_cores_arg,
 }
 
 /*
+ * convert an opal_binding_policy_t to an hwloc_obj_t
+ */
+unsigned int opal_hwloc_base_opal_binding_policy2hwloc_obj(
+                           opal_binding_policy_t binding)
+{
+    switch (OPAL_GET_BINDING_POLICY(binding)) {
+        case OPAL_BIND_TO_BOARD:
+            return HWLOC_OBJ_MACHINE;
+        case OPAL_BIND_TO_NUMA:
+            return HWLOC_OBJ_NUMANODE;
+        case OPAL_BIND_TO_SOCKET:
+            return HWLOC_OBJ_PACKAGE;
+        case OPAL_BIND_TO_CORE:
+            return HWLOC_OBJ_CORE;
+        case OPAL_BIND_TO_HWTHREAD:
+            return HWLOC_OBJ_PU;
+        default:
+            return HWLOC_OBJ_TYPE_MAX;
+    }
+}
+
+/*
  * Make a prettyprint string for a hwloc_cpuset_t
  */
 int opal_hwloc_base_cset2str(char *str, int len,
                              hwloc_topology_t topo,
-                             hwloc_cpuset_t cpuset)
+                             hwloc_cpuset_t cpuset,
+                             opal_binding_policy_t binding)
 {
     bool first;
     int num_sockets, num_cores;
@@ -1798,7 +1821,8 @@ int opal_hwloc_base_cset2str(char *str, int len,
         return OPAL_ERR_NOT_BOUND;
     }
 
-    /* if the cpuset includes all available cpus, then we are unbound */
+    /* if the cpuset includes all available cpus and unless requested
+     * by the binding policy, then we are unbound, */
     root = hwloc_get_root_obj(topo);
     if (NULL == root->userdata) {
         opal_hwloc_base_filter_cpus(topo);
@@ -1807,7 +1831,9 @@ int opal_hwloc_base_cset2str(char *str, int len,
         if (NULL == sum->available) {
            return OPAL_ERROR;
         }
-        if (0 != hwloc_bitmap_isincluded(sum->available, cpuset)) {
+        if (0 != hwloc_bitmap_isincluded(sum->available, cpuset) &&
+            (!OPAL_BINDING_POLICY_IS_SET(binding) ||
+             1 != opal_hwloc_base_get_nbobjs_by_type(topo, opal_hwloc_base_opal_binding_policy2hwloc_obj(binding), 0, OPAL_HWLOC_LOGICAL))) {
             return OPAL_ERR_NOT_BOUND;
         }
     }
