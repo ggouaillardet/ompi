@@ -504,6 +504,15 @@ static int orte_rmaps_base_open(mca_base_open_flag_t flags)
         opal_hwloc_binding_policy |= OPAL_BIND_ALLOW_OVERLOAD;
     }
 
+    if (ORTE_GET_MAPPING_DIRECTIVE(orte_rmaps_base.mapping) &&
+        OPAL_BINDING_POLICY_IS_SET(opal_hwloc_binding_policy) &&
+        (ORTE_GET_MAPPING_POLICY(orte_rmaps_base.mapping) >
+         OPAL_GET_BINDING_POLICY(opal_hwloc_binding_policy))) {
+        orte_show_help("help-orte-rmaps-base.txt", "conflicting-policies", true,
+                       orte_rmaps_base_print_mapping(orte_rmaps_base.mapping),
+                       opal_hwloc_base_print_binding(opal_hwloc_binding_policy));
+    }
+
     /* should we display a detailed (developer-quality) version of the map after determining it? */
     if (rmaps_base_display_devel_map) {
         orte_rmaps_base.display_map = true;
