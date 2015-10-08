@@ -49,9 +49,9 @@ hwloc_obj_type_t opal_hwloc_levels[] = {
     HWLOC_OBJ_MACHINE,
     HWLOC_OBJ_NODE,
     HWLOC_OBJ_SOCKET,
-    HWLOC_OBJ_CACHE,
-    HWLOC_OBJ_CACHE,
-    HWLOC_OBJ_CACHE,
+    HWLOC_OBJ_L3CACHE,
+    HWLOC_OBJ_L2CACHE,
+    HWLOC_OBJ_L1CACHE,
     HWLOC_OBJ_CORE,
     HWLOC_OBJ_PU
 };

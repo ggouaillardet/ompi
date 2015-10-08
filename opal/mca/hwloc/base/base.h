@@ -19,6 +19,12 @@
 
 #include "opal/mca/hwloc/hwloc.h"
 
+#if HWLOC_API_VERSION < 0x00020000
+#define HWLOC_OBJ_L3CACHE HWLOC_OBJ_CACHE
+#define HWLOC_OBJ_L2CACHE HWLOC_OBJ_CACHE
+#define HWLOC_OBJ_L1CACHE HWLOC_OBJ_CACHE
+#endif
+
 /*
  * Global functions for MCA overall hwloc open and close
  */

@@ -271,6 +271,8 @@ int32_t ompi_datatype_create_darray(int size,
 
             rc = ompi_datatype_create_struct(3, blength, displs, types, newtype);
         } else {
+            rc = ompi_datatype_commit(&lastType);
+            if (MPI_SUCCESS != rc) goto cleanup;
             ompi_datatype_create_resized(lastType, displs[1], displs[2], newtype);
         }
         ompi_datatype_destroy(&lastType);
