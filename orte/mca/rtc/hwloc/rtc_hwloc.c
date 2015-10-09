@@ -215,7 +215,7 @@ static void set(orte_job_t *jobdat,
                 opal_output(0, "MCW rank %d is not bound",
                             child->name.vpid);
             } else {
-                if (OPAL_ERR_NOT_BOUND == opal_hwloc_base_cset2str(tmp1, sizeof(tmp1), opal_hwloc_topology, mycpus)) {
+                if (OPAL_ERR_NOT_BOUND == opal_hwloc_base_cset2str(tmp1, sizeof(tmp1), opal_hwloc_topology, mycpus, jobdat->map->binding)) {
                     opal_output(0, "MCW rank %d is not bound (or bound to all available processors)", child->name.vpid);
                 } else {
                     opal_hwloc_base_cset2mapstr(tmp2, sizeof(tmp2), opal_hwloc_topology, mycpus);

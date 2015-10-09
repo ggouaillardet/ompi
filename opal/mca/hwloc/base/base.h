@@ -249,13 +249,20 @@ OPAL_DECLSPEC int opal_hwloc_print(char **output, char *prefix,
                                    hwloc_topology_t src,
                                    opal_data_type_t type);
 
+/*
+ * convert an opal_binding_policy_t to an hwloc_obj_t
+ */
+OPAL_DECLSPEC unsigned int opal_hwloc_base_opal_binding_policy2hwloc_obj(
+                               opal_binding_policy_t binding);
+
 /**
  * Make a prettyprint string for a hwloc_cpuset_t (e.g., "socket
  * 2[core 3]").
  */
 OPAL_DECLSPEC int opal_hwloc_base_cset2str(char *str, int len,
                                            hwloc_topology_t topo,
-                                           hwloc_cpuset_t cpuset);
+                                           hwloc_cpuset_t cpuset,
+                                           opal_binding_policy_t binding);
 
 /**
  * Make a prettyprint string for a cset in a map format.

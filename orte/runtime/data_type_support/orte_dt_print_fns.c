@@ -477,7 +477,7 @@ int orte_dt_print_proc(char **output, char *prefix, orte_proc_t *src, opal_data_
             NULL != src->node->topology) {
             mycpus = hwloc_bitmap_alloc();
             hwloc_bitmap_list_sscanf(mycpus, cpu_bitmap);
-            if (OPAL_ERR_NOT_BOUND == opal_hwloc_base_cset2str(tmp1, sizeof(tmp1), src->node->topology, mycpus)) {
+            if (OPAL_ERR_NOT_BOUND == opal_hwloc_base_cset2str(tmp1, sizeof(tmp1), src->node->topology, mycpus, OPAL_BIND_TO_NONE)) {
                 str = strdup("UNBOUND");
             } else {
                 opal_hwloc_base_cset2mapstr(tmp2, sizeof(tmp2), src->node->topology, mycpus);

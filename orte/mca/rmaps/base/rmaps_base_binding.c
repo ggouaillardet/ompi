@@ -359,7 +359,7 @@ static int bind_downwards(orte_job_t *jdata,
         if (4 < opal_output_get_verbosity(orte_rmaps_base_framework.framework_output)) {
             char tmp1[1024], tmp2[1024];
             if (OPAL_ERR_NOT_BOUND == opal_hwloc_base_cset2str(tmp1, sizeof(tmp1),
-                                                               node->topology, totalcpuset)) {
+                                                               node->topology, totalcpuset, OPAL_BIND_TO_NONE)) {
                 opal_output(orte_rmaps_base_framework.framework_output,
                             "%s PROC %s ON %s IS NOT BOUND",
                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
