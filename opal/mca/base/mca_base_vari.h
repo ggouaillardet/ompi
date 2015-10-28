@@ -13,6 +13,8 @@
  * Copyright (c) 2008      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012-2013 Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -49,16 +51,14 @@
 BEGIN_C_DECLS
 
 /* Internal flags start at bit 16 */
-#define MCA_BASE_VAR_FLAG_EXTERNAL_MASK 0x0000ffff
+#define MCA_BASE_VAR_FLAG_EXTERNAL_MASK          0x0000ffff
 
-typedef enum {
-    /** Variable is valid */
-    MCA_BASE_VAR_FLAG_VALID   = 0x00010000,
-    /** Variable is a synonym */
-    MCA_BASE_VAR_FLAG_SYNONYM = 0x00020000,
-    /** mbv_source_file needs to be freed */
-    MCA_BASE_VAR_FLAG_SOURCE_FILE_NEEDS_FREE = 0x00040000
-} mca_base_var_flag_internal_t;
+/** Variable is valid */
+#define MCA_BASE_VAR_FLAG_VALID                  0x00010000
+/** Variable is a synonym */
+#define MCA_BASE_VAR_FLAG_SYNONYM                0x00020000
+/** mbv_source_file needs to be freed */
+#define MCA_BASE_VAR_FLAG_SOURCE_FILE_NEEDS_FREE 0x00040000
 
 #define VAR_FLAG_ISSET(var, flag) (!!((var).mbp_flags & (flag)))
 

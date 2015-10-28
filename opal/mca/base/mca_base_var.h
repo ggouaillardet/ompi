@@ -172,31 +172,31 @@ typedef enum {
     MCA_BASE_VAR_SYN_FLAG_INTERNAL   = 0x0002
 } mca_base_var_syn_flag_t;
 
-typedef enum {
-    /** No flag */
-    MCA_BASE_VAR_FLAG_NONE         = 0x0000,
-    /** Variable is internal (hidden from *_info/MPIT) */
-    MCA_BASE_VAR_FLAG_INTERNAL     = 0x0001,
-    /** Variable will always be the default value. Implies
-        !MCA_BASE_VAR_FLAG_SETTABLE */
-    MCA_BASE_VAR_FLAG_DEFAULT_ONLY = 0x0002,
-    /** Variable can be set with mca_base_var_set() */
-    MCA_BASE_VAR_FLAG_SETTABLE     = 0x0004,
-    /** Variable is deprecated */
-    MCA_BASE_VAR_FLAG_DEPRECATED   = 0x0008,
-    /** Variable has been overridden */
-    MCA_BASE_VAR_FLAG_OVERRIDE     = 0x0010,
-    /** Variable may not be set from a file */
-    MCA_BASE_VAR_FLAG_ENVIRONMENT_ONLY = 0x0020,
-    /** Variable should be deregistered when the group is deregistered
-        (DWG = "deregister with group").  This flag is set
-        automatically when you register a variable with
-        mca_base_component_var_register(), but can also be set
-        manually when you register a variable with
-        mca_base_var_register().  Analogous to the
-        MCA_BASE_PVAR_FLAG_IWG. */
-    MCA_BASE_VAR_FLAG_DWG          = 0x0040
-} mca_base_var_flag_t;
+typedef uint32_t mca_base_var_flag_t;
+
+/** No flag */
+#define MCA_BASE_VAR_FLAG_NONE             0x0000
+/** Variable is internal (hidden from *_info/MPIT) */
+#define MCA_BASE_VAR_FLAG_INTERNAL         0x0001
+/** Variable will always be the default value. Implies
+    !MCA_BASE_VAR_FLAG_SETTABLE */
+#define MCA_BASE_VAR_FLAG_DEFAULT_ONLY     0x0002
+/** Variable can be set with mca_base_var_set() */
+#define MCA_BASE_VAR_FLAG_SETTABLE         0x0004
+/** Variable is deprecated */
+#define MCA_BASE_VAR_FLAG_DEPRECATED       0x0008
+/** Variable has been overridden */
+#define MCA_BASE_VAR_FLAG_OVERRIDE         0x0010
+/** Variable may not be set from a file */
+#define MCA_BASE_VAR_FLAG_ENVIRONMENT_ONLY 0x0020
+/** Variable should be deregistered when the group is deregistered
+    (DWG = "deregister with group").  This flag is set
+    automatically when you register a variable with
+    mca_base_component_var_register(), but can also be set
+    manually when you register a variable with
+    mca_base_var_register().  Analogous to the
+    MCA_BASE_PVAR_FLAG_IWG. */
+#define MCA_BASE_VAR_FLAG_DWG              0x0040
 
 
 /**
