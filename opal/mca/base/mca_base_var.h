@@ -166,11 +166,13 @@ typedef enum {
     OPAL_INFO_LVL_MAX
 } mca_base_var_info_lvl_t;
 
-typedef enum {
-    MCA_BASE_VAR_SYN_FLAG_NONE       = 0x0000,
-    MCA_BASE_VAR_SYN_FLAG_DEPRECATED = 0x0001,
-    MCA_BASE_VAR_SYN_FLAG_INTERNAL   = 0x0002
-} mca_base_var_syn_flag_t;
+
+typedef uint8_t mca_base_var_syn_flag_t;
+
+#define MCA_BASE_VAR_SYN_FLAG_NONE       0x0000
+#define MCA_BASE_VAR_SYN_FLAG_DEPRECATED 0x0001
+#define MCA_BASE_VAR_SYN_FLAG_INTERNAL   0x0002
+
 
 typedef uint32_t mca_base_var_flag_t;
 
