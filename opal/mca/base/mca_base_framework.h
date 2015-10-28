@@ -2,6 +2,8 @@
 /*
  * Copyright (c) 2012-2015 Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -108,20 +110,21 @@ typedef int (*mca_base_framework_open_fn_t) (mca_base_open_flag_t flags);
  */
 typedef int (*mca_base_framework_close_fn_t) (void);
 
-typedef enum {
-    MCA_BASE_FRAMEWORK_FLAG_DEFAULT    = 0,
-    /** Don't register any variables for this framework */
-    MCA_BASE_FRAMEWORK_FLAG_NOREGISTER = 1,
-    /** Internal. Don't set outside mca_base_framework.h */
-    MCA_BASE_FRAMEWORK_FLAG_REGISTERED = 2,
-    /** Framework does not have any DSO components */
-    MCA_BASE_FRAMEWORK_FLAG_NO_DSO     = 4,
-    /** Internal. Don't set outside mca_base_framework.h */
-    MCA_BASE_FRAMEWORK_FLAG_OPEN       = 8,
-    /**
-     * The upper 16 bits are reserved for project specific flags.
-     */
-} mca_base_framework_flags_t;
+typedef uint32_t mca_base_framework_flags_t;
+
+#define MCA_BASE_FRAMEWORK_FLAG_DEFAULT    0
+/** Don't register any variables for this framework */
+#define MCA_BASE_FRAMEWORK_FLAG_NOREGISTER 1
+/** Internal. Don't set outside mca_base_framework.h */
+#define MCA_BASE_FRAMEWORK_FLAG_REGISTERED 2
+/** Framework does not have any DSO components */
+#define MCA_BASE_FRAMEWORK_FLAG_NO_DSO     4
+/** Internal. Don't set outside mca_base_framework.h */
+#define MCA_BASE_FRAMEWORK_FLAG_OPEN       8
+/**
+ * The upper 16 bits are reserved for project specific flags.
+ */
+
 
 typedef struct mca_base_framework_t {
     /** Project name for this component (ex "opal") */
