@@ -2,6 +2,8 @@
 /*
  * Copyright (c) 2013-2015 Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  *
  * Additional copyrights may follow
  *
@@ -16,29 +18,29 @@
 /*
  * These flags are used when registering a new pvar.
  */
-typedef enum {
-    /** This variable should be marked as invalid when the containing
-        group is deregistered (IWG = "invalidate with group").  This
-        flag is set automatically when you register a variable with
-        mca_base_component_pvvar_register(), but can also be set
-        manually when you register a variable with
-        mca_base_pvar_register().  Analogous to the
-        MCA_BASE_VAR_FLAG_DWG flag. */
-    MCA_BASE_PVAR_FLAG_IWG        = 0x040,
-    /** This variable can not be written. Will be ignored for counter,
-        timer, and aggregate variables. These variable handles will be
-        updated relative to the value reported by the get_value()
-        function provided at registration time. */
-    MCA_BASE_PVAR_FLAG_READONLY   = 0x080,
-    /** This variable runs continuously after being bound to a handle. */
-    MCA_BASE_PVAR_FLAG_CONTINUOUS = 0x100,
-    /** This variable can be updated atomically. This flag is ignored
-        by mca_base_pvar_register() at this time. */
-    MCA_BASE_PVAR_FLAG_ATOMIC     = 0x200,
-    /** This variable has been marked as invalid. This flag is ignored
-        by mca_base_pvar_register(). */
-    MCA_BASE_PVAR_FLAG_INVALID    = 0x400,
-} mca_base_pvar_flag_t;
+typedef uint16_t mca_base_pvar_flag_t;
+
+/** This variable should be marked as invalid when the containing
+    group is deregistered (IWG = "invalidate with group").  This
+    flag is set automatically when you register a variable with
+    mca_base_component_pvvar_register(), but can also be set
+    manually when you register a variable with
+    mca_base_pvar_register().  Analogous to the
+    MCA_BASE_VAR_FLAG_DWG flag. */
+#define MCA_BASE_PVAR_FLAG_IWG        0x040
+/** This variable can not be written. Will be ignored for counter,
+    timer, and aggregate variables. These variable handles will be
+    updated relative to the value reported by the get_value()
+    function provided at registration time. */
+#define MCA_BASE_PVAR_FLAG_READONLY   0x080
+/** This variable runs continuously after being bound to a handle. */
+#define MCA_BASE_PVAR_FLAG_CONTINUOUS 0x100
+/** This variable can be updated atomically. This flag is ignored
+    by mca_base_pvar_register() at this time. */
+#define MCA_BASE_PVAR_FLAG_ATOMIC     0x200
+/** This variable has been marked as invalid. This flag is ignored
+    by mca_base_pvar_register(). */
+#define MCA_BASE_PVAR_FLAG_INVALID    0x400
 
 /*
  * These flags are passed to the mca_base_notify_fn_t function.
