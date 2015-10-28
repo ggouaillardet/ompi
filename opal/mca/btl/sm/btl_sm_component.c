@@ -17,7 +17,7 @@
  * Copyright (c) 2011-2014 NVIDIA Corporation.  All rights reserved.
  * Copyright (c) 2010-2012 IBM Corporation.  All rights reserved.
  * Copyright (c) 2014-2016 Intel, Inc. All rights reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -114,7 +114,7 @@ mca_btl_sm_component_t mca_btl_sm_component = {
 static inline int mca_btl_sm_param_register_int(
     const char* param_name,
     int default_value,
-    int level,
+    mca_base_var_info_lvl_t level,
     int *storage)
 {
     *storage = default_value;
@@ -128,7 +128,7 @@ static inline int mca_btl_sm_param_register_int(
 static inline unsigned int mca_btl_sm_param_register_uint(
     const char* param_name,
     unsigned int default_value,
-    int level,
+    mca_base_var_info_lvl_t level,
     unsigned int *storage)
 {
     *storage = default_value;
