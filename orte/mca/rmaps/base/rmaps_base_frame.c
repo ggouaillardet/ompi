@@ -81,7 +81,7 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_rmaps_base_pernode);
-    (void) mca_base_var_register_synonym(var_id, "orte", "rmaps", "ppr", "pernode", 0);
+    (void) mca_base_var_register_synonym(var_id, "orte", "rmaps", "ppr", "pernode", MCA_BASE_VAR_SYN_FLAG_NONE);
 
     orte_rmaps_base_n_pernode = 0;
     var_id = mca_base_var_register("orte", "rmaps", "base", "n_pernode",
@@ -89,7 +89,7 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
                                  NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &orte_rmaps_base_n_pernode);
-    (void) mca_base_var_register_synonym(var_id, "orte", "rmaps","ppr", "n_pernode", 0);
+    (void) mca_base_var_register_synonym(var_id, "orte", "rmaps","ppr", "n_pernode", MCA_BASE_VAR_SYN_FLAG_NONE);
 
     orte_rmaps_base_n_persocket = 0;
     var_id = mca_base_var_register("orte", "rmaps", "base", "n_persocket",
@@ -97,14 +97,14 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
                                  NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &orte_rmaps_base_n_persocket);
-    (void) mca_base_var_register_synonym(var_id, "orte", "rmaps","ppr", "n_persocket", 0);
+    (void) mca_base_var_register_synonym(var_id, "orte", "rmaps","ppr", "n_persocket", MCA_BASE_VAR_SYN_FLAG_NONE);
 
     orte_rmaps_base.ppr = NULL;
     var_id = mca_base_var_register("orte", "rmaps", "base", "pattern",
                                  "Comma-separated list of number of processes on a given resource type [default: none]",
                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &orte_rmaps_base.ppr);
-    (void) mca_base_var_register_synonym(var_id, "orte", "rmaps","ppr", "pattern", 0);
+    (void) mca_base_var_register_synonym(var_id, "orte", "rmaps","ppr", "pattern", MCA_BASE_VAR_SYN_FLAG_NONE);
 
     /* define default mapping policy */
     rmaps_base_mapping_policy = NULL;
@@ -155,7 +155,7 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
                                    MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                    OPAL_INFO_LVL_9,
                                    MCA_BASE_VAR_SCOPE_READONLY, &orte_rmaps_base.cpus_per_rank);
-    mca_base_var_register_synonym(var_id, "orte", "rmaps", "base", "cpus_per_rank", 0);
+    mca_base_var_register_synonym(var_id, "orte", "rmaps", "base", "cpus_per_rank", MCA_BASE_VAR_SYN_FLAG_NONE);
 
     rmaps_dist_device = NULL;
     var_id = mca_base_var_register("orte", "rmaps", NULL, "dist_device",

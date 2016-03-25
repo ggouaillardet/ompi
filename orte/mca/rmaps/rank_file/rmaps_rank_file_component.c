@@ -92,7 +92,7 @@ static int orte_rmaps_rank_file_register(void)
                                           MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                           OPAL_INFO_LVL_5,
                                           MCA_BASE_VAR_SCOPE_READONLY, &orte_rankfile);
-    (void) mca_base_var_register_synonym(tmp, "orte", "orte", NULL, "rankfile", 0);
+    (void) mca_base_var_register_synonym(tmp, "orte", "orte", NULL, "rankfile", MCA_BASE_VAR_SYN_FLAG_NONE);
 
     mca_rmaps_rank_file_component.physical = false;
     (void) mca_base_component_var_register(c, "physical", "Rankfile contains physical cpu designations",

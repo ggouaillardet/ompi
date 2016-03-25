@@ -261,7 +261,8 @@ int ompi_mpi_register_params(void)
 
     value = mca_base_var_find ("opal", "opal", NULL, "built_with_cuda_support");
     if (0 <= value) {
-        mca_base_var_register_synonym(value, "ompi", "mpi", NULL, "built_with_cuda_support", 0);
+        mca_base_var_register_synonym(value, "ompi", "mpi", NULL, "built_with_cuda_support",
+                                      MCA_BASE_VAR_SYN_FLAG_NONE);
     }
 
     if (opal_cuda_support && !opal_built_with_cuda_support) {

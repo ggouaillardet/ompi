@@ -110,7 +110,7 @@ static int mca_pml_base_register(mca_base_register_flag_t flags)
                                    OPAL_INFO_LVL_9,
                                    MCA_BASE_VAR_SCOPE_READONLY,
                                    &ompi_pml_base_wrapper);
-    (void) mca_base_var_register_synonym(var_id, "ompi", "pml", NULL, "wrapper", 0);
+    (void) mca_base_var_register_synonym(var_id, "ompi", "pml", NULL, "wrapper", MCA_BASE_VAR_SYN_FLAG_NONE);
 #endif
 
     return OMPI_SUCCESS;

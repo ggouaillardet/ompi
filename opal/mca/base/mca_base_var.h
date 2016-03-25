@@ -167,6 +167,7 @@ typedef enum {
 } mca_base_var_info_lvl_t;
 
 typedef enum {
+    MCA_BASE_VAR_SYN_FLAG_NONE       = 0x0000,
     MCA_BASE_VAR_SYN_FLAG_DEPRECATED = 0x0001,
     MCA_BASE_VAR_SYN_FLAG_INTERNAL   = 0x0002
 } mca_base_var_syn_flag_t;

@@ -3,6 +3,8 @@
  * Copyright (c) 2010      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012-2015 Los Alamos National Security, LLC.  All rights reserved.
  * Copyright (c) 2015      Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  *
  * $COPYRIGHT$
  *
@@ -188,7 +190,7 @@ static int libevent2022_register (void)
         return ret;
     }
 
-    ret = mca_base_var_register_synonym (ret, "opal", "opal", "event", "include", 0);
+    ret = mca_base_var_register_synonym (ret, "opal", "opal", "event", "include", MCA_BASE_VAR_SYN_FLAG_NONE);
     if (0 > ret) {
         return ret;
     }

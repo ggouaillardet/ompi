@@ -79,7 +79,7 @@ static int orte_ess_base_register(mca_base_register_flag_t flags)
                                 MCA_BASE_VAR_FLAG_INTERNAL,
                                 OPAL_INFO_LVL_9,
                                 MCA_BASE_VAR_SCOPE_READONLY, &orte_ess_base_jobid);
-    mca_base_var_register_synonym(ret, "orte", "orte", "ess", "jobid", 0);
+    mca_base_var_register_synonym(ret, "orte", "orte", "ess", "jobid", MCA_BASE_VAR_SYN_FLAG_NONE);
 
     orte_ess_base_vpid = NULL;
     ret = mca_base_var_register("orte", "ess", "base", "vpid", "Process vpid",
@@ -87,7 +87,7 @@ static int orte_ess_base_register(mca_base_register_flag_t flags)
                                 MCA_BASE_VAR_FLAG_INTERNAL,
                                 OPAL_INFO_LVL_9,
                                 MCA_BASE_VAR_SCOPE_READONLY, &orte_ess_base_vpid);
-    mca_base_var_register_synonym(ret, "orte", "orte", "ess", "vpid", 0);
+    mca_base_var_register_synonym(ret, "orte", "orte", "ess", "vpid", MCA_BASE_VAR_SYN_FLAG_NONE);
 
     orte_ess_base_num_procs = -1;
     ret = mca_base_var_register("orte", "ess", "base", "num_procs",
@@ -96,7 +96,7 @@ static int orte_ess_base_register(mca_base_register_flag_t flags)
                                 MCA_BASE_VAR_FLAG_INTERNAL,
                                 OPAL_INFO_LVL_9,
                                 MCA_BASE_VAR_SCOPE_READONLY, &orte_ess_base_num_procs);
-    mca_base_var_register_synonym(ret, "orte", "orte", "ess", "num_procs", 0);
+    mca_base_var_register_synonym(ret, "orte", "orte", "ess", "num_procs", MCA_BASE_VAR_SYN_FLAG_NONE);
 
     return ORTE_SUCCESS;
 }

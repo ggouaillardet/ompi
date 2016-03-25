@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2012 Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2012      Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  *
  * $COPYRIGHT$
  *
@@ -56,5 +58,5 @@ void opal_common_verbs_mca_register(mca_base_component_t *component)
 
     /* Make synonym for the common_verbs MCA params. */
     mca_base_var_register_synonym(warn_nonexistent_if_index, "ompi", component->mca_type_name,
-                                  component->mca_component_name, "warn_nonexistent_if", 0);
+                                  component->mca_component_name, "warn_nonexistent_if", MCA_BASE_VAR_SYN_FLAG_NONE);
 }

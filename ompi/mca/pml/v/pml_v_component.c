@@ -92,7 +92,7 @@ static int mca_pml_v_component_register(void)
                                              MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                              OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                              &ompi_pml_vprotocol_include_list);
-    (void) mca_base_var_register_synonym(var_id, "ompi", "vprotocol", NULL, NULL, 0);
+    (void) mca_base_var_register_synonym(var_id, "ompi", "vprotocol", NULL, NULL, MCA_BASE_VAR_SYN_FLAG_NONE);
 
     return OMPI_SUCCESS;
 }

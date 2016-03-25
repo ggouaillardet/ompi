@@ -90,7 +90,7 @@ static int component_register(void)
                                           OPAL_INFO_LVL_9,
                                           MCA_BASE_VAR_SCOPE_READONLY,
                                           &mca_ess_singleton_component.server_uri);
-    (void) mca_base_var_register_synonym(ret, "orte", "orte", NULL, "server", 0);
+    (void) mca_base_var_register_synonym(ret, "orte", "orte", NULL, "server", MCA_BASE_VAR_SYN_FLAG_NONE);
 
     ret = mca_base_component_var_register(&mca_ess_singleton_component.super.base_version,
                                           "isolated",

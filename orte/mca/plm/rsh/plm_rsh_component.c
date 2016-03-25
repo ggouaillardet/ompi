@@ -199,7 +199,7 @@ static int rsh_component_register(void)
                                               MCA_BASE_VAR_SCOPE_READONLY,
                                               &mca_plm_rsh_component.assume_same_shell);
     /* XXX -- var_conversion -- Why does this component register orte_assume_same_shell? Components should ONLY register THEIR OWN variables. */
-    (void) mca_base_var_register_synonym (var_id, "orte", "orte", NULL, "assume_same_shell", 0);
+    (void) mca_base_var_register_synonym (var_id, "orte", "orte", NULL, "assume_same_shell", MCA_BASE_VAR_SYN_FLAG_NONE);
 
     mca_plm_rsh_component.pass_environ_mca_params = true;
     (void) mca_base_component_var_register (c, "pass_environ_mca_params",
