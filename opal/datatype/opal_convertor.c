@@ -470,7 +470,8 @@ int32_t opal_convertor_set_position_nocheck( opal_convertor_t* convertor,
             }                                                             \
         }                                                                 \
         convertor->remote_size *= convertor->count;                       \
-        convertor->use_desc = &(datatype->desc);                          \
+        if (!(send && convertor->flags & OPAL_DATATYPE_FLAG_CONTIGUOUS))  \
+            convertor->use_desc = &(datatype->desc);                      \
     }                                                                     \
 }
 
@@ -481,7 +482,7 @@ int32_t opal_convertor_set_position_nocheck( opal_convertor_t* convertor,
  * here that the convertor is clean, either never initialized or already
  * cleaned.
  */
-#define OPAL_CONVERTOR_PREPARE( convertor, datatype, count, pUserBuf )  \
+#define OPAL_CONVERTOR_PREPARE( convertor, datatype, count, pUserBuf, send )  \
     {                                                                   \
         uint32_t bdt_mask;                                              \
                                                                         \
@@ -518,7 +519,7 @@ int32_t opal_convertor_set_position_nocheck( opal_convertor_t* convertor,
                                                                         \
         bdt_mask = datatype->bdt_used & convertor->master->hetero_mask; \
         OPAL_CONVERTOR_COMPUTE_REMOTE_SIZE( convertor, datatype,        \
-                                            bdt_mask );                 \
+                                            bdt_mask, send );           \
         assert( NULL != convertor->use_desc->desc );                    \
         /* For predefined datatypes (contiguous) do nothing more */     \
         /* if checksum is enabled then always continue */               \
@@ -555,7 +556,7 @@ int32_t opal_convertor_prepare_for_recv( opal_convertor_t* convertor,
     mca_cuda_convertor_init(convertor, pUserBuf);
 #endif
 
-    OPAL_CONVERTOR_PREPARE( convertor, datatype, count, pUserBuf );
+    OPAL_CONVERTOR_PREPARE( convertor, datatype, count, pUserBuf, 0 );
 
     if( convertor->flags & CONVERTOR_WITH_CHECKSUM ) {
         if( !(convertor->flags & CONVERTOR_HOMOGENEOUS) ) {
@@ -592,7 +593,7 @@ int32_t opal_convertor_prepare_for_send( opal_convertor_t* convertor,
     mca_cuda_convertor_init(convertor, pUserBuf);
 #endif
 
-    OPAL_CONVERTOR_PREPARE( convertor, datatype, count, pUserBuf );
+    OPAL_CONVERTOR_PREPARE( convertor, datatype, count, pUserBuf, 1 );
 
     if( convertor->flags & CONVERTOR_WITH_CHECKSUM ) {
         if( CONVERTOR_SEND_CONVERSION == (convertor->flags & (CONVERTOR_SEND_CONVERSION|CONVERTOR_HOMOGENEOUS)) ) {
