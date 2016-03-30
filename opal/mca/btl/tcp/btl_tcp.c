@@ -377,6 +377,7 @@ int mca_btl_tcp_put (mca_btl_base_module_t *btl, struct mca_btl_base_endpoint_t 
 
     frag->segments[1].seg_addr.lval = remote_address;
     frag->segments[1].seg_len = size;
+    if (endpoint->endpoint_nbo) MCA_BTL_BASE_SEGMENT_HTON(frag->segments[1]);
 
     frag->base.des_flags = MCA_BTL_DES_FLAGS_BTL_OWNERSHIP | MCA_BTL_DES_SEND_ALWAYS_CALLBACK;
     frag->base.des_cbfunc = fake_rdma_complete;
