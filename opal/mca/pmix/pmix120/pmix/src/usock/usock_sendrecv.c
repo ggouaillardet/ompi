@@ -81,7 +81,8 @@ static pmix_status_t send_bytes(int sd, char **buf, size_t *remain)
     int rc;
     char *ptr = *buf;
     while (0 < *remain) {
-        rc = write(sd, ptr, *remain);
+        // rc = write(sd, ptr, *remain);
+        rc = send(sd, ptr, *remain, MSG_NOSIGNAL);
         if (rc < 0) {
             if (pmix_socket_errno == EINTR) {
                 continue;
@@ -118,9 +119,10 @@ exit:
     return ret;
 }
 
-static int read_bytes(int sd, char **buf, size_t *remain)
+static pmix_status_t read_bytes(int sd, char **buf, size_t *remain)
 {
-    int ret = PMIX_SUCCESS, rc;
+    pmix_status_t ret = PMIX_SUCCESS;
+    int rc;
     char *ptr = *buf;
 
     /* read until all bytes recvd or error */
@@ -216,7 +218,6 @@ void pmix_usock_send_handler(int sd, short flags, void *cbdata)
                 peer->send_ev_active = false;
                 PMIX_RELEASE(msg);
                 peer->send_msg = NULL;
-                lost_connection(peer, rc);
                 return;
             }
         }
@@ -244,7 +245,6 @@ void pmix_usock_send_handler(int sd, short flags, void *cbdata)
                 peer->send_ev_active = false;
                 PMIX_RELEASE(msg);
                 peer->send_msg = NULL;
-                lost_connection(peer, rc);
                 return;
             }
         }
@@ -274,7 +274,7 @@ void pmix_usock_send_handler(int sd, short flags, void *cbdata)
 
 void pmix_usock_recv_handler(int sd, short flags, void *cbdata)
 {
-    int rc;
+    pmix_status_t rc;
     pmix_peer_t *peer = (pmix_peer_t*)cbdata;
     pmix_usock_recv_t *msg = NULL;
 
