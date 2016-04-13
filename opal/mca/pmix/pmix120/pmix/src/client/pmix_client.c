@@ -413,6 +413,22 @@ int PMIx_Initialized(void)
     return false;
 }
 
+typedef struct {
+    pmix_object_t super;
+    pmix_buffer_t *msg;
+    pmix_cb_t *cb;
+} pmix_finalize_data_t;
+PMIX_CLASS_INSTANCE(pmix_finalize_data_t, pmix_object_t, NULL, NULL);
+
+static void _finalizefn(int sd, short args, void *cbdata)
+{
+    pmix_shift_caddy_t *cd = (pmix_shift_caddy_t *)cbdata;
+    pmix_finalize_data_t *fd = (pmix_finalize_data_t *)cd->cbdata;
+    PMIX_ACTIVATE_SEND_RECV(&pmix_client_globals.myserver, fd->msg, wait_cbfunc, fd->cb);
+    PMIX_RELEASE(fd);
+}
+
+
 pmix_status_t PMIx_Finalize(void)
 {
     pmix_buffer_t *msg;
@@ -427,9 +443,12 @@ pmix_status_t PMIx_Finalize(void)
     pmix_globals.init_cntr = 0;
 
     pmix_output_verbose(2, pmix_globals.debug_output,
-                        "pmix:client finalize called");
+                        "pmix:client finalize called in %ld", pthread_self());
 
     if ( 0 <= pmix_client_globals.myserver.sd ) {
+        pmix_shift_caddy_t *cd;
+        pmix_finalize_data_t *fd;
+
         /* setup a cmd message to notify the PMIx
          * server that we are normally terminating */
         msg = PMIX_NEW(pmix_buffer_t);
@@ -449,8 +468,18 @@ pmix_status_t PMIx_Finalize(void)
         pmix_output_verbose(2, pmix_globals.debug_output,
                             "pmix:client sending finalize sync to server");
 
+        fd = PMIX_NEW(pmix_finalize_data_t);
+        fd->msg = msg;
+        fd->cb = cb;
+
+        /* need to thread shift this request */
+        cd = PMIX_NEW(pmix_shift_caddy_t);
+        // cd->cbfunc.finalizecbfn = finalize_handler;
+        cd->cbdata = fd;
+        cd->ref = 0;
+
         /* push the message into our event base to send to the server */
-        PMIX_ACTIVATE_SEND_RECV(&pmix_client_globals.myserver, msg, wait_cbfunc, cb);
+        PMIX_THREADSHIFT(cd, _finalizefn);
 
         /* wait for the ack to return */
         PMIX_WAIT_FOR_COMPLETION(cb->active);
@@ -1421,7 +1450,7 @@ static void dereg_errhandler(int sd, short args, void *cbdata)
     pmix_cb_t *cb;
 
     pmix_output_verbose(2, pmix_globals.debug_output,
-                        "pmix_client_deregister_errhandler errhandler_ref = %d", cd->ref);
+                        "pmix_client_deregister_errhandler errhandler_ref = %d in thread %ld", cd->ref, pthread_self());
 
     errreg = (pmix_error_reg_info_t *)pmix_pointer_array_get_item(&pmix_globals.errregs, cd->ref);
     if (NULL != errreg ) {
