@@ -17,7 +17,7 @@
  *                         reserved.
  * Copyright (c) 2013-2015 NVIDIA Corporation.  All rights reserved.
  * Copyright (c) 2014-2015 Intel, Inc. All rights reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -134,7 +134,7 @@ static inline char* mca_btl_tcp_param_register_string(
         const char* param_name,
         const char* help_string,
         const char* default_value,
-        int level,
+        mca_base_var_info_lvl_t level,
         char **storage)
 {
     *storage = (char *) default_value;
@@ -149,7 +149,7 @@ static inline int mca_btl_tcp_param_register_int(
         const char* param_name,
         const char* help_string,
         int default_value,
-        int level,
+        mca_base_var_info_lvl_t level,
         int *storage)
 {
     *storage = default_value;
@@ -164,7 +164,7 @@ static inline unsigned int mca_btl_tcp_param_register_uint(
         const char* param_name,
         const char* help_string,
         unsigned int default_value,
-        int level,
+        mca_base_var_info_lvl_t level,
         unsigned int *storage)
 {
     *storage = default_value;
