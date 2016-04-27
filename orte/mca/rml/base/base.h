@@ -244,6 +244,7 @@ OBJ_CLASS_DECLARATION(orte_rml_recv_request_t);
                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),         \
                             ORTE_NAME_PRINT(&((m)->dst)),               \
                             __FILE__, __LINE__);                        \
+        assert (NULL != (m)->iov || NULL != (m)->cbfunc.buffer);        \
         if (NULL != (m)->iov) {                                         \
             if (NULL != (m)->cbfunc.iov) {                              \
                 (m)->cbfunc.iov((m)->status,                            \
