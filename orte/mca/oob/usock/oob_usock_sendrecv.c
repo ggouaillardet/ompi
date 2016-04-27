@@ -14,6 +14,8 @@
  * Copyright (c) 2009      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2011      Oak Ridge National Labs.  All rights reserved.
  * Copyright (c) 2013-2016 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -208,16 +210,7 @@ void mca_oob_usock_send_handler(int sd, short flags, void *cbdata)
                         ORTE_RML_SEND_COMPLETE(msg->msg);
                         OBJ_RELEASE(msg);
                         peer->send_msg = NULL;
-                    } else if (NULL != msg->msg->data) {
-                        /* this was a relay message - nothing more to do */
-                        opal_output_verbose(2, orte_oob_base_framework.framework_output,
-                                            "%s MESSAGE SEND COMPLETE TO %s OF %d BYTES ON SOCKET %d",
-                                            ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
-                                            ORTE_NAME_PRINT(&(peer->name)),
-                                            msg->hdr.nbytes, peer->sd);
-                        OBJ_RELEASE(msg);
-                        peer->send_msg = NULL;
-                    } else {
+                    } else if (NULL != msg->msg->iov) {
                         /* rotate to the next iovec */
                         msg->iovnum++;
                         if (msg->iovnum < msg->msg->count) {
@@ -240,6 +233,15 @@ void mca_oob_usock_send_handler(int sd, short flags, void *cbdata)
                             OBJ_RELEASE(msg);
                             peer->send_msg = NULL;
                         }
+                    } else {
+                        /* this was a relay message - nothing more to do */
+                        opal_output_verbose(2, orte_oob_base_framework.framework_output,
+                                            "%s MESSAGE SEND COMPLETE TO %s OF %d BYTES ON SOCKET %d",
+                                            ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+                                            ORTE_NAME_PRINT(&(peer->name)),
+                                            msg->hdr.nbytes, peer->sd);
+                        OBJ_RELEASE(msg);
+                        peer->send_msg = NULL;
                     }
                     /* fall thru to queue the next message */
                 } else if (ORTE_ERR_RESOURCE_BUSY == rc ||
