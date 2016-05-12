@@ -57,7 +57,7 @@ static inline int memchecker_convertor_call (int (*f)(void *, size_t), opal_conv
     } else {
         /* Now we got a noncontigous data. */
         uint32_t elem_pos = 0, i;
-        ptrdiff_t  stack_disp  = 0;
+        OPAL_PTRDIFF_TYPE  stack_disp  = 0;
         dt_elem_desc_t*  description = pConvertor->use_desc->desc;
         dt_elem_desc_t*  pElem       = &(description[elem_pos]);
         unsigned char   *source_base = pConvertor->pBaseBuf;
@@ -111,7 +111,7 @@ static inline int memchecker_call (int (*f)(void *, size_t), const void * addr,
     } else {
         /* Now we got a noncontigous type. */
         uint32_t         elem_pos = 0, i;
-        ptrdiff_t        stack_disp  = 0;
+        OPAL_PTRDIFF_TYPE stack_disp  = 0;
         dt_elem_desc_t*  description = datatype->super.opt_desc.desc;
         dt_elem_desc_t*  pElem       = &(description[elem_pos]);
         unsigned char   *source_base = (unsigned char *) addr;
