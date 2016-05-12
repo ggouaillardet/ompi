@@ -2,6 +2,8 @@
 /*
  * Copyright (c) 2014-2015 Los Alamos National Security, LLC.  All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -46,7 +48,7 @@ void ompi_osc_rdma_atomic_complete (mca_btl_base_module_t *btl, struct mca_btl_b
  * It is erroneous to release a shared lock not held by the calling process.
  */
 static inline int ompi_osc_rdma_lock_release_shared (ompi_osc_rdma_module_t *module, ompi_osc_rdma_peer_t *peer,
-                                                     ompi_osc_rdma_lock_t value, ptrdiff_t offset)
+                                                     ompi_osc_rdma_lock_t value, OPAL_PTRDIFF_TYPE offset)
 {
     uint64_t lock = (uint64_t) (intptr_t) peer->state + offset;
     volatile bool atomic_complete = false;
@@ -112,7 +114,7 @@ static inline int ompi_osc_rdma_lock_release_shared (ompi_osc_rdma_module_t *mod
  * match those in {check} the function decrements the value and tries again.
  */
 static inline int ompi_osc_rdma_lock_acquire_shared (ompi_osc_rdma_module_t *module, ompi_osc_rdma_peer_t *peer,
-                                                     ompi_osc_rdma_lock_t value, ptrdiff_t offset,
+                                                     ompi_osc_rdma_lock_t value, OPAL_PTRDIFF_TYPE offset,
                                                      ompi_osc_rdma_lock_t check)
 {
     uint64_t lock = (uint64_t) peer->state + offset;
@@ -198,7 +200,7 @@ static inline int ompi_osc_rdma_lock_acquire_shared (ompi_osc_rdma_module_t *mod
  * this functions completes.
  */
 static inline int ompi_osc_rdma_lock_try_acquire_exclusive (ompi_osc_rdma_module_t *module, ompi_osc_rdma_peer_t *peer,
-                                                            ptrdiff_t offset)
+                                                            OPAL_PTRDIFF_TYPE offset)
 {
     uint64_t lock = (uint64_t) (uintptr_t) peer->state + offset;
     ompi_osc_rdma_lock_t *temp = NULL;
@@ -266,7 +268,7 @@ static inline int ompi_osc_rdma_lock_try_acquire_exclusive (ompi_osc_rdma_module
  * function completes.
  */
 static inline int ompi_osc_rdma_lock_acquire_exclusive (ompi_osc_rdma_module_t *module, ompi_osc_rdma_peer_t *peer,
-                                                        ptrdiff_t offset)
+                                                        OPAL_PTRDIFF_TYPE offset)
 {
     while (ompi_osc_rdma_lock_try_acquire_exclusive (module, peer, offset)) {
         ompi_osc_rdma_progress (module);
@@ -288,7 +290,7 @@ static inline int ompi_osc_rdma_lock_acquire_exclusive (ompi_osc_rdma_module_t *
  * holds the lock.
  */
 static inline int ompi_osc_rdma_lock_release_exclusive (ompi_osc_rdma_module_t *module, ompi_osc_rdma_peer_t *peer,
-                                                        ptrdiff_t offset)
+                                                        OPAL_PTRDIFF_TYPE offset)
 {
     uint64_t lock = (uint64_t) (intptr_t) peer->state + offset;
     volatile bool atomic_complete = false;

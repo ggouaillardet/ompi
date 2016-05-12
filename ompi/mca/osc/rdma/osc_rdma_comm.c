@@ -2,6 +2,8 @@
 /*
  * Copyright (c) 2014-2016 Los Alamos National Security, LLC.  All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -284,7 +286,7 @@ static inline int ompi_osc_rdma_master (ompi_osc_rdma_sync_t *sync, void *local_
                                         const ompi_osc_rdma_fn_t rdma_fn, const bool alloc_reqs)
 {
     size_t rdma_len;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     int ret;
 
     rdma_len = local_datatype->super.size * local_count;

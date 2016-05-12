@@ -3,6 +3,8 @@
  * Copyright (c) 2012      Sandia National Laboratories.  All rights reserved.
  * Copyright (c) 2014-2015 Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -47,7 +49,7 @@ struct ompi_osc_rdma_request_t {
     int32_t outstanding_requests;
     bool internal;
 
-    ptrdiff_t offset;
+    OPAL_PTRDIFF_TYPE offset;
     size_t    len;
     void     *ctx;
     void     *frag;

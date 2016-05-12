@@ -2,6 +2,8 @@
 /*
  * Copyright (c) 2014-2015 Los Alamos National Security, LLC.  All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -222,7 +224,7 @@ static inline int ompi_osc_rdma_gacc_contig (ompi_osc_rdma_sync_t *sync, const v
     request->result_addr   = result;
     request->result_count  = result_count;
     request->result_dt     = result_datatype;
-    request->offset        = (ptrdiff_t) target_address & btl_alignment_mask;
+    request->offset        = (OPAL_PTRDIFF_TYPE) target_address & btl_alignment_mask;
     request->target_address = target_address;
     request->len           = len;
     request->op            = op;
@@ -283,7 +285,7 @@ static inline int ompi_osc_rdma_gacc_master (ompi_osc_rdma_sync_t *sync, const v
     size_t source_size, target_size;
     ompi_osc_rdma_request_t *subreq;
     size_t result_position;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     int ret, acc_len;
     bool done;
 
@@ -653,7 +655,7 @@ static inline int cas_rdma (ompi_osc_rdma_sync_t *sync, const void *source_buffe
     request->result_addr  = result_buffer;
     request->compare_addr = compare_buffer;
     request->result_dt    = datatype;
-    request->offset       = (ptrdiff_t) offset;
+    request->offset       = (OPAL_PTRDIFF_TYPE) offset;
     request->target_address = target_address;
     request->len          = len;
 
