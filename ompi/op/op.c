@@ -3,7 +3,7 @@
  * Copyright (c) 2004-2006 The Trustees of Indiana University and Indiana
  *                         University Research and Technology
  *                         Corporation.  All rights reserved.
- * Copyright (c) 2004-2010 The University of Tennessee and The University
+ * Copyright (c) 2004-2016 The University of Tennessee and The University
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
  * Copyright (c) 2004-2007 High Performance Computing Center Stuttgart,
@@ -187,9 +187,9 @@ int ompi_op_init(void)
     ompi_op_ddt_map[OMPI_DATATYPE_MPI_LONG_INT] = OMPI_OP_BASE_TYPE_LONG_INT;
     ompi_op_ddt_map[OMPI_DATATYPE_MPI_SHORT_INT] = OMPI_OP_BASE_TYPE_SHORT_INT;
 
-#if SIZEOF_PTRDIFF_T == 4
+#if SIZEOF_OPAL_PTRDIFF_TYPE == 4
     ompi_op_ddt_map[OMPI_DATATYPE_MPI_AINT] = OMPI_OP_BASE_TYPE_INT32_T;
-#elif SIZEOF_PTRDIFF_T == 8
+#elif SIZEOF_OPAL_PTRDIFF_TYPE == 8
     ompi_op_ddt_map[OMPI_DATATYPE_MPI_AINT] = OMPI_OP_BASE_TYPE_INT64_T;
 #else
 #warning Unsupported definition for MPI_AINT

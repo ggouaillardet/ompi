@@ -3,7 +3,7 @@
  * Copyright (c) 2004-2007 The Trustees of Indiana University and Indiana
  *                         University Research and Technology
  *                         Corporation.  All rights reserved.
- * Copyright (c) 2004-2013 The University of Tennessee and The University
+ * Copyright (c) 2004-2016 The University of Tennessee and The University
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
  * Copyright (c) 2004-2006 High Performance Computing Center Stuttgart,
@@ -649,12 +649,12 @@ static ompi_datatype_t* __ompi_datatype_create_from_packed_description( void** p
             array_of_length[i] = opal_swap_bytes4(array_of_length[i]);
         }
         for (i = 0 ; i < number_of_disp ; ++i) {
-#if SIZEOF_PTRDIFF_T == 4
+#if SIZEOF_OPAL_PTRDIFF_TYPE == 4
             array_of_disp[i] = opal_swap_bytes4(array_of_disp[i]);
-#elif SIZEOF_PTRDIFF_T == 8
+#elif SIZEOF_OPAL_PTRDIFF_TYPE == 8
             array_of_disp[i] = (MPI_Aint)opal_swap_bytes8(array_of_disp[i]);
 #else
-#error "Unknown size of ptrdiff_t"
+#error "Unknown size of OPAL_PTRDIFF_T"
 #endif
         }
     }

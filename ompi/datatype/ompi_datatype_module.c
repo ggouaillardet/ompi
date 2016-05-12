@@ -3,7 +3,7 @@
  * Copyright (c) 2004-2006 The Trustees of Indiana University and Indiana
  *                         University Research and Technology
  *                         Corporation.  All rights reserved.
- * Copyright (c) 2004-2013 The University of Tennessee and The University
+ * Copyright (c) 2004-2016 The University of Tennessee and The University
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
  * Copyright (c) 2004-2006 High Performance Computing Center Stuttgart,
@@ -273,13 +273,13 @@ ompi_predefined_datatype_t ompi_mpi_uint32_t = OMPI_DATATYPE_INIT_PREDEFINED(UIN
 ompi_predefined_datatype_t ompi_mpi_int64_t  = OMPI_DATATYPE_INIT_PREDEFINED( INT64_T, OMPI_DATATYPE_FLAG_DATA_C | OMPI_DATATYPE_FLAG_DATA_INT);
 ompi_predefined_datatype_t ompi_mpi_uint64_t = OMPI_DATATYPE_INIT_PREDEFINED(UINT64_T, OMPI_DATATYPE_FLAG_DATA_C | OMPI_DATATYPE_FLAG_DATA_INT);
 
-#if SIZEOF_PTRDIFF_T == 4
+#if SIZEOF_OPAL_PTRDIFF_TYPE == 4
 ompi_predefined_datatype_t ompi_mpi_aint = OMPI_DATATYPE_INIT_PREDEFINED_BASIC_TYPE(INT32_T, AINT, OMPI_DATATYPE_FLAG_DATA_C | OMPI_DATATYPE_FLAG_DATA_INT);
-#elif SIZEOF_PTRDIFF_T == 8
+#elif SIZEOF_OPAL_PTRDIFF_TYPE == 8
 ompi_predefined_datatype_t ompi_mpi_aint = OMPI_DATATYPE_INIT_PREDEFINED_BASIC_TYPE(INT64_T, AINT, OMPI_DATATYPE_FLAG_DATA_C | OMPI_DATATYPE_FLAG_DATA_INT);
 #else
 ompi_predefined_datatype_t ompi_mpi_aint = OMPI_DATATYPE_INIT_UNAVAILABLE_BASIC_TYPE(INT64_T, AINT, OMPI_DATATYPE_FLAG_DATA_C | OMPI_DATATYPE_FLAG_DATA_INT);
-#endif  /* SIZEOF_PTRDIFF_T == SIZEOF_LONG */
+#endif  /* SIZEOF_OPAL_PTRDIFF_TYPE == SIZEOF_LONG */
 
 #if OMPI_MPI_OFFSET_SIZE == 4
 ompi_predefined_datatype_t ompi_mpi_offset = OMPI_DATATYPE_INIT_PREDEFINED_BASIC_TYPE(UINT32_T, OFFSET, OMPI_DATATYPE_FLAG_DATA_C | OMPI_DATATYPE_FLAG_DATA_INT);
