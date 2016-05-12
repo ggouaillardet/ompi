@@ -1,5 +1,7 @@
 /*
  * Copyright (c) 2015      Sandia National Laboratories. All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  * 
  * Additional copyrights may follow
@@ -177,7 +179,7 @@ setup_gather_buffers_binomial(struct ompi_communicator_t   *comm,
     /* Setup Gather Buffers           */
     /**********************************/
     if (vrank == 0) {
-        request->u.gather.gather_bytes=request->u.gather.packed_size * (ptrdiff_t)request->u.gather.size;
+        request->u.gather.gather_bytes=request->u.gather.packed_size * (OPAL_PTRDIFF_TYPE)request->u.gather.size;
 
         /*
          * root node, needs to allocate temp buffer to gather
@@ -206,7 +208,7 @@ setup_gather_buffers_binomial(struct ompi_communicator_t   *comm,
          * children.  we need space for data from tree_numdescendants + 1
          * processes.
          */
-        request->u.gather.gather_bytes=request->u.gather.packed_size * ((ptrdiff_t)bmtree->tree_numdescendants + 1);
+        request->u.gather.gather_bytes=request->u.gather.packed_size * ((OPAL_PTRDIFF_TYPE)bmtree->tree_numdescendants + 1);
 
         request->u.gather.gather_buf = (char *) malloc(request->u.gather.gather_bytes);
         if (NULL == request->u.gather.gather_buf) {
@@ -278,7 +280,7 @@ setup_gather_buffers_linear(struct ompi_communicator_t   *comm,
     /* Setup Gather Buffers           */
     /**********************************/
     if (i_am_root) {
-        request->u.gather.gather_bytes=request->u.gather.packed_size * (ptrdiff_t)request->u.gather.size;
+        request->u.gather.gather_bytes=request->u.gather.packed_size * (OPAL_PTRDIFF_TYPE)request->u.gather.size;
 
         /*
          * root node, needs to allocate temp buffer to gather
@@ -291,7 +293,7 @@ setup_gather_buffers_linear(struct ompi_communicator_t   *comm,
         request->u.gather.free_after = 1;
 
         /* pack local data into request->u.gather.gather_buf */
-        uint64_t gather_buf_offset = (ptrdiff_t)request->u.gather.my_rank * request->u.gather.packed_size;
+        uint64_t gather_buf_offset = (OPAL_PTRDIFF_TYPE)request->u.gather.my_rank * request->u.gather.packed_size;
         iov.iov_len = request->u.gather.gather_bytes - gather_buf_offset;
         iov.iov_base = (IOVBASE_TYPE *) (request->u.gather.gather_buf + gather_buf_offset);
         opal_convertor_pack(&request->u.gather.send_converter, &iov, &iov_count, &max_data);

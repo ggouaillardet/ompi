@@ -1,5 +1,7 @@
 /*
  * Copyright (c) 2015      Sandia National Laboratories. All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  * 
  * Additional copyrights may follow
@@ -53,7 +55,7 @@ setup_scatter_buffers_linear(struct ompi_communicator_t   *comm,
         /*
          * calculate the total size of the packed data
          */
-        request->u.scatter.scatter_bytes=request->u.scatter.packed_size * (ptrdiff_t)request->u.scatter.size;
+        request->u.scatter.scatter_bytes=request->u.scatter.packed_size * (OPAL_PTRDIFF_TYPE)request->u.scatter.size;
 
         /* all transfers done using request->u.scatter.sdtype.
          * allocate temp buffer for recv, copy and/or rotate data at the end */
