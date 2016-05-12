@@ -10,6 +10,8 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2010      Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -82,8 +84,8 @@ BEGIN_C_DECLS
                 (RC) = MPI_ERR_BUFFER;                                  \
             } else {                                                    \
                 size_t size = 0;                                        \
-                ptrdiff_t true_lb       = 0;                            \
-                ptrdiff_t true_extended = 0;                            \
+                OPAL_PTRDIFF_TYPE true_lb       = 0;                       \
+                OPAL_PTRDIFF_TYPE true_extended = 0;                       \
                 ompi_datatype_type_size((DDT), &size);                       \
                 ompi_datatype_get_true_extent((DDT), &true_lb, &true_extended); \
                 if ( 0 < size && 0 == true_lb ) {                       \

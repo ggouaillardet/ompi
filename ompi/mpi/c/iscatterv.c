@@ -13,7 +13,7 @@
  * Copyright (c) 2006-2012 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012-2013 Los Alamos National Security, LLC.  All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -48,7 +48,7 @@ int MPI_Iscatterv(const void *sendbuf, const int sendcounts[], const int displs[
     int i, size, err;
 
     MEMCHECKER(
-        ptrdiff_t ext;
+        OPAL_PTRDIFF_TYPE ext;
 
         size = ompi_comm_remote_size(comm);
         ompi_datatype_type_extent(recvtype, &ext);

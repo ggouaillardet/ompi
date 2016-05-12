@@ -14,7 +14,7 @@
  * Copyright (c) 2012 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012-2013 Los Alamos National Security, LLC.  All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -51,7 +51,7 @@ int MPI_Ineighbor_allgatherv(const void *sendbuf, int sendcount, MPI_Datatype se
 
     MEMCHECKER(
         int rank;
-        ptrdiff_t ext;
+        OPAL_PTRDIFF_TYPE ext;
 
         rank = ompi_comm_rank(comm);
         size = ompi_comm_size(comm);
