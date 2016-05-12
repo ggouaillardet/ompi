@@ -4,7 +4,7 @@
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
  * Copyright (c) 2013-2015 Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -776,7 +776,7 @@ typedef struct mca_bcol_base_descriptor_t mca_bcol_base_descriptor_t;
 static inline __opal_attribute_always_inline__ size_t
              mca_bcol_base_get_buff_length(ompi_datatype_t *dtype, int count)
 {
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     ompi_datatype_get_extent(dtype, &lb, &extent);
 
     return (size_t) (extent * count);
