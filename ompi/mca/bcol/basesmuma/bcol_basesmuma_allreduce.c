@@ -4,7 +4,9 @@
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
  * Copyright (c) 2013-2014 Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2015 Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 20155     Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -210,7 +212,7 @@ static int bcol_basesmuma_allreduce_intra_fanin_fanout_progress (bcol_function_a
     volatile void *my_data_pointer;
     int count = input_args->count;
     int rc, process_shift;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     volatile void *rbuf;
 
     /* get addressing information */

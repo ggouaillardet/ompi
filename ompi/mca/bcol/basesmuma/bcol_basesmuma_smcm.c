@@ -6,7 +6,7 @@
  * Copyright (c) 2012-2016 Los Alamos National Security, LLC. All rights
  *                         reserved.
  * Copyright (c) 2014      Intel, Inc.  All rights reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -148,7 +148,7 @@ int bcol_basesmuma_smcm_allgather_connection(
     /* define local variables */
 
     int rc, i, fd;
-    ptrdiff_t mem_offset;
+    OPAL_PTRDIFF_TYPE mem_offset;
     ompi_proc_t *proc_temp, *my_id;
     bcol_basesmuma_smcm_proc_item_t *temp;
     bcol_basesmuma_smcm_proc_item_t *item_ptr;
@@ -298,8 +298,8 @@ int bcol_basesmuma_smcm_allgather_connection(
         }
 
         /* compute memory offset */
-        mem_offset = (ptrdiff_t) temp->sm_mmap->data_addr -
-            (ptrdiff_t) temp->sm_mmap->map_seg;
+        mem_offset = (OPAL_PTRDIFF_TYPE) temp->sm_mmap->data_addr -
+            (OPAL_PTRDIFF_TYPE) temp->sm_mmap->map_seg;
         temp->sm_mmap->map_seg->seg_offset = mem_offset;
         temp->sm_mmap->map_seg->seg_size = temp->sm_file.size - mem_offset;
         /* more stuff to follow */
