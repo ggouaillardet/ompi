@@ -10,7 +10,7 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2006-2008 University of Houston. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -46,7 +46,7 @@ mca_coll_inter_scatter_inter(const void *sbuf, int scount,
 {
     int rank, size, size_local, err;
     char *ptmp = NULL;
-    ptrdiff_t lb, incr;
+    OPAL_PTRDIFF_TYPE lb, incr;
 
     /* Initialize */
 

@@ -10,7 +10,7 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2006-2010 University of Houston. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -50,7 +50,7 @@ mca_coll_inter_allgather_inter(const void *sbuf, int scount,
 {
     int rank, root = 0, size, rsize, err;
     char *ptmp = NULL;
-    ptrdiff_t slb, sextent, incr;
+    OPAL_PTRDIFF_TYPE slb, sextent, incr;
     ompi_request_t *req[2];
 
     rank = ompi_comm_rank(comm);

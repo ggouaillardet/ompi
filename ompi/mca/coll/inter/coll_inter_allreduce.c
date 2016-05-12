@@ -10,8 +10,8 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2006-2007 University of Houston. All rights reserved.
- * Copyright (c) 2013 Cisco Systems, Inc.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2013      Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -48,7 +48,7 @@ mca_coll_inter_allreduce_inter(const void *sbuf, void *rbuf, int count,
                                mca_coll_base_module_t *module)
 {
     int err, rank, root = 0;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     char *tmpbuf = NULL, *pml_buffer = NULL;
     ompi_request_t *req[2];
 
