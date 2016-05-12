@@ -10,7 +10,7 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2013      FUJITSU LIMITED.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -42,7 +42,7 @@ mca_coll_self_alltoallv_intra(const void *sbuf, const int *scounts, const int *s
                               mca_coll_base_module_t *module)
 {
     int err;
-    ptrdiff_t lb, rextent, sextent;
+    OPAL_PTRDIFF_TYPE lb, rextent, sextent;
 
     if (MPI_IN_PLACE == sbuf) {
         return MPI_SUCCESS;
