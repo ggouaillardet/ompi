@@ -737,6 +737,8 @@ else
 fi
 AC_DEFINE_UNQUOTED([OPAL_PTRDIFF_TYPE], [$opal_ptrdiff_t],
     [type to use for ptrdiff_t])
+AC_DEFINE_UNQUOTED([SIZEOF_OPAL_PTRDIFF_TYPE], [$opal_ptrdiff_size],
+    [size of the type in use for ptrdiff_t])
 AC_MSG_RESULT([$opal_ptrdiff_t (size: $opal_ptrdiff_size)])
 
 #
