@@ -10,7 +10,7 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2009-2013 Cisco Systems, Inc.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -189,7 +189,7 @@ static int reduce_inorder(const void *sbuf, void* rbuf, int count,
     mca_coll_sm_data_index_t *index;
     size_t ddt_size, segsize;
     size_t segment_ddt_count, segment_ddt_bytes, zero = 0;
-    ptrdiff_t extent, gap;
+    OPAL_PTRDIFF_TYPE extent, gap;
 
     /* Setup some identities */
 
