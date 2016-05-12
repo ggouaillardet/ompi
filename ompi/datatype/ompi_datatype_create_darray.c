@@ -13,6 +13,8 @@
  * Copyright (c) 2009      Sun Microsystems, Inc. All rights reserved.
  * Copyright (c) 2009      Oak Ridge National Labs.  All rights reserved.
  * Copyright (c) 2010      Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -28,12 +30,12 @@
 
 static int
 block(const int *gsize_array, int dim, int ndims, int nprocs,
-      int rank, int darg, int order, ptrdiff_t orig_extent,
+      int rank, int darg, int order, OPAL_PTRDIFF_TYPE orig_extent,
       ompi_datatype_t *type_old, ompi_datatype_t **type_new,
-      ptrdiff_t *st_offset)
+      OPAL_PTRDIFF_TYPE *st_offset)
 {
     int blksize, global_size, mysize, i, j, rc, start_loop, step;
-    ptrdiff_t stride;
+    OPAL_PTRDIFF_TYPE stride;
 
     global_size = gsize_array[dim];
 
@@ -75,12 +77,12 @@ block(const int *gsize_array, int dim, int ndims, int nprocs,
 
 static int
 cyclic(const int *gsize_array, int dim, int ndims, int nprocs,
-       int rank, int darg, int order, ptrdiff_t orig_extent,
+       int rank, int darg, int order, OPAL_PTRDIFF_TYPE orig_extent,
        ompi_datatype_t* type_old, ompi_datatype_t **type_new,
-       ptrdiff_t *st_offset)
+       OPAL_PTRDIFF_TYPE *st_offset)
 {
     int blksize, i, blklens[2], st_index, end_index, local_size, rem, count, rc;
-    ptrdiff_t stride, disps[2];
+    OPAL_PTRDIFF_TYPE stride, disps[2];
     ompi_datatype_t *type_tmp, *types[2];
 
     if (darg == MPI_DISTRIBUTE_DFLT_DARG) {
@@ -166,7 +168,7 @@ int32_t ompi_datatype_create_darray(int size,
                                     ompi_datatype_t** newtype)
 {
     ompi_datatype_t *lastType;
-    ptrdiff_t orig_extent, *st_offsets = NULL;
+    OPAL_PTRDIFF_TYPE orig_extent, *st_offsets = NULL;
     int i, start_loop, end_loop, step;
     int *coords = NULL, rc = OMPI_SUCCESS;
 
@@ -194,7 +196,7 @@ int32_t ompi_datatype_create_darray(int size,
         }
     }
 
-    st_offsets = (ptrdiff_t *) malloc(ndims * sizeof(ptrdiff_t));
+    st_offsets = (OPAL_PTRDIFF_TYPE *) malloc(ndims * sizeof(OPAL_PTRDIFF_TYPE));
 
     /* duplicate type to here to 1) deal with constness without
        casting and 2) eliminate need to for conditional destroy below.
@@ -256,7 +258,7 @@ int32_t ompi_datatype_create_darray(int size,
      * displacement.
      */
     {
-        ptrdiff_t displs[2], tmp_size = 1;
+        OPAL_PTRDIFF_TYPE displs[2], tmp_size = 1;
 
         displs[0] = st_offsets[start_loop];
         displs[1] = orig_extent;

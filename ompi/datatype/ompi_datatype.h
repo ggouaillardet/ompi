@@ -274,8 +274,8 @@ ompi_datatype_copy_content_same_ddt( const ompi_datatype_t* type, size_t count,
         rc = opal_datatype_copy_content_same_ddt( &type->super, length,
                                                   pDestBuf, pSrcBuf );
         if( 0 != rc ) return rc;
-        pDestBuf += ((ptrdiff_t)length) * extent;
-        pSrcBuf  += ((ptrdiff_t)length) * extent;
+        pDestBuf += ((OPAL_PTRDIFF_TYPE)length) * extent;
+        pSrcBuf  += ((OPAL_PTRDIFF_TYPE)length) * extent;
         count -= (size_t)length;
     }
     return 0;
