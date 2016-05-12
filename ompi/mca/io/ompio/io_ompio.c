@@ -13,7 +13,7 @@
  * Copyright (c) 2008-2015 University of Houston. All rights reserved.
  * Copyright (c) 2011-2015 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012-2013 Inria.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -1384,7 +1384,7 @@ int ompi_io_ompio_distribute_file_view (mca_io_ompio_file_t *fh,
     */
 
     if (0 == fh->f_rank%fh->f_aggregator_index) {
-        ptrdiff_t lb, extent;
+        OPAL_PTRDIFF_TYPE lb, extent;
         rc = ompi_datatype_get_extent(fh->f_iov_type, &lb, &extent);
         if (OMPI_SUCCESS != rc) {
                 goto exit;
