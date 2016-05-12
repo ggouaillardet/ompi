@@ -3,6 +3,8 @@
  * Copyright (C) Mellanox Technologies Ltd. 2001-2011.  ALL RIGHTS RESERVED.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -26,7 +28,7 @@ OBJ_CLASS_DECLARATION(mca_pml_yalla_convertor_t);
 #define PML_YALLA_INIT_MXM_REQ_DATA(_req_base, _buf, _count, _dtype, _stream_type, ...) \
     { \
         size_t size; \
-        ptrdiff_t lb; \
+        OPAL_PTRDIFF_TYPE lb; \
         \
         if (opal_datatype_is_contiguous_memory_layout(&(_dtype)->super, _count)) { \
             ompi_datatype_type_size(_dtype, &size); \
