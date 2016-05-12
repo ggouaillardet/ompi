@@ -1,5 +1,7 @@
 /*
  * Copyright (C) Mellanox Technologies Ltd. 2001-2011.  ALL RIGHTS RESERVED.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -112,7 +114,7 @@ ucp_datatype_t mca_pml_ucx_init_datatype(ompi_datatype_t *datatype)
 {
     ucp_datatype_t ucp_datatype;
     ucs_status_t status;
-    ptrdiff_t lb;
+    OPAL_PTRDIFF_TYPE lb;
     size_t size;
 
     ompi_datatype_type_lb(datatype, &lb);
