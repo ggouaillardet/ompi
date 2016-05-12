@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2009-2012 Oak Ridge National Laboratory.  All rights reserved.
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -40,7 +40,7 @@ int mca_coll_ml_pack_reorder_contiguous_data(mca_coll_ml_collective_operation_pr
     mca_coll_ml_module_t *ml_module = (mca_coll_ml_module_t *)
         coll_op->coll_module;
     mca_coll_ml_topology_t *topo_info = coll_op->coll_schedule->topo_info;
-    ptrdiff_t ptr_dif;
+    OPAL_PTRDIFF_TYPE ptr_dif;
 
     /* get the offset into each processes data.  The assumption is that
      * we are manipulating the same amount of data for each process.
@@ -89,7 +89,7 @@ int mca_coll_ml_pack_reorder_noncontiguous_data(mca_coll_ml_collective_operation
     int i, rank;
     void *user_buf, *library_buf;
     size_t bytes_per_proc;
-    ptrdiff_t ptr_dif;
+    OPAL_PTRDIFF_TYPE ptr_dif;
     mca_coll_ml_module_t *ml_module = (mca_coll_ml_module_t *)
         coll_op->coll_module;
     mca_coll_ml_topology_t *topo_info = coll_op->coll_schedule->topo_info;

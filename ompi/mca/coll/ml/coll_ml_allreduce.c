@@ -4,7 +4,7 @@
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -91,7 +91,7 @@ static int mca_coll_ml_allreduce_frag_progress(mca_coll_ml_collective_operation_
     size_t dt_size;
     int ret, frag_len, count;
 
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
 
     mca_bcol_base_payload_buffer_desc_t *src_buffer_desc;
     mca_coll_ml_collective_operation_progress_t *new_op;
@@ -252,7 +252,7 @@ int parallel_allreduce_start(const void *sbuf, void *rbuf, int count,
     int ret, n_fragments = 1, frag_len,
         pipeline_depth, n_dts_per_frag ;
 
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     size_t pack_len, dt_size;
 
     mca_bcol_base_payload_buffer_desc_t *src_buffer_desc;

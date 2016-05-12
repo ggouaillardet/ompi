@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2009-2012 Oak Ridge National Laboratory.  All rights reserved.
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -57,7 +59,7 @@ static inline int ml_fifo_init(
         size_t segment_size, ml_buffers_t *buffer_fifo)
 {
     /* local variable */
-    ptrdiff_t allocation_base, memory_chunk_ptr;
+    OPAL_PTRDIFF_TYPE allocation_base, memory_chunk_ptr;
     size_t memory_to_allocate, allocated_fifo_size,
            allocated_segment_size, seg;
 
@@ -80,7 +82,7 @@ static inline int ml_fifo_init(
     }
 
     /* adjust base pointer to segment alignment */
-    memory_chunk_ptr = (ptrdiff_t )memory_chunk;
+    memory_chunk_ptr = (OPAL_PTRDIFF_TYPE )memory_chunk;
     allocation_base=( ( memory_chunk_ptr-1)/segment_alignment)+1;
     allocation_base=allocated_segment_size*segment_alignment;
 

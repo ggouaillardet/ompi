@@ -4,7 +4,7 @@
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
  * Copyright (c) 2013-2014 Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -305,7 +305,7 @@ int mca_coll_ml_allgather_start (const void *sbuf, int scount,
     mca_coll_ml_collective_operation_progress_t *coll_op;
     mca_coll_ml_module_t *ml_module = (mca_coll_ml_module_t *) module;
 
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     bool scontig, rcontig, in_place = false;
 
     /* check for in place setting */

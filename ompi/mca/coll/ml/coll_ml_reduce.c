@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2009-2012 Oak Ridge National Laboratory.  All rights reserved.
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -120,7 +120,7 @@ static int mca_coll_ml_reduce_frag_progress(mca_coll_ml_collective_operation_pro
     size_t dt_size;
     int ret, frag_len, count;
 
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
 
     mca_bcol_base_payload_buffer_desc_t *src_buffer_desc;
     mca_coll_ml_collective_operation_progress_t *new_op;
@@ -278,7 +278,7 @@ int parallel_reduce_start (const void *sbuf, void *rbuf, int count,
                            ompi_request_t **req,
                            int small_data_reduce,
                            int large_data_reduce) {
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     size_t pack_len, dt_size;
     mca_bcol_base_payload_buffer_desc_t *src_buffer_desc = NULL;
     mca_coll_ml_collective_operation_progress_t * coll_op = NULL;
