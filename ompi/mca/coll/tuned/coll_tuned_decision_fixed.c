@@ -13,7 +13,7 @@
  * Copyright (c) 2008      Sun Microsystems, Inc.  All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -60,7 +60,7 @@ ompi_coll_tuned_allreduce_intra_dec_fixed(const void *sbuf, void *rbuf, int coun
      * Ring algorithm does not support non-commutative operations.
      */
     ompi_datatype_type_size(dtype, &dsize);
-    block_dsize = dsize * (ptrdiff_t)count;
+    block_dsize = dsize * (OPAL_PTRDIFF_TYPE)count;
 
     if (block_dsize < intermediate_message) {
         return (ompi_coll_base_allreduce_intra_recursivedoubling(sbuf, rbuf,
@@ -120,7 +120,7 @@ int ompi_coll_tuned_alltoall_intra_dec_fixed(const void *sbuf, int scount,
        Has better performance for messages of intermediate sizes than the old one */
     /* determine block size */
     ompi_datatype_type_size(sdtype, &dsize);
-    block_dsize = dsize * (ptrdiff_t)scount;
+    block_dsize = dsize * (OPAL_PTRDIFF_TYPE)scount;
 
     if ((block_dsize < (size_t) ompi_coll_tuned_alltoall_small_msg)
                                               && (communicator_size > 12)) {
@@ -363,7 +363,7 @@ int ompi_coll_tuned_reduce_intra_dec_fixed( const void *sendbuf, void *recvbuf,
 
     /* need data size for decision function */
     ompi_datatype_type_size(datatype, &dsize);
-    message_size = dsize * (ptrdiff_t)count;   /* needed for decision */
+    message_size = dsize * (OPAL_PTRDIFF_TYPE)count;   /* needed for decision */
 
     /**
      * If the operation is non commutative we currently have choice of linear
@@ -530,7 +530,7 @@ int ompi_coll_tuned_allgather_intra_dec_fixed(const void *sbuf, int scount,
 
     /* Determine complete data size */
     ompi_datatype_type_size(sdtype, &dsize);
-    total_dsize = dsize * (ptrdiff_t)scount * (ptrdiff_t)communicator_size;
+    total_dsize = dsize * (OPAL_PTRDIFF_TYPE)scount * (OPAL_PTRDIFF_TYPE)communicator_size;
 
     OPAL_OUTPUT((ompi_coll_tuned_stream, "ompi_coll_tuned_allgather_intra_dec_fixed"
                  " rank %d com_size %d msg_length %lu",
@@ -627,7 +627,7 @@ int ompi_coll_tuned_allgatherv_intra_dec_fixed(const void *sbuf, int scount,
     ompi_datatype_type_size(sdtype, &dsize);
     total_dsize = 0;
     for (i = 0; i < communicator_size; i++) {
-        total_dsize += dsize * (ptrdiff_t)rcounts[i];
+        total_dsize += dsize * (OPAL_PTRDIFF_TYPE)rcounts[i];
     }
 
     OPAL_OUTPUT((ompi_coll_tuned_stream,
@@ -692,10 +692,10 @@ int ompi_coll_tuned_gather_intra_dec_fixed(const void *sbuf, int scount,
     /* Determine block size */
     if (rank == root) {
         ompi_datatype_type_size(rdtype, &dsize);
-        block_size = dsize * (ptrdiff_t)rcount;
+        block_size = dsize * (OPAL_PTRDIFF_TYPE)rcount;
     } else {
         ompi_datatype_type_size(sdtype, &dsize);
-        block_size = dsize * (ptrdiff_t)scount;
+        block_size = dsize * (OPAL_PTRDIFF_TYPE)scount;
     }
 
     if (block_size > large_block_size) {
@@ -752,10 +752,10 @@ int ompi_coll_tuned_scatter_intra_dec_fixed(const void *sbuf, int scount,
     /* Determine block size */
     if (root == rank) {
         ompi_datatype_type_size(sdtype, &dsize);
-        block_size = dsize * (ptrdiff_t)scount;
+        block_size = dsize * (OPAL_PTRDIFF_TYPE)scount;
     } else {
         ompi_datatype_type_size(rdtype, &dsize);
-        block_size = dsize * (ptrdiff_t)rcount;
+        block_size = dsize * (OPAL_PTRDIFF_TYPE)rcount;
     }
 
     if ((communicator_size > small_comm_size) &&

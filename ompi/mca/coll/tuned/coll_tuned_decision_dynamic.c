@@ -10,7 +10,7 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2008      Sun Microsystems, Inc.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -116,7 +116,7 @@ int ompi_coll_tuned_alltoall_intra_dec_dynamic(const void *sbuf, int scount,
 
         ompi_datatype_type_size (sdtype, &dsize);
         comsize = ompi_comm_size(comm);
-        dsize *= (ptrdiff_t)comsize * (ptrdiff_t)scount;
+        dsize *= (OPAL_PTRDIFF_TYPE)comsize * (OPAL_PTRDIFF_TYPE)scount;
 
         alg = ompi_coll_tuned_get_target_method_params (tuned_module->com_rules[ALLTOALL],
                                                         dsize, &faninout, &segsize, &max_requests);
@@ -404,7 +404,7 @@ int ompi_coll_tuned_allgather_intra_dec_dynamic(const void *sbuf, int scount,
 
         ompi_datatype_type_size (sdtype, &dsize);
         comsize = ompi_comm_size(comm);
-        dsize *= (ptrdiff_t)comsize * (ptrdiff_t)scount;
+        dsize *= (OPAL_PTRDIFF_TYPE)comsize * (OPAL_PTRDIFF_TYPE)scount;
 
         alg = ompi_coll_tuned_get_target_method_params (tuned_module->com_rules[ALLGATHER],
                                                         dsize, &faninout, &segsize, &ignoreme);
