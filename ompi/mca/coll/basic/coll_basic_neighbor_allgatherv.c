@@ -12,7 +12,7 @@
  *                         All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -44,7 +44,7 @@ mca_coll_basic_neighbor_allgatherv_cart(const void *sbuf, int scount, struct omp
     const mca_topo_base_comm_cart_2_2_0_t *cart = comm->c_topo->mtc.cart;
     const int rank = ompi_comm_rank (comm);
     ompi_request_t **reqs, **preqs;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     int rc = MPI_SUCCESS, dim, i, nreqs;
 
     ompi_datatype_get_extent(rdtype, &lb, &extent);
@@ -113,7 +113,7 @@ mca_coll_basic_neighbor_allgatherv_graph(const void *sbuf, int scount, struct om
     const int *edges;
     int rc = MPI_SUCCESS, neighbor, degree;
     ompi_request_t **reqs, **preqs;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
 
     mca_topo_base_graph_neighbors_count (comm, rank, &degree);
 
@@ -161,7 +161,7 @@ mca_coll_basic_neighbor_allgatherv_dist_graph(const void *sbuf, int scount, stru
     const int *inedges, *outedges;
     int indegree, outdegree;
     ompi_request_t **reqs, **preqs;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     int rc = MPI_SUCCESS, neighbor;
 
     indegree = dist_graph->indegree;

@@ -12,7 +12,7 @@
  * Copyright (c) 2008      Sun Microsystems, Inc.  All rights reserved.
  * Copyright (c) 2012      Oak Ridge National Labs.  All rights reserved.
  * Copyright (c) 2012      Sandia National Laboratories. All rights reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -58,7 +58,7 @@ mca_coll_basic_reduce_scatter_block_intra(const void *sbuf, void *rbuf, int rcou
                                           mca_coll_base_module_t *module)
 {
     int rank, size, count, err = OMPI_SUCCESS;
-    ptrdiff_t extent, buf_size, gap;
+    OPAL_PTRDIFF_TYPE extent, buf_size, gap;
     char *recv_buf = NULL, *recv_buf_free = NULL;
 
     /* Initialize */
@@ -126,7 +126,7 @@ mca_coll_basic_reduce_scatter_block_inter(const void *sbuf, void *rbuf, int rcou
 {
     int err, i, rank, root = 0, rsize, lsize;
     int totalcounts;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     char *tmpbuf = NULL, *tmpbuf2 = NULL;
     ompi_request_t *req;
 

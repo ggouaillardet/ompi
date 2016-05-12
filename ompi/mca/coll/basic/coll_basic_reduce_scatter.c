@@ -14,7 +14,7 @@
  * Copyright (c) 2012      Oak Ridge National Labs.  All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -71,7 +71,7 @@ mca_coll_basic_reduce_scatter_intra(const void *sbuf, void *rbuf, const int *rco
                                     mca_coll_base_module_t *module)
 {
     int i, rank, size, count, err = OMPI_SUCCESS;
-    ptrdiff_t extent, buf_size, gap;
+    OPAL_PTRDIFF_TYPE extent, buf_size, gap;
     int *disps = NULL;
     char *recv_buf = NULL, *recv_buf_free = NULL;
     char *result_buf = NULL, *result_buf_free = NULL;
@@ -367,7 +367,7 @@ mca_coll_basic_reduce_scatter_inter(const void *sbuf, void *rbuf, const int *rco
 {
     int err, i, rank, root = 0, rsize, lsize;
     int totalcounts;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     char *tmpbuf = NULL, *tmpbuf2 = NULL;
     ompi_request_t *req;
     int *disps = NULL;

@@ -9,7 +9,7 @@
  *                         University of Stuttgart.  All rights reserved.
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -49,7 +49,7 @@ mca_coll_basic_allgather_inter(const void *sbuf, int scount,
 {
     int rank, root = 0, size, rsize, err, i, line;
     char *tmpbuf = NULL, *ptmp;
-    ptrdiff_t rlb, slb, rextent, sextent, incr;
+    OPAL_PTRDIFF_TYPE rlb, slb, rextent, sextent, incr;
     ompi_request_t *req;
     ompi_request_t **reqs = NULL;
 

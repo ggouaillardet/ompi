@@ -14,7 +14,7 @@
  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
  *                         reserved.
  * Copyright (c) 2013      FUJITSU LIMITED.  All rights reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2014      Cisco Systems, Inc.  All rights reserved.
  * $COPYRIGHT$
@@ -44,7 +44,7 @@ mca_coll_basic_alltoallw_intra_inplace(const void *rbuf, const int *rcounts, con
     int i, j, size, rank, err = MPI_SUCCESS, max_size;
     ompi_request_t **preq, **reqs = NULL;
     char *tmp_buffer, *save_buffer = NULL;
-    ptrdiff_t ext, gap;
+    OPAL_PTRDIFF_TYPE ext, gap;
 
     /* Initialize. */
 

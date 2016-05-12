@@ -12,7 +12,7 @@
  *                         All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -43,7 +43,7 @@ mca_coll_basic_neighbor_alltoall_cart(const void *sbuf, int scount, struct ompi_
     const mca_topo_base_comm_cart_2_2_0_t *cart = comm->c_topo->mtc.cart;
     const int rank = ompi_comm_rank (comm);
     ompi_request_t **reqs, **preqs;
-    ptrdiff_t lb, rdextent, sdextent;
+    OPAL_PTRDIFF_TYPE lb, rdextent, sdextent;
     int rc = MPI_SUCCESS, dim, nreqs;
 
     ompi_datatype_get_extent(rdtype, &lb, &rdextent);
@@ -141,7 +141,7 @@ mca_coll_basic_neighbor_alltoall_graph(const void *sbuf, int scount, struct ompi
     const mca_topo_base_comm_graph_2_2_0_t *graph = comm->c_topo->mtc.graph;
     const int rank = ompi_comm_rank (comm);
     int rc = MPI_SUCCESS, neighbor, degree;
-    ptrdiff_t lb, rdextent, sdextent;
+    OPAL_PTRDIFF_TYPE lb, rdextent, sdextent;
     ompi_request_t **reqs, **preqs;
     const int *edges;
 
@@ -197,7 +197,7 @@ mca_coll_basic_neighbor_alltoall_dist_graph(const void *sbuf, int scount,struct 
                                             mca_coll_base_module_t *module)
 {
     const mca_topo_base_comm_dist_graph_2_2_0_t *dist_graph = comm->c_topo->mtc.dist_graph;
-    ptrdiff_t lb, rdextent, sdextent;
+    OPAL_PTRDIFF_TYPE lb, rdextent, sdextent;
     int rc = MPI_SUCCESS, neighbor;
     const int *inedges, *outedges;
     int indegree, outdegree;

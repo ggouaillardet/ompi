@@ -9,7 +9,7 @@
  *                         University of Stuttgart.  All rights reserved.
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -47,7 +47,7 @@ mca_coll_basic_scatter_inter(const void *sbuf, int scount,
 {
     int i, size, err;
     char *ptmp;
-    ptrdiff_t lb, incr;
+    OPAL_PTRDIFF_TYPE lb, incr;
     ompi_request_t **reqs;
 
     /* Initialize */

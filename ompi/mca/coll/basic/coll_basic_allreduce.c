@@ -9,7 +9,7 @@
  *                         University of Stuttgart.  All rights reserved.
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -81,7 +81,7 @@ mca_coll_basic_allreduce_inter(const void *sbuf, void *rbuf, int count,
                                mca_coll_base_module_t *module)
 {
     int err, i, rank, root = 0, rsize, line;
-    ptrdiff_t extent, dsize, gap;
+    OPAL_PTRDIFF_TYPE extent, dsize, gap;
     char *tmpbuf = NULL, *pml_buffer = NULL;
     ompi_request_t *req[2];
     ompi_request_t **reqs = NULL;
