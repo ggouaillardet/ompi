@@ -17,7 +17,7 @@
  * Copyright (c) 2010-2012 IBM Corporation.  All rights reserved.
  * Copyright (c) 2012      Oracle and/or its affiliates.  All rights reserved.
  * Copyright (c) 2013-2015 Intel, Inc. All rights reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -101,7 +101,7 @@ mca_btl_sm_t mca_btl_sm = {
  * calculate an absolute address in a local address space given an offset and
  * a base address of a shared memory segment
  */
-#define OFFSET2ADDR(OFFSET, BASE) ((ptrdiff_t)(OFFSET) + (char*)(BASE))
+#define OFFSET2ADDR(OFFSET, BASE) ((OPAL_PTRDIFF_TYPE)(OFFSET) + (char*)(BASE))
 
 static void *mpool_calloc(size_t nmemb, size_t size)
 {
@@ -614,7 +614,7 @@ int mca_btl_sm_add_procs(
     /* coordinate with other processes */
     for(j = mca_btl_sm_component.num_smp_procs;
         j < mca_btl_sm_component.num_smp_procs + n_local_procs; j++) {
-        ptrdiff_t diff;
+        OPAL_PTRDIFF_TYPE diff;
 
         /* spin until this element is allocated */
         /* doesn't really wait for that process... FIFO might be allocated, but not initialized */
