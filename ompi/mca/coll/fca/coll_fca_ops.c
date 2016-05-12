@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2011      Mellanox Technologies. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -22,7 +22,7 @@
 static mca_coll_fca_dtype_info_t* mca_coll_fca_get_dtype(ompi_datatype_t *dtype)
 {
     mca_coll_fca_dtype_info_t *dtype_info;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     int id = dtype->id;
     int fca_dtype;
 
@@ -94,7 +94,7 @@ static mca_coll_fca_op_info_t *mca_coll_fca_get_op(ompi_op_t *op)
 static inline int mca_coll_fca_array_size(ompi_datatype_t *dtype, int count,
                                           size_t *gap, size_t *size)
 {
-    ptrdiff_t true_lb, true_extent;
+    OPAL_PTRDIFF_TYPE true_lb, true_extent;
 
     if (FCA_DT_IS_CONTIGUOUS_MEMORY_LAYOUT(dtype, count)) {
         FCA_DT_GET_TRUE_EXTENT(dtype, &true_lb, &true_extent);
@@ -394,7 +394,7 @@ int mca_coll_fca_allgather(const void *sbuf, int scount, struct ompi_datatype_t 
     MCA_COLL_FCA_DECLARE_CONVERTOR(rconv);
     fca_gather_spec_t spec = {0,};
     size_t rgap, rsize;
-    ptrdiff_t rdtype_extent;
+    OPAL_PTRDIFF_TYPE rdtype_extent;
     ssize_t total_rcount;
     int ret;
 
@@ -462,7 +462,7 @@ int mca_coll_fca_allgatherv(const void *sbuf, int scount,
     fca_gatherv_spec_t spec;
     size_t rgap, rsize;
     int sum_rcounts;
-    ptrdiff_t rdtype_extent;
+    OPAL_PTRDIFF_TYPE rdtype_extent;
     int comm_size;
     int relemsize;
     size_t displ;
