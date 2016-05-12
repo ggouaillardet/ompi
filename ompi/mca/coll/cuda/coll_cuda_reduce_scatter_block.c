@@ -3,6 +3,8 @@
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
  * Copyright (c) 2014-2015 NVIDIA Corporation.  All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -38,7 +40,7 @@ mca_coll_cuda_reduce_scatter_block(const void *sbuf, void *rbuf, int rcount,
                                    mca_coll_base_module_t *module)
 {
     mca_coll_cuda_module_t *s = (mca_coll_cuda_module_t*) module;
-    ptrdiff_t gap;
+    OPAL_PTRDIFF_TYPE gap;
     char *rbuf1 = NULL, *sbuf1 = NULL, *rbuf2 = NULL;
     const char *sbuf2;
     size_t sbufsize, rbufsize;
