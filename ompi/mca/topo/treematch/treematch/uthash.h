@@ -24,6 +24,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef UTHASH_H
 #define UTHASH_H
 
+#include "opal_config.h"
 #include <string.h>   /* memcmp,strlen */
 #include <stddef.h>   /* ptrdiff_t */
 #include <stdlib.h>   /* exit() */
@@ -776,7 +777,7 @@ do {                                                                            
   unsigned _src_bkt, _dst_bkt;                                                   \
   void *_last_elt=NULL, *_elt;                                                   \
   UT_hash_handle *_src_hh, *_dst_hh, *_last_elt_hh=NULL;                         \
-  ptrdiff_t _dst_hho = ((char*)(&(dst)->hh_dst) - (char*)(dst));                 \
+  OPAL_PTRDIFF_TYPE _dst_hho = ((char*)(&(dst)->hh_dst) - (char*)(dst));                 \
   if (src) {                                                                     \
     for(_src_bkt=0; _src_bkt < (src)->hh_src.tbl->num_buckets; _src_bkt++) {     \
       for(_src_hh = (src)->hh_src.tbl->buckets[_src_bkt].hh_head;                \
@@ -863,7 +864,7 @@ typedef struct UT_hash_table {
    unsigned num_buckets, log2_num_buckets;
    unsigned num_items;
    struct UT_hash_handle *tail; /* tail hh in app order, for fast append    */
-   ptrdiff_t hho; /* hash handle offset (byte pos of hash handle in element */
+   OPAL_PTRDIFF_TYPE hho; /* hash handle offset (byte pos of hash handle in element */
 
    /* in an ideal situation (all buckets used equally), no bucket would have
     * more than ceil(#items/#buckets) items. that's the ideal chain length. */
