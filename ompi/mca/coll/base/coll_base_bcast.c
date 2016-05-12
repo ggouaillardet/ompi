@@ -10,7 +10,9 @@
  *                         University of Stuttgart.  All rights reserved.
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
- * Copyright (c) 2012 Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2012      Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -46,7 +48,7 @@ ompi_coll_base_bcast_intra_generic( void* buffer,
     int sendcount;    /* number of elements sent in this segment */
     size_t realsegsize, type_size;
     char *tmpbuf;
-    ptrdiff_t extent, lb;
+    OPAL_PTRDIFF_TYPE extent, lb;
     ompi_request_t *recv_reqs[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
     ompi_request_t **send_reqs = NULL;
 
@@ -60,7 +62,7 @@ ompi_coll_base_bcast_intra_generic( void* buffer,
     ompi_datatype_get_extent (datatype, &lb, &extent);
     ompi_datatype_type_size( datatype, &type_size );
     num_segments = (original_count + count_by_segment - 1) / count_by_segment;
-    realsegsize = (ptrdiff_t)count_by_segment * extent;
+    realsegsize = (OPAL_PTRDIFF_TYPE)count_by_segment * extent;
 
     /* Set the buffer pointers */
     tmpbuf = (char *) buffer;
@@ -159,7 +161,7 @@ ompi_coll_base_bcast_intra_generic( void* buffer,
         /* Process the last segment */
         err = ompi_request_wait( &recv_reqs[req_index], MPI_STATUS_IGNORE );
         if (err != MPI_SUCCESS) { line = __LINE__; goto error_hndl; }
-        sendcount = original_count - (ptrdiff_t)(num_segments - 1) * count_by_segment;
+        sendcount = original_count - (OPAL_PTRDIFF_TYPE)(num_segments - 1) * count_by_segment;
         for( i = 0; i < tree->tree_nextsize; i++ ) {
             err = MCA_PML_CALL(isend(tmpbuf, sendcount, datatype,
                                      tree->tree_next[i],
@@ -350,7 +352,7 @@ ompi_coll_base_bcast_intra_split_bintree ( void* buffer,
     int sendcount[2];      /* the same like segcount, except for the last segment */
     size_t realsegsize[2], type_size;
     char *tmpbuf[2];
-    ptrdiff_t type_extent, lb;
+    OPAL_PTRDIFF_TYPE type_extent, lb;
     ompi_request_t *base_req, *new_req;
     ompi_coll_tree_t *tree;
 
@@ -393,8 +395,8 @@ ompi_coll_base_bcast_intra_split_bintree ( void* buffer,
 
     /* if the message is too small to be split into segments */
     if( (counts[0] == 0 || counts[1] == 0) ||
-        (segsize > ((ptrdiff_t)counts[0] * type_size)) ||
-        (segsize > ((ptrdiff_t)counts[1] * type_size)) ) {
+        (segsize > ((OPAL_PTRDIFF_TYPE)counts[0] * type_size)) ||
+        (segsize > ((OPAL_PTRDIFF_TYPE)counts[1] * type_size)) ) {
         /* call linear version here ! */
         return (ompi_coll_base_bcast_intra_chain ( buffer, count, datatype,
                                                     root, comm, module,
@@ -404,12 +406,12 @@ ompi_coll_base_bcast_intra_split_bintree ( void* buffer,
     err = ompi_datatype_get_extent (datatype, &lb, &type_extent);
 
     /* Determine real segment size */
-    realsegsize[0] = (ptrdiff_t)segcount[0] * type_extent;
-    realsegsize[1] = (ptrdiff_t)segcount[1] * type_extent;
+    realsegsize[0] = (OPAL_PTRDIFF_TYPE)segcount[0] * type_extent;
+    realsegsize[1] = (OPAL_PTRDIFF_TYPE)segcount[1] * type_extent;
 
     /* set the buffer pointers */
     tmpbuf[0] = (char *) buffer;
-    tmpbuf[1] = (char *) buffer + (ptrdiff_t)counts[0] * type_extent;
+    tmpbuf[1] = (char *) buffer + (OPAL_PTRDIFF_TYPE)counts[0] * type_extent;
 
     /* Step 1:
        Root splits the buffer in 2 and sends segmented message down the branches.
@@ -468,7 +470,7 @@ ompi_coll_base_bcast_intra_split_bintree ( void* buffer,
         for( segindex = 1; segindex < num_segments[lr]; segindex++ ) {
             /* determine how many elements to expect in this round */
             if( segindex == (num_segments[lr] - 1))
-                sendcount[lr] = counts[lr] - (ptrdiff_t)segindex * (ptrdiff_t)segcount[lr];
+                sendcount[lr] = counts[lr] - (OPAL_PTRDIFF_TYPE)segindex * (OPAL_PTRDIFF_TYPE)segcount[lr];
             /* post new irecv */
             err = MCA_PML_CALL(irecv( tmpbuf[lr] + realsegsize[lr], sendcount[lr],
                                       datatype, tree->tree_prev, MCA_COLL_BASE_TAG_BCAST,
@@ -507,7 +509,7 @@ ompi_coll_base_bcast_intra_split_bintree ( void* buffer,
         for (segindex = 0; segindex < num_segments[lr]; segindex++) {
             /* determine how many elements to expect in this round */
             if (segindex == (num_segments[lr] - 1))
-                sendcount[lr] = counts[lr] - (ptrdiff_t)segindex * (ptrdiff_t)segcount[lr];
+                sendcount[lr] = counts[lr] - (OPAL_PTRDIFF_TYPE)segindex * (OPAL_PTRDIFF_TYPE)segcount[lr];
             /* receive segments */
             err = MCA_PML_CALL(recv(tmpbuf[lr], sendcount[lr], datatype,
                                     tree->tree_prev, MCA_COLL_BASE_TAG_BCAST,
@@ -520,7 +522,7 @@ ompi_coll_base_bcast_intra_split_bintree ( void* buffer,
 
     /* reset the buffer pointers */
     tmpbuf[0] = (char *) buffer;
-    tmpbuf[1] = (char *) buffer + (ptrdiff_t)counts[0] * type_extent;
+    tmpbuf[1] = (char *) buffer + (OPAL_PTRDIFF_TYPE)counts[0] * type_extent;
 
     /* Step 2:
        Find your immediate pair (identical node in opposite subtree) and SendRecv

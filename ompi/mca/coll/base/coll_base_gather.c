@@ -12,7 +12,7 @@
  *                         All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC. All Rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -97,7 +97,7 @@ ompi_coll_base_gather_intra_binomial(const void *sbuf, int scount,
             } else {
                 /* copy from rbuf to temp buffer  */
                 err = ompi_datatype_copy_content_same_ddt(rdtype, rcount, ptmp,
-                                                          (char *)rbuf + (ptrdiff_t)rank * rextent * (ptrdiff_t)rcount);
+                                                          (char *)rbuf + (OPAL_PTRDIFF_TYPE)rank * rextent * (OPAL_PTRDIFF_TYPE)rcount);
                 if (MPI_SUCCESS != err) { line = __LINE__; goto err_hndl; }
             }
         }
@@ -145,7 +145,7 @@ ompi_coll_base_gather_intra_binomial(const void *sbuf, int scount,
                          "ompi_coll_base_gather_intra_binomial rank %d recv %d mycount = %d",
                          rank, bmtree->tree_next[i], mycount));
 
-            err = MCA_PML_CALL(recv(ptmp + total_recv*rextent, (ptrdiff_t)rcount * size - total_recv, rdtype,
+            err = MCA_PML_CALL(recv(ptmp + total_recv*rextent, (OPAL_PTRDIFF_TYPE)rcount * size - total_recv, rdtype,
                                     bmtree->tree_next[i], MCA_COLL_BASE_TAG_GATHER,
                                     comm, &status));
             if (MPI_SUCCESS != err) { line = __LINE__; goto err_hndl; }
@@ -170,13 +170,13 @@ ompi_coll_base_gather_intra_binomial(const void *sbuf, int scount,
     if (rank == root) {
         if (root != 0) {
             /* rotate received data on root if root != 0 */
-            err = ompi_datatype_copy_content_same_ddt(rdtype, (ptrdiff_t)rcount * (ptrdiff_t)(size - root),
-                                                      (char *)rbuf + rextent * (ptrdiff_t)root * (ptrdiff_t)rcount, ptmp);
+            err = ompi_datatype_copy_content_same_ddt(rdtype, (OPAL_PTRDIFF_TYPE)rcount * (OPAL_PTRDIFF_TYPE)(size - root),
+                                                      (char *)rbuf + rextent * (OPAL_PTRDIFF_TYPE)root * (OPAL_PTRDIFF_TYPE)rcount, ptmp);
             if (MPI_SUCCESS != err) { line = __LINE__; goto err_hndl; }
 
 
-            err = ompi_datatype_copy_content_same_ddt(rdtype, (ptrdiff_t)rcount * (ptrdiff_t)root,
-                                                      (char *) rbuf, ptmp + rextent * (ptrdiff_t)rcount * (ptrdiff_t)(size-root));
+            err = ompi_datatype_copy_content_same_ddt(rdtype, (OPAL_PTRDIFF_TYPE)rcount * (OPAL_PTRDIFF_TYPE)root,
+                                                      (char *) rbuf, ptmp + rextent * (OPAL_PTRDIFF_TYPE)rcount * (OPAL_PTRDIFF_TYPE)(size-root));
             if (MPI_SUCCESS != err) { line = __LINE__; goto err_hndl; }
 
             free(tempbuf);
@@ -285,7 +285,7 @@ ompi_coll_base_gather_intra_linear_sync(const void *sbuf, int scount,
             }
 
             /* irecv for the first segment from i */
-            ptmp = (char*)rbuf + (ptrdiff_t)i * (ptrdiff_t)rcount * extent;
+            ptmp = (char*)rbuf + (OPAL_PTRDIFF_TYPE)i * (OPAL_PTRDIFF_TYPE)rcount * extent;
             ret = MCA_PML_CALL(irecv(ptmp, first_segment_count, rdtype, i,
                                      MCA_COLL_BASE_TAG_GATHER, comm,
                                      &first_segment_req));
@@ -298,7 +298,7 @@ ompi_coll_base_gather_intra_linear_sync(const void *sbuf, int scount,
             if (ret != MPI_SUCCESS) { line = __LINE__; goto error_hndl; }
 
             /* irecv for the second segment */
-            ptmp = (char*)rbuf + ((ptrdiff_t)i * (ptrdiff_t)rcount + first_segment_count) * extent;
+            ptmp = (char*)rbuf + ((OPAL_PTRDIFF_TYPE)i * (OPAL_PTRDIFF_TYPE)rcount + first_segment_count) * extent;
             ret = MCA_PML_CALL(irecv(ptmp, (rcount - first_segment_count),
                                      rdtype, i, MCA_COLL_BASE_TAG_GATHER, comm,
                                      &reqs[i]));
@@ -312,7 +312,7 @@ ompi_coll_base_gather_intra_linear_sync(const void *sbuf, int scount,
         /* copy local data if necessary */
         if (MPI_IN_PLACE != sbuf) {
             ret = ompi_datatype_sndrcv((void *)sbuf, scount, sdtype,
-                                       (char*)rbuf + (ptrdiff_t)rank * (ptrdiff_t)rcount * extent,
+                                       (char*)rbuf + (OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)rcount * extent,
                                        rcount, rdtype);
             if (ret != MPI_SUCCESS) { line = __LINE__; goto error_hndl; }
         }
@@ -384,7 +384,7 @@ ompi_coll_base_gather_intra_basic_linear(const void *sbuf, int scount,
     /* I am the root, loop receiving the data. */
 
     ompi_datatype_get_extent(rdtype, &lb, &extent);
-    incr = extent * (ptrdiff_t)rcount;
+    incr = extent * (OPAL_PTRDIFF_TYPE)rcount;
     for (i = 0, ptmp = (char *) rbuf; i < size; ++i, ptmp += incr) {
         if (i == rank) {
             if (MPI_IN_PLACE != sbuf) {

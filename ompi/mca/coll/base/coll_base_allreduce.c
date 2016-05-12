@@ -13,7 +13,7 @@
  * Copyright (c) 2009      University of Houston. All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC. All Rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -349,8 +349,8 @@ ompi_coll_base_allreduce_intra_ring(const void *sbuf, void *rbuf, int count,
     int early_segcount, late_segcount, split_rank, max_segcount;
     size_t typelng;
     char *tmpsend = NULL, *tmprecv = NULL, *inbuf[2] = {NULL, NULL};
-    ptrdiff_t true_lb, true_extent, lb, extent;
-    ptrdiff_t block_offset, max_real_segsize;
+    OPAL_PTRDIFF_TYPE true_lb, true_extent, lb, extent;
+    OPAL_PTRDIFF_TYPE block_offset, max_real_segsize;
     ompi_request_t *reqs[2] = {NULL, NULL};
 
     size = ompi_comm_size(comm);
@@ -438,8 +438,8 @@ ompi_coll_base_allreduce_intra_ring(const void *sbuf, void *rbuf, int count,
     if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }
     /* Send first block (my block) to the neighbor on the right */
     block_offset = ((rank < split_rank)?
-                    ((ptrdiff_t)rank * (ptrdiff_t)early_segcount) :
-                    ((ptrdiff_t)rank * (ptrdiff_t)late_segcount + split_rank));
+                    ((OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)early_segcount) :
+                    ((OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)late_segcount + split_rank));
     block_count = ((rank < split_rank)? early_segcount : late_segcount);
     tmpsend = ((char*)rbuf) + block_offset * extent;
     ret = MCA_PML_CALL(send(tmpsend, block_count, dtype, send_to,
@@ -465,10 +465,10 @@ ompi_coll_base_allreduce_intra_ring(const void *sbuf, void *rbuf, int count,
            rbuf[prevblock] = inbuf[inbi ^ 0x1] (op) rbuf[prevblock]
         */
         block_offset = ((prevblock < split_rank)?
-                        ((ptrdiff_t)prevblock * early_segcount) :
-                        ((ptrdiff_t)prevblock * late_segcount + split_rank));
+                        ((OPAL_PTRDIFF_TYPE)prevblock * early_segcount) :
+                        ((OPAL_PTRDIFF_TYPE)prevblock * late_segcount + split_rank));
         block_count = ((prevblock < split_rank)? early_segcount : late_segcount);
-        tmprecv = ((char*)rbuf) + (ptrdiff_t)block_offset * extent;
+        tmprecv = ((char*)rbuf) + (OPAL_PTRDIFF_TYPE)block_offset * extent;
         ompi_op_reduce(op, inbuf[inbi ^ 0x1], tmprecv, block_count, dtype);
 
         /* send previous block to send_to */
@@ -486,10 +486,10 @@ ompi_coll_base_allreduce_intra_ring(const void *sbuf, void *rbuf, int count,
        rbuf[rank+1] = inbuf[inbi] (op) rbuf[rank + 1] */
     recv_from = (rank + 1) % size;
     block_offset = ((recv_from < split_rank)?
-                    ((ptrdiff_t)recv_from * early_segcount) :
-                    ((ptrdiff_t)recv_from * late_segcount + split_rank));
+                    ((OPAL_PTRDIFF_TYPE)recv_from * early_segcount) :
+                    ((OPAL_PTRDIFF_TYPE)recv_from * late_segcount + split_rank));
     block_count = ((recv_from < split_rank)? early_segcount : late_segcount);
-    tmprecv = ((char*)rbuf) + (ptrdiff_t)block_offset * extent;
+    tmprecv = ((char*)rbuf) + (OPAL_PTRDIFF_TYPE)block_offset * extent;
     ompi_op_reduce(op, inbuf[inbi], tmprecv, block_count, dtype);
 
     /* Distribution loop - variation of ring allgather */
@@ -500,17 +500,17 @@ ompi_coll_base_allreduce_intra_ring(const void *sbuf, void *rbuf, int count,
         const int send_data_from = (rank + 1 + size - k) % size;
         const int send_block_offset =
             ((send_data_from < split_rank)?
-             ((ptrdiff_t)send_data_from * early_segcount) :
-             ((ptrdiff_t)send_data_from * late_segcount + split_rank));
+             ((OPAL_PTRDIFF_TYPE)send_data_from * early_segcount) :
+             ((OPAL_PTRDIFF_TYPE)send_data_from * late_segcount + split_rank));
         const int recv_block_offset =
             ((recv_data_from < split_rank)?
-             ((ptrdiff_t)recv_data_from * early_segcount) :
-             ((ptrdiff_t)recv_data_from * late_segcount + split_rank));
+             ((OPAL_PTRDIFF_TYPE)recv_data_from * early_segcount) :
+             ((OPAL_PTRDIFF_TYPE)recv_data_from * late_segcount + split_rank));
         block_count = ((send_data_from < split_rank)?
                        early_segcount : late_segcount);
 
-        tmprecv = (char*)rbuf + (ptrdiff_t)recv_block_offset * extent;
-        tmpsend = (char*)rbuf + (ptrdiff_t)send_block_offset * extent;
+        tmprecv = (char*)rbuf + (OPAL_PTRDIFF_TYPE)recv_block_offset * extent;
+        tmpsend = (char*)rbuf + (OPAL_PTRDIFF_TYPE)send_block_offset * extent;
 
         ret = ompi_coll_base_sendrecv(tmpsend, block_count, dtype, send_to,
                                        MCA_COLL_BASE_TAG_ALLREDUCE,
@@ -627,7 +627,7 @@ ompi_coll_base_allreduce_intra_ring_segmented(const void *sbuf, void *rbuf, int 
     int segcount, max_segcount, num_phases, phase, block_count, inbi;
     size_t typelng;
     char *tmpsend = NULL, *tmprecv = NULL, *inbuf[2] = {NULL, NULL};
-    ptrdiff_t block_offset, max_real_segsize;
+    OPAL_PTRDIFF_TYPE block_offset, max_real_segsize;
     ompi_request_t *reqs[2] = {NULL, NULL};
     OPAL_PTRDIFF_TYPE lb, extent, gap;
 
@@ -700,7 +700,7 @@ ompi_coll_base_allreduce_intra_ring_segmented(const void *sbuf, void *rbuf, int 
 
     /* Computation loop: for each phase, repeat ring allreduce computation loop */
     for (phase = 0; phase < num_phases; phase ++) {
-        ptrdiff_t phase_offset;
+        OPAL_PTRDIFF_TYPE phase_offset;
         int early_phase_segcount, late_phase_segcount, split_phase, phase_count;
 
         /*
@@ -732,17 +732,17 @@ ompi_coll_base_allreduce_intra_ring_segmented(const void *sbuf, void *rbuf, int 
            - compute my block and phase offset
            - send data */
         block_offset = ((rank < split_rank)?
-                        ((ptrdiff_t)rank * (ptrdiff_t)early_blockcount) :
-                        ((ptrdiff_t)rank * (ptrdiff_t)late_blockcount + split_rank));
+                        ((OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)early_blockcount) :
+                        ((OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)late_blockcount + split_rank));
         block_count = ((rank < split_rank)? early_blockcount : late_blockcount);
         COLL_BASE_COMPUTE_BLOCKCOUNT(block_count, num_phases, split_phase,
                                       early_phase_segcount, late_phase_segcount)
         phase_count = ((phase < split_phase)?
                        (early_phase_segcount) : (late_phase_segcount));
         phase_offset = ((phase < split_phase)?
-                        ((ptrdiff_t)phase * (ptrdiff_t)early_phase_segcount) :
-                        ((ptrdiff_t)phase * (ptrdiff_t)late_phase_segcount + split_phase));
-        tmpsend = ((char*)rbuf) + (ptrdiff_t)(block_offset + phase_offset) * extent;
+                        ((OPAL_PTRDIFF_TYPE)phase * (OPAL_PTRDIFF_TYPE)early_phase_segcount) :
+                        ((OPAL_PTRDIFF_TYPE)phase * (OPAL_PTRDIFF_TYPE)late_phase_segcount + split_phase));
+        tmpsend = ((char*)rbuf) + (OPAL_PTRDIFF_TYPE)(block_offset + phase_offset) * extent;
         ret = MCA_PML_CALL(send(tmpsend, phase_count, dtype, send_to,
                                 MCA_COLL_BASE_TAG_ALLREDUCE,
                                 MCA_PML_BASE_SEND_STANDARD, comm));
@@ -767,8 +767,8 @@ ompi_coll_base_allreduce_intra_ring_segmented(const void *sbuf, void *rbuf, int 
                rbuf[prevblock] = inbuf[inbi ^ 0x1] (op) rbuf[prevblock]
             */
             block_offset = ((prevblock < split_rank)?
-                            ((ptrdiff_t)prevblock * (ptrdiff_t)early_blockcount) :
-                            ((ptrdiff_t)prevblock * (ptrdiff_t)late_blockcount + split_rank));
+                            ((OPAL_PTRDIFF_TYPE)prevblock * (OPAL_PTRDIFF_TYPE)early_blockcount) :
+                            ((OPAL_PTRDIFF_TYPE)prevblock * (OPAL_PTRDIFF_TYPE)late_blockcount + split_rank));
             block_count = ((prevblock < split_rank)?
                            early_blockcount : late_blockcount);
             COLL_BASE_COMPUTE_BLOCKCOUNT(block_count, num_phases, split_phase,
@@ -776,9 +776,9 @@ ompi_coll_base_allreduce_intra_ring_segmented(const void *sbuf, void *rbuf, int 
                 phase_count = ((phase < split_phase)?
                                (early_phase_segcount) : (late_phase_segcount));
             phase_offset = ((phase < split_phase)?
-                            ((ptrdiff_t)phase * (ptrdiff_t)early_phase_segcount) :
-                            ((ptrdiff_t)phase * (ptrdiff_t)late_phase_segcount + split_phase));
-            tmprecv = ((char*)rbuf) + (ptrdiff_t)(block_offset + phase_offset) * extent;
+                            ((OPAL_PTRDIFF_TYPE)phase * (OPAL_PTRDIFF_TYPE)early_phase_segcount) :
+                            ((OPAL_PTRDIFF_TYPE)phase * (OPAL_PTRDIFF_TYPE)late_phase_segcount + split_phase));
+            tmprecv = ((char*)rbuf) + (OPAL_PTRDIFF_TYPE)(block_offset + phase_offset) * extent;
             ompi_op_reduce(op, inbuf[inbi ^ 0x1], tmprecv, phase_count, dtype);
 
             /* send previous block to send_to */
@@ -796,8 +796,8 @@ ompi_coll_base_allreduce_intra_ring_segmented(const void *sbuf, void *rbuf, int 
            rbuf[rank+1] = inbuf[inbi] (op) rbuf[rank + 1] */
         recv_from = (rank + 1) % size;
         block_offset = ((recv_from < split_rank)?
-                        ((ptrdiff_t)recv_from * (ptrdiff_t)early_blockcount) :
-                        ((ptrdiff_t)recv_from * (ptrdiff_t)late_blockcount + split_rank));
+                        ((OPAL_PTRDIFF_TYPE)recv_from * (OPAL_PTRDIFF_TYPE)early_blockcount) :
+                        ((OPAL_PTRDIFF_TYPE)recv_from * (OPAL_PTRDIFF_TYPE)late_blockcount + split_rank));
         block_count = ((recv_from < split_rank)?
                        early_blockcount : late_blockcount);
         COLL_BASE_COMPUTE_BLOCKCOUNT(block_count, num_phases, split_phase,
@@ -805,9 +805,9 @@ ompi_coll_base_allreduce_intra_ring_segmented(const void *sbuf, void *rbuf, int 
             phase_count = ((phase < split_phase)?
                            (early_phase_segcount) : (late_phase_segcount));
         phase_offset = ((phase < split_phase)?
-                        ((ptrdiff_t)phase * (ptrdiff_t)early_phase_segcount) :
-                        ((ptrdiff_t)phase * (ptrdiff_t)late_phase_segcount + split_phase));
-        tmprecv = ((char*)rbuf) + (ptrdiff_t)(block_offset + phase_offset) * extent;
+                        ((OPAL_PTRDIFF_TYPE)phase * (OPAL_PTRDIFF_TYPE)early_phase_segcount) :
+                        ((OPAL_PTRDIFF_TYPE)phase * (OPAL_PTRDIFF_TYPE)late_phase_segcount + split_phase));
+        tmprecv = ((char*)rbuf) + (OPAL_PTRDIFF_TYPE)(block_offset + phase_offset) * extent;
         ompi_op_reduce(op, inbuf[inbi], tmprecv, phase_count, dtype);
     }
 
@@ -819,17 +819,17 @@ ompi_coll_base_allreduce_intra_ring_segmented(const void *sbuf, void *rbuf, int 
         const int send_data_from = (rank + 1 + size - k) % size;
         const int send_block_offset =
             ((send_data_from < split_rank)?
-             ((ptrdiff_t)send_data_from * (ptrdiff_t)early_blockcount) :
-             ((ptrdiff_t)send_data_from * (ptrdiff_t)late_blockcount + split_rank));
+             ((OPAL_PTRDIFF_TYPE)send_data_from * (OPAL_PTRDIFF_TYPE)early_blockcount) :
+             ((OPAL_PTRDIFF_TYPE)send_data_from * (OPAL_PTRDIFF_TYPE)late_blockcount + split_rank));
         const int recv_block_offset =
             ((recv_data_from < split_rank)?
-             ((ptrdiff_t)recv_data_from * (ptrdiff_t)early_blockcount) :
-             ((ptrdiff_t)recv_data_from * (ptrdiff_t)late_blockcount + split_rank));
+             ((OPAL_PTRDIFF_TYPE)recv_data_from * (OPAL_PTRDIFF_TYPE)early_blockcount) :
+             ((OPAL_PTRDIFF_TYPE)recv_data_from * (OPAL_PTRDIFF_TYPE)late_blockcount + split_rank));
         block_count = ((send_data_from < split_rank)?
                        early_blockcount : late_blockcount);
 
-        tmprecv = (char*)rbuf + (ptrdiff_t)recv_block_offset * extent;
-        tmpsend = (char*)rbuf + (ptrdiff_t)send_block_offset * extent;
+        tmprecv = (char*)rbuf + (OPAL_PTRDIFF_TYPE)recv_block_offset * extent;
+        tmpsend = (char*)rbuf + (OPAL_PTRDIFF_TYPE)send_block_offset * extent;
 
         ret = ompi_coll_base_sendrecv(tmpsend, block_count, dtype, send_to,
                                        MCA_COLL_BASE_TAG_ALLREDUCE,

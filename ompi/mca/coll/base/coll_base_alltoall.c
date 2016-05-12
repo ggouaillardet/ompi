@@ -143,7 +143,7 @@ int ompi_coll_base_alltoall_intra_pairwise(const void *sbuf, int scount,
 {
     int line = -1, err = 0, rank, size, step, sendto, recvfrom;
     void * tmpsend, *tmprecv;
-    ptrdiff_t lb, sext, rext;
+    OPAL_PTRDIFF_TYPE lb, sext, rext;
 
     if (MPI_IN_PLACE == sbuf) {
         return mca_coll_base_alltoall_intra_basic_inplace (rbuf, rcount, rdtype,
@@ -170,8 +170,8 @@ int ompi_coll_base_alltoall_intra_pairwise(const void *sbuf, int scount,
         recvfrom = (rank + size - step) % size;
 
         /* Determine sending and receiving locations */
-        tmpsend = (char*)sbuf + (ptrdiff_t)sendto * sext * (ptrdiff_t)scount;
-        tmprecv = (char*)rbuf + (ptrdiff_t)recvfrom * rext * (ptrdiff_t)rcount;
+        tmpsend = (char*)sbuf + (OPAL_PTRDIFF_TYPE)sendto * sext * (OPAL_PTRDIFF_TYPE)scount;
+        tmprecv = (char*)rbuf + (OPAL_PTRDIFF_TYPE)recvfrom * rext * (OPAL_PTRDIFF_TYPE)rcount;
 
         /* send and receive */
         err = ompi_coll_base_sendrecv( tmpsend, scount, sdtype, sendto,
@@ -237,16 +237,16 @@ int ompi_coll_base_alltoall_intra_bruck(const void *sbuf, int scount,
 
     /* Step 1 - local rotation - shift up by rank */
     err = ompi_datatype_copy_content_same_ddt (sdtype,
-                                               (int32_t) ((ptrdiff_t)(size - rank) * (ptrdiff_t)scount),
+                                               (int32_t) ((OPAL_PTRDIFF_TYPE)(size - rank) * (OPAL_PTRDIFF_TYPE)scount),
                                                tmpbuf,
-                                               ((char*) sbuf) + (ptrdiff_t)rank * (ptrdiff_t)scount * sext);
+                                               ((char*) sbuf) + (OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)scount * sext);
     if (err<0) {
         line = __LINE__; err = -1; goto err_hndl;
     }
 
     if (rank != 0) {
-        err = ompi_datatype_copy_content_same_ddt (sdtype, (ptrdiff_t)rank * (ptrdiff_t)scount,
-                                                   tmpbuf + (ptrdiff_t)(size - rank) * (ptrdiff_t)scount* sext,
+        err = ompi_datatype_copy_content_same_ddt (sdtype, (OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)scount,
+                                                   tmpbuf + (OPAL_PTRDIFF_TYPE)(size - rank) * (OPAL_PTRDIFF_TYPE)scount* sext,
                                                    (char*) sbuf);
         if (err<0) {
             line = __LINE__; err = -1; goto err_hndl;
@@ -263,7 +263,7 @@ int ompi_coll_base_alltoall_intra_bruck(const void *sbuf, int scount,
         /* create indexed datatype */
         for (i = 1; i < size; i++) {
             if (( i & distance) == distance) {
-                displs[k] = (ptrdiff_t)i * (ptrdiff_t)scount;
+                displs[k] = (OPAL_PTRDIFF_TYPE)i * (OPAL_PTRDIFF_TYPE)scount;
                 blen[k] = scount;
                 k++;
             }
@@ -296,8 +296,8 @@ int ompi_coll_base_alltoall_intra_bruck(const void *sbuf, int scount,
     for (i = 0; i < size; i++) {
 
         err = ompi_datatype_copy_content_same_ddt (rdtype, (int32_t) rcount,
-                                                   ((char*)rbuf) + ((ptrdiff_t)((rank - i + size) % size) * (ptrdiff_t)rcount * rext),
-                                                   tmpbuf + (ptrdiff_t)i * (ptrdiff_t)rcount * rext);
+                                                   ((char*)rbuf) + ((OPAL_PTRDIFF_TYPE)((rank - i + size) % size) * (OPAL_PTRDIFF_TYPE)rcount * rext),
+                                                   tmpbuf + (OPAL_PTRDIFF_TYPE)i * (OPAL_PTRDIFF_TYPE)rcount * rext);
         if (err < 0) { line = __LINE__; err = -1; goto err_hndl;  }
     }
 
@@ -345,7 +345,7 @@ int ompi_coll_base_alltoall_intra_linear_sync(const void *sbuf, int scount,
 {
     int line, error, ri, si, rank, size, nreqs, nrreqs, nsreqs, total_reqs;
     char *psnd, *prcv;
-    ptrdiff_t slb, sext, rlb, rext;
+    OPAL_PTRDIFF_TYPE slb, sext, rlb, rext;
 
     ompi_request_t **reqs = NULL;
 
@@ -376,8 +376,8 @@ int ompi_coll_base_alltoall_intra_linear_sync(const void *sbuf, int scount,
 
     /* simple optimization */
 
-    psnd = ((char *) sbuf) + (ptrdiff_t)rank * sext;
-    prcv = ((char *) rbuf) + (ptrdiff_t)rank * rext;
+    psnd = ((char *) sbuf) + (OPAL_PTRDIFF_TYPE)rank * sext;
+    prcv = ((char *) rbuf) + (OPAL_PTRDIFF_TYPE)rank * rext;
 
     error = ompi_datatype_sndrcv(psnd, scount, sdtype, prcv, rcount, rdtype);
     if (MPI_SUCCESS != error) {
@@ -405,7 +405,7 @@ int ompi_coll_base_alltoall_intra_linear_sync(const void *sbuf, int scount,
          ri = (ri + 1) % size, ++nrreqs) {
         nreqs++;
         error = MCA_PML_CALL(irecv
-                             (prcv + (ptrdiff_t)ri * rext, rcount, rdtype, ri,
+                             (prcv + (OPAL_PTRDIFF_TYPE)ri * rext, rcount, rdtype, ri,
                               MCA_COLL_BASE_TAG_ALLTOALL, comm, &reqs[nreqs]));
         if (MPI_SUCCESS != error) { line = __LINE__; goto error_hndl; }
     }
@@ -413,7 +413,7 @@ int ompi_coll_base_alltoall_intra_linear_sync(const void *sbuf, int scount,
           si = (si + size - 1) % size, ++nsreqs) {
         nreqs++;
         error = MCA_PML_CALL(isend
-                             (psnd + (ptrdiff_t)si * sext, scount, sdtype, si,
+                             (psnd + (OPAL_PTRDIFF_TYPE)si * sext, scount, sdtype, si,
                               MCA_COLL_BASE_TAG_ALLTOALL,
                               MCA_PML_BASE_SEND_STANDARD, comm, &reqs[nreqs]));
         if (MPI_SUCCESS != error) { line = __LINE__; goto error_hndl; }
@@ -444,7 +444,7 @@ int ompi_coll_base_alltoall_intra_linear_sync(const void *sbuf, int scount,
             if (completed < total_reqs) {
                 if (nrreqs < (size - 1)) {
                     error = MCA_PML_CALL(irecv
-                                         (prcv + (ptrdiff_t)ri * rext, rcount, rdtype, ri,
+                                         (prcv + (OPAL_PTRDIFF_TYPE)ri * rext, rcount, rdtype, ri,
                                           MCA_COLL_BASE_TAG_ALLTOALL, comm,
                                           &reqs[completed]));
                     if (MPI_SUCCESS != error) { line = __LINE__; goto error_hndl; }
@@ -454,7 +454,7 @@ int ompi_coll_base_alltoall_intra_linear_sync(const void *sbuf, int scount,
             } else {
                 if (nsreqs < (size - 1)) {
                     error = MCA_PML_CALL(isend
-                                         (psnd + (ptrdiff_t)si * sext, scount, sdtype, si,
+                                         (psnd + (OPAL_PTRDIFF_TYPE)si * sext, scount, sdtype, si,
                                           MCA_COLL_BASE_TAG_ALLTOALL,
                                           MCA_PML_BASE_SEND_STANDARD, comm,
                                           &reqs[completed]));
@@ -488,7 +488,7 @@ int ompi_coll_base_alltoall_intra_two_procs(const void *sbuf, int scount,
 {
     int line = -1, err = 0, rank, remote;
     void * tmpsend, *tmprecv;
-    ptrdiff_t sext, rext, lb;
+    OPAL_PTRDIFF_TYPE sext, rext, lb;
 
     if (MPI_IN_PLACE == sbuf) {
         return mca_coll_base_alltoall_intra_basic_inplace (rbuf, rcount, rdtype,
@@ -513,8 +513,8 @@ int ompi_coll_base_alltoall_intra_two_procs(const void *sbuf, int scount,
     /* exchange data */
     remote  = rank ^ 1;
 
-    tmpsend = (char*)sbuf + (ptrdiff_t)remote * sext * (ptrdiff_t)scount;
-    tmprecv = (char*)rbuf + (ptrdiff_t)remote * rext * (ptrdiff_t)rcount;
+    tmpsend = (char*)sbuf + (OPAL_PTRDIFF_TYPE)remote * sext * (OPAL_PTRDIFF_TYPE)scount;
+    tmprecv = (char*)rbuf + (OPAL_PTRDIFF_TYPE)remote * rext * (OPAL_PTRDIFF_TYPE)rcount;
 
     /* send and receive */
     err = ompi_coll_base_sendrecv ( tmpsend, scount, sdtype, remote,
@@ -525,9 +525,9 @@ int ompi_coll_base_alltoall_intra_two_procs(const void *sbuf, int scount,
     if (err != MPI_SUCCESS) { line = __LINE__; goto err_hndl;  }
 
     /* ddt sendrecv your own data */
-    err = ompi_datatype_sndrcv((char*) sbuf + (ptrdiff_t)rank * sext * (ptrdiff_t)scount,
+    err = ompi_datatype_sndrcv((char*) sbuf + (OPAL_PTRDIFF_TYPE)rank * sext * (OPAL_PTRDIFF_TYPE)scount,
                                (int32_t) scount, sdtype,
-                               (char*) rbuf + (ptrdiff_t)rank * rext * (ptrdiff_t)rcount,
+                               (char*) rbuf + (OPAL_PTRDIFF_TYPE)rank * rext * (OPAL_PTRDIFF_TYPE)rcount,
                                (int32_t) rcount, rdtype);
     if (err != MPI_SUCCESS) { line = __LINE__; goto err_hndl;  }
 
@@ -599,8 +599,8 @@ int ompi_coll_base_alltoall_intra_basic_linear(const void *sbuf, int scount,
 
     /* simple optimization */
 
-    psnd = ((char *) sbuf) + (ptrdiff_t)rank * sndinc;
-    prcv = ((char *) rbuf) + (ptrdiff_t)rank * rcvinc;
+    psnd = ((char *) sbuf) + (OPAL_PTRDIFF_TYPE)rank * sndinc;
+    prcv = ((char *) rbuf) + (OPAL_PTRDIFF_TYPE)rank * rcvinc;
 
     err = ompi_datatype_sndrcv(psnd, scount, sdtype, prcv, rcount, rdtype);
     if (MPI_SUCCESS != err) {
@@ -627,7 +627,7 @@ int ompi_coll_base_alltoall_intra_basic_linear(const void *sbuf, int scount,
          i = (i + 1) % size, ++rreq) {
         nreqs++;
         err = MCA_PML_CALL(irecv_init
-                           (prcv + (ptrdiff_t)i * rcvinc, rcount, rdtype, i,
+                           (prcv + (OPAL_PTRDIFF_TYPE)i * rcvinc, rcount, rdtype, i,
                            MCA_COLL_BASE_TAG_ALLTOALL, comm, rreq));
         if (MPI_SUCCESS != err) { line = __LINE__; goto err_hndl; }
     }
@@ -641,7 +641,7 @@ int ompi_coll_base_alltoall_intra_basic_linear(const void *sbuf, int scount,
          i = (i + size - 1) % size, ++sreq) {
         nreqs++;
         err = MCA_PML_CALL(isend_init
-                           (psnd + (ptrdiff_t)i * sndinc, scount, sdtype, i,
+                           (psnd + (OPAL_PTRDIFF_TYPE)i * sndinc, scount, sdtype, i,
                            MCA_COLL_BASE_TAG_ALLTOALL,
                            MCA_PML_BASE_SEND_STANDARD, comm, sreq));
         if (MPI_SUCCESS != err) { line = __LINE__; goto err_hndl; }

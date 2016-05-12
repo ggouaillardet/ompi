@@ -14,7 +14,7 @@
  * Copyright (c) 2009      University of Houston. All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -76,7 +76,7 @@ int ompi_coll_base_reduce_scatter_intra_nonoverlapping(const void *sbuf, void *r
         if (root == rank) {
             /* We must allocate temporary receive buffer on root to ensure that
                rbuf is big enough */
-            ptrdiff_t dsize, gap;
+            OPAL_PTRDIFF_TYPE dsize, gap;
             dsize = opal_datatype_span(&dtype->super, total_count, &gap);
 
             tmprbuf_free = (char*) malloc(dsize);
@@ -132,7 +132,7 @@ ompi_coll_base_reduce_scatter_intra_basic_recursivehalving( const void *sbuf,
 {
     int i, rank, size, count, err = OMPI_SUCCESS;
     int tmp_size, remain = 0, tmp_rank, *disps = NULL;
-    ptrdiff_t extent, buf_size, gap;
+    OPAL_PTRDIFF_TYPE extent, buf_size, gap;
     char *recv_buf = NULL, *recv_buf_free = NULL;
     char *result_buf = NULL, *result_buf_free = NULL;
 
@@ -292,7 +292,7 @@ ompi_coll_base_reduce_scatter_intra_basic_recursivehalving( const void *sbuf,
             /* actual data transfer.  Send from result_buf,
                receive into recv_buf */
             if (recv_count > 0) {
-                err = MCA_PML_CALL(irecv(recv_buf + (ptrdiff_t)tmp_disps[recv_index] * extent,
+                err = MCA_PML_CALL(irecv(recv_buf + (OPAL_PTRDIFF_TYPE)tmp_disps[recv_index] * extent,
                                          recv_count, dtype, peer,
                                          MCA_COLL_BASE_TAG_REDUCE_SCATTER,
                                          comm, &request));
@@ -303,7 +303,7 @@ ompi_coll_base_reduce_scatter_intra_basic_recursivehalving( const void *sbuf,
                 }
             }
             if (send_count > 0) {
-                err = MCA_PML_CALL(send(result_buf + (ptrdiff_t)tmp_disps[send_index] * extent,
+                err = MCA_PML_CALL(send(result_buf + (OPAL_PTRDIFF_TYPE)tmp_disps[send_index] * extent,
                                         send_count, dtype, peer,
                                         MCA_COLL_BASE_TAG_REDUCE_SCATTER,
                                         MCA_PML_BASE_SEND_STANDARD,
@@ -326,8 +326,8 @@ ompi_coll_base_reduce_scatter_intra_basic_recursivehalving( const void *sbuf,
                 }
 
                 ompi_op_reduce(op,
-                               recv_buf + (ptrdiff_t)tmp_disps[recv_index] * extent,
-                               result_buf + (ptrdiff_t)tmp_disps[recv_index] * extent,
+                               recv_buf + (OPAL_PTRDIFF_TYPE)tmp_disps[recv_index] * extent,
+                               result_buf + (OPAL_PTRDIFF_TYPE)tmp_disps[recv_index] * extent,
                                recv_count, dtype);
             }
 
@@ -456,7 +456,7 @@ ompi_coll_base_reduce_scatter_intra_ring( const void *sbuf, void *rbuf, const in
     int inbi, *displs = NULL;
     char *tmpsend = NULL, *tmprecv = NULL, *accumbuf = NULL, *accumbuf_free = NULL;
     char *inbuf_free[2] = {NULL, NULL}, *inbuf[2] = {NULL, NULL};
-    ptrdiff_t extent, max_real_segsize, dsize, gap;
+    OPAL_PTRDIFF_TYPE extent, max_real_segsize, dsize, gap;
     ompi_request_t *reqs[2] = {NULL, NULL};
 
     size = ompi_comm_size(comm);
@@ -550,7 +550,7 @@ ompi_coll_base_reduce_scatter_intra_ring( const void *sbuf, void *rbuf, const in
                              MCA_COLL_BASE_TAG_REDUCE_SCATTER, comm,
                              &reqs[inbi]));
     if (MPI_SUCCESS != ret) { line = __LINE__; goto error_hndl; }
-    tmpsend = accumbuf + (ptrdiff_t)displs[recv_from] * extent;
+    tmpsend = accumbuf + (OPAL_PTRDIFF_TYPE)displs[recv_from] * extent;
     ret = MCA_PML_CALL(send(tmpsend, rcounts[recv_from], dtype, send_to,
                             MCA_COLL_BASE_TAG_REDUCE_SCATTER,
                             MCA_PML_BASE_SEND_STANDARD, comm));
@@ -574,7 +574,7 @@ ompi_coll_base_reduce_scatter_intra_ring( const void *sbuf, void *rbuf, const in
         /* Apply operation on previous block: result goes to rbuf
            rbuf[prevblock] = inbuf[inbi ^ 0x1] (op) rbuf[prevblock]
         */
-        tmprecv = accumbuf + (ptrdiff_t)displs[prevblock] * extent;
+        tmprecv = accumbuf + (OPAL_PTRDIFF_TYPE)displs[prevblock] * extent;
         ompi_op_reduce(op, inbuf[inbi ^ 0x1], tmprecv, rcounts[prevblock], dtype);
 
         /* send previous block to send_to */
@@ -590,7 +590,7 @@ ompi_coll_base_reduce_scatter_intra_ring( const void *sbuf, void *rbuf, const in
 
     /* Apply operation on the last block (my block)
        rbuf[rank] = inbuf[inbi] (op) rbuf[rank] */
-    tmprecv = accumbuf + (ptrdiff_t)displs[rank] * extent;
+    tmprecv = accumbuf + (OPAL_PTRDIFF_TYPE)displs[rank] * extent;
     ompi_op_reduce(op, inbuf[inbi], tmprecv, rcounts[rank], dtype);
 
     /* Copy result from tmprecv to rbuf */

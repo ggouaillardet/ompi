@@ -14,7 +14,7 @@
  * Copyright (c) 2013      Los Alamos National Security, LLC. All Rights
  *                         reserved.
  * Copyright (c) 2013      FUJITSU LIMITED.  All rights reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -145,7 +145,7 @@ ompi_coll_base_alltoallv_intra_pairwise(const void *sbuf, const int *scounts, co
 {
     int line = -1, err = 0, rank, size, step = 0, sendto, recvfrom;
     void *psnd, *prcv;
-    ptrdiff_t sext, rext;
+    OPAL_PTRDIFF_TYPE sext, rext;
 
     if (MPI_IN_PLACE == sbuf) {
         return mca_coll_base_alltoallv_intra_basic_inplace (rbuf, rcounts, rdisps,
@@ -169,8 +169,8 @@ ompi_coll_base_alltoallv_intra_pairwise(const void *sbuf, const int *scounts, co
         recvfrom = (rank + size - step) % size;
 
         /* Determine sending and receiving locations */
-        psnd = (char*)sbuf + (ptrdiff_t)sdisps[sendto] * sext;
-        prcv = (char*)rbuf + (ptrdiff_t)rdisps[recvfrom] * rext;
+        psnd = (char*)sbuf + (OPAL_PTRDIFF_TYPE)sdisps[sendto] * sext;
+        prcv = (char*)rbuf + (OPAL_PTRDIFF_TYPE)rdisps[recvfrom] * rext;
 
         /* send and receive */
         err = ompi_coll_base_sendrecv( psnd, scounts[sendto], sdtype, sendto,
@@ -209,7 +209,7 @@ ompi_coll_base_alltoallv_intra_basic_linear(const void *sbuf, const int *scounts
 {
     int i, size, rank, err, nreqs;
     char *psnd, *prcv;
-    ptrdiff_t sext, rext;
+    OPAL_PTRDIFF_TYPE sext, rext;
     ompi_request_t **preq, **reqs;
     mca_coll_base_module_t *base_module = (mca_coll_base_module_t*) module;
     mca_coll_base_comm_t *data = base_module->base_data;
@@ -229,8 +229,8 @@ ompi_coll_base_alltoallv_intra_basic_linear(const void *sbuf, const int *scounts
     ompi_datatype_type_extent(rdtype, &rext);
 
     /* Simple optimization - handle send to self first */
-    psnd = ((char *) sbuf) + (ptrdiff_t)sdisps[rank] * sext;
-    prcv = ((char *) rbuf) + (ptrdiff_t)rdisps[rank] * rext;
+    psnd = ((char *) sbuf) + (OPAL_PTRDIFF_TYPE)sdisps[rank] * sext;
+    prcv = ((char *) rbuf) + (OPAL_PTRDIFF_TYPE)rdisps[rank] * rext;
     if (0 != scounts[rank]) {
         err = ompi_datatype_sndrcv(psnd, scounts[rank], sdtype,
                               prcv, rcounts[rank], rdtype);
@@ -256,7 +256,7 @@ ompi_coll_base_alltoallv_intra_basic_linear(const void *sbuf, const int *scounts
         }
 
         ++nreqs;
-        prcv = ((char *) rbuf) + (ptrdiff_t)rdisps[i] * rext;
+        prcv = ((char *) rbuf) + (OPAL_PTRDIFF_TYPE)rdisps[i] * rext;
         err = MCA_PML_CALL(irecv_init(prcv, rcounts[i], rdtype,
                                       i, MCA_COLL_BASE_TAG_ALLTOALLV, comm,
                                       preq++));
@@ -270,7 +270,7 @@ ompi_coll_base_alltoallv_intra_basic_linear(const void *sbuf, const int *scounts
         }
 
         ++nreqs;
-        psnd = ((char *) sbuf) + (ptrdiff_t)sdisps[i] * sext;
+        psnd = ((char *) sbuf) + (OPAL_PTRDIFF_TYPE)sdisps[i] * sext;
         err = MCA_PML_CALL(isend_init(psnd, scounts[i], sdtype,
                                       i, MCA_COLL_BASE_TAG_ALLTOALLV,
                                       MCA_PML_BASE_SEND_STANDARD, comm,

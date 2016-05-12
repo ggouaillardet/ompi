@@ -12,7 +12,7 @@
  *                         All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -49,7 +49,7 @@ ompi_coll_base_scatter_intra_binomial( const void *sbuf, int scount,
     MPI_Status status;
     mca_coll_base_module_t *base_module = (mca_coll_base_module_t*) module;
     mca_coll_base_comm_t *data = base_module->base_data;
-    ptrdiff_t sextent, rextent, ssize, rsize, sgap, rgap;
+    OPAL_PTRDIFF_TYPE sextent, rextent, ssize, rsize, sgap, rgap;
 
 
     size = ompi_comm_size(comm);
@@ -90,13 +90,13 @@ ompi_coll_base_scatter_intra_binomial( const void *sbuf, int scount,
             ptmp = tempbuf - sgap;
 
             /* and rotate data so they will eventually in the right place */
-            err = ompi_datatype_copy_content_same_ddt(sdtype, (ptrdiff_t)scount * (ptrdiff_t)(size - root),
-                                                      ptmp, (char *) sbuf + sextent * (ptrdiff_t)root * (ptrdiff_t)scount);
+            err = ompi_datatype_copy_content_same_ddt(sdtype, (OPAL_PTRDIFF_TYPE)scount * (OPAL_PTRDIFF_TYPE)(size - root),
+                                                      ptmp, (char *) sbuf + sextent * (OPAL_PTRDIFF_TYPE)root * (OPAL_PTRDIFF_TYPE)scount);
             if (MPI_SUCCESS != err) { line = __LINE__; goto err_hndl; }
 
 
-            err = ompi_datatype_copy_content_same_ddt(sdtype, (ptrdiff_t)scount * (ptrdiff_t)root,
-                                                      ptmp + sextent * (ptrdiff_t)scount * (ptrdiff_t)(size - root), (char *)sbuf);
+            err = ompi_datatype_copy_content_same_ddt(sdtype, (OPAL_PTRDIFF_TYPE)scount * (OPAL_PTRDIFF_TYPE)root,
+                                                      ptmp + sextent * (OPAL_PTRDIFF_TYPE)scount * (OPAL_PTRDIFF_TYPE)(size - root), (char *)sbuf);
             if (MPI_SUCCESS != err) { line = __LINE__; goto err_hndl; }
 
             if (rbuf != MPI_IN_PLACE) {
@@ -125,7 +125,7 @@ ompi_coll_base_scatter_intra_binomial( const void *sbuf, int scount,
     if (!(vrank % 2)) {
         if (rank != root) {
             /* recv from parent on non-root */
-            err = MCA_PML_CALL(recv(ptmp, (ptrdiff_t)rcount * (ptrdiff_t)size, rdtype, bmtree->tree_prev,
+            err = MCA_PML_CALL(recv(ptmp, (OPAL_PTRDIFF_TYPE)rcount * (OPAL_PTRDIFF_TYPE)size, rdtype, bmtree->tree_prev,
                                     MCA_COLL_BASE_TAG_SCATTER, comm, &status));
             if (MPI_SUCCESS != err) { line = __LINE__; goto err_hndl; }
             /* local copy to rbuf */
@@ -144,7 +144,7 @@ ompi_coll_base_scatter_intra_binomial( const void *sbuf, int scount,
                 mycount = size - vkid;
             mycount *= scount;
 
-            err = MCA_PML_CALL(send(ptmp + (ptrdiff_t)total_send * sextent, mycount, sdtype,
+            err = MCA_PML_CALL(send(ptmp + (OPAL_PTRDIFF_TYPE)total_send * sextent, mycount, sdtype,
                                     bmtree->tree_next[i],
                                     MCA_COLL_BASE_TAG_SCATTER,
                                     MCA_PML_BASE_SEND_STANDARD, comm));
@@ -204,7 +204,7 @@ ompi_coll_base_scatter_intra_basic_linear(const void *sbuf, int scount,
                                           mca_coll_base_module_t *module)
 {
     int i, rank, size, err;
-    ptrdiff_t incr;
+    OPAL_PTRDIFF_TYPE incr;
     char *ptmp;
 
     /* Initialize */

@@ -90,7 +90,7 @@ int ompi_coll_base_allgather_intra_bruck(const void *sbuf, int scount,
                                           mca_coll_base_module_t *module)
 {
     int line = -1, rank, size, sendto, recvfrom, distance, blockcount, err = 0;
-    ptrdiff_t slb, rlb, sext, rext;
+    OPAL_PTRDIFF_TYPE slb, rlb, sext, rext;
     char *tmpsend = NULL, *tmprecv = NULL;
 
     size = ompi_comm_size(comm);
@@ -117,7 +117,7 @@ int ompi_coll_base_allgather_intra_bruck(const void *sbuf, int scount,
         if (MPI_SUCCESS != err) { line = __LINE__; goto err_hndl;  }
 
     } else if (0 != rank) {  /* non root with MPI_IN_PLACE */
-        tmpsend = ((char*)rbuf) + (ptrdiff_t)rank * (ptrdiff_t)rcount * rext;
+        tmpsend = ((char*)rbuf) + (OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)rcount * rext;
         err = ompi_datatype_copy_content_same_ddt(rdtype, rcount, tmprecv, tmpsend);
         if (err < 0) { line = __LINE__; goto err_hndl; }
     }
@@ -139,7 +139,7 @@ int ompi_coll_base_allgather_intra_bruck(const void *sbuf, int scount,
         recvfrom = (rank + distance) % size;
         sendto = (rank - distance + size) % size;
 
-        tmprecv = tmpsend + (ptrdiff_t)distance * (ptrdiff_t)rcount * rext;
+        tmprecv = tmpsend + (OPAL_PTRDIFF_TYPE)distance * (OPAL_PTRDIFF_TYPE)rcount * rext;
 
         if (distance <= (size >> 1)) {
             blockcount = distance;
@@ -168,7 +168,7 @@ int ompi_coll_base_allgather_intra_bruck(const void *sbuf, int scount,
     */
     if (0 != rank) {
         char *free_buf = NULL, *shift_buf = NULL;
-        ptrdiff_t span, gap;
+        OPAL_PTRDIFF_TYPE span, gap;
 
         span = opal_datatype_span(&rdtype->super, (int64_t)(size - rank) * rcount, &gap);
 
@@ -179,19 +179,19 @@ int ompi_coll_base_allgather_intra_bruck(const void *sbuf, int scount,
         shift_buf = free_buf - gap;
 
         /* 1. copy blocks [0 .. (size - rank - 1)] from rbuf to shift buffer */
-        err = ompi_datatype_copy_content_same_ddt(rdtype, ((ptrdiff_t)(size - rank) * (ptrdiff_t)rcount),
+        err = ompi_datatype_copy_content_same_ddt(rdtype, ((OPAL_PTRDIFF_TYPE)(size - rank) * (OPAL_PTRDIFF_TYPE)rcount),
                                                   shift_buf, rbuf);
         if (err < 0) { line = __LINE__; goto err_hndl;  }
 
         /* 2. move blocks [(size - rank) .. size] from rbuf to the begining of rbuf */
-        tmpsend = (char*) rbuf + (ptrdiff_t)(size - rank) * (ptrdiff_t)rcount * rext;
-        err = ompi_datatype_copy_content_same_ddt(rdtype, (ptrdiff_t)rank * (ptrdiff_t)rcount,
+        tmpsend = (char*) rbuf + (OPAL_PTRDIFF_TYPE)(size - rank) * (OPAL_PTRDIFF_TYPE)rcount * rext;
+        err = ompi_datatype_copy_content_same_ddt(rdtype, (OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)rcount,
                                                   rbuf, tmpsend);
         if (err < 0) { line = __LINE__; goto err_hndl;  }
 
         /* 3. copy blocks from shift buffer back to rbuf starting at block [rank]. */
-        tmprecv = (char*) rbuf + (ptrdiff_t)rank * (ptrdiff_t)rcount * rext;
-        err = ompi_datatype_copy_content_same_ddt(rdtype, (ptrdiff_t)(size - rank) * (ptrdiff_t)rcount,
+        tmprecv = (char*) rbuf + (OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)rcount * rext;
+        err = ompi_datatype_copy_content_same_ddt(rdtype, (OPAL_PTRDIFF_TYPE)(size - rank) * (OPAL_PTRDIFF_TYPE)rcount,
                                                   tmprecv, shift_buf);
         if (err < 0) { line = __LINE__; goto err_hndl;  }
 
@@ -262,7 +262,7 @@ ompi_coll_base_allgather_intra_recursivedoubling(const void *sbuf, int scount,
 {
     int line = -1, rank, size, pow2size, err;
     int remote, distance, sendblocklocation;
-    ptrdiff_t slb, rlb, sext, rext;
+    OPAL_PTRDIFF_TYPE slb, rlb, sext, rext;
     char *tmpsend = NULL, *tmprecv = NULL;
 
     size = ompi_comm_size(comm);
@@ -301,7 +301,7 @@ ompi_coll_base_allgather_intra_recursivedoubling(const void *sbuf, int scount,
     */
     if (MPI_IN_PLACE != sbuf) {
         tmpsend = (char*) sbuf;
-        tmprecv = (char*) rbuf + (ptrdiff_t)rank * (ptrdiff_t)rcount * rext;
+        tmprecv = (char*) rbuf + (OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)rcount * rext;
         err = ompi_datatype_sndrcv(tmpsend, scount, sdtype, tmprecv, rcount, rdtype);
         if (MPI_SUCCESS != err) { line = __LINE__; goto err_hndl;  }
 
@@ -317,18 +317,18 @@ ompi_coll_base_allgather_intra_recursivedoubling(const void *sbuf, int scount,
         remote = rank ^ distance;
 
         if (rank < remote) {
-            tmpsend = (char*)rbuf + (ptrdiff_t)sendblocklocation * (ptrdiff_t)rcount * rext;
-            tmprecv = (char*)rbuf + (ptrdiff_t)(sendblocklocation + distance) * (ptrdiff_t)rcount * rext;
+            tmpsend = (char*)rbuf + (OPAL_PTRDIFF_TYPE)sendblocklocation * (OPAL_PTRDIFF_TYPE)rcount * rext;
+            tmprecv = (char*)rbuf + (OPAL_PTRDIFF_TYPE)(sendblocklocation + distance) * (OPAL_PTRDIFF_TYPE)rcount * rext;
         } else {
-            tmpsend = (char*)rbuf + (ptrdiff_t)sendblocklocation * (ptrdiff_t)rcount * rext;
-            tmprecv = (char*)rbuf + (ptrdiff_t)(sendblocklocation - distance) * (ptrdiff_t)rcount * rext;
+            tmpsend = (char*)rbuf + (OPAL_PTRDIFF_TYPE)sendblocklocation * (OPAL_PTRDIFF_TYPE)rcount * rext;
+            tmprecv = (char*)rbuf + (OPAL_PTRDIFF_TYPE)(sendblocklocation - distance) * (OPAL_PTRDIFF_TYPE)rcount * rext;
             sendblocklocation -= distance;
         }
 
         /* Sendreceive */
-        err = ompi_coll_base_sendrecv(tmpsend, (ptrdiff_t)distance * (ptrdiff_t)rcount, rdtype,
+        err = ompi_coll_base_sendrecv(tmpsend, (OPAL_PTRDIFF_TYPE)distance * (OPAL_PTRDIFF_TYPE)rcount, rdtype,
                                        remote, MCA_COLL_BASE_TAG_ALLGATHER,
-                                       tmprecv, (ptrdiff_t)distance * (ptrdiff_t)rcount, rdtype,
+                                       tmprecv, (OPAL_PTRDIFF_TYPE)distance * (OPAL_PTRDIFF_TYPE)rcount, rdtype,
                                        remote, MCA_COLL_BASE_TAG_ALLGATHER,
                                        comm, MPI_STATUS_IGNORE, rank);
         if (MPI_SUCCESS != err) { line = __LINE__; goto err_hndl; }
@@ -369,7 +369,7 @@ int ompi_coll_base_allgather_intra_ring(const void *sbuf, int scount,
                                          mca_coll_base_module_t *module)
 {
     int line = -1, rank, size, err, sendto, recvfrom, i, recvdatafrom, senddatafrom;
-    ptrdiff_t slb, rlb, sext, rext;
+    OPAL_PTRDIFF_TYPE slb, rlb, sext, rext;
     char *tmpsend = NULL, *tmprecv = NULL;
 
     size = ompi_comm_size(comm);
@@ -388,7 +388,7 @@ int ompi_coll_base_allgather_intra_ring(const void *sbuf, int scount,
        - if send buffer is not MPI_IN_PLACE, copy send buffer to appropriate block
        of receive buffer
     */
-    tmprecv = (char*) rbuf + (ptrdiff_t)rank * (ptrdiff_t)rcount * rext;
+    tmprecv = (char*) rbuf + (OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)rcount * rext;
     if (MPI_IN_PLACE != sbuf) {
         tmpsend = (char*) sbuf;
         err = ompi_datatype_sndrcv(tmpsend, scount, sdtype, tmprecv, rcount, rdtype);
@@ -410,8 +410,8 @@ int ompi_coll_base_allgather_intra_ring(const void *sbuf, int scount,
         recvdatafrom = (rank - i - 1 + size) % size;
         senddatafrom = (rank - i + size) % size;
 
-        tmprecv = (char*)rbuf + (ptrdiff_t)recvdatafrom * (ptrdiff_t)rcount * rext;
-        tmpsend = (char*)rbuf + (ptrdiff_t)senddatafrom * (ptrdiff_t)rcount * rext;
+        tmprecv = (char*)rbuf + (OPAL_PTRDIFF_TYPE)recvdatafrom * (OPAL_PTRDIFF_TYPE)rcount * rext;
+        tmpsend = (char*)rbuf + (OPAL_PTRDIFF_TYPE)senddatafrom * (OPAL_PTRDIFF_TYPE)rcount * rext;
 
         /* Sendreceive */
         err = ompi_coll_base_sendrecv(tmpsend, rcount, rdtype, sendto,
@@ -499,7 +499,7 @@ ompi_coll_base_allgather_intra_neighborexchange(const void *sbuf, int scount,
 {
     int line = -1, rank, size, i, even_rank, err;
     int neighbor[2], offset_at_step[2], recv_data_from[2], send_data_from;
-    ptrdiff_t slb, rlb, sext, rext;
+    OPAL_PTRDIFF_TYPE slb, rlb, sext, rext;
     char *tmpsend = NULL, *tmprecv = NULL;
 
     size = ompi_comm_size(comm);
@@ -527,7 +527,7 @@ ompi_coll_base_allgather_intra_neighborexchange(const void *sbuf, int scount,
        - if send buffer is not MPI_IN_PLACE, copy send buffer to appropriate block
        of receive buffer
     */
-    tmprecv = (char*) rbuf + (ptrdiff_t)rank *(ptrdiff_t) rcount * rext;
+    tmprecv = (char*) rbuf + (OPAL_PTRDIFF_TYPE)rank *(OPAL_PTRDIFF_TYPE) rcount * rext;
     if (MPI_IN_PLACE != sbuf) {
         tmpsend = (char*) sbuf;
         err = ompi_datatype_sndrcv(tmpsend, scount, sdtype, tmprecv, rcount, rdtype);
@@ -559,8 +559,8 @@ ompi_coll_base_allgather_intra_neighborexchange(const void *sbuf, int scount,
        exchange two blocks with appropriate neighbor.
        the send location becomes previous receve location.
     */
-    tmprecv = (char*)rbuf + (ptrdiff_t)neighbor[0] * (ptrdiff_t)rcount * rext;
-    tmpsend = (char*)rbuf + (ptrdiff_t)rank * (ptrdiff_t)rcount * rext;
+    tmprecv = (char*)rbuf + (OPAL_PTRDIFF_TYPE)neighbor[0] * (OPAL_PTRDIFF_TYPE)rcount * rext;
+    tmpsend = (char*)rbuf + (OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)rcount * rext;
     /* Sendreceive */
     err = ompi_coll_base_sendrecv(tmpsend, rcount, rdtype, neighbor[0],
                                    MCA_COLL_BASE_TAG_ALLGATHER,
@@ -581,14 +581,14 @@ ompi_coll_base_allgather_intra_neighborexchange(const void *sbuf, int scount,
         recv_data_from[i_parity] =
             (recv_data_from[i_parity] + offset_at_step[i_parity] + size) % size;
 
-        tmprecv = (char*)rbuf + (ptrdiff_t)recv_data_from[i_parity] * (ptrdiff_t)rcount * rext;
-        tmpsend = (char*)rbuf + (ptrdiff_t)send_data_from * rcount * rext;
+        tmprecv = (char*)rbuf + (OPAL_PTRDIFF_TYPE)recv_data_from[i_parity] * (OPAL_PTRDIFF_TYPE)rcount * rext;
+        tmpsend = (char*)rbuf + (OPAL_PTRDIFF_TYPE)send_data_from * rcount * rext;
 
         /* Sendreceive */
-        err = ompi_coll_base_sendrecv(tmpsend, (ptrdiff_t)2 * (ptrdiff_t)rcount, rdtype,
+        err = ompi_coll_base_sendrecv(tmpsend, (OPAL_PTRDIFF_TYPE)2 * (OPAL_PTRDIFF_TYPE)rcount, rdtype,
                                        neighbor[i_parity],
                                        MCA_COLL_BASE_TAG_ALLGATHER,
-                                       tmprecv, (ptrdiff_t)2 * (ptrdiff_t)rcount, rdtype,
+                                       tmprecv, (OPAL_PTRDIFF_TYPE)2 * (OPAL_PTRDIFF_TYPE)rcount, rdtype,
                                        neighbor[i_parity],
                                        MCA_COLL_BASE_TAG_ALLGATHER,
                                        comm, MPI_STATUS_IGNORE, rank);
@@ -616,7 +616,7 @@ int ompi_coll_base_allgather_intra_two_procs(const void *sbuf, int scount,
 {
     int line = -1, err, rank, remote;
     char *tmpsend = NULL, *tmprecv = NULL;
-    ptrdiff_t sext, rext, lb;
+    OPAL_PTRDIFF_TYPE sext, rext, lb;
 
     rank = ompi_comm_rank(comm);
 
@@ -641,11 +641,11 @@ int ompi_coll_base_allgather_intra_two_procs(const void *sbuf, int scount,
 
     tmpsend = (char*)sbuf;
     if (MPI_IN_PLACE == sbuf) {
-        tmpsend = (char*)rbuf + (ptrdiff_t)rank * (ptrdiff_t)rcount * rext;
+        tmpsend = (char*)rbuf + (OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)rcount * rext;
         scount = rcount;
         sdtype = rdtype;
     }
-    tmprecv = (char*)rbuf + (ptrdiff_t)remote * (ptrdiff_t)rcount * rext;
+    tmprecv = (char*)rbuf + (OPAL_PTRDIFF_TYPE)remote * (OPAL_PTRDIFF_TYPE)rcount * rext;
 
     err = ompi_coll_base_sendrecv(tmpsend, scount, sdtype, remote,
                                    MCA_COLL_BASE_TAG_ALLGATHER,
@@ -657,7 +657,7 @@ int ompi_coll_base_allgather_intra_two_procs(const void *sbuf, int scount,
     /* Place your data in correct location if necessary */
     if (MPI_IN_PLACE != sbuf) {
         err = ompi_datatype_sndrcv((char*)sbuf, scount, sdtype,
-                                   (char*)rbuf + (ptrdiff_t)rank * (ptrdiff_t)rcount * rext, rcount, rdtype);
+                                   (char*)rbuf + (OPAL_PTRDIFF_TYPE)rank * (OPAL_PTRDIFF_TYPE)rcount * rext, rcount, rdtype);
         if (MPI_SUCCESS != err) { line = __LINE__; goto err_hndl;  }
     }
 
@@ -702,7 +702,7 @@ ompi_coll_base_allgather_intra_basic_linear(const void *sbuf, int scount,
                                              mca_coll_base_module_t *module)
 {
     int err;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
 
     /* Handle MPI_IN_PLACE (see explanantion in reduce.c for how to
        allocate temp buffer) -- note that rank 0 can use IN_PLACE
@@ -722,9 +722,9 @@ ompi_coll_base_allgather_intra_basic_linear(const void *sbuf, int scount,
                                    rbuf, rcount, rdtype,
                                    0, comm, comm->c_coll.coll_gather_module);
     if (MPI_SUCCESS == err) {
-        size_t length = (ptrdiff_t)rcount * ompi_comm_size(comm);
+        size_t length = (OPAL_PTRDIFF_TYPE)rcount * ompi_comm_size(comm);
         if( length < (size_t)INT_MAX ) {
-            err = comm->c_coll.coll_bcast(rbuf, (ptrdiff_t)rcount * ompi_comm_size(comm), rdtype,
+            err = comm->c_coll.coll_bcast(rbuf, (OPAL_PTRDIFF_TYPE)rcount * ompi_comm_size(comm), rdtype,
                                           0, comm, comm->c_coll.coll_bcast_module);
         } else {
             ompi_datatype_t* temptype;
