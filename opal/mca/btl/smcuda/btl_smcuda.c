@@ -16,7 +16,7 @@
  *                         reserved.
  * Copyright (c) 2012-2015 NVIDIA Corporation.  All rights reserved.
  * Copyright (c) 2012      Oracle and/or its affiliates.  All rights reserved.
- * Copyright (c) 2014      Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2015      Intel, Inc. All rights reserved.
  * $COPYRIGHT$
@@ -116,7 +116,7 @@ static void mca_btl_smcuda_send_cuda_ipc_request(struct mca_btl_base_module_t* b
  * calculate an absolute address in a local address space given an offset and
  * a base address of a shared memory segment
  */
-#define OFFSET2ADDR(OFFSET, BASE) ((ptrdiff_t)(OFFSET) + (char*)(BASE))
+#define OFFSET2ADDR(OFFSET, BASE) ((OPAL_PTRDIFF_TYPE)(OFFSET) + (char*)(BASE))
 
 static void *mpool_calloc(size_t nmemb, size_t size)
 {
@@ -646,7 +646,7 @@ int mca_btl_smcuda_add_procs(
     /* coordinate with other processes */
     for(j = mca_btl_smcuda_component.num_smp_procs;
         j < mca_btl_smcuda_component.num_smp_procs + n_local_procs; j++) {
-        ptrdiff_t diff;
+        OPAL_PTRDIFF_TYPE diff;
 
         /* spin until this element is allocated */
         /* doesn't really wait for that process... FIFO might be allocated, but not initialized */
