@@ -4,6 +4,8 @@
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -282,7 +284,7 @@ int compute_knomial_allgather_offsets(int group_index, int count, struct
     size_t seg_count, seg_size, seg_index, seg_offset;
     size_t block_offset, block_count;
     int exchange_step;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
 
     if (0 >= n_exchanges) {
         PTPCOLL_VERBOSE(10,("Nothing to initialize "));
@@ -405,7 +407,7 @@ int bcol_ptpcoll_allreduce_recursivek_scatter_reduce(mca_bcol_ptpcoll_module_t *
     size_t block_offset, reduce_seg_offset, send_offset, recv_offset;
     int seg_size, block_size;
     int block_count, seg_count;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     ompi_datatype_get_extent(dtype, &lb, &extent);
 
     my_recv_start_addr = rbuf;
@@ -573,7 +575,7 @@ int bcol_ptpcoll_allreduce_knomial_allgather(mca_bcol_ptpcoll_module_t *ptpcoll_
     ompi_communicator_t* comm = ptpcoll_module->super.sbgp_partner_module->group_comm;
     int exchange_step;
     int *group_list = ptpcoll_module->super.sbgp_partner_module->group_list;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     ompi_datatype_get_extent(dtype, &lb, &extent);
 
 
@@ -722,7 +724,7 @@ int bcol_ptpcoll_allreduce_recursivek_scatter_reduce_allgather_init(bcol_functio
         &(ptpcoll_module->ml_mem.ml_buf_desc[buffer_index].active_requests);
     int *status =
         &(ptpcoll_module->ml_mem.ml_buf_desc[buffer_index].status);
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
 
     /* Get the knomial tree */
     netpatterns_k_exchange_node_t *k_node = &ptpcoll_module->knomial_exchange_tree;
@@ -775,7 +777,7 @@ int bcol_ptpcoll_allreduce_recursivek_scatter_reduce_extra(mca_bcol_ptpcoll_modu
     ompi_communicator_t* comm = ptpcoll_module->super.sbgp_partner_module->group_comm;
     int block_count, block_size;
     char *tmprecv_buffer = NULL, *data_src_buffer, *data_dst_buffer;
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     ompi_datatype_get_extent(dtype, &lb, &extent);
 
     block_count = count;
@@ -848,7 +850,7 @@ int bcol_ptpcoll_allreduce_knomial_allgather_extra(mca_bcol_ptpcoll_module_t *pt
         ptpcoll_module->ml_mem.ml_buf_desc[buffer_index].requests;
     int *active_requests =
         &(ptpcoll_module->ml_mem.ml_buf_desc[buffer_index].active_requests);
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     ompi_datatype_get_extent(dtype, &lb, &extent);
 
 
@@ -921,7 +923,7 @@ int bcol_ptpcoll_allreduce_recursivek_scatter_reduce_allgather_extra_init(bcol_f
         &(ptpcoll_module->ml_mem.ml_buf_desc[buffer_index].active_requests);
     int *status =
         &(ptpcoll_module->ml_mem.ml_buf_desc[buffer_index].status);
-    ptrdiff_t lb, extent;
+    OPAL_PTRDIFF_TYPE lb, extent;
     /* Get the knomial tree */
     netpatterns_k_exchange_node_t *k_node = &ptpcoll_module->knomial_exchange_tree;
     int k_radix = k_node->tree_order;
