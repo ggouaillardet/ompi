@@ -13,7 +13,7 @@
  * Copyright (c) 2011-2016 Los Alamos National Security, LLC. All rights
  *                         reserved.
  * Copyright (c) 2014-2016 Intel, Inc. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -93,7 +93,7 @@ static int orte_grpcomm_base_open(mca_base_open_flag_t flags)
 }
 
 MCA_BASE_FRAMEWORK_DECLARE(orte, grpcomm, NULL, NULL, orte_grpcomm_base_open, orte_grpcomm_base_close,
-                           mca_grpcomm_base_static_components, 0);
+                           mca_grpcomm_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 OBJ_CLASS_INSTANCE(orte_grpcomm_base_active_t,
                    opal_list_item_t,

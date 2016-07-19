@@ -11,7 +11,7 @@
  *                         All rights reserved.
  * Copyright (c) 2007      Evergrid, Inc. All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  *
  * $COPYRIGHT$
@@ -104,5 +104,5 @@ static int orte_snapc_base_open(mca_base_open_flag_t flags)
 
 MCA_BASE_FRAMEWORK_DECLARE(orte, snapc, "ORTE Snapc", orte_snapc_base_register,
                            orte_snapc_base_open, orte_snapc_base_close,
-                           mca_snapc_base_static_components, 0);
+                           mca_snapc_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 

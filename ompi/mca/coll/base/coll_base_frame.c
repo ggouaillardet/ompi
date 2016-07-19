@@ -12,7 +12,7 @@
  *                         All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2014      Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -127,4 +127,4 @@ ompi_request_t** coll_base_comm_get_reqs(mca_coll_base_comm_t* data, int nreqs)
 }
 
 MCA_BASE_FRAMEWORK_DECLARE(ompi, coll, "Collectives", NULL, NULL, NULL,
-                           mca_coll_base_static_components, 0);
+                           mca_coll_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);

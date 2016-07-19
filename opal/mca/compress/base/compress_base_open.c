@@ -4,7 +4,7 @@
  *                         All rights reserved.
  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.
  *                         All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -38,7 +38,7 @@ static int opal_compress_base_register(mca_base_register_flag_t flags);
 
 MCA_BASE_FRAMEWORK_DECLARE(opal, compress, "COMPRESS MCA",
                            opal_compress_base_register, opal_compress_base_open,
-                           opal_compress_base_close, mca_compress_base_static_components, 0);
+                           opal_compress_base_close, mca_compress_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 static int opal_compress_base_register(mca_base_register_flag_t flags)
 {

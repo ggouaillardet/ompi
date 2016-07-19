@@ -2,6 +2,8 @@
  * Copyright (c) 2004-2005 The University of Tennessee and The University
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -31,4 +33,4 @@
  */
 /* Use default register/open/close functions */
 MCA_BASE_FRAMEWORK_DECLARE(opal, memcpy, NULL, NULL, NULL, NULL,
-                           mca_memcpy_base_static_components, 0);
+                           mca_memcpy_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);

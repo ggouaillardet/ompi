@@ -58,5 +58,5 @@ static int mca_vprotocol_base_close(void)
 
 MCA_BASE_FRAMEWORK_DECLARE(ompi, vprotocol, "OMPI Vprotocol", NULL,
                            mca_vprotocol_base_open, mca_vprotocol_base_close,
-                           mca_vprotocol_base_static_components, 0);
+                           mca_vprotocol_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 

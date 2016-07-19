@@ -5,7 +5,7 @@
  * Copyright (c) 2013      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2013-2014 Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -47,7 +47,7 @@ static int mca_bcol_base_register(mca_base_register_flag_t flags);
 **  * Global variables
 **   */
 MCA_BASE_FRAMEWORK_DECLARE(ompi, bcol, NULL, mca_bcol_base_register, mca_bcol_base_open, mca_bcol_base_close,
-                           mca_bcol_base_static_components, 0);
+                           mca_bcol_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 OMPI_DECLSPEC opal_list_t mca_bcol_base_components_in_use = {{0}};
 OMPI_DECLSPEC char *ompi_bcol_bcols_string = NULL;

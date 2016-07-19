@@ -12,6 +12,8 @@
  *                         All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC.  All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -115,4 +117,4 @@ ompi_mtl_base_close(void)
 }
 
 MCA_BASE_FRAMEWORK_DECLARE(ompi, mtl, NULL, NULL, NULL, ompi_mtl_base_close,
-                           mca_mtl_base_static_components, 0);
+                           mca_mtl_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);

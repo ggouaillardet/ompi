@@ -11,7 +11,7 @@
  *                         All rights reserved.
  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.  All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -89,4 +89,4 @@ static int orte_ras_base_open(mca_base_open_flag_t flags)
 
 MCA_BASE_FRAMEWORK_DECLARE(orte, ras, "ORTE Resource Allocation Subsystem",
                            ras_register, orte_ras_base_open, orte_ras_base_close,
-                           mca_ras_base_static_components, 0);
+                           mca_ras_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);

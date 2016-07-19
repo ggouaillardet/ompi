@@ -13,7 +13,7 @@
  * Copyright (c) 2009      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2013-2015 Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -237,4 +237,4 @@ static int mca_pml_base_open(mca_base_open_flag_t flags)
 
 MCA_BASE_FRAMEWORK_DECLARE(ompi, pml, "OMPI PML", mca_pml_base_register,
                            mca_pml_base_open, mca_pml_base_close,
-                           mca_pml_base_static_components, 0);
+                           mca_pml_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);

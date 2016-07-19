@@ -1,11 +1,11 @@
 /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */
 /*
- * Copyright (c)      2010 The Trustees of Indiana University.
+ * Copyright (c) 2010      The Trustees of Indiana University.
  *                         All rights reserved.
  * Copyright (c) 2012      The University of Wisconsin-La Crosse. All rights
  *                         reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -160,7 +160,7 @@ static int orte_sstore_base_open(mca_base_open_flag_t flags)
 
 MCA_BASE_FRAMEWORK_DECLARE(orte, sstore, "ORTE Sstore", orte_sstore_base_register,
                            orte_sstore_base_open, orte_sstore_base_close,
-                           mca_sstore_base_static_components, 0);
+                           mca_sstore_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 
 int orte_sstore_base_determine_context(void)

@@ -9,8 +9,8 @@
  *                         University of Stuttgart.  All rights reserved.
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
- * Copyright (c) 2014 Cisco Systems, Inc.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2014      Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -51,4 +51,4 @@ static int mca_timer_base_register(mca_base_register_flag_t flags)
  */
 /* Use default register/open/close functions */
 MCA_BASE_FRAMEWORK_DECLARE(opal, timer, "OPAL OS timer", mca_timer_base_register, NULL, NULL,
-                           mca_timer_base_static_components, 0);
+                           mca_timer_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);

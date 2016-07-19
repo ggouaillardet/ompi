@@ -11,7 +11,7 @@
  *                         All rights reserved.
  * Copyright (c) 2012-2013 Los Alamos National Security, Inc.  All rights reserved.
  * Copyright (c) 2012-2013 Inria.  All rights reserved.
- * Copyright (c) 2014      Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -73,5 +73,5 @@ static int mca_topo_base_open(mca_base_open_flag_t flags)
 
 MCA_BASE_FRAMEWORK_DECLARE(ompi, topo, "OMPI Topo", NULL,
                            mca_topo_base_open, mca_topo_base_close,
-                           mca_topo_base_static_components, 0);
+                           mca_topo_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 

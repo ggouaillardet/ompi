@@ -11,7 +11,7 @@
  *                         All rights reserved.
  * Copyright (c) 2008-2011 University of Houston. All rights reserved.
  * Copyright (c) 2012-2013 Los Alamos National Security, Inc.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -61,5 +61,5 @@ static int mca_sharedfp_base_open(mca_base_open_flag_t flags)
 
 MCA_BASE_FRAMEWORK_DECLARE(ompi, sharedfp, "OMPI Shared Files", NULL,
                            mca_sharedfp_base_open, mca_sharedfp_base_close,
-                           mca_sharedfp_base_static_components, 0);
+                           mca_sharedfp_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 

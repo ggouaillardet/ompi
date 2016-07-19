@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2014-2015 Intel, Inc. All rights reserved.
  * Copyright (c) 2015-2016 Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -74,10 +76,10 @@ static int opal_pmix_base_frame_open(mca_base_open_flag_t flags)
 }
 
 MCA_BASE_FRAMEWORK_DECLARE(opal, pmix, "OPAL PMI Client Framework",
-			   opal_pmix_base_frame_register,
-			   opal_pmix_base_frame_open,
-			   opal_pmix_base_frame_close,
-			   mca_pmix_base_static_components, 0);
+                           opal_pmix_base_frame_register,
+                           opal_pmix_base_frame_open,
+                           opal_pmix_base_frame_close,
+                           mca_pmix_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 /****  PMIX FRAMEWORK OBJECTS  ****/
 static void lkcon(opal_pmix_pdata_t *p)

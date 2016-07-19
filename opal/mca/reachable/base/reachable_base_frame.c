@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2014      Intel, Inc. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -50,4 +50,4 @@ MCA_BASE_FRAMEWORK_DECLARE(opal, reachable, "OPAL Reachability Framework",
                            opal_reachable_base_frame_register,
                            opal_reachable_base_frame_open,
                            opal_reachable_base_frame_close,
-                           mca_reachable_base_static_components, 0);
+                           mca_reachable_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);

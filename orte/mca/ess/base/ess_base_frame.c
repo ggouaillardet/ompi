@@ -11,7 +11,7 @@
  *                         All rights reserved.
  * Copyright (c) 2011 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012      Oak Ridge National Labs.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -113,6 +113,6 @@ static int orte_ess_base_open(mca_base_open_flag_t flags)
 
 MCA_BASE_FRAMEWORK_DECLARE(orte, ess, "ORTE Environmenal System Setup",
                            orte_ess_base_register, orte_ess_base_open, orte_ess_base_close,
-                           mca_ess_base_static_components, 0);
+                           mca_ess_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 

@@ -8,7 +8,7 @@
  * Copyright (c) 2004-2011 The University of Tennessee and The University
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -116,7 +116,7 @@ static int orte_routed_base_close(void)
 
 MCA_BASE_FRAMEWORK_DECLARE(orte, routed, "ORTE Message Routing Subsystem", NULL,
                            orte_routed_base_open, orte_routed_base_close,
-                           mca_routed_base_static_components, 0);
+                           mca_routed_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 
 int orte_routed_base_select(void)

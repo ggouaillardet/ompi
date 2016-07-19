@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2014-2015 Intel, Inc. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -60,7 +60,7 @@ static int opal_sec_base_open(mca_base_open_flag_t flags)
 }
 
 MCA_BASE_FRAMEWORK_DECLARE(opal, sec, NULL, NULL, opal_sec_base_open, opal_sec_base_close,
-                           mca_sec_base_static_components, 0);
+                           mca_sec_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 static void hcon(opal_sec_handle_t *p)
 {

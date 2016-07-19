@@ -11,7 +11,7 @@
  * Copyright (c) 2007      Evergrid, Inc. All rights reserved.
  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.
  *                         All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  *
  * $COPYRIGHT$
@@ -50,7 +50,7 @@ static int opal_crs_base_register(mca_base_register_flag_t flags);
 /* Use default select */
 MCA_BASE_FRAMEWORK_DECLARE(opal, crs, "Checkpoint and Restart Service (CRS)",
                            opal_crs_base_register, opal_crs_base_open,
-                           opal_crs_base_close, mca_crs_base_static_components, 0);
+                           opal_crs_base_close, mca_crs_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 static int opal_crs_base_register(mca_base_register_flag_t flags)
 {

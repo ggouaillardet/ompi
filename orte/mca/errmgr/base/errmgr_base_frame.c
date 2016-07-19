@@ -13,7 +13,7 @@
  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.
  *                         All rights reserved.
  * Copyright (c) 2013      Intel, Inc. All rights reserved
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -117,7 +117,7 @@ static int orte_errmgr_base_open(mca_base_open_flag_t flags)
 
 MCA_BASE_FRAMEWORK_DECLARE(orte, errmgr, "ORTE Error Manager", NULL,
                            orte_errmgr_base_open, orte_errmgr_base_close,
-                           mca_errmgr_base_static_components, 0);
+                           mca_errmgr_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 OBJ_CLASS_INSTANCE(orte_errmgr_cback_t,
                    opal_list_item_t,

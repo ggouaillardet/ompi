@@ -9,6 +9,8 @@
  *                         University of Stuttgart.  All rights reserved.
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -38,7 +40,7 @@
  * Global variables
  */
 MCA_BASE_FRAMEWORK_DECLARE(opal, allocator, NULL, NULL, NULL, NULL,
-                           mca_allocator_base_static_components, 0);
+                           mca_allocator_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 /**
  * Traverses through the list of available components, calling their init

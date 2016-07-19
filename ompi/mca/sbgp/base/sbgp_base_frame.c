@@ -3,7 +3,7 @@
  * Copyright (c) 2009-2012 Oak Ridge National Laboratory.  All rights reserved.
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
  * Copyright (c) 2012-2014 Los Alamos National Security, Inc.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -201,5 +201,5 @@ static int mca_sbgp_base_open(mca_base_open_flag_t flags)
 
 MCA_BASE_FRAMEWORK_DECLARE(ompi, sbgp, "OMPI Subgroup Subsystem", mca_sbgp_base_register,
                            mca_sbgp_base_open, mca_sbgp_base_close,
-                           mca_sbgp_base_static_components, 0);
+                           mca_sbgp_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 

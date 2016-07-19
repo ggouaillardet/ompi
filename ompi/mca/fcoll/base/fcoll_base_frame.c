@@ -13,6 +13,8 @@
  * Copyright (c) 2008-2011 University of Houston. All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC.  All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -43,4 +45,4 @@
  */
 
 MCA_BASE_FRAMEWORK_DECLARE(ompi, fcoll, NULL, NULL, NULL, NULL,
-                           mca_fcoll_base_static_components, 0);
+                           mca_fcoll_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);

@@ -12,7 +12,7 @@
  * Copyright (c) 2013      Los Alamos National Security, LLC.  All rights reserved.
  * Copyright (c) 2013      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2015-2016 Intel, Inc. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -310,5 +310,5 @@ static int orte_iof_base_open(mca_base_open_flag_t flags)
 
 MCA_BASE_FRAMEWORK_DECLARE(orte, iof, "ORTE I/O Forwarding",
                            orte_iof_base_register, orte_iof_base_open, orte_iof_base_close,
-                           mca_iof_base_static_components, 0);
+                           mca_iof_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 

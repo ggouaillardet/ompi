@@ -11,7 +11,7 @@
  *                         All rights reserved.
  * Copyright (c) 2008-2015 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2014      Intel, Inc.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -242,7 +242,7 @@ static int orte_notifier_base_open(mca_base_open_flag_t flags)
 MCA_BASE_FRAMEWORK_DECLARE(orte, notifier, "ORTE Notifier Framework",
                            orte_notifier_base_register,
                            orte_notifier_base_open, orte_notifier_base_close,
-                           mca_notifier_base_static_components, 0);
+                           mca_notifier_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 
 OBJ_CLASS_INSTANCE (orte_notifier_active_module_t,

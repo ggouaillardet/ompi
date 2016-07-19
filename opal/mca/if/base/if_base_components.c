@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2013 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2015      Intel, Inc. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -36,7 +36,7 @@ static bool frameopen = false;
 OBJ_CLASS_INSTANCE(opal_if_t, opal_list_item_t, opal_if_construct, NULL);
 
 MCA_BASE_FRAMEWORK_DECLARE(opal, if, NULL, opal_if_base_register, opal_if_base_open, opal_if_base_close,
-                           mca_if_base_static_components, 0);
+                           mca_if_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 static int opal_if_base_register (mca_base_register_flag_t flags)
 {

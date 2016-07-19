@@ -12,7 +12,7 @@
  *                         All rights reserved.
  * Copyright (c) 2006-2007 Sun Microsystems, Inc.  All rights reserved.
  * Copyright (c) 2008-2013 Cisco Systems, Inc.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2016      Los Alamos National Security, LLC. All rights
  *                         reserved.
@@ -222,4 +222,4 @@ static int mca_btl_base_close(void)
 
 MCA_BASE_FRAMEWORK_DECLARE(opal, btl, "Byte Transport Layer", mca_btl_base_register,
                            mca_btl_base_open, mca_btl_base_close, mca_btl_base_static_components,
-                           0);
+                           MCA_BASE_FRAMEWORK_FLAG_DEFAULT);

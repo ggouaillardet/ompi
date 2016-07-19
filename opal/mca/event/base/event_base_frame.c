@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2010-2015 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2014-2015 Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -52,7 +54,7 @@ static int opal_event_base_close(void);
 /* Use default register and close function */
 MCA_BASE_FRAMEWORK_DECLARE(opal, event, NULL, NULL, opal_event_base_open,
 			   opal_event_base_close, mca_event_base_static_components,
-			   0);
+			   MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 static int opal_event_base_close(void)
 {

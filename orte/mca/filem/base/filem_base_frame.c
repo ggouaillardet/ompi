@@ -9,6 +9,8 @@
  *                         All rights reserved.
  * Copyright (c) 2012-2013 Los Alamos National Security, LLC.
  *                         All rights reserved
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -68,5 +70,5 @@ static int orte_filem_base_open(mca_base_open_flag_t flags)
 }
 
 MCA_BASE_FRAMEWORK_DECLARE(orte, filem, NULL, NULL, orte_filem_base_open, orte_filem_base_close,
-                           mca_filem_base_static_components, 0);
+                           mca_filem_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 

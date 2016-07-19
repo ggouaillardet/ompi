@@ -42,7 +42,7 @@ static int mca_bml_base_close(void);
 
 MCA_BASE_FRAMEWORK_DECLARE(ompi, bml, "BTL Multiplexing Layer", mca_bml_base_register,
                            mca_bml_base_open, mca_bml_base_close, mca_bml_base_static_components,
-                           0);
+                           MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 #if OPAL_ENABLE_DEBUG_RELIABILITY
 int mca_bml_base_error_rate_floor;

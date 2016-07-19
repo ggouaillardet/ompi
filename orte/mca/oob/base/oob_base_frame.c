@@ -13,7 +13,7 @@
  * Copyright (c) 2007      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2013-2014 Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -141,7 +141,7 @@ static int orte_oob_base_open(mca_base_open_flag_t flags)
 
 MCA_BASE_FRAMEWORK_DECLARE(orte, oob, "Out-of-Band Messaging Subsystem",
                            orte_oob_base_register, orte_oob_base_open, orte_oob_base_close,
-                           mca_oob_base_static_components, 0);
+                           mca_oob_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 
 OBJ_CLASS_INSTANCE(orte_oob_send_t,

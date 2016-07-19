@@ -11,6 +11,8 @@
  *                         All rights reserved.
  * Copyright (c) 2008      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -70,7 +72,7 @@ static int opal_pstat_base_open(mca_base_open_flag_t flags)
 
 MCA_BASE_FRAMEWORK_DECLARE(opal, pstat, "process statistics", NULL,
                            opal_pstat_base_open, opal_pstat_base_close,
-                           mca_pstat_base_static_components, 0);
+                           mca_pstat_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 
 static int opal_pstat_base_unsupported_init(void)
 {

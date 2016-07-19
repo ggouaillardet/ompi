@@ -10,6 +10,8 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2008-2011 University of Houston. All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -31,4 +33,4 @@
 #include "ompi/mca/fs/base/static-components.h"
 
 MCA_BASE_FRAMEWORK_DECLARE(ompi, fs, NULL, NULL, NULL, NULL,
-                           mca_fs_base_static_components, 0);
+                           mca_fs_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);

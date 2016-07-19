@@ -123,5 +123,5 @@ static int mca_rcache_base_open(mca_base_open_flag_t flags)
 
 MCA_BASE_FRAMEWORK_DECLARE(opal, rcache, "OPAL Registration Cache", NULL,
                            mca_rcache_base_open, mca_rcache_base_close,
-                           mca_rcache_base_static_components, 0);
+                           mca_rcache_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
 

@@ -12,7 +12,7 @@
  *                         All rights reserved.
  * Copyright (c) 2007-2009 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2013      NVIDIA Corporation.  All rights reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2015-2016 Los Alamos National Security, LLC. All rights
  *                         reserved.
@@ -133,4 +133,4 @@ static int mca_mpool_base_close(void)
 }
 
 MCA_BASE_FRAMEWORK_DECLARE(opal, mpool, "Memory pools", mca_mpool_base_register, mca_mpool_base_open,
-                           mca_mpool_base_close, mca_mpool_base_static_components, 0);
+                           mca_mpool_base_close, mca_mpool_base_static_components, MCA_BASE_FRAMEWORK_FLAG_DEFAULT);
