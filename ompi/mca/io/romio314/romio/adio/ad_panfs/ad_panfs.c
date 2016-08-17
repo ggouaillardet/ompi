@@ -12,7 +12,11 @@
 #include "adioi.h"
 
 struct ADIOI_Fns_struct ADIO_PANFS_operations = {
-    ADIOI_PANFS_Open, /* Open */
+#ifdef HAVE_PAN_FS_CLIENT_RAIDN_ENCODING_T
+    ADIOI_PANFS_Open6, /* Open, using newer Panasas features */
+#else
+    ADIOI_PANFS_Open,  /* open, but using Panasas5 and earlier features */
+#endif
     ADIOI_GEN_OpenColl,
     ADIOI_PANFS_ReadContig, /* ReadContig */
     ADIOI_PANFS_WriteContig, /* WriteContig */
