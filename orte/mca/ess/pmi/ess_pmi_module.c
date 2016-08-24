@@ -13,6 +13,8 @@
  * Copyright (c) 2012-2013 Los Alamos National Security, LLC.
  *                         All rights reserved.
  * Copyright (c) 2013-2016 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -109,7 +111,7 @@ static int rte_init(void)
     progress_thread_running = true;
 
     /* open and setup pmix */
-    if (OPAL_SUCCESS != (ret = mca_base_framework_open(&opal_pmix_base_framework, 0))) {
+    if (OPAL_SUCCESS != (ret = mca_base_framework_open(&opal_pmix_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         /* we cannot run */
         error = "pmix init";

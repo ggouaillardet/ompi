@@ -7,6 +7,8 @@
  * Copyright (c) 2014      The University of Tennessee and The University
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -315,11 +317,11 @@ static int ml_open(void)
     /* Init memory structures (no real memory is allocated) */
     OBJ_CONSTRUCT(&cs->memory_manager, mca_coll_ml_lmngr_t);
 
-    if (OMPI_SUCCESS != (rc = mca_base_framework_open(&ompi_sbgp_base_framework, 0))) {
+    if (OMPI_SUCCESS != (rc = mca_base_framework_open(&ompi_sbgp_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         fprintf(stderr," failure in open mca_sbgp_base_open \n");
         return rc;
     }
-    if (OMPI_SUCCESS != (rc = mca_base_framework_open(&ompi_bcol_base_framework, 0))) {
+    if (OMPI_SUCCESS != (rc = mca_base_framework_open(&ompi_bcol_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         fprintf(stderr," failure in open mca_bcol_base_open \n");
         return rc;
     }

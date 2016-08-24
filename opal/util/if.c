@@ -14,7 +14,7 @@
  * Copyright (c) 2010-2015 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2014      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -100,7 +100,7 @@ int opal_ifnametoaddr(const char* if_name, struct sockaddr* addr, int length)
 {
     opal_if_t* intf;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return OPAL_ERROR;
     }
 
@@ -125,7 +125,7 @@ int opal_ifnametoindex(const char* if_name)
 {
     opal_if_t* intf;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return -1;
     }
 
@@ -149,7 +149,7 @@ int16_t opal_ifnametokindex(const char* if_name)
 {
     opal_if_t* intf;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return -1;
     }
 
@@ -173,7 +173,7 @@ int opal_ifindextokindex(int if_index)
 {
     opal_if_t* intf;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return -1;
     }
 
@@ -206,8 +206,8 @@ int opal_ifaddrtoname(const char* if_addr, char* if_name, int length)
          */
         return OPAL_ERR_NOT_FOUND;
     }
-
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return OPAL_ERROR;
     }
 
@@ -274,7 +274,7 @@ int16_t opal_ifaddrtokindex(const char* if_addr)
     int if_kernel_index;
     size_t len;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return OPAL_ERROR;
     }
 
@@ -329,7 +329,7 @@ int16_t opal_ifaddrtokindex(const char* if_addr)
 
 int opal_ifcount(void)
 {
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return 0;
     }
 
@@ -346,7 +346,7 @@ int opal_ifbegin(void)
 {
     opal_if_t *intf;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return -1;
     }
 
@@ -367,7 +367,7 @@ int opal_ifnext(int if_index)
 {
     opal_if_t *intf;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return -1;
     }
 
@@ -399,7 +399,7 @@ int opal_ifindextoaddr(int if_index, struct sockaddr* if_addr, unsigned int leng
 {
     opal_if_t* intf;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return OPAL_ERROR;
     }
 
@@ -423,7 +423,7 @@ int opal_ifkindextoaddr(int if_kindex, struct sockaddr* if_addr, unsigned int le
 {
     opal_if_t* intf;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return OPAL_ERROR;
     }
 
@@ -448,7 +448,7 @@ int opal_ifindextomask(int if_index, uint32_t* if_mask, int length)
 {
     opal_if_t* intf;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return OPAL_ERROR;
     }
 
@@ -512,7 +512,7 @@ int opal_ifindextoflags(int if_index, uint32_t* if_flags)
 {
     opal_if_t* intf;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return OPAL_ERROR;
     }
 
@@ -538,7 +538,7 @@ int opal_ifindextoname(int if_index, char* if_name, int length)
 {
     opal_if_t *intf;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return OPAL_ERROR;
     }
 
@@ -563,7 +563,7 @@ int opal_ifkindextoname(int if_kindex, char* if_name, int length)
 {
     opal_if_t *intf;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return OPAL_ERROR;
     }
 
@@ -698,8 +698,8 @@ opal_iftupletoaddr(const char *inaddr, uint32_t *net, uint32_t *mask)
 bool opal_ifisloopback(int if_index)
 {
     opal_if_t* intf;
-
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return OPAL_ERROR;
     }
 
@@ -779,7 +779,7 @@ void opal_ifgetaliases(char ***aliases)
     /* set default answer */
     *aliases = NULL;
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         return;
     }
 

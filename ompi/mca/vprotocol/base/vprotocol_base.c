@@ -3,7 +3,7 @@
  *                         All rights reserved.
  * Copyright (c) 2009      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012-2013 Los Alamos National Security, Inc.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -33,7 +33,7 @@ static int mca_vprotocol_base_open(mca_base_open_flag_t flags)
         return OMPI_SUCCESS;
     }
 
-    return mca_base_framework_components_open(&ompi_vprotocol_base_framework, 0);
+    return mca_base_framework_components_open(&ompi_vprotocol_base_framework, MCA_BASE_OPEN_DEFAULT);
 }
 
 void mca_vprotocol_base_set_include_list(char *vprotocol_include_list)

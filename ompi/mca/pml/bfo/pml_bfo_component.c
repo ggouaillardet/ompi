@@ -12,7 +12,7 @@
  *                         All rights reserved.
  * Copyright (c) 2007-2010 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2010      Oracle and/or its affiliates.  All rights reserved.
- * Copyright (c) 2014      Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
@@ -155,7 +155,7 @@ static int mca_pml_bfo_component_open(void)
     opal_output_set_verbosity(mca_pml_bfo_output, mca_pml_bfo_verbose);
 
     mca_pml_bfo.enabled = false;
-    return mca_base_framework_open(&ompi_bml_base_framework, 0);
+    return mca_base_framework_open(&ompi_bml_base_framework, MCA_BASE_OPEN_DEFAULT);
 }
 
 

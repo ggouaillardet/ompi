@@ -248,7 +248,7 @@ int orte_submit_init(int argc, char *argv[],
         return rc;
     }
     /* open the SCHIZO framework so we can setup the command line */
-    if (ORTE_SUCCESS != (rc = mca_base_framework_open(&orte_schizo_base_framework, 0))) {
+    if (ORTE_SUCCESS != (rc = mca_base_framework_open(&orte_schizo_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(rc);
         return rc;
     }

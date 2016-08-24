@@ -12,7 +12,7 @@
  *                         All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC.  All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -69,7 +69,7 @@ int MPI_File_delete(const char *filename, MPI_Info info)
        initialized). We might want to add a check to see if the
        framework is open instead of just incrementing the open count. */
 
-    if (OMPI_SUCCESS != (rc = mca_base_framework_open(&ompi_io_base_framework, 0))) {
+    if (OMPI_SUCCESS != (rc = mca_base_framework_open(&ompi_io_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         return OMPI_ERRHANDLER_INVOKE(MPI_FILE_NULL, rc, FUNC_NAME);
     }
 

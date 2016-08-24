@@ -14,6 +14,8 @@
  * Copyright (c) 2011-2015 Los Alamos National Security, LLC.
  *                         All rights reserved.
  * Copyright (c) 2014-2016 Intel, Inc. All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -187,7 +189,7 @@ orte_rml_oob_ft_event(int state) {
     else if(OPAL_CRS_RESTART == state) {
         (void) mca_base_framework_close(&orte_oob_base_framework);
 
-        if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_oob_base_framework, 0))) {
+        if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_oob_base_framework, MCA_BASE_OPEN_DEFAULT))) {
             ORTE_ERROR_LOG(ret);
             exit_status = ret;
             goto cleanup;

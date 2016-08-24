@@ -13,9 +13,9 @@
  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.  All rights
  *                         reserved.
  * Copyright (c) 2013-2016 Intel, Inc.  All rights reserved.
- * Copyright (c) 2014      Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
- * Copyright (c) 2015 Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2015      Cisco Systems, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -111,7 +111,7 @@ int orte_ess_base_app_setup(bool db_restrict_local)
     }
 
     /* open and setup the state machine */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_state_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_state_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_state_base_open";
         goto error;
@@ -123,7 +123,7 @@ int orte_ess_base_app_setup(bool db_restrict_local)
     }
 
     /* open the errmgr */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_errmgr_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_errmgr_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_errmgr_base_open";
         goto error;
@@ -151,7 +151,7 @@ int orte_ess_base_app_setup(bool db_restrict_local)
     /*
      * OOB Layer
      */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_oob_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_oob_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_oob_base_open";
         goto error;
@@ -162,7 +162,7 @@ int orte_ess_base_app_setup(bool db_restrict_local)
         goto error;
     }
     /* Runtime Messaging Layer */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_rml_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_rml_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_rml_base_open";
         goto error;
@@ -179,7 +179,7 @@ int orte_ess_base_app_setup(bool db_restrict_local)
         goto error;
     }
     /* Routed system */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_routed_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_routed_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_routed_base_open";
         goto error;
@@ -192,7 +192,7 @@ int orte_ess_base_app_setup(bool db_restrict_local)
     /*
      * Group communications
      */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_grpcomm_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_grpcomm_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_grpcomm_base_open";
         goto error;
@@ -218,12 +218,12 @@ int orte_ess_base_app_setup(bool db_restrict_local)
     /*
      * Setup the SnapC
      */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_snapc_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_snapc_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_snapc_base_open";
         goto error;
     }
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_sstore_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_sstore_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_sstore_base_open";
         goto error;
@@ -253,7 +253,7 @@ int orte_ess_base_app_setup(bool db_restrict_local)
         goto error;
     }
     /* open the distributed file system */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_dfs_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_dfs_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_dfs_base_open";
         goto error;

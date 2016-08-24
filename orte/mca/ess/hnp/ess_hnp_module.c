@@ -14,6 +14,8 @@
  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.  All rights
  *                         reserved.
  * Copyright (c) 2013-2016 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -222,7 +224,7 @@ static int rte_init(void)
     /* open and setup the opal_pstat framework so we can provide
      * process stats if requested
      */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&opal_pstat_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&opal_pstat_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "opal_pstat_base_open";
         goto error;
     }
@@ -232,7 +234,7 @@ static int rte_init(void)
     }
 
     /* open and setup the state machine */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_state_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_state_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "orte_state_base_open";
         goto error;
     }
@@ -242,7 +244,7 @@ static int rte_init(void)
     }
 
     /* open the errmgr */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_errmgr_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_errmgr_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "orte_errmgr_base_open";
         goto error;
     }
@@ -252,7 +254,7 @@ static int rte_init(void)
      * respective environment - hence, we have to open the PLM
      * first and select that component.
      */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_plm_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_plm_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "orte_plm_base_open";
         goto error;
     }
@@ -314,7 +316,7 @@ static int rte_init(void)
     /*
      * OOB Layer
      */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_oob_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_oob_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "orte_oob_base_open";
         goto error;
     }
@@ -326,7 +328,7 @@ static int rte_init(void)
     /*
      * Runtime Messaging Layer
      */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_rml_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_rml_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "orte_rml_base_open";
         goto error;
     }
@@ -429,7 +431,7 @@ static int rte_init(void)
     /*
      * Routed system
      */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_routed_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_routed_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_rml_base_open";
         goto error;
@@ -442,7 +444,7 @@ static int rte_init(void)
     /*
      * Group communications
      */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_grpcomm_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_grpcomm_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_grpcomm_base_open";
         goto error;
@@ -468,7 +470,7 @@ static int rte_init(void)
      * and daemons do not open these frameworks as they only use
      * the hnp proxy support in the PLM framework.
      */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_ras_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_ras_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_ras_base_open";
         goto error;
@@ -478,7 +480,8 @@ static int rte_init(void)
         error = "orte_ras_base_find_available";
         goto error;
     }
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_rmaps_base_framework, 0))) {
+
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_rmaps_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_rmaps_base_open";
         goto error;
@@ -530,7 +533,7 @@ static int rte_init(void)
     }
 
     /* Open/select the odls */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_odls_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_odls_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_odls_base_open";
         goto error;
@@ -541,7 +544,7 @@ static int rte_init(void)
         goto error;
     }
     /* Open/select the rtc */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_rtc_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_rtc_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_rtc_base_open";
         goto error;
@@ -607,7 +610,7 @@ static int rte_init(void)
     /* setup the PMIx framework - ensure it skips all non-PMIx components, but
      * do not override anything we were given */
     opal_setenv("OMPI_MCA_pmix", "^s1,s2,cray,isolated", false, &environ);
-    if (OPAL_SUCCESS != (ret = mca_base_framework_open(&opal_pmix_base_framework, 0))) {
+    if (OPAL_SUCCESS != (ret = mca_base_framework_open(&opal_pmix_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_pmix_base_open";
         goto error;
@@ -638,7 +641,7 @@ static int rte_init(void)
     }
 
     /* setup I/O forwarding system - must come after we init routes */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_iof_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_iof_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_iof_base_open";
         goto error;
@@ -649,7 +652,7 @@ static int rte_init(void)
         goto error;
     }
     /* setup the FileM */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_filem_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_filem_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_filem_base_open";
         goto error;
@@ -663,12 +666,12 @@ static int rte_init(void)
     /*
      * Setup the SnapC
      */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_snapc_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_snapc_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_snapc_base_open";
         goto error;
     }
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_sstore_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_sstore_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_sstore_base_open";
         goto error;
@@ -700,7 +703,7 @@ static int rte_init(void)
         goto error;
     }
     /* setup the dfs framework */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_dfs_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_dfs_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_dfs_base_open";
         goto error;

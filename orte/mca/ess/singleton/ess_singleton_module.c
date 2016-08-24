@@ -180,7 +180,7 @@ static int rte_init(void)
     progress_thread_running = true;
 
     /* open and setup pmix */
-    if (OPAL_SUCCESS != (ret = mca_base_framework_open(&opal_pmix_base_framework, 0))) {
+    if (OPAL_SUCCESS != (ret = mca_base_framework_open(&opal_pmix_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "opening pmix";
         goto error;
     }

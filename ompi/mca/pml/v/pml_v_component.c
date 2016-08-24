@@ -5,6 +5,8 @@
  * Copyright (c) 2010      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -103,7 +105,7 @@ static int mca_pml_v_component_open(void)
 
     mca_vprotocol_base_set_include_list(ompi_pml_vprotocol_include_list);
 
-    return mca_base_framework_open(&ompi_vprotocol_base_framework, 0);
+    return mca_base_framework_open(&ompi_vprotocol_base_framework, MCA_BASE_OPEN_DEFAULT);
 }
 
 static int mca_pml_v_component_close(void)

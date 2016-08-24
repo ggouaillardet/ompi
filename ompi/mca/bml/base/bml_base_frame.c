@@ -13,6 +13,8 @@
  * Copyright (c) 2009      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2014      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -114,7 +116,7 @@ static int mca_bml_base_open(mca_base_open_flag_t flags)
     }
 #endif
 
-    return mca_base_framework_open(&opal_btl_base_framework, 0);
+    return mca_base_framework_open(&opal_btl_base_framework, MCA_BASE_OPEN_DEFAULT);
 }
 
 static int mca_bml_base_close( void )

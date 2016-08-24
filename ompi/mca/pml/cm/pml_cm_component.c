@@ -12,6 +12,8 @@
  * Copyright (c) 2013      Sandia National Laboratories.  All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC.  All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -109,7 +111,7 @@ mca_pml_cm_component_open(void)
 {
     int ret;
 
-    ret = mca_base_framework_open(&ompi_mtl_base_framework, 0);
+    ret = mca_base_framework_open(&ompi_mtl_base_framework, MCA_BASE_OPEN_DEFAULT);
     if (OMPI_SUCCESS == ret) {
       /* If no MTL components initialized CM component can be unloaded */
       if (0 == opal_list_get_size(&ompi_mtl_base_framework.framework_components)) {

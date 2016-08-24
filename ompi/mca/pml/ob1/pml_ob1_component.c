@@ -14,6 +14,8 @@
  * Copyright (c) 2010      Oracle and/or its affiliates.  All rights reserved
  * Copyright (c) 2013-2015 Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -231,7 +233,7 @@ static int mca_pml_ob1_component_open(void)
     opal_output_set_verbosity(mca_pml_ob1_output, mca_pml_ob1_verbose);
 
     mca_pml_ob1.enabled = false;
-    return mca_base_framework_open(&ompi_bml_base_framework, 0);
+    return mca_base_framework_open(&ompi_bml_base_framework, MCA_BASE_OPEN_DEFAULT);
 }
 
 

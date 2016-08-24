@@ -13,7 +13,7 @@
  * Copyright (c) 2008-2015 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -223,7 +223,7 @@ int mca_base_component_repository_init(void)
 #if OPAL_HAVE_DL_SUPPORT
 
     /* Initialize the dl framework */
-    int ret = mca_base_framework_open(&opal_dl_base_framework, 0);
+    int ret = mca_base_framework_open(&opal_dl_base_framework, MCA_BASE_OPEN_DEFAULT);
     if (OPAL_SUCCESS != ret) {
         opal_output(0, "%s %d:%s failed -- process will likely abort (open the dl framework returned %d instead of OPAL_SUCCESS)\n",
                     __FILE__, __LINE__, __func__, ret);

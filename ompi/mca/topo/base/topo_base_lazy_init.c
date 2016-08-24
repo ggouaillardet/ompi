@@ -14,6 +14,8 @@
  * Copyright (c) 2012-2015 Inria.  All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -42,7 +44,6 @@ int mca_topo_base_lazy_init(void)
         /**
          * Register and open all available components, giving them a chance to access the MCA parameters.
          */
-
         err = mca_base_framework_open (&ompi_topo_base_framework, MCA_BASE_OPEN_DEFAULT);
         if (OMPI_SUCCESS != err) {
             return err;

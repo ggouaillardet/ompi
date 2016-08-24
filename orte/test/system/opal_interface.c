@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
         return rc;
     }
 
-    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, 0)) {
+    if (OPAL_SUCCESS != mca_base_framework_open(&opal_if_base_framework, MCA_BASE_OPEN_DEFAULT)) {
         fprintf(stderr, "opal_interface: couldn't get interfaces\n");
         return 1;
     }

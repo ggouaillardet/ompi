@@ -13,6 +13,8 @@
  *                         All rights reserved.
  * Copyright (c) 2013-2016 Intel, Inc. All rights reserved.
  * Copyright (c) 2014      Hochschule Esslingen.  All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  *
  * Copyright (c) 2015      Cisco Systems, Inc.  All rights reserved.
  * $COPYRIGHT$
@@ -75,7 +77,7 @@ int orte_ess_base_tool_setup(void)
     opal_proc_local_set(&orte_process_info.super);
 
     /* open and setup the state machine */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_state_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_state_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_state_base_open";
         goto error;
@@ -86,7 +88,7 @@ int orte_ess_base_tool_setup(void)
         goto error;
     }
     /* open and setup the error manager */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_errmgr_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_errmgr_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_errmgr_base_open";
         goto error;
@@ -97,7 +99,7 @@ int orte_ess_base_tool_setup(void)
         goto error;
     }
     /* Setup the communication infrastructure */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_oob_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_oob_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_oob_base_open";
         goto error;
@@ -108,7 +110,7 @@ int orte_ess_base_tool_setup(void)
         goto error;
     }
     /* Runtime Messaging Layer */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_rml_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_rml_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_rml_base_open";
         goto error;
@@ -119,7 +121,7 @@ int orte_ess_base_tool_setup(void)
         goto error;
     }
     /* Routed system */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_routed_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_routed_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_rml_base_open";
         goto error;
@@ -165,7 +167,7 @@ int orte_ess_base_tool_setup(void)
     /* setup I/O forwarding system - must come after we init routes */
     if (NULL != orte_process_info.my_hnp_uri) {
         /* only do this if we were given an HNP */
-        if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_iof_base_framework, 0))) {
+        if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_iof_base_framework, MCA_BASE_OPEN_DEFAULT))) {
             ORTE_ERROR_LOG(ret);
             error = "orte_iof_base_open";
             goto error;
@@ -177,7 +179,7 @@ int orte_ess_base_tool_setup(void)
         }
         /* if we were given an HNP, then also setup the PLM in case this
          * tool wants to request that we spawn something for it */
-        if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_plm_base_framework, 0))) {
+        if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_plm_base_framework, MCA_BASE_OPEN_DEFAULT))) {
             ORTE_ERROR_LOG(ret);
             error = "orte_plm_base_open";
             goto error;
@@ -190,12 +192,12 @@ int orte_ess_base_tool_setup(void)
     /*
      * Setup the SnapC
      */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_snapc_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_snapc_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_snapc_base_open";
         goto error;
     }
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_sstore_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_sstore_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_sstore_base_open";
         goto error;

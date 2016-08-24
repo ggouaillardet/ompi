@@ -495,7 +495,7 @@ int ompi_mpi_init(int argc, char **argv, int requested, int *provided)
     }
 
     /* open the rte framework */
-    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_rte_base_framework, 0))) {
+    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_rte_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "ompi_rte_base_open() failed";
         goto error;
     }
@@ -572,7 +572,7 @@ int ompi_mpi_init(int argc, char **argv, int requested, int *provided)
        ddt_init, but befor mca_coll_base_open, since some collective
        modules (e.g., the hierarchical coll component) may need ops in
        their query function. */
-    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_op_base_framework, 0))) {
+    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_op_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "ompi_op_base_open() failed";
         goto error;
     }
@@ -589,19 +589,19 @@ int ompi_mpi_init(int argc, char **argv, int requested, int *provided)
 
     /* Open up MPI-related MCA components */
 
-    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&opal_allocator_base_framework, 0))) {
+    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&opal_allocator_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "mca_allocator_base_open() failed";
         goto error;
     }
-    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&opal_rcache_base_framework, 0))) {
+    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&opal_rcache_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "mca_rcache_base_open() failed";
         goto error;
     }
-    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&opal_mpool_base_framework, 0))) {
+    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&opal_mpool_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "mca_mpool_base_open() failed";
         goto error;
     }
-    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_bml_base_framework, 0))) {
+    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_bml_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "mca_bml_base_open() failed";
         goto error;
     }
@@ -609,22 +609,22 @@ int ompi_mpi_init(int argc, char **argv, int requested, int *provided)
         error = "mca_bml_base_init() failed";
         goto error;
     }
-    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_pml_base_framework, 0))) {
+    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_pml_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "mca_pml_base_open() failed";
         goto error;
     }
-    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_coll_base_framework, 0))) {
+    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_coll_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "mca_coll_base_open() failed";
         goto error;
     }
 
-    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_osc_base_framework, 0))) {
+    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_osc_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "ompi_osc_base_open() failed";
         goto error;
     }
 
 #if OPAL_ENABLE_FT_CR == 1
-    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_crcp_base_framework, 0))) {
+    if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_crcp_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         error = "ompi_crcp_base_open() failed";
         goto error;
     }

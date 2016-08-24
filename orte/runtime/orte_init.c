@@ -205,7 +205,7 @@ int orte_init(int* pargc, char*** pargv, orte_proc_type_t flags)
 
     /* open the SCHIZO framework as everyone needs it, and the
      * ess will use it to help select its component */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_schizo_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_schizo_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_schizo_base_open";
         goto error;
@@ -220,7 +220,7 @@ int orte_init(int* pargc, char*** pargv, orte_proc_type_t flags)
     }
 
     /* open the ESS and select the correct module for this environment */
-    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_ess_base_framework, 0))) {
+    if (ORTE_SUCCESS != (ret = mca_base_framework_open(&orte_ess_base_framework, MCA_BASE_OPEN_DEFAULT))) {
         ORTE_ERROR_LOG(ret);
         error = "orte_ess_base_open";
         goto error;

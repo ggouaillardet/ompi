@@ -444,7 +444,7 @@ static int patcher_query (int *priority)
 {
     int rc;
 
-    rc = mca_base_framework_open (&opal_patcher_base_framework, 0);
+    rc = mca_base_framework_open (&opal_patcher_base_framework, MCA_BASE_OPEN_DEFAULT);
     if (OPAL_SUCCESS != rc) {
         *priority = -1;
         return OPAL_SUCCESS;

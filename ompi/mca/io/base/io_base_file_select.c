@@ -11,7 +11,7 @@
  *                         All rights reserved.
  * Copyright (c) 2008      Sun Microsystems, Inc.  All rights reserved.
  * Copyright (c) 2008-2011 University of Houston. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -203,19 +203,19 @@ int mca_io_base_file_select(ompi_file_t *file,
         int ret;
 
         opal_mutex_lock(&ompi_mpi_ompio_bootstrap_mutex);
-        if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_fs_base_framework, 0))) {
+        if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_fs_base_framework, MCA_BASE_OPEN_DEFAULT))) {
             opal_mutex_unlock(&ompi_mpi_ompio_bootstrap_mutex);
             return err;
         }
-        if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_fcoll_base_framework, 0))) {
+        if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_fcoll_base_framework, MCA_BASE_OPEN_DEFAULT))) {
             opal_mutex_unlock(&ompi_mpi_ompio_bootstrap_mutex);
             return err;
         }
-        if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_fbtl_base_framework, 0))) {
+        if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_fbtl_base_framework, MCA_BASE_OPEN_DEFAULT))) {
             opal_mutex_unlock(&ompi_mpi_ompio_bootstrap_mutex);
             return err;
         }
-        if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_sharedfp_base_framework, 0))) {
+        if (OMPI_SUCCESS != (ret = mca_base_framework_open(&ompi_sharedfp_base_framework, MCA_BASE_OPEN_DEFAULT))) {
             opal_mutex_unlock(&ompi_mpi_ompio_bootstrap_mutex);
             return err;
         }
