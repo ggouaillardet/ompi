@@ -63,6 +63,7 @@ typedef struct opal_install_dirs_t opal_install_dirs_t;
 
 /* Install directories.  Only available after opal_init() */
 OPAL_DECLSPEC extern opal_install_dirs_t opal_install_dirs;
+OPAL_DECLSPEC extern opal_install_dirs_t opal_install_xdirs;
 
 /**
  * Expand out path variables (such as ${prefix}) in the input string
