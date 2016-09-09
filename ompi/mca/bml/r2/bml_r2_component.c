@@ -13,6 +13,8 @@
  * Copyright (c) 2010-2015 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -57,7 +59,7 @@ static int mca_bml_r2_component_register(void)
     (void) mca_base_component_var_register(&mca_bml_r2_component.bml_version,
                                            "show_unreach_errors",
                                            "Show error message when procs are unreachable",
-                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0,0,
+                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_bml_r2.show_unreach_errors);

@@ -82,7 +82,7 @@ mca_pml_cm_component_register(void)
     ompi_pml_cm.free_list_num = 4;
     (void) mca_base_component_var_register(&mca_pml_cm_component.pmlm_version, "free_list_num",
                                            "Initial size of request free lists",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &ompi_pml_cm.free_list_num);
@@ -90,7 +90,7 @@ mca_pml_cm_component_register(void)
     ompi_pml_cm.free_list_max = -1;
     (void) mca_base_component_var_register(&mca_pml_cm_component.pmlm_version, "free_list_max",
                                            "Maximum size of request free lists",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &ompi_pml_cm.free_list_max);
@@ -98,7 +98,7 @@ mca_pml_cm_component_register(void)
     ompi_pml_cm.free_list_inc = 64;
     (void) mca_base_component_var_register(&mca_pml_cm_component.pmlm_version, "free_list_inc",
                                            "Number of elements to add when growing request free lists",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &ompi_pml_cm.free_list_inc);

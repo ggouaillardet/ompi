@@ -16,7 +16,7 @@
  * Copyright (c) 2013-2016 Intel, Inc.  All rights reserved.
  * Copyright (c) 2014      Mellanox Technologies, Inc.
  *                         All rights reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -110,7 +110,7 @@ void pmix_server_register_params(void)
     orte_pmix_server_globals.verbosity = -1;
     (void) mca_base_var_register ("orte", "pmix", NULL, "server_verbose",
                                   "Debug verbosity for PMIx server",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_pmix_server_globals.verbosity);
     if (0 <= orte_pmix_server_globals.verbosity) {
@@ -122,14 +122,14 @@ void pmix_server_register_params(void)
     orte_pmix_server_globals.num_rooms = 256;
     (void) mca_base_var_register ("orte", "pmix", NULL, "server_max_reqs",
                                   "Maximum number of backlogged PMIx server direct modex requests",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_pmix_server_globals.num_rooms);
     /* specify the timeout for the hotel */
     orte_pmix_server_globals.timeout = 2;
     (void) mca_base_var_register ("orte", "pmix", NULL, "server_max_wait",
                                   "Maximum time (in seconds) the PMIx server should wait to service direct modex requests",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_pmix_server_globals.timeout);
 
@@ -137,7 +137,7 @@ void pmix_server_register_params(void)
     orte_pmix_server_globals.server_uri = NULL;
     (void) mca_base_var_register ("orte", "pmix", NULL, "server_uri",
                                   "URI of a session-level keyval server for publish/lookup operations",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_pmix_server_globals.server_uri);
 
@@ -145,7 +145,7 @@ void pmix_server_register_params(void)
     orte_pmix_server_globals.wait_for_server = false;
     (void) mca_base_var_register ("orte", "pmix", NULL, "wait_for_server",
                                   "Whether or not to wait for the session-level server to start",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_pmix_server_globals.wait_for_server);
 }

@@ -1,5 +1,7 @@
 /*
  * Copyright (c) 2013      Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  *
  * $COPYRIGHT$
  *
@@ -66,7 +68,7 @@ static int errmgr_default_tool_register(void)
     my_priority = 1000;
     (void) mca_base_component_var_register(c, "priority",
                                            "Priority of the default_tool errmgr component",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, &my_priority);
     return ORTE_SUCCESS;

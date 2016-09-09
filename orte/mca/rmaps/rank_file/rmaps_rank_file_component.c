@@ -15,6 +15,8 @@
  * Copyright (c) 2014-2015 Intel, Inc. All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -81,20 +83,20 @@ static int orte_rmaps_rank_file_register(void)
 
     my_priority = 0;
     (void) mca_base_component_var_register(c, "priority", "Priority of the rank_file rmaps component",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, &my_priority);
     orte_rankfile = NULL;
     tmp = mca_base_component_var_register(c, "path",
                                           "Name of the rankfile to be used for mapping processes (relative or absolute path)",
-                                          MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                          MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                           OPAL_INFO_LVL_5,
                                           MCA_BASE_VAR_SCOPE_READONLY, &orte_rankfile);
     (void) mca_base_var_register_synonym(tmp, "orte", "orte", NULL, "rankfile", 0);
 
     mca_rmaps_rank_file_component.physical = false;
     (void) mca_base_component_var_register(c, "physical", "Rankfile contains physical cpu designations",
-                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_5,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_rmaps_rank_file_component.physical);

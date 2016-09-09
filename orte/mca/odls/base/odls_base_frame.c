@@ -71,7 +71,7 @@ static int orte_odls_base_register(mca_base_register_flag_t flags)
     orte_odls_globals.timeout_before_sigkill = 1;
     (void) mca_base_var_register("orte", "odls", "base", "sigkill_timeout",
                                  "Time to wait for a process to die after issuing a kill signal to it",
-                                 MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_odls_globals.timeout_before_sigkill);

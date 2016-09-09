@@ -12,6 +12,8 @@
  *                         All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -71,7 +73,7 @@ static int orte_rmaps_resilient_register (void)
     my_priority = 40;
     (void) mca_base_component_var_register (&mca_rmaps_resilient_component.super.base_version,
                                             "priority", "Priority of the resilient rmaps component",
-                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY, &my_priority);
 
@@ -79,7 +81,7 @@ static int orte_rmaps_resilient_register (void)
     (void) mca_base_component_var_register (&mca_rmaps_resilient_component.super.base_version,
                                             "fault_grp_file",
                                             "Filename that contains a description of fault groups for this system",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_rmaps_resilient_component.fault_group_file);

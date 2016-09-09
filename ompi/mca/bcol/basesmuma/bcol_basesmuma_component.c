@@ -4,6 +4,8 @@
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
  * Copyright (c) 2014-2016 Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -48,7 +50,7 @@ static inline int mca_bcol_basesmuma_param_register_int(
 {
     *storage = default_value;
     return mca_base_component_var_register(&mca_bcol_basesmuma_component.super.bcol_version, param_name,
-                                           NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, storage);
 }
@@ -58,7 +60,7 @@ static inline int mca_bcol_basesmuma_param_register_bool(
 {
     *storage = default_value;
     return mca_base_component_var_register(&mca_bcol_basesmuma_component.super.bcol_version, param_name,
-                                           NULL, MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                           NULL, MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, storage);
 }

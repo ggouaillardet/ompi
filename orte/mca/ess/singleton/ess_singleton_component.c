@@ -13,6 +13,8 @@
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
  * Copyright (c) 2016      Intel, Inc. All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -84,7 +86,7 @@ static int component_register(void)
     ret = mca_base_component_var_register(&mca_ess_singleton_component.super.base_version,
                                           "server",
                                           "Server to be used as HNP - [file|FILE]:<filename> or just uri",
-                                          MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                          MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                           OPAL_INFO_LVL_9,
                                           MCA_BASE_VAR_SCOPE_READONLY,
                                           &mca_ess_singleton_component.server_uri);

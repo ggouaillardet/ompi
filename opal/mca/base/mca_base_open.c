@@ -13,6 +13,8 @@
  * Copyright (c) 2011      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -92,7 +94,7 @@ int mca_base_open(void)
     mca_base_component_path = value;
     var_id = mca_base_var_register("opal", "mca", "base", "component_path",
                                    "Path where to look for additional components",
-                                   MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                   MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                    OPAL_INFO_LVL_9,
                                    MCA_BASE_VAR_SCOPE_READONLY,
                                    &mca_base_component_path);
@@ -103,7 +105,7 @@ int mca_base_open(void)
     mca_base_component_show_load_errors = true;
     var_id = mca_base_var_register("opal", "mca", "base", "component_show_load_errors",
                                    "Whether to show errors for components that failed to load or not",
-                                   MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                   MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                    OPAL_INFO_LVL_9,
                                    MCA_BASE_VAR_SCOPE_READONLY,
                                    &mca_base_component_show_load_errors);
@@ -113,7 +115,7 @@ int mca_base_open(void)
     mca_base_component_disable_dlopen = false;
     var_id = mca_base_var_register("opal", "mca", "base", "component_disable_dlopen",
                                    "Whether to attempt to disable opening dynamic components or not",
-                                   MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                   MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                    OPAL_INFO_LVL_9,
                                    MCA_BASE_VAR_SCOPE_READONLY,
                                    &mca_base_component_disable_dlopen);
@@ -124,7 +126,7 @@ int mca_base_open(void)
     mca_base_verbose = "stderr";
     var_id = mca_base_var_register("opal", "mca", "base", "verbose",
                                    "Specifies where the default error output stream goes (this is separate from distinct help messages).  Accepts a comma-delimited list of: stderr, stdout, syslog, syslogpri:<notice|info|debug>, syslogid:<str> (where str is the prefix string for all syslog notices), file[:filename] (if filename is not specified, a default filename is used), fileappend (if not specified, the file is opened for truncation), level[:N] (if specified, integer verbose level; otherwise, 0 is implied)",
-                                   MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                   MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                    OPAL_INFO_LVL_9,
                                    MCA_BASE_VAR_SCOPE_READONLY,
                                    &mca_base_verbose);

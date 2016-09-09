@@ -14,6 +14,8 @@
  * Copyright (c) 2012-2015 Los Alamos National Security, LLC. All rights
  *                         reserved.
  * Copyright (c) 2016      Intel, Inc. All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -170,6 +172,8 @@ typedef enum {
 } mca_base_var_syn_flag_t;
 
 typedef enum {
+    /** No flag */
+    MCA_BASE_VAR_FLAG_NONE         = 0x0000,
     /** Variable is internal (hidden from *_info/MPIT) */
     MCA_BASE_VAR_FLAG_INTERNAL     = 0x0001,
     /** Variable will always be the default value. Implies

@@ -11,6 +11,8 @@
  *                         All rights reserved.
  * Copyright (c) 2011 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012      Oak Ridge National Labs.  All rights reserved.
+ * Copyright (c) 2015      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -66,7 +68,7 @@ static int orte_ess_base_register(mca_base_register_flag_t flags)
                                  "Adjust buffering for stdout/stderr "
                                 "[-1 system default] [0 unbuffered] [1 line buffered] [2 fully buffered] "
                                  "(Default: -1)",
-                                 MCA_BASE_VAR_TYPE_INT, new_enum, 0, 0,
+                                 MCA_BASE_VAR_TYPE_INT, new_enum, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &orte_ess_base_std_buffering);
     OBJ_RELEASE(new_enum);

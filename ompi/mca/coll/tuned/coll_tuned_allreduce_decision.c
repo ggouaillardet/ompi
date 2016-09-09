@@ -3,7 +3,7 @@
  * Copyright (c) 2004-2015 The University of Tennessee and The University
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -77,7 +77,7 @@ int ompi_coll_tuned_allreduce_intra_check_forced_init (coll_tuned_force_algorith
         mca_base_component_var_register(&mca_coll_tuned_component.super.collm_version,
                                         "allreduce_algorithm",
                                         "Which allreduce algorithm is used. Can be locked down to any of: 0 ignore, 1 basic linear, 2 nonoverlapping (tuned reduce + tuned bcast), 3 recursive doubling, 4 ring, 5 segmented ring",
-                                        MCA_BASE_VAR_TYPE_INT, new_enum, 0, 0,
+                                        MCA_BASE_VAR_TYPE_INT, new_enum, 0, MCA_BASE_VAR_FLAG_NONE,
                                         OPAL_INFO_LVL_5,
                                         MCA_BASE_VAR_SCOPE_READONLY,
                                         &coll_tuned_allreduce_forced_algorithm);
@@ -91,7 +91,7 @@ int ompi_coll_tuned_allreduce_intra_check_forced_init (coll_tuned_force_algorith
         mca_base_component_var_register(&mca_coll_tuned_component.super.collm_version,
                                         "allreduce_algorithm_segmentsize",
                                         "Segment size in bytes used by default for allreduce algorithms. Only has meaning if algorithm is forced and supports segmenting. 0 bytes means no segmentation.",
-                                        MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                        MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                         OPAL_INFO_LVL_5,
                                         MCA_BASE_VAR_SCOPE_READONLY,
                                         &coll_tuned_allreduce_segment_size);
@@ -101,7 +101,7 @@ int ompi_coll_tuned_allreduce_intra_check_forced_init (coll_tuned_force_algorith
         mca_base_component_var_register(&mca_coll_tuned_component.super.collm_version,
                                         "allreduce_algorithm_tree_fanout",
                                         "Fanout for n-tree used for allreduce algorithms. Only has meaning if algorithm is forced and supports n-tree topo based operation.",
-                                        MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                        MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                         OPAL_INFO_LVL_5,
                                         MCA_BASE_VAR_SCOPE_READONLY,
                                         &coll_tuned_allreduce_tree_fanout);
@@ -111,7 +111,7 @@ int ompi_coll_tuned_allreduce_intra_check_forced_init (coll_tuned_force_algorith
       mca_base_component_var_register(&mca_coll_tuned_component.super.collm_version,
                                       "allreduce_algorithm_chain_fanout",
                                       "Fanout for chains used for allreduce algorithms. Only has meaning if algorithm is forced and supports chain topo based operation.",
-                                      MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                      MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                       OPAL_INFO_LVL_5,
                                       MCA_BASE_VAR_SCOPE_READONLY,
                                       &coll_tuned_allreduce_chain_fanout);

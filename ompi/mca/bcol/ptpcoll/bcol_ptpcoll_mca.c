@@ -4,6 +4,8 @@
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -83,7 +85,7 @@ static int reg_int(const char* param_name,
     *storage = default_value;
     index = mca_base_component_var_register(&mca_bcol_ptpcoll_component.super.bcol_version,
                                             param_name, param_desc, MCA_BASE_VAR_TYPE_INT,
-                                            NULL, 0, 0, OPAL_INFO_LVL_9,
+                                            NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY, storage);
     if (NULL != deprecated_param_name) {
         (void) mca_base_var_register_synonym(index, "ompi", "bcol", "ptpcoll",
@@ -115,7 +117,7 @@ static int reg_bool(const char* param_name,
     *storage = default_value;
     index = mca_base_component_var_register(&mca_bcol_ptpcoll_component.super.bcol_version,
                                             param_name, param_desc, MCA_BASE_VAR_TYPE_BOOL,
-                                            NULL, 0, 0, OPAL_INFO_LVL_9,
+                                            NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY, storage);
     if (0 > index) {
         return index;

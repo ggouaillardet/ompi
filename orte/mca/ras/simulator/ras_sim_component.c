@@ -13,6 +13,8 @@
  * Copyright (c) 2015      Los Alamos National Security, LLC.  All rights
  *                         reserved.
  * Copyright (c) 2015      Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -69,7 +71,7 @@ static int ras_sim_register(void)
     mca_ras_simulator_component.slots = "1";
     (void) mca_base_component_var_register (component, "slots",
                                             "Comma-separated list of number of slots on each node to simulate",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_ras_simulator_component.slots);
@@ -77,42 +79,42 @@ static int ras_sim_register(void)
     mca_ras_simulator_component.slots_max = "0";
     (void) mca_base_component_var_register (component, "max_slots",
                                             "Comma-separated list of number of max slots on each node to simulate",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_ras_simulator_component.slots_max);
     mca_ras_simulator_component.num_nodes = NULL;
     (void) mca_base_component_var_register (component, "num_nodes",
                                             "Comma-separated list of number of nodes to simulate for each topology",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_ras_simulator_component.num_nodes);
     mca_ras_simulator_component.topofiles = NULL;
     (void) mca_base_component_var_register (component, "topo_files",
                                             "Comma-separated list of files containing xml topology descriptions for simulated nodes",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_ras_simulator_component.topofiles);
     mca_ras_simulator_component.topologies = NULL;
     (void) mca_base_component_var_register (component, "topologies",
                                             "Comma-separated list of topology descriptions for simulated nodes",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_ras_simulator_component.topologies);
     mca_ras_simulator_component.have_cpubind = true;
     (void) mca_base_component_var_register (component, "have_cpubind",
                                             "Topology supports binding to cpus",
-                                            MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                                 &mca_ras_simulator_component.have_cpubind);
     mca_ras_simulator_component.have_membind = true;
     (void) mca_base_component_var_register (component, "have_membind",
                                             "Topology supports binding to memory",
-                                            MCA_BASE_VAR_TYPE_BOOL,NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_BOOL,NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_ras_simulator_component.have_membind);

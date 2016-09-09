@@ -13,6 +13,8 @@
  * Copyright (c) 2012-2015 Los Alamos National Security, LLC. All rights
  *                         reserved.
  * Copyright (c) 2015      Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -78,7 +80,7 @@ static int ras_slurm_register(void)
     mca_ras_slurm_component.timeout = 30;
     (void) mca_base_component_var_register (component, "dyn_allocate_timeout",
                                             "Number of seconds to wait for Slurm dynamic allocation",
-                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_ras_slurm_component.timeout);
@@ -86,7 +88,7 @@ static int ras_slurm_register(void)
     mca_ras_slurm_component.dyn_alloc_enabled = false;
     (void) mca_base_component_var_register (component, "enable_dyn_alloc",
                                             "Whether or not dynamic allocations are enabled",
-                                            MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_ras_slurm_component.dyn_alloc_enabled);
@@ -94,7 +96,7 @@ static int ras_slurm_register(void)
     mca_ras_slurm_component.config_file = NULL;
     (void) mca_base_component_var_register (component, "config_file",
                                             "Path to Slurm configuration file",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_ras_slurm_component.config_file);
@@ -102,7 +104,7 @@ static int ras_slurm_register(void)
     mca_ras_slurm_component.rolling_alloc = false;
     (void) mca_base_component_var_register (component, "enable_rolling_alloc",
                                             "Enable partial dynamic allocations",
-                                            MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_ras_slurm_component.rolling_alloc);
@@ -110,7 +112,7 @@ static int ras_slurm_register(void)
     mca_ras_slurm_component.use_all = false;
     (void) mca_base_component_var_register (component, "use_entire_allocation",
                                             "Use entire allocation (not just job step nodes) for this application",
-                                            MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_5,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_ras_slurm_component.use_all);

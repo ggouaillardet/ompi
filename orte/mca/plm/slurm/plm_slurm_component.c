@@ -12,6 +12,8 @@
  *                         All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -94,7 +96,7 @@ static int plm_slurm_register(void)
 
     mca_plm_slurm_component.custom_args = NULL;
     (void) mca_base_component_var_register (comp, "args", "Custom arguments to srun",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_plm_slurm_component.custom_args);

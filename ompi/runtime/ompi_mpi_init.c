@@ -350,7 +350,7 @@ static int ompi_register_mca_variables(void)
     ompi_enable_timing = false;
     (void) mca_base_var_register("ompi", "ompi", NULL, "timing",
                                  "Request that critical timing loops be measured",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &ompi_enable_timing);
@@ -358,7 +358,7 @@ static int ompi_register_mca_variables(void)
     ompi_enable_timing_ext = false;
     (void) mca_base_var_register("ompi", "ompi", NULL, "timing_ext",
                                  "Request that critical timing loops be measured",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &ompi_enable_timing_ext);

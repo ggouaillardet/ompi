@@ -11,6 +11,8 @@
  *                         All rights reserved.
  * Copyright (c) 2007      Evergrid, Inc. All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC.  All rights reserved.
+ * Copyright (c) 2015      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  *
  * $COPYRIGHT$
  *
@@ -69,7 +71,7 @@ static int orte_snapc_base_register(mca_base_register_flag_t flags)
     orte_snapc_base_store_only_one_seq = false;
     (void) mca_base_var_register("orte", "snapc", "base", "only_one_seq",
                                  "Only store the most recent checkpoint sequence. [Default = disabled]",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_snapc_base_store_only_one_seq);

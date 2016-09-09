@@ -3,7 +3,7 @@
  * Copyright (c) 2004-2015 The University of Tennessee and The University
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -72,7 +72,7 @@ int ompi_coll_tuned_alltoallv_intra_check_forced_init(coll_tuned_force_algorithm
                                         "Which alltoallv algorithm is used. "
                                         "Can be locked down to choice of: 0 ignore, "
                                         "1 basic linear, 2 pairwise.",
-                                        MCA_BASE_VAR_TYPE_INT, new_enum, 0, 0,
+                                        MCA_BASE_VAR_TYPE_INT, new_enum, 0, MCA_BASE_VAR_FLAG_NONE,
                                         OPAL_INFO_LVL_5,
                                         MCA_BASE_VAR_SCOPE_READONLY,
                                         &coll_tuned_alltoallv_forced_algorithm);

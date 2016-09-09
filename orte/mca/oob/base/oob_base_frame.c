@@ -56,7 +56,7 @@ static int orte_oob_base_register(mca_base_register_flag_t flags)
 {
     (void)mca_base_var_register("orte", "oob", "base", "enable_module_progress_threads",
                                 "Whether to independently progress OOB messages for each interface",
-                                MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                 OPAL_INFO_LVL_9,
                                 MCA_BASE_VAR_SCOPE_READONLY,
                                 &orte_oob_base.use_module_threads);
@@ -66,7 +66,7 @@ static int orte_oob_base_register(mca_base_register_flag_t flags)
     orte_oob_base.timing = false;
     (void) mca_base_var_register ("orte", "oob", "base", "timing",
                                   "Enable OOB timings",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_oob_base.timing);
 #endif

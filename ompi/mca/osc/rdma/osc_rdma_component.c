@@ -16,6 +16,8 @@
  * Copyright (c) 2012-2015 Sandia National Laboratories.  All rights reserved.
  * Copyright (c) 2015      NVIDIA Corporation.  All rights reserved.
  * Copyright (c) 2015      Intel, Inc. All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -170,7 +172,7 @@ static int ompi_osc_rdma_component_register (void)
     (void) mca_base_component_var_register(&mca_osc_rdma_component.super.osc_version,
                                            "no_locks", "Enable optimizations available only if MPI_LOCK is "
                                            "not used. Info key of same name overrides this value (default: false)",
-                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0, OPAL_INFO_LVL_5,
+                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_5,
                                            MCA_BASE_VAR_SCOPE_GROUP, &mca_osc_rdma_component.no_locks);
 
     mca_osc_rdma_component.acc_single_intrinsic = false;
@@ -190,14 +192,14 @@ static int ompi_osc_rdma_component_register (void)
     mca_osc_rdma_component.buffer_size = 32768;
     (void) mca_base_component_var_register (&mca_osc_rdma_component.super.osc_version, "buffer_size",
                                             "Size of temporary buffers (default: 32k)", MCA_BASE_VAR_TYPE_UNSIGNED_INT,
-                                            NULL, 0, 0, OPAL_INFO_LVL_3, MCA_BASE_VAR_SCOPE_LOCAL,
+                                            NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_3, MCA_BASE_VAR_SCOPE_LOCAL,
                                             &mca_osc_rdma_component.buffer_size);
 
     mca_osc_rdma_component.max_attach = 32;
     (void) mca_base_component_var_register (&mca_osc_rdma_component.super.osc_version, "max_attach",
                                             "Maximum number of buffers that can be attached to a dynamic window. "
                                             "Keep in mind that each attached buffer will use a potentially limited "
-                                            "resource (default: 32)", MCA_BASE_VAR_TYPE_UNSIGNED_INT, NULL, 0, 0,
+                                            "resource (default: 32)", MCA_BASE_VAR_TYPE_UNSIGNED_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_3, MCA_BASE_VAR_SCOPE_GROUP, &mca_osc_rdma_component.max_attach);
 
     mca_osc_rdma_component.aggregation_limit = 1024;
@@ -205,13 +207,13 @@ static int ompi_osc_rdma_component_register (void)
                                             "Maximum size of an aggregated put/get. Messages are aggregated for consecutive"
                                             "put and get operations. In some cases this may lead to higher latency but "
                                             "should also lead to higher bandwidth utilization. Set to 0 to disable (default:"
-                                            " 1k)", MCA_BASE_VAR_TYPE_UNSIGNED_INT, NULL, 0, 0, OPAL_INFO_LVL_3,
+                                            " 1k)", MCA_BASE_VAR_TYPE_UNSIGNED_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_3,
                                             MCA_BASE_VAR_SCOPE_GROUP, &mca_osc_rdma_component.aggregation_limit);
 
     mca_osc_rdma_component.priority = 90;
     (void) mca_base_component_var_register (&mca_osc_rdma_component.super.osc_version, "priority",
                                             "Priority of the osc/rdma component (default: 90)",
-                                            MCA_BASE_VAR_TYPE_UNSIGNED_INT, NULL, 0, 0, OPAL_INFO_LVL_3,
+                                            MCA_BASE_VAR_TYPE_UNSIGNED_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_3,
                                             MCA_BASE_VAR_SCOPE_GROUP, &mca_osc_rdma_component.priority);
 
     ompi_osc_rdma_btl_names = "openib,ugni";
@@ -219,7 +221,7 @@ static int ompi_osc_rdma_component_register (void)
                                             "Comma-delimited list of BTL component names to allow without verifying "
                                             "connectivity. Do not add a BTL to to this list unless it can reach all "
                                             "processes in any communicator used with an MPI window (default: openib,ugni)",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_3,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_3,
                                             MCA_BASE_VAR_SCOPE_GROUP, &ompi_osc_rdma_btl_names);
 
 

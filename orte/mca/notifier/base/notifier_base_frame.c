@@ -70,7 +70,7 @@ static int orte_notifier_base_register(mca_base_register_flag_t flags)
 {
     (void) mca_base_var_register("orte", "notifier", "base", "use_progress_thread",
                                  "Use a dedicated progress thread for notifications [default: false]",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &use_progress_thread);
@@ -78,7 +78,7 @@ static int orte_notifier_base_register(mca_base_register_flag_t flags)
     /* let the user define a base level of severity to report */
     (void) mca_base_var_register("orte", "notifier", "base", "severity_level",
                                  "Report all events at or above this severity [default: error]",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &notifier_severity);
@@ -106,7 +106,7 @@ static int orte_notifier_base_register(mca_base_register_flag_t flags)
     orte_notifier_base.default_actions = NULL;
     (void) mca_base_var_register("orte", "notifier", "base", "default_actions",
                                  "Report all events to the default actions:NONE,syslog,smtp",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_notifier_base.default_actions);
@@ -118,7 +118,7 @@ static int orte_notifier_base_register(mca_base_register_flag_t flags)
     orte_notifier_base.emerg_actions = NULL;
     (void) mca_base_var_register("orte", "notifier", "base", "emerg_event_actions",
                                  "Report emergency events to the specified actions: example 'smtp'",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_notifier_base.emerg_actions);
@@ -127,7 +127,7 @@ static int orte_notifier_base_register(mca_base_register_flag_t flags)
     orte_notifier_base.alert_actions = NULL;
     (void) mca_base_var_register("orte", "notifier", "base", "alert_event_actions",
                                  "Report alert events to the specified actions: example 'smtp'",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_notifier_base.alert_actions);
@@ -136,7 +136,7 @@ static int orte_notifier_base_register(mca_base_register_flag_t flags)
     orte_notifier_base.crit_actions = NULL;
     (void) mca_base_var_register("orte", "notifier", "base", "crit_event_actions",
                                  "Report critical events to the specified actions: example 'syslog'",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_notifier_base.crit_actions);
@@ -145,7 +145,7 @@ static int orte_notifier_base_register(mca_base_register_flag_t flags)
     orte_notifier_base.warn_actions = NULL;
     (void) mca_base_var_register("orte", "notifier", "base", "warn_event_actions",
                                  "Report warning events to the specified actions: example 'syslog'",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_notifier_base.warn_actions);
@@ -154,7 +154,7 @@ static int orte_notifier_base_register(mca_base_register_flag_t flags)
     orte_notifier_base.notice_actions = NULL;
     (void) mca_base_var_register("orte", "notifier", "base", "notice_event_actions",
                                  "Report notice events to the specified actions: example 'syslog'",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_notifier_base.notice_actions);
@@ -163,7 +163,7 @@ static int orte_notifier_base_register(mca_base_register_flag_t flags)
     orte_notifier_base.info_actions = NULL;
     (void) mca_base_var_register("orte", "notifier", "base", "info_event_actions",
                                  "Report info events to the specified actions: example 'syslog'",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_notifier_base.info_actions);
@@ -172,7 +172,7 @@ static int orte_notifier_base_register(mca_base_register_flag_t flags)
     orte_notifier_base.debug_actions = NULL;
     (void) mca_base_var_register("orte", "notifier", "base", "debug_event_actions",
                                  "Report debug events to the specified actions: example 'syslog'",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_notifier_base.debug_actions);
@@ -181,7 +181,7 @@ static int orte_notifier_base_register(mca_base_register_flag_t flags)
     orte_notifier_base.error_actions = NULL;
     (void) mca_base_var_register("orte", "notifier", "base", "error_event_actions",
                                  "Report error events to the specified actions: example 'syslog'",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_notifier_base.error_actions);

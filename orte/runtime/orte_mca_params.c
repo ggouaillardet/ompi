@@ -14,7 +14,7 @@
  * Copyright (c) 2012-2013 Los Alamos National Security, LLC.
  *                         All rights reserved
  * Copyright (c) 2013-2016 Intel, Inc. All rights reserved
- * Copyright (c) 2014      Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -95,21 +95,21 @@ int orte_register_params(void)
     orte_tmpdir_base = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "tmpdir_base",
                                   "Base of the session directory tree to be used by all processes",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL_EQ,
                                   &orte_tmpdir_base);
 
     orte_local_tmpdir_base = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "local_tmpdir_base",
                                   "Base of the session directory tree to be used by orterun/mpirun",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL_EQ,
                                   &orte_local_tmpdir_base);
 
     orte_remote_tmpdir_base = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "remote_tmpdir_base",
                                   "Base of the session directory tree on remote nodes, if required to be different from head node",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL_EQ,
                                   &orte_remote_tmpdir_base);
 
@@ -183,49 +183,49 @@ int orte_register_params(void)
     orte_prohibited_session_dirs = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "no_session_dirs",
                                   "Prohibited locations for session directories (multiple locations separated by ',', default=NULL)",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_prohibited_session_dirs);
 
     orte_create_session_dirs = true;
     (void) mca_base_var_register ("orte", "orte", NULL, "create_session_dirs",
                                   "Create session directories",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_create_session_dirs);
 
     orte_execute_quiet = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "execute_quiet",
                                   "Do not output error and help messages",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_execute_quiet);
 
     orte_report_silent_errors = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "report_silent_errors",
                                   "Report all errors, including silent ones",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_report_silent_errors);
 
     orte_debug_flag = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "debug",
                                   "Top-level ORTE debug switch (default: false)",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_debug_flag);
 
     orte_debug_verbosity = -1;
     (void) mca_base_var_register ("orte", "orte", NULL, "debug_verbose",
                                   "Verbosity level for ORTE debug messages (default: 1)",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_debug_verbosity);
 
     orte_debug_daemons_file_flag = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "debug_daemons_file",
                                   "Whether want stdout/stderr of daemons to go to a file or not",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_debug_daemons_file_flag);
     /* If --debug-daemons-file was specified, that also implies
@@ -236,7 +236,7 @@ int orte_register_params(void)
         /* value can't change */
         (void) mca_base_var_register ("orte", "orte", NULL, "debug_daemons",
                                       "Whether to debug the ORTE daemons or not",
-                                      MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                      MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                       OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_CONSTANT,
                                       &orte_debug_daemons_flag);
     } else {
@@ -244,7 +244,7 @@ int orte_register_params(void)
 
         (void) mca_base_var_register ("orte", "orte", NULL, "debug_daemons",
                                       "Whether to debug the ORTE daemons or not",
-                                      MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                      MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                       OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                       &orte_debug_daemons_flag);
     }
@@ -252,7 +252,7 @@ int orte_register_params(void)
     orte_progress_thread_debug_level = -1;
     (void) mca_base_var_register ("orte", "orte", NULL, "progress_thread_debug",
                                   "Debug level for ORTE progress threads",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_progress_thread_debug_level);
 
@@ -268,7 +268,7 @@ int orte_register_params(void)
                                   "Whether applications and/or daemons should leave their sessions "
                                   "attached so that any output can be received - this allows X forwarding "
                                   "without all the attendant debugging output",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_leave_session_attached);
 
@@ -290,63 +290,63 @@ int orte_register_params(void)
     orte_debugger_dump_proctable = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "output_debugger_proctable",
                                   "Whether or not to output the debugger proctable after launch (default: false)",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_ALL,
                                   &orte_debugger_dump_proctable);
 
     orte_debugger_test_daemon = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "debugger_test_daemon",
                                   "Name of the executable to be used to simulate a debugger colaunch (relative or absolute path)",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_debugger_test_daemon);
 
     orte_debugger_test_attach = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "debugger_test_attach",
                                   "Test debugger colaunch after debugger attachment",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_debugger_test_daemon);
 
     orte_debugger_check_rate = 0;
     (void) mca_base_var_register ("orte", "orte", NULL, "debugger_check_rate",
                                   "Set rate (in secs) for auto-detect of debugger attachment (0 => do not check)",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_debugger_check_rate);
 
     orte_do_not_launch = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "do_not_launch",
                                   "Perform all necessary operations to prepare to launch the application, but do not actually launch it",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_do_not_launch);
 
     orted_spin_flag = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "daemon_spin",
                                   "Have any orteds spin until we can connect a debugger to them",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orted_spin_flag);
 
     orted_debug_failure = ORTE_VPID_INVALID;
     (void) mca_base_var_register ("orte", "orte", NULL, "daemon_fail",
                                   "Have the specified orted fail after init for debugging purposes",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orted_debug_failure);
 
     orted_debug_failure_delay = 0;
     (void) mca_base_var_register ("orte", "orte", NULL, "daemon_fail_delay",
                                   "Have the specified orted fail after specified number of seconds (default: 0 => no delay)",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orted_debug_failure_delay);
 
     orte_startup_timeout = 0;
     (void) mca_base_var_register ("orte", "orte", NULL, "startup_timeout",
                                   "Seconds to wait for startup or job launch before declaring failed_to_start (default: 0 => do not check)",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_startup_timeout);
 
@@ -354,7 +354,7 @@ int orte_register_params(void)
     orte_base_user_debugger = "totalview @mpirun@ -a @mpirun_args@ : ddt -n @np@ -start @executable@ @executable_argv@ @single_app@ : fxp @mpirun@ -a @mpirun_args@";
     (void) mca_base_var_register ("orte", "orte", NULL, "base_user_debugger",
                                   "Sequence of user-level debuggers to search for in orterun",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_base_user_debugger);
 
@@ -373,7 +373,7 @@ int orte_register_params(void)
     orte_default_hostfile = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "default_hostfile",
                                   "Name of the default hostfile (relative or absolute path, \"none\" to ignore environmental or default MCA param setting)",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_default_hostfile);
 
@@ -409,7 +409,7 @@ int orte_register_params(void)
     orte_node_regex = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "node_regex",
                                   "Regular expression defining nodes in the system",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_node_regex);
 
@@ -417,7 +417,7 @@ int orte_register_params(void)
     orte_keep_fqdn_hostnames = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "keep_fqdn_hostnames",
                                   "Whether or not to keep FQDN hostnames [default: no]",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_keep_fqdn_hostnames);
 
@@ -425,7 +425,7 @@ int orte_register_params(void)
     orte_retain_aliases = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "retain_aliases",
                                   "Whether or not to keep aliases for host names [default: no]",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_retain_aliases);
 
@@ -433,14 +433,14 @@ int orte_register_params(void)
     orte_use_hostname_alias = 1;
     (void) mca_base_var_register ("orte", "orte", NULL, "hostname_alias_index",
                                   "If hostname aliases are being retained, which one to use for the debugger proc table [default: 1st alias]",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_use_hostname_alias);
 
     orte_xml_output = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "xml_output",
                                   "Display all output in XML format (default: false)",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_xml_output);
 
@@ -449,7 +449,7 @@ int orte_register_params(void)
     orte_tag_output = orte_xml_output;
     (void) mca_base_var_register ("orte", "orte", NULL, "tag_output",
                                   "Tag all output with [job,rank] (default: false)",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_tag_output);
     if (orte_xml_output) {
@@ -460,7 +460,7 @@ int orte_register_params(void)
     orte_xml_file = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "xml_file",
                                   "Provide all output in XML format to the specified file",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_xml_file);
     if (NULL != orte_xml_file) {
@@ -484,7 +484,7 @@ int orte_register_params(void)
     orte_timestamp_output = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "timestamp_output",
                                   "Timestamp all application process output (default: false)",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_timestamp_output);
 
@@ -492,14 +492,14 @@ int orte_register_params(void)
     orte_output_filename = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "output_filename",
                                   "Redirect output from application processes into filename.rank [default: NULL]",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_output_filename);
 
     orte_show_resolved_nodenames = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "show_resolved_nodenames",
                                   "Display any node names that are resolved to a different name (default: false)",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_show_resolved_nodenames);
 
@@ -514,7 +514,7 @@ int orte_register_params(void)
     orte_hetero_nodes = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "hetero_nodes",
                                   "Nodes in cluster may differ in topology, so send the topology back from each node [Default = false]",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_hetero_nodes);
 
@@ -522,14 +522,14 @@ int orte_register_params(void)
     orte_launch_agent = "orted";
     (void) mca_base_var_register ("orte", "orte", NULL, "launch_agent",
                                   "Command used to start processes on remote nodes (default: orted)",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_launch_agent);
 
     orte_fork_agent_string = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "fork_agent",
                                   "Command used to fork processes on remote nodes (default: NULL)",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_fork_agent_string);
 
@@ -541,7 +541,7 @@ int orte_register_params(void)
     orte_allocation_required = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "allocation_required",
                                   "Whether or not an allocation by a resource manager is required [default: no]",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_allocation_required);
 
@@ -549,7 +549,7 @@ int orte_register_params(void)
     orte_map_stddiag_to_stderr = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "map_stddiag_to_stderr",
                                   "Map output from opal_output to stderr of the local process [default: no]",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_map_stddiag_to_stderr);
 
@@ -557,7 +557,7 @@ int orte_register_params(void)
     orte_xterm = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "xterm",
                                   "Create a new xterm window and display output from the specified ranks there [default: none]",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_xterm);
     if (NULL != orte_xterm) {
@@ -577,7 +577,7 @@ int orte_register_params(void)
     orte_report_launch_progress = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "report_launch_progress",
                                   "Output a brief periodic report on launch progress [default: no]",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_report_launch_progress);
 
@@ -600,7 +600,7 @@ int orte_register_params(void)
     orte_report_events_uri = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "report_events",
                                   "URI to which events are to be reported (default: NULL)",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_report_events_uri);
     if (NULL != orte_report_events_uri) {
@@ -618,14 +618,14 @@ int orte_register_params(void)
     orte_enable_recovery = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "enable_recovery",
                                   "Enable recovery from process failure [Default = disabled]",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_enable_recovery);
 
     orte_max_restarts = 0;
     (void) mca_base_var_register ("orte", "orte", NULL, "max_restarts",
                                   "Max number of times to restart a failed process",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_max_restarts);
 
@@ -648,28 +648,28 @@ int orte_register_params(void)
     orte_abort_non_zero_exit = true;
     (void) mca_base_var_register ("orte", "orte", NULL, "abort_on_non_zero_status",
                                   "Abort the job if any process returns a non-zero exit status - no restart in such cases",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_abort_non_zero_exit);
 
     orte_allowed_exit_without_sync = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "allowed_exit_without_sync",
                                   "Process exiting without calling finalize will not trigger job termination",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_allowed_exit_without_sync);
 
     orte_staged_execution = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "staged_execution",
                                   "Staged execution is being used",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_staged_execution);
 
     orte_report_child_jobs_separately = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "report_child_jobs_separately",
                                   "Return the exit status of the primary job only",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_report_child_jobs_separately);
 
@@ -687,14 +687,14 @@ int orte_register_params(void)
     orte_stat_history_size = 1;
     (void) mca_base_var_register ("orte", "orte", NULL, "stat_history_size",
                                   "Number of stat samples to keep",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_stat_history_size);
 
     orte_max_vm_size = -1;
     (void) mca_base_var_register ("orte", "orte", NULL, "max_vm_size",
                                   "Maximum size of virtual machine - used to subdivide allocation",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_max_vm_size);
 
@@ -708,7 +708,7 @@ int orte_register_params(void)
                                   " number of specified objects [a number, \"cores\" (default),"
                                   " \"numas\", \"sockets\", \"hwthreads\" (default if hwthreads_as_cpus is set),"
                                   " or \"none\" to skip this option]",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_set_slots);
 
@@ -716,7 +716,7 @@ int orte_register_params(void)
     orte_display_allocation = false;
     id = mca_base_var_register ("orte", "orte", NULL, "display_alloc",
                                 "Whether to display the allocation after it is determined",
-                                MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                 OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                 &orte_display_allocation);
     /* register a synonym for old name -- should we remove this now? */
@@ -726,7 +726,7 @@ int orte_register_params(void)
     orte_devel_level_output = false;
     id = mca_base_var_register ("orte", "orte", NULL, "display_devel_alloc",
                                 "Whether to display a developer-detail allocation after it is determined",
-                                MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                 OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                 &orte_devel_level_output);
     /* register a synonym for old name -- should we remove this now? */
@@ -742,7 +742,7 @@ int orte_register_params(void)
     orte_soft_locations = false;
     (void) mca_base_var_register ("orte", "orte", NULL, "soft_locations",
                                   "Treat -host directives as desired, but not required",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_soft_locations);
 
@@ -750,7 +750,7 @@ int orte_register_params(void)
     orte_daemon_cores = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "daemon_cores",
                                   "Restrict the ORTE daemons (including mpirun) to operate on the specified cores (comma-separated list of ranges)",
-                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_5, MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_daemon_cores);
 
@@ -759,7 +759,7 @@ int orte_register_params(void)
     id = mca_base_var_register ("orte", "orte", NULL, "direct_modex_cutoff",
                                 "If the number of processes in the application exceeds the provided value,"
                                 "modex will be done upon demand [default: UINT32_MAX]",
-                                MCA_BASE_VAR_TYPE_UNSIGNED_INT, NULL, 0, 0,
+                                MCA_BASE_VAR_TYPE_UNSIGNED_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                 OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                 &orte_direct_modex_cutoff);
     /* register a synonym for old name */

@@ -3,6 +3,8 @@
  * Copyright (c) 2004-2015 The University of Tennessee and The University
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -73,7 +75,7 @@ int ompi_coll_tuned_barrier_intra_check_forced_init (coll_tuned_force_algorithm_
         mca_base_component_var_register(&mca_coll_tuned_component.super.collm_version,
                                         "barrier_algorithm",
                                         "Which barrier algorithm is used. Can be locked down to choice of: 0 ignore, 1 linear, 2 double ring, 3: recursive doubling 4: bruck, 5: two proc only, 6: tree",
-                                        MCA_BASE_VAR_TYPE_INT, new_enum, 0, 0,
+                                        MCA_BASE_VAR_TYPE_INT, new_enum, 0, MCA_BASE_VAR_FLAG_NONE,
                                         OPAL_INFO_LVL_5,
                                         MCA_BASE_VAR_SCOPE_READONLY,
                                         &coll_tuned_barrier_forced_algorithm);

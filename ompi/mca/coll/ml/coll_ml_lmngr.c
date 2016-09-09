@@ -4,7 +4,7 @@
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
  * Copyright (c) 2014      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2014      Research Organization for Information Science
+ * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2014      Intel, Inc. All rights reserved.
  * $COPYRIGHT$
@@ -131,7 +131,7 @@ int mca_coll_ml_lmngr_reg(void)
     cm->lmngr_size = 8;
     CHECK(mca_base_component_var_register(&mca_coll_ml_component.super.collm_version,
                                           "memory_manager_list_size", "Memory manager list size",
-                                          MCA_BASE_VAR_TYPE_SIZE_T, NULL, 0, 0,
+                                          MCA_BASE_VAR_TYPE_SIZE_T, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                           OPAL_INFO_LVL_9,
                                           MCA_BASE_VAR_SCOPE_READONLY,
                                           &cm->lmngr_size));
@@ -149,7 +149,7 @@ int mca_coll_ml_lmngr_reg(void)
 
     CHECK(mca_base_component_var_register(&mca_coll_ml_component.super.collm_version,
                                           "memory_manager_block_size", "Memory manager block size",
-                                          MCA_BASE_VAR_TYPE_SIZE_T, NULL, 0, 0,
+                                          MCA_BASE_VAR_TYPE_SIZE_T, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                           OPAL_INFO_LVL_9,
                                           MCA_BASE_VAR_SCOPE_READONLY,
                                           &mca_coll_ml_component.lmngr_block_size));
@@ -157,7 +157,7 @@ int mca_coll_ml_lmngr_reg(void)
     cm->lmngr_alignment = opal_getpagesize();
     CHECK(mca_base_component_var_register(&mca_coll_ml_component.super.collm_version,
                                           "memory_manager_alignment", "Memory manager alignment",
-                                          MCA_BASE_VAR_TYPE_SIZE_T, NULL, 0, 0,
+                                          MCA_BASE_VAR_TYPE_SIZE_T, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                           OPAL_INFO_LVL_9,
                                           MCA_BASE_VAR_SCOPE_READONLY,
                                           &mca_coll_ml_component.lmngr_block_size));

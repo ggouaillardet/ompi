@@ -190,7 +190,7 @@ static int mca_bcol_base_register(mca_base_register_flag_t flags)
     ompi_bcol_bcols_string = "basesmuma,basesmuma,iboffload,ptpcoll,ugni";
     (void) mca_base_var_register("ompi", "bcol", "base", "string",
                                  "Default set of basic collective components to use",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &ompi_bcol_bcols_string);

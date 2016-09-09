@@ -2,6 +2,8 @@
  *
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
  * Copyright (c) 2009-2012 Oak Ridge National Laboratory.  All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -20,7 +22,7 @@ int netpatterns_register_mca_params(void)
     netpatterns_base_verbose = 0;
     mca_base_var_register("ompi", "common", "netpatterns", "base_verbose",
                           "Verbosity level of the NETPATTERNS framework",
-                          MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                          MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                           OPAL_INFO_LVL_9,
                           MCA_BASE_VAR_SCOPE_READONLY,
                           &netpatterns_base_verbose);

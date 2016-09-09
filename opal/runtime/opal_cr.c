@@ -230,7 +230,7 @@ static int opal_cr_register (void)
     opal_cr_timing_barrier_enabled = false;
     (void) mca_base_var_register ("opal", "opal", "cr", "enable_timer_barrier",
                                   "Enable Checkpoint timer Barrier. Must have opal_cr_enable_timer set. (Default: Disabled)",
-                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, opal_cr_timing_enabled ? MCA_BASE_VAR_FLAG_SETTABLE : 0,
+                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, opal_cr_timing_enabled ? MCA_BASE_VAR_FLAG_SETTABLE : MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_8, MCA_BASE_VAR_SCOPE_ALL_EQ,
                                   &opal_cr_timing_barrier_enabled);
     opal_cr_timing_barrier_enabled = opal_cr_timing_barrier_enabled && opal_cr_timing_enabled;

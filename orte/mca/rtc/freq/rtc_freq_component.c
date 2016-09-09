@@ -3,6 +3,8 @@
  * Copyright (c) 2014      Intel, Inc. All rights reserved
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -55,35 +57,35 @@ static int rtc_freq_register(void)
     /* ordering here doesn't really matter */
     my_priority = 50;
     (void) mca_base_component_var_register (c, "priority", "Priority of the FREQ rtc component",
-                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &my_priority);
 
     mca_rtc_freq_component.governor = NULL;
     (void) mca_base_component_var_register (c, "governor", "Governor to be used by default (default: system setting)",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_rtc_freq_component.governor);
 
     mca_rtc_freq_component.max_freq = NULL;
     (void) mca_base_component_var_register (c, "max", "Max frequency to be used by default (default: system setting)",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_rtc_freq_component.max_freq);
 
     mca_rtc_freq_component.min_freq = NULL;
     (void) mca_base_component_var_register (c, "min", "Min frequency to be used by default (default: system setting)",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_rtc_freq_component.min_freq);
 
     freq = NULL;
     (void) mca_base_component_var_register (c, NULL, "Specific frequency to be used by default",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &freq);

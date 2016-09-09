@@ -4,6 +4,8 @@
  *                         All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -61,37 +63,37 @@ static int mca_vprotocol_pessimist_component_register(void)
 {
     _priority = 30;
     (void) mca_base_component_var_register(&mca_vprotocol_pessimist_component.pmlm_version,
-                                           "priority", NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           "priority", NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, &_priority);\
     _free_list_num = 16;
     (void) mca_base_component_var_register(&mca_vprotocol_pessimist_component.pmlm_version,
-                                           "free_list_num", NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           "free_list_num", NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, &_free_list_num);
     _free_list_max = -1;
     (void) mca_base_component_var_register(&mca_vprotocol_pessimist_component.pmlm_version,
-                                           "free_list_max", NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           "free_list_max", NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, &_free_list_max);
     _free_list_inc = 64;
     (void) mca_base_component_var_register(&mca_vprotocol_pessimist_component.pmlm_version,
-                                           "free_list_inc", NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           "free_list_inc", NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, &_free_list_inc);
     _sender_based_size = 256 * 1024 * 1024;
     (void) mca_base_component_var_register(&mca_vprotocol_pessimist_component.pmlm_version,
-                                           "sender_based_chunk", NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           "sender_based_chunk", NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, &_sender_based_size);
     _event_buffer_size = 1024;
     (void) mca_base_component_var_register(&mca_vprotocol_pessimist_component.pmlm_version,
-                                           "event_buffer_size", NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           "event_buffer_size", NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, &_event_buffer_size);
     _mmap_file_name = "vprotocol_pessimist-senderbased";
     (void) mca_base_component_var_register(&mca_vprotocol_pessimist_component.pmlm_version,
-                                           "sender_based_file", NULL, MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                           "sender_based_file", NULL, MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, &_mmap_file_name);
     return OMPI_SUCCESS;

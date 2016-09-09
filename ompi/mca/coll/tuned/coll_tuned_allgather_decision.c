@@ -2,7 +2,7 @@
  * Copyright (c) 2004-2015 The University of Tennessee and The University
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -78,7 +78,7 @@ ompi_coll_tuned_allgather_intra_check_forced_init(coll_tuned_force_algorithm_mca
         mca_base_component_var_register(&mca_coll_tuned_component.super.collm_version,
                                         "allgather_algorithm",
                                         "Which allallgather algorithm is used. Can be locked down to choice of: 0 ignore, 1 basic linear, 2 bruck, 3 recursive doubling, 4 ring, 5 neighbor exchange, 6: two proc only.",
-                                        MCA_BASE_VAR_TYPE_INT, new_enum, 0, 0,
+                                        MCA_BASE_VAR_TYPE_INT, new_enum, 0, MCA_BASE_VAR_FLAG_NONE,
                                         OPAL_INFO_LVL_5,
                                         MCA_BASE_VAR_SCOPE_READONLY,
                                         &coll_tuned_allgather_forced_algorithm);
@@ -92,7 +92,7 @@ ompi_coll_tuned_allgather_intra_check_forced_init(coll_tuned_force_algorithm_mca
         mca_base_component_var_register(&mca_coll_tuned_component.super.collm_version,
                                         "allgather_algorithm_segmentsize",
                                         "Segment size in bytes used by default for allgather algorithms. Only has meaning if algorithm is forced and supports segmenting. 0 bytes means no segmentation. Currently, available algorithms do not support segmentation.",
-                                        MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                        MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                         OPAL_INFO_LVL_5,
                                         MCA_BASE_VAR_SCOPE_READONLY,
                                         &coll_tuned_allgather_segment_size);
@@ -102,7 +102,7 @@ ompi_coll_tuned_allgather_intra_check_forced_init(coll_tuned_force_algorithm_mca
         mca_base_component_var_register(&mca_coll_tuned_component.super.collm_version,
                                         "allgather_algorithm_tree_fanout",
                                         "Fanout for n-tree used for allgather algorithms. Only has meaning if algorithm is forced and supports n-tree topo based operation. Currently, available algorithms do not support n-tree topologies.",
-                                        MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                        MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                         OPAL_INFO_LVL_5,
                                         MCA_BASE_VAR_SCOPE_READONLY,
                                         &coll_tuned_allgather_tree_fanout);
@@ -112,7 +112,7 @@ ompi_coll_tuned_allgather_intra_check_forced_init(coll_tuned_force_algorithm_mca
       mca_base_component_var_register(&mca_coll_tuned_component.super.collm_version,
                                       "allgather_algorithm_chain_fanout",
                                       "Fanout for chains used for allgather algorithms. Only has meaning if algorithm is forced and supports chain topo based operation. Currently, available algorithms do not support chain topologies.",
-                                      MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                      MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                       OPAL_INFO_LVL_5,
                                       MCA_BASE_VAR_SCOPE_READONLY,
                                       &coll_tuned_allgather_chain_fanout);

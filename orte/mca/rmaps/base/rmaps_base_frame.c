@@ -77,7 +77,7 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
     orte_rmaps_base_pernode = false;
     var_id = mca_base_var_register("orte", "rmaps", "base", "pernode",
                                  "Launch one ppn as directed",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_rmaps_base_pernode);
@@ -86,7 +86,7 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
     orte_rmaps_base_n_pernode = 0;
     var_id = mca_base_var_register("orte", "rmaps", "base", "n_pernode",
                                  "Launch n procs/node", MCA_BASE_VAR_TYPE_INT,
-                                 NULL, 0, 0,
+                                 NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &orte_rmaps_base_n_pernode);
     (void) mca_base_var_register_synonym(var_id, "orte", "rmaps","ppr", "n_pernode", 0);
@@ -94,7 +94,7 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
     orte_rmaps_base_n_persocket = 0;
     var_id = mca_base_var_register("orte", "rmaps", "base", "n_persocket",
                                  "Launch n procs/socket", MCA_BASE_VAR_TYPE_INT,
-                                 NULL, 0, 0,
+                                 NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &orte_rmaps_base_n_persocket);
     (void) mca_base_var_register_synonym(var_id, "orte", "rmaps","ppr", "n_persocket", 0);
@@ -102,7 +102,7 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
     orte_rmaps_base.ppr = NULL;
     var_id = mca_base_var_register("orte", "rmaps", "base", "pattern",
                                  "Comma-separated list of number of processes on a given resource type [default: none]",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_9,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &orte_rmaps_base.ppr);
     (void) mca_base_var_register_synonym(var_id, "orte", "rmaps","ppr", "pattern", 0);
 
@@ -110,7 +110,7 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
     rmaps_base_mapping_policy = NULL;
     var_id = mca_base_var_register("orte", "rmaps", "base", "mapping_policy",
                                    "Mapping Policy [slot | hwthread | core (default:np<=2) | l1cache | l2cache | l3cache | socket (default:np>2) | numa | board | node | seq | dist | ppr], with allowed modifiers :PE=y,SPAN,OVERSUBSCRIBE,NOOVERSUBSCRIBE",
-                                   MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                   MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                    OPAL_INFO_LVL_9,
                                    MCA_BASE_VAR_SCOPE_READONLY,
                                    &rmaps_base_mapping_policy);
@@ -120,8 +120,8 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
     /* define default ranking policy */
     rmaps_base_ranking_policy = NULL;
     (void) mca_base_var_register("orte", "rmaps", "base", "ranking_policy",
-                                           "Ranking Policy [slot (default:np<=2) | hwthread | core | l1cache | l2cache | l3cache | socket (default:np>2) | numa | board | node], with modifier :SPAN or :FILL",
-                                MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 "Ranking Policy [slot (default:np<=2) | hwthread | core | l1cache | l2cache | l3cache | socket (default:np>2) | numa | board | node], with modifier :SPAN or :FILL",
+                                MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                 OPAL_INFO_LVL_9,
                                 MCA_BASE_VAR_SCOPE_READONLY,
                                 &rmaps_base_ranking_policy);
@@ -130,21 +130,21 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
     rmaps_base_bycore = false;
     (void) mca_base_var_register("orte", "rmaps", "base", "bycore",
                                  "Whether to map and rank processes round-robin by core",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &rmaps_base_bycore);
 
     rmaps_base_byslot = false;
     (void) mca_base_var_register("orte", "rmaps", "base", "byslot",
                                  "Whether to map and rank processes round-robin by slot",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &rmaps_base_byslot);
 
     rmaps_base_bynode = false;
     (void) mca_base_var_register("orte", "rmaps", "base", "bynode",
                                  "Whether to map and rank processes round-robin by node",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &rmaps_base_bynode);
 
@@ -152,7 +152,7 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
     orte_rmaps_base.cpus_per_rank = 1;
     var_id = mca_base_var_register("orte", "rmaps", "base", "cpus_per_proc",
                                    "Number of cpus to use for each rank [1-2**15 (default=1)]",
-                                   MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                   MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                    OPAL_INFO_LVL_9,
                                    MCA_BASE_VAR_SCOPE_READONLY, &orte_rmaps_base.cpus_per_rank);
     mca_base_var_register_synonym(var_id, "orte", "rmaps", "base", "cpus_per_rank", 0);
@@ -160,7 +160,7 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
     rmaps_dist_device = NULL;
     var_id = mca_base_var_register("orte", "rmaps", NULL, "dist_device",
                                    "If specified, map processes near to this device. Any device name that is identified by the lstopo hwloc utility as Net or OpenFabrics (for example eth0, mlx4_0, etc) or special name as auto ",
-                                   MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                   MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                    OPAL_INFO_LVL_9,
                                    MCA_BASE_VAR_SCOPE_READONLY,
                                    &rmaps_dist_device);
@@ -168,7 +168,7 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
     rmaps_base_no_schedule_local = false;
     (void) mca_base_var_register("orte", "rmaps", "base", "no_schedule_local",
                                  "If false, allow scheduling MPI applications on the same node as mpirun (default).  If true, do not schedule any MPI applications on the same node as mpirun",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &rmaps_base_no_schedule_local);
 
@@ -176,14 +176,14 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
     rmaps_base_no_oversubscribe = false;
     (void) mca_base_var_register("orte", "rmaps", "base", "no_oversubscribe",
                                  "If true, then do not allow oversubscription of nodes - mpirun will return an error if there aren't enough nodes to launch all processes without oversubscribing",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &rmaps_base_no_oversubscribe);
 
     rmaps_base_oversubscribe = false;
     (void) mca_base_var_register("orte", "rmaps", "base", "oversubscribe",
                                  "If true, then allow oversubscription of nodes and overloading of processing elements",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &rmaps_base_oversubscribe);
 
@@ -191,14 +191,14 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
     orte_rmaps_base.display_map = false;
     (void) mca_base_var_register("orte", "rmaps", "base", "display_map",
                                  "Whether to display the process map after it is computed",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &orte_rmaps_base.display_map);
 
     rmaps_base_display_devel_map = false;
     (void) mca_base_var_register("orte", "rmaps", "base", "display_devel_map",
                                  "Whether to display a developer-detail process map after it is computed",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &rmaps_base_display_devel_map);
 
@@ -206,21 +206,21 @@ static int orte_rmaps_base_register(mca_base_register_flag_t flags)
     orte_display_topo_with_map = false;
     (void) mca_base_var_register("orte", "rmaps", "base", "display_topo_with_map",
                                  "Whether to display the topology with the map",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &orte_display_topo_with_map);
 
     rmaps_base_display_diffable_map = false;
     (void) mca_base_var_register("orte", "rmaps", "base", "display_diffable_map",
                                  "Whether to display a diffable process map after it is computed",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &rmaps_base_display_diffable_map);
 
     rmaps_base_topo_file = NULL;
     (void) mca_base_var_register("orte", "rmaps", "base", "topology",
                                  "hwloc topology file (xml format) describing the topology of the compute nodes [default: none]",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_9,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &rmaps_base_topo_file);
 
 

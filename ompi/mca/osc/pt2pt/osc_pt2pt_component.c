@@ -130,7 +130,7 @@ static int component_register (void)
                                            "Enable optimizations available only if MPI_LOCK is "
                                            "not used.  "
                                            "Info key of same name overrides this value.",
-                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &ompi_osc_pt2pt_no_locks);
@@ -139,7 +139,7 @@ static int component_register (void)
     (void) mca_base_component_var_register (&mca_osc_pt2pt_component.super.osc_version, "buffer_size",
 					    "Data transfers smaller than this limit may be coalesced before "
 					    "being transferred (default: 8k)", MCA_BASE_VAR_TYPE_UNSIGNED_INT,
-					    NULL, 0, 0, OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
+					    NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
 					    &mca_osc_pt2pt_component.buffer_size);
 
     mca_osc_pt2pt_component.receive_count = 4;

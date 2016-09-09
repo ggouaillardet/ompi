@@ -12,6 +12,8 @@
  *                         All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC.  All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -71,7 +73,7 @@ static int orte_ras_loadleveler_register(void)
     param_priority = 90;
     (void) mca_base_component_var_register(&mca_ras_loadleveler_component.base_version,
                                            "priority", "Priority of the loadleveler ras component",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, &param_priority);
 

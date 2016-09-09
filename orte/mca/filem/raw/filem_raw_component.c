@@ -2,6 +2,8 @@
 /*
  * Copyright (c) 2012-2015 Los Alamos National Security, LLC. All rights
  *                         reserved
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -62,7 +64,7 @@ static int filem_raw_register(void)
     orte_filem_raw_flatten_trees = false;
     (void) mca_base_component_var_register(c, "flatten_directory_trees",
                                            "Put all files in the working directory instead of creating their respective directory trees",
-                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &orte_filem_raw_flatten_trees);

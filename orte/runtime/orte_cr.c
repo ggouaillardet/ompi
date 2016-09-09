@@ -11,6 +11,8 @@
  *                         All rights reserved.
  * Copyright (c) 2007      Los Alamos National Security, LLC.  All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -106,7 +108,7 @@ int orte_cr_init(void)
     orte_cr_verbose = 0;
     (void) mca_base_var_register ("orte", "orte_cr", NULL, "verbose",
                                   "Verbose output for the ORTE Checkpoint/Restart functionality",
-                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                  MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                   OPAL_INFO_LVL_8,
                                   MCA_BASE_VAR_SCOPE_READONLY,
                                   &orte_cr_verbose);

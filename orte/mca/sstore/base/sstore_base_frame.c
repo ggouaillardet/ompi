@@ -74,7 +74,7 @@ static int orte_sstore_base_register(mca_base_register_flag_t flags)
     orte_sstore_base_global_snapshot_dir = (char *) opal_home_directory();
     mca_index = mca_base_var_register("orte", "sstore", "base", "global_snapshot_dir",
                                       "The base directory to use when storing global snapshots",
-                                      MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                      MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                       OPAL_INFO_LVL_9,
                                       MCA_BASE_VAR_SCOPE_READONLY,
                                       &orte_sstore_base_global_snapshot_dir);
@@ -88,7 +88,7 @@ static int orte_sstore_base_register(mca_base_register_flag_t flags)
     mca_index = mca_base_var_register("orte", "sstore", "base", "global_snapshot_ref",
                                       "The global snapshot reference to be used for this job. "
                                       " [Default = ompi_global_snapshot_MPIRUNPID.ckpt]",
-                                      MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                      MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                       OPAL_INFO_LVL_9,
                                       MCA_BASE_VAR_SCOPE_READONLY,
                                       &orte_sstore_base_global_snapshot_ref);

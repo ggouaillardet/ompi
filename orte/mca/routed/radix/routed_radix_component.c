@@ -6,6 +6,8 @@
  *                         All rights reserved.
  * Copyright (c) 2013      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2013      Intel, Inc.  All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -55,7 +57,7 @@ static int orte_routed_radix_component_register(void)
     mca_routed_radix_component.radix = 64;
     (void) mca_base_component_var_register(c, NULL,
                                            "Radix to be used for routed radix tree",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_routed_radix_component.radix);
@@ -63,7 +65,7 @@ static int orte_routed_radix_component_register(void)
     mca_routed_radix_component.max_connections = -1;
     (void) mca_base_component_var_register(c, "max_connections",
                                            "Send direct between daemons if the number of nodes is less than this number",
-                                           MCA_BASE_VAR_TYPE_INT, NULL,0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_routed_radix_component.max_connections);

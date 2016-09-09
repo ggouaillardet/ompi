@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2011-2014 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2013-2015 Intel, Inc. All rights reserved.
+ * Copyright (c) 2015      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -96,7 +98,7 @@ static int opal_hwloc_base_register(mca_base_register_flag_t flags)
                                 "\"none\" means that no memory policy is applied. \"local_only\" means that a process' memory allocations will be restricted to its local NUMA node. "
                                 "If using direct launch, this policy will not be in effect until after MPI_INIT. "
                                 "Note that operating system paging policies are unaffected by this setting. For example, if \"local_only\" is used and local NUMA node memory is exhausted, a new memory allocation may cause paging.",
-                                MCA_BASE_VAR_TYPE_INT, new_enum, 0, 0, OPAL_INFO_LVL_9,
+                                MCA_BASE_VAR_TYPE_INT, new_enum, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                 MCA_BASE_VAR_SCOPE_READONLY, &opal_hwloc_base_map);
     OBJ_RELEASE(new_enum);
     if (0 > ret) {
@@ -108,7 +110,7 @@ static int opal_hwloc_base_register(mca_base_register_flag_t flags)
     mca_base_var_enum_create("hwloc memory bind failure action", hwloc_failure_action, &new_enum);
     ret = mca_base_var_register("opal", "hwloc", "base", "mem_bind_failure_action",
                                 "What Open MPI will do if it explicitly tries to bind memory to a specific NUMA location, and fails.  Note that this is a different case than the general allocation policy described by hwloc_base_alloc_policy.  A value of \"silent\" means that Open MPI will proceed without comment. A value of \"warn\" means that Open MPI will warn the first time this happens, but allow the job to continue (possibly with degraded performance).  A value of \"error\" means that Open MPI will abort the job if this happens.",
-                                MCA_BASE_VAR_TYPE_INT, new_enum, 0, 0, OPAL_INFO_LVL_9,
+                                MCA_BASE_VAR_TYPE_INT, new_enum, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                 MCA_BASE_VAR_SCOPE_READONLY, &opal_hwloc_base_mbfa);
     OBJ_RELEASE(new_enum);
     if (0 > ret) {
@@ -121,48 +123,48 @@ static int opal_hwloc_base_register(mca_base_register_flag_t flags)
                                  "l3cache, socket, numa, board (\"none\" is the default when oversubscribed, \"core\" is "
                                  "the default when np<=2, and \"socket\" is the default when np>2). Allowed qualifiers: "
                                  "overload-allowed, if-supported",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_9,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &opal_hwloc_base_binding_policy);
 
     /* backward compatibility */
     opal_hwloc_base_bind_to_core = false;
     (void) mca_base_var_register("opal", "hwloc", "base", "bind_to_core", "Bind processes to cores",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0, OPAL_INFO_LVL_9,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &opal_hwloc_base_bind_to_core);
 
     opal_hwloc_base_bind_to_socket = false;
     (void) mca_base_var_register("opal", "hwloc", "base", "bind_to_socket", "Bind processes to sockets",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0, OPAL_INFO_LVL_9,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &opal_hwloc_base_bind_to_socket);
 
     opal_hwloc_report_bindings = false;
     (void) mca_base_var_register("opal", "hwloc", "base", "report_bindings", "Report bindings to stderr",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0, OPAL_INFO_LVL_9,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &opal_hwloc_report_bindings);
 
     opal_hwloc_base_slot_list = NULL;
     (void) mca_base_var_register("opal", "hwloc", "base", "slot_list",
                                  "List of processor IDs to bind processes to [default=NULL]",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_9,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &opal_hwloc_base_slot_list);
 
     opal_hwloc_base_cpu_set = NULL;
     (void) mca_base_var_register("opal", "hwloc", "base", "cpu_set",
                                  "Comma-separated list of ranges specifying logical cpus allocated to this job [default: none]",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_9,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &opal_hwloc_base_cpu_set);
 
     /* declare hwthreads as independent cpus */
     opal_hwloc_use_hwthreads_as_cpus = false;
     (void) mca_base_var_register("opal", "hwloc", "base", "use_hwthreads_as_cpus",
                                  "Use hardware threads as independent cpus",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0, OPAL_INFO_LVL_9,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &opal_hwloc_use_hwthreads_as_cpus);
 
     opal_hwloc_base_topo_file = NULL;
     (void) mca_base_var_register("opal", "hwloc", "base", "topo_file",
                                  "Read local topology from file instead of directly sensing it",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_9,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY, &opal_hwloc_base_topo_file);
 
     /* register parameters */

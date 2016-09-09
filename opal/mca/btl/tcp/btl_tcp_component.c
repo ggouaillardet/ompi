@@ -140,7 +140,7 @@ static inline char* mca_btl_tcp_param_register_string(
     *storage = (char *) default_value;
     (void) mca_base_component_var_register(&mca_btl_tcp_component.super.btl_version,
                                            param_name, help_string, MCA_BASE_VAR_TYPE_STRING,
-                                           NULL, 0, 0, level,
+                                           NULL, 0, MCA_BASE_VAR_FLAG_NONE, level,
                                            MCA_BASE_VAR_SCOPE_READONLY, storage);
     return *storage;
 }
@@ -155,7 +155,7 @@ static inline int mca_btl_tcp_param_register_int(
     *storage = default_value;
     (void) mca_base_component_var_register(&mca_btl_tcp_component.super.btl_version,
                                            param_name, help_string, MCA_BASE_VAR_TYPE_INT,
-                                           NULL, 0, 0, level,
+                                           NULL, 0, MCA_BASE_VAR_FLAG_NONE, level,
                                            MCA_BASE_VAR_SCOPE_READONLY, storage);
     return *storage;
 }
@@ -170,7 +170,7 @@ static inline unsigned int mca_btl_tcp_param_register_uint(
     *storage = default_value;
     (void) mca_base_component_var_register(&mca_btl_tcp_component.super.btl_version,
                                            param_name, help_string, MCA_BASE_VAR_TYPE_UNSIGNED_INT,
-                                           NULL, 0, 0, level,
+                                           NULL, 0, MCA_BASE_VAR_FLAG_NONE, level,
                                            MCA_BASE_VAR_SCOPE_READONLY, storage);
     return *storage;
 }
@@ -307,7 +307,7 @@ static int mca_btl_tcp_component_register(void)
                                            "warn_all_unfound_interfaces",
                                            "Issue a warning for all unfound interfaces included in if_exclude",
                                            MCA_BASE_VAR_TYPE_BOOL,
-                                           NULL, 0, 0, OPAL_INFO_LVL_2,
+                                           NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_2,
                                            MCA_BASE_VAR_SCOPE_READONLY, &mca_btl_tcp_component.report_all_unfound_interfaces);
 
     mca_btl_tcp_module.super.btl_exclusivity =  MCA_BTL_EXCLUSIVITY_LOW + 100;

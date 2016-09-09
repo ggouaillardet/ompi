@@ -14,6 +14,8 @@
  *                         All rights reserved.
  * Copyright (c) 2014-2016 Intel, Inc. All rights reserved
  * Copyright (c) 2016      IBM Corporation.  All rights reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -190,7 +192,7 @@ int orte_proc_info(void)
     orte_strip_prefix = NULL;
     (void) mca_base_var_register ("orte", "orte", NULL, "strip_prefix",
 				  "Prefix(es) to match when deciding whether to strip leading characters and zeroes from "
-				  "node names returned by daemons", MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+				  "node names returned by daemons", MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
 				  OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
 				  &orte_strip_prefix);
 

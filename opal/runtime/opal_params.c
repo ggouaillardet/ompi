@@ -17,7 +17,7 @@
  * Copyright (c) 2010-2014 Los Alamos National Security, LLC.
  *                         All rights reserved.
  * Copyright (c) 2014      Hochschule Esslingen.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2015      Mellanox Technologies, Inc.
  *                         All rights reserved.
@@ -225,7 +225,7 @@ int opal_register_params(void)
     opal_leave_pinned = -1;
     ret = mca_base_var_register("ompi", "mpi", NULL, "leave_pinned",
                                 "Whether to use the \"leave pinned\" protocol or not.  Enabling this setting can help bandwidth performance when repeatedly sending and receiving large messages with the same buffers over RDMA-based networks (0 = do not use \"leave pinned\" protocol, 1 = use \"leave pinned\" protocol, -1 = allow network to choose at runtime).",
-                                MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                 OPAL_INFO_LVL_9,
                                 MCA_BASE_VAR_SCOPE_READONLY,
                                 &opal_leave_pinned);
@@ -235,7 +235,7 @@ int opal_register_params(void)
     opal_leave_pinned_pipeline = false;
     ret = mca_base_var_register("ompi", "mpi", NULL, "leave_pinned_pipeline",
                                 "Whether to use the \"leave pinned pipeline\" protocol or not.",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &opal_leave_pinned_pipeline);
@@ -280,7 +280,7 @@ int opal_register_params(void)
     opal_warn_on_fork = true;
     (void) mca_base_var_register("ompi", "mpi", NULL, "warn_on_fork",
                                  "If nonzero, issue a warning if program forks under conditions that could cause system errors",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &opal_warn_on_fork);

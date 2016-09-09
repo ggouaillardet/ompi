@@ -160,7 +160,7 @@ static int mca_sbgp_base_register(mca_base_register_flag_t flags)
     ompi_sbgp_subgroups_string = "basesmsocket,basesmuma,ibnet,p2p";
     (void) mca_base_var_register("ompi", "sbgp", "base", "subgroups_string",
                                  "Default set of subgroup operations to apply ",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_LOCAL,
                                  &ompi_sbgp_subgroups_string);

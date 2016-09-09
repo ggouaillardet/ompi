@@ -13,6 +13,8 @@
  * Copyright (c) 2007-2016 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012-2015 Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -168,7 +170,7 @@ ompi_debugger_setup_dlls(void)
     ompi_debugger_dll_path = opal_install_dirs.opallibdir;
     (void) mca_base_var_register("ompi", "ompi", "debugger", "dll_path",
                                  "List of directories where MPI_INIT should search for debugger plugins",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &ompi_debugger_dll_path);

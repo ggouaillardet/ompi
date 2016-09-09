@@ -14,7 +14,7 @@
  * Copyright (c) 2012-2015 Los Alamos National Security, LLC. All rights
  *                         reserved.
  * Copyright (c) 2014-2016 Intel, Inc. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2016      Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -411,7 +411,7 @@ int mca_base_var_cache_files(bool rel_path_search)
     tmp = mca_base_var_files;
     ret = mca_base_var_register ("opal", "mca", "base", "param_files", "Path for MCA "
                                  "configuration files containing variable values",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_2,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_2,
                                  MCA_BASE_VAR_SCOPE_READONLY, &mca_base_var_files);
     free (tmp);
     if (0 > ret) {
@@ -449,7 +449,7 @@ int mca_base_var_cache_files(bool rel_path_search)
     mca_base_var_suppress_override_warning = false;
     ret = mca_base_var_register ("opal", "mca", "base", "suppress_override_warning",
                                  "Suppress warnings when attempting to set an overridden value (default: false)",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0, OPAL_INFO_LVL_2,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_2,
                                  MCA_BASE_VAR_SCOPE_LOCAL, &mca_base_var_suppress_override_warning);
     if (0 > ret) {
         return ret;
@@ -462,7 +462,7 @@ int mca_base_var_cache_files(bool rel_path_search)
     mca_base_var_file_prefix = NULL;
     ret = mca_base_var_register ("opal", "mca", "base", "param_file_prefix",
                                  "Aggregate MCA parameter file sets",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_3,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_3,
                                  MCA_BASE_VAR_SCOPE_READONLY, &mca_base_var_file_prefix);
     if (0 > ret) {
         return ret;
@@ -471,7 +471,7 @@ int mca_base_var_cache_files(bool rel_path_search)
     mca_base_envar_file_prefix = NULL;
     ret = mca_base_var_register ("opal", "mca", "base", "envar_file_prefix",
                                  "Aggregate MCA parameter file set for env variables",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_3,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_3,
                                  MCA_BASE_VAR_SCOPE_READONLY, &mca_base_envar_file_prefix);
     if (0 > ret) {
         return ret;
@@ -486,7 +486,7 @@ int mca_base_var_cache_files(bool rel_path_search)
     tmp = mca_base_param_file_path;
     ret = mca_base_var_register ("opal", "mca", "base", "param_file_path",
                                  "Aggregate MCA parameter Search path",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_3,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_3,
                                  MCA_BASE_VAR_SCOPE_READONLY, &mca_base_param_file_path);
     free (tmp);
     if (0 > ret) {
@@ -496,7 +496,7 @@ int mca_base_var_cache_files(bool rel_path_search)
     force_agg_path = NULL;
     ret = mca_base_var_register ("opal", "mca", "base", "param_file_path_force",
                                  "Forced Aggregate MCA parameter Search path",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_3,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_3,
                                  MCA_BASE_VAR_SCOPE_READONLY, &force_agg_path);
     if (0 > ret) {
         return ret;

@@ -13,7 +13,7 @@
  * Copyright (c) 2008-2015 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -122,13 +122,13 @@ static int register_component(void)
     priority_param = 10;
     (void) mca_base_component_var_register(&mca_io_romio314_component.io_version,
                                            "priority", "Priority of the io romio component",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, &priority_param);
     delete_priority_param = 10;
     (void) mca_base_component_var_register(&mca_io_romio314_component.io_version,
                                            "delete_priority", "Delete priority of the io romio component",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, &delete_priority_param);
     (void) mca_base_component_var_register(&mca_io_romio314_component.io_version,

@@ -10,6 +10,8 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2014 Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2015      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -36,7 +38,7 @@ static int mca_timer_base_register(mca_base_register_flag_t flags)
 {
     (void) mca_base_var_register("opal", "timer", "require", "monotonic",
                                  "Node-level monotonic timer required (default yes)",
-                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_5,
                                  MCA_BASE_VAR_SCOPE_LOCAL,
                                  &mca_timer_base_monotonic);

@@ -93,7 +93,7 @@ static inline int mca_pml_ob1_param_register_int(
 {
     *storage = default_value;
     (void) mca_base_component_var_register(&mca_pml_ob1_component.pmlm_version, param_name,
-                                           NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           NULL, MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, storage);
     return *storage;
@@ -106,7 +106,7 @@ static inline unsigned int mca_pml_ob1_param_register_uint(
 {
     *storage = default_value;
     (void) mca_base_component_var_register(&mca_pml_ob1_component.pmlm_version, param_name,
-                                           NULL, MCA_BASE_VAR_TYPE_UNSIGNED_INT, NULL, 0, 0,
+                                           NULL, MCA_BASE_VAR_TYPE_UNSIGNED_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, storage);
     return *storage;
@@ -119,7 +119,7 @@ static inline size_t mca_pml_ob1_param_register_sizet(
 {
     *storage = default_value;
     (void) mca_base_component_var_register(&mca_pml_ob1_component.pmlm_version, param_name,
-                                           NULL, MCA_BASE_VAR_TYPE_SIZE_T, NULL, 0, 0,
+                                           NULL, MCA_BASE_VAR_TYPE_SIZE_T, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, storage);
     return *storage;
@@ -209,7 +209,7 @@ static int mca_pml_ob1_component_register(void)
     mca_pml_ob1.allocator_name = "bucket";
     (void) mca_base_component_var_register(&mca_pml_ob1_component.pmlm_version, "allocator",
                                            "Name of allocator component for unexpected messages",
-                                           MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_9,
+                                           MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY, &mca_pml_ob1.allocator_name);
 
     (void) mca_base_pvar_register ("ompi", "pml", "ob1", "unexpected_msgq_length", "Number of unexpected messages "

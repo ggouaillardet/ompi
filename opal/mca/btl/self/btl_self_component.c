@@ -13,6 +13,8 @@
  * Copyright (c) 2010      Cisco Systems, Inc. All rights reserved.
  * Copyright (c) 2014-2015 Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -72,21 +74,21 @@ static int mca_btl_self_component_register(void)
     mca_btl_self_component.free_list_num = 0;
     (void) mca_base_component_var_register(&mca_btl_self_component.super.btl_version, "free_list_num",
                                            "Number of fragments by default",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_btl_self_component.free_list_num);
     mca_btl_self_component.free_list_max = -1;
     (void) mca_base_component_var_register(&mca_btl_self_component.super.btl_version, "free_list_max",
                                            "Maximum number of fragments",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_btl_self_component.free_list_max);
     mca_btl_self_component.free_list_inc = 32;
     (void) mca_base_component_var_register(&mca_btl_self_component.super.btl_version, "free_list_inc",
                                            "Increment by this number of fragments",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_btl_self_component.free_list_inc);

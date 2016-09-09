@@ -208,7 +208,7 @@ static int orte_iof_base_register(mca_base_register_flag_t flags)
     orte_iof_base.output_limit = (size_t) INT_MAX;
     (void) mca_base_var_register("orte", "iof", "base", "output_limit",
                                  "Maximum backlog of output messages [default: unlimited]",
-                                 MCA_BASE_VAR_TYPE_SIZE_T, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_SIZE_T, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_iof_base.output_limit);
@@ -217,7 +217,7 @@ static int orte_iof_base_register(mca_base_register_flag_t flags)
     orte_iof_base.input_files = NULL;
     (void) mca_base_var_register("orte", "iof","base", "input_files",
                                  "Comma-separated list of input files to be read and sent to stdin of procs (default: NULL)",
-                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                  OPAL_INFO_LVL_9,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &orte_iof_base.input_files);

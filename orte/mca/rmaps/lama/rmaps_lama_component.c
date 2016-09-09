@@ -2,9 +2,11 @@
 /*
  * Copyright (c) 2011      Oak Ridge National Labs.  All rights reserved.
  *
- * Copyright (c) 2012 Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2012      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -63,7 +65,7 @@ static int orte_rmaps_lama_register(void)
     /* JMS Artifically low for now */
     module_priority = 0;
     (void) mca_base_component_var_register (c, "priority", "Priority of the LAMA rmaps component",
-                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &module_priority);
@@ -71,35 +73,35 @@ static int orte_rmaps_lama_register(void)
     rmaps_lama_timing_enabled = false;
     (void) mca_base_component_var_register (c, "timing",
                                             "Enable timing information. [Default = disabled]",
-                                            MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &rmaps_lama_timing_enabled);
 
     rmaps_lama_cmd_map = NULL;
     (void) mca_base_component_var_register (c, "map", "LAMA Map: Process layout iteration ordering (See documentation)",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_5,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &rmaps_lama_cmd_map);
 
     rmaps_lama_cmd_bind = NULL;
     (void) mca_base_component_var_register (c, "bind", "LAMA Bind: Bind to the specified number of resources (See documentation)",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_5,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &rmaps_lama_cmd_bind);
 
     rmaps_lama_cmd_mppr = NULL;
     (void) mca_base_component_var_register (c, "mppr", "LAMA MPPR: Maximum number of the specified resources available (See documentation)",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_5,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &rmaps_lama_cmd_mppr);
 
     rmaps_lama_cmd_ordering = NULL;
     (void) mca_base_component_var_register (c, "ordering", "LAMA Ordering: Ordering (s) sequential, (n) natural - Default: n (See documentation)",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
+                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                             OPAL_INFO_LVL_5,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &rmaps_lama_cmd_ordering);

@@ -2,6 +2,8 @@
 /*
  * Copyright (c) 2012-2015 Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  *
  * $COPYRIGHT$
  *
@@ -68,7 +70,7 @@ static int dfs_test_register(void)
     select_me = false;
     (void) mca_base_component_var_register(&mca_dfs_test_component.base_version, "select",
                                            "Apps select the test plug-in for the DFS framework",
-                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_ALL_EQ, &select_me);
 

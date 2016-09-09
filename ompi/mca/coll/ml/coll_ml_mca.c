@@ -4,6 +4,8 @@
  * Copyright (c) 2009-2012 Mellanox Technologies.  All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2016      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -75,7 +77,7 @@ static int reg_string(const char* param_name,
     *storage = (char *) default_value;
     index = mca_base_component_var_register(&mca_coll_ml_component.super.collm_version,
                                             param_name, param_desc, MCA_BASE_VAR_TYPE_STRING,
-                                            NULL, 0, 0, OPAL_INFO_LVL_9,
+                                            NULL, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY, storage);
     if (NULL != deprecated_param_name) {
         (void) mca_base_var_register_synonym(index, "ompi", "coll", "ml", deprecated_param_name,
@@ -104,7 +106,7 @@ static int reg_int(const char* param_name,
     *storage = default_value;
     index = mca_base_component_var_register(&mca_coll_ml_component.super.collm_version,
                                             param_name, param_desc, MCA_BASE_VAR_TYPE_INT,
-                                            NULL, 0, 0,OPAL_INFO_LVL_9,
+                                            NULL, 0, MCA_BASE_VAR_FLAG_NONE,OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY, storage);
     if (NULL != deprecated_param_name) {
         (void) mca_base_var_register_synonym(index, "ompi", "coll", "ml", deprecated_param_name,
@@ -136,7 +138,7 @@ static int reg_bool(const char* param_name,
     *storage = default_value;
     index = mca_base_component_var_register(&mca_coll_ml_component.super.collm_version,
                                             param_name, param_desc, MCA_BASE_VAR_TYPE_BOOL,
-                                            NULL, 0, 0,OPAL_INFO_LVL_9,
+                                            NULL, 0, MCA_BASE_VAR_FLAG_NONE,OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY, storage);
     if (NULL != deprecated_param_name) {
         (void) mca_base_var_register_synonym(index, "ompi", "coll", "ml", deprecated_param_name,
@@ -156,7 +158,7 @@ static int reg_ullint(const char* param_name,
     *storage = default_value;
     index = mca_base_component_var_register(&mca_coll_ml_component.super.collm_version,
                                             param_name, param_desc, MCA_BASE_VAR_TYPE_UNSIGNED_LONG_LONG,
-                                            NULL, 0, 0,OPAL_INFO_LVL_9,
+                                            NULL, 0, MCA_BASE_VAR_FLAG_NONE,OPAL_INFO_LVL_9,
                                             MCA_BASE_VAR_SCOPE_READONLY, storage);
     if (NULL != deprecated_param_name) {
         (void) mca_base_var_register_synonym(index, "ompi", "coll", "ml", deprecated_param_name,
@@ -249,7 +251,7 @@ int mca_coll_ml_register_params(void)
     mca_coll_ml_component.bcast_algorithm = COLL_ML_STATIC_BCAST;
     tmp = mca_base_component_var_register (&mca_coll_ml_component.super.collm_version, "bcast_algorithm",
                                            "Algorithm to use for broadcast", MCA_BASE_VAR_TYPE_INT,
-                                           new_enum, 0, 0, OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
+                                           new_enum, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_coll_ml_component.bcast_algorithm);
     OBJ_RELEASE(new_enum);
     if (0 > tmp) {
@@ -271,7 +273,7 @@ int mca_coll_ml_register_params(void)
     mca_coll_ml_component.enable_fragmentation = 2;
     tmp = mca_base_component_var_register (&mca_coll_ml_component.super.collm_version, "enable_fragmentation",
                                            "Disable/Enable fragmentation for large messages", MCA_BASE_VAR_TYPE_INT,
-                                           new_enum, 0, 0, OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
+                                           new_enum, 0, MCA_BASE_VAR_FLAG_NONE, OPAL_INFO_LVL_9, MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_coll_ml_component.enable_fragmentation);
     if (0 > tmp) {
         ret = tmp;

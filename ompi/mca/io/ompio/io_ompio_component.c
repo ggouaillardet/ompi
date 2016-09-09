@@ -13,7 +13,7 @@
  * Copyright (c) 2008-2015 University of Houston. All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -135,14 +135,14 @@ static int register_component(void)
     priority_param = 30;
     (void) mca_base_component_var_register(&mca_io_ompio_component.io_version,
                                            "priority", "Priority of the io ompio component",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &priority_param);
     delete_priority_param = 30;
     (void) mca_base_component_var_register(&mca_io_ompio_component.io_version,
                                            "delete_priority", "Delete priority of the io ompio component",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &delete_priority_param);
@@ -151,7 +151,7 @@ static int register_component(void)
     (void) mca_base_component_var_register(&mca_io_ompio_component.io_version,
                                            "record_file_offset_info",
                                            "The information of the file offset/length",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_io_ompio_record_offset_info);
@@ -160,7 +160,7 @@ static int register_component(void)
     (void) mca_base_component_var_register(&mca_io_ompio_component.io_version,
                                            "coll_timing_info",
                                            "Enable collective algorithm timing information",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_io_ompio_coll_timing_info);
@@ -169,7 +169,7 @@ static int register_component(void)
     (void) mca_base_component_var_register(&mca_io_ompio_component.io_version,
                                            "cycle_buffer_size",
                                            "Data size issued by individual reads/writes per call",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_io_ompio_cycle_buffer_size);
@@ -178,7 +178,7 @@ static int register_component(void)
     (void) mca_base_component_var_register(&mca_io_ompio_component.io_version,
                                            "bytes_per_agg",
                                            "Size of temporary buffer for collective I/O operations",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_io_ompio_bytes_per_agg);
@@ -187,7 +187,7 @@ static int register_component(void)
     (void) mca_base_component_var_register(&mca_io_ompio_component.io_version,
                                            "num_aggregators",
                                            "number of aggregators for collective I/O operations",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_io_ompio_num_aggregators);
@@ -197,7 +197,7 @@ static int register_component(void)
     (void) mca_base_component_var_register(&mca_io_ompio_component.io_version,
                                            "sharedfp_lazy_open",
                                            "lazy allocation of internal shared file pointer structures",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_io_ompio_sharedfp_lazy_open);
@@ -209,7 +209,7 @@ static int register_component(void)
                                            "1: Data volume based grouping 2: maximizing group size uniformity 3: maximimze "
                                            "data contiguity 4: hybrid optimization  5: simple (default) "
                                            "6: skip refinement step",
-                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, MCA_BASE_VAR_FLAG_NONE,
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_io_ompio_grouping_option);
