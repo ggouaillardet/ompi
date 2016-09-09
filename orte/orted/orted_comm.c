@@ -382,7 +382,6 @@ void orte_daemon_recv(int status, orte_process_name_t* sender,
             opal_output(0, "%s orted_cmd: exit cmd, %d routes still exist",
                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), ret);
         }
-        return;
         break;
 
         /****    HALT VM COMMAND    ****/
@@ -415,7 +414,6 @@ void orte_daemon_recv(int status, orte_process_name_t* sender,
         } else {
             ORTE_ACTIVATE_JOB_STATE(NULL, ORTE_JOB_STATE_DAEMONS_TERMINATED);
         }
-        return;
         break;
 
         /****    HALT DVM COMMAND    ****/
@@ -437,7 +435,6 @@ void orte_daemon_recv(int status, orte_process_name_t* sender,
         OBJ_RELEASE(answer);
         OBJ_RELEASE(sig);
         return;
-        break;
 
         /****    SPAWN JOB COMMAND    ****/
     case ORTE_DAEMON_SPAWN_JOB_CMD:

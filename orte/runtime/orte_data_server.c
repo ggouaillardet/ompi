@@ -13,6 +13,8 @@
  * Copyright (c) 2012-2016 Los Alamos National Security, LLC.
  *                         All rights reserved
  * Copyright (c) 2015      Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -345,7 +347,6 @@ void orte_data_server(int status, orte_process_name_t* sender,
              * rc value either, so just send whatever is there */
         }
         goto SEND_ANSWER;
-        break;
 
     case ORTE_PMIX_LOOKUP_CMD:
         OPAL_OUTPUT_VERBOSE((1, orte_debug_output,
@@ -512,7 +513,6 @@ void orte_data_server(int status, orte_process_name_t* sender,
                              "%s data server:lookup: data found",
                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
         goto SEND_ANSWER;
-        break;
 
     case ORTE_PMIX_UNPUBLISH_CMD:
         /* unpack the requestor */
@@ -618,7 +618,6 @@ void orte_data_server(int status, orte_process_name_t* sender,
             ORTE_ERROR_LOG(rc);
         }
         goto SEND_ANSWER;
-        break;
 
     default:
         ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);

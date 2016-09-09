@@ -13,7 +13,7 @@
  *                         reserved.
  * Copyright (c) 2009-2015 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2013      Intel, Inc.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -222,7 +222,6 @@ opal_net_islocalhost(const struct sockaddr *addr)
             if (0x7F000000 == (0x7F000000 & ntohl(inaddr->sin_addr.s_addr))) {
                 return true;
             }
-            return false;
         }
         break;
 #if OPAL_ENABLE_IPV6
@@ -232,7 +231,6 @@ opal_net_islocalhost(const struct sockaddr *addr)
             if (IN6_IS_ADDR_LOOPBACK (&inaddr->sin6_addr)) {
                return true; /* Bug, FIXME: check for 127.0.0.1/8 */
             }
-            return false;
         }
         break;
 #endif
@@ -240,9 +238,9 @@ opal_net_islocalhost(const struct sockaddr *addr)
     default:
         opal_output(0, "unhandled sa_family %d passed to opal_net_islocalhost",
                     addr->sa_family);
-        return false;
         break;
     }
+    return false;
 }
 
 
@@ -276,7 +274,6 @@ opal_net_samenetwork(const struct sockaddr *addr1,
                (inaddr2.sin_addr.s_addr & netmask)) {
                 return true;
             }
-            return false;
         }
         break;
 #if OPAL_ENABLE_IPV6
@@ -308,7 +305,6 @@ opal_net_samenetwork(const struct sockaddr *addr1,
                     return true;
                 }
             }
-            return false;
         }
         break;
 #endif
@@ -425,11 +421,9 @@ opal_net_get_port(const struct sockaddr *addr)
     switch (addr->sa_family) {
     case AF_INET:
         return ntohs(((struct sockaddr_in*) addr)->sin_port);
-        break;
 #if OPAL_ENABLE_IPV6
     case AF_INET6:
         return ntohs(((struct sockaddr_in6*) addr)->sin6_port);
-        break;
 #endif
     }
 

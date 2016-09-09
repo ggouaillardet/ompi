@@ -15,7 +15,7 @@
  * Copyright (c) 2008      Voltaire. All rights reserved
  * Copyright (c) 2010      Oracle and/or its affiliates.  All rights reserved.
  * Copyright (c) 2014-2016 Intel, Inc. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2016      IBM Corporation.  All rights reserved.
  *
@@ -417,7 +417,6 @@ static int orte_rmaps_rank_file_parse(const char *rankfile)
                 rc = ORTE_ERR_BAD_PARAM;
                 ORTE_ERROR_LOG(rc);
                 goto unlock;
-                break;
             case ORTE_RANKFILE_QUOTED_STRING:
                 orte_show_help("help-rmaps_rank_file.txt", "not-supported-rankfile", true, "QUOTED_STRING", rankfile);
                 rc = ORTE_ERR_BAD_PARAM;
@@ -450,7 +449,6 @@ static int orte_rmaps_rank_file_parse(const char *rankfile)
                 rc = ORTE_ERR_BAD_PARAM;
                 ORTE_ERROR_LOG(rc);
                 goto unlock;
-                break;
             case ORTE_RANKFILE_EQUAL:
                 if (rank < 0) {
                     orte_show_help("help-rmaps_rank_file.txt", "bad-syntax", true, rankfile);

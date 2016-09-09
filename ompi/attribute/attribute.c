@@ -12,6 +12,8 @@
  * Copyright (c) 2006-2014 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012      Los Alamos National Security, LLC.  All rights
  *                         reserved.
+ * Copyright (c) 2015      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -1235,17 +1237,14 @@ static void *translate_to_c(attribute_value_t *val)
     case OMPI_ATTRIBUTE_C:
         /* Case 1: written in C, read in C (unity) */
         return val->av_value;
-        break;
 
     case OMPI_ATTRIBUTE_FORTRAN_MPI1:
         /* Case 4: written in Fortran MPI-1, read in C */
         return (void *) val->av_integer_pointer;
-        break;
 
     case OMPI_ATTRIBUTE_FORTRAN_MPI2:
         /* Case 7: written in Fortran MPI-2, read in C */
         return (void *) val->av_address_kind_pointer;
-        break;
 
     default:
         /* Should never reach here */
@@ -1267,18 +1266,15 @@ static MPI_Fint translate_to_fortran_mpi1(attribute_value_t *val)
     case OMPI_ATTRIBUTE_C:
         /* Case 2: written in C, read in Fortran MPI-1 */
         return *val->av_integer_pointer;
-        break;
 
     case OMPI_ATTRIBUTE_FORTRAN_MPI1:
         /* Case 5: written in Fortran MPI-1, read in Fortran MPI-1
            (unity) */
         return *val->av_integer_pointer;
-        break;
 
     case OMPI_ATTRIBUTE_FORTRAN_MPI2:
         /* Case 8: written in Fortran MPI-2, read in Fortran MPI-1 */
         return *val->av_integer_pointer;
-        break;
 
     default:
         /* Should never reach here */
@@ -1300,18 +1296,15 @@ static MPI_Aint translate_to_fortran_mpi2(attribute_value_t *val)
     case OMPI_ATTRIBUTE_C:
         /* Case 3: written in C, read in Fortran MPI-2 */
         return (MPI_Aint) val->av_value;
-        break;
 
     case OMPI_ATTRIBUTE_FORTRAN_MPI1:
         /* Case 6: written in Fortran MPI-1, read in Fortran MPI-2 */
         return (MPI_Aint) *val->av_integer_pointer;
-        break;
 
     case OMPI_ATTRIBUTE_FORTRAN_MPI2:
         /* Case 9: written in Fortran MPI-2, read in Fortran MPI-2
            (unity) */
         return (MPI_Aint) val->av_value;
-        break;
 
     default:
         /* Should never reach here */

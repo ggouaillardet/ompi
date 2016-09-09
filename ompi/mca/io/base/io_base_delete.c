@@ -10,7 +10,7 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2008      Sun Microsystems, Inc.  All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -367,11 +367,9 @@ static int delete_file(avail_io_t *avail, const char *filename, struct ompi_info
         ioc_200 = &(avail->ai_component.v2_0_0);
         return ioc_200->io_delete_select(filename, info,
                                          avail->ai_private_data);
-        break;
 
     default:
         return OMPI_ERROR;
-        break;
     }
 
     /* No way to reach here */

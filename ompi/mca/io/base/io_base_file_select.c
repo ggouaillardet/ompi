@@ -461,11 +461,9 @@ static int module_init(ompi_file_t *file)
         return iom_200->io_module_file_open(file->f_comm, file->f_filename,
                                             file->f_amode, file->f_info,
                                             file);
-        break;
 
     default:
         return OMPI_ERROR;
-        break;
     }
 
     /* No way to reach here */

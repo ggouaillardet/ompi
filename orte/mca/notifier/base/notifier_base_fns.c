@@ -11,6 +11,8 @@
  *                         All rights reserved.
  * Copyright (c) 2008-2015 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2014-2015 Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -143,15 +145,15 @@ void orte_notifier_base_report(int sd, short args, void *cbdata)
 const char* orte_notifier_base_sev2str(orte_notifier_severity_t severity)
 {
     switch (severity) {
-    case ORTE_NOTIFIER_EMERG:  return "EMERGENCY";  break;
-    case ORTE_NOTIFIER_ALERT:  return "ALERT";  break;
-    case ORTE_NOTIFIER_CRIT:   return "CRITICAL";   break;
-    case ORTE_NOTIFIER_ERROR:  return "ERROR";  break;
-    case ORTE_NOTIFIER_WARN:   return "WARNING";   break;
-    case ORTE_NOTIFIER_NOTICE: return "NOTICE"; break;
-    case ORTE_NOTIFIER_INFO:   return "INFO";   break;
-    case ORTE_NOTIFIER_DEBUG:  return "DEBUG";  break;
-    default: return "UNKNOWN"; break;
+    case ORTE_NOTIFIER_EMERG:  return "EMERGENCY";
+    case ORTE_NOTIFIER_ALERT:  return "ALERT";
+    case ORTE_NOTIFIER_CRIT:   return "CRITICAL";
+    case ORTE_NOTIFIER_ERROR:  return "ERROR";
+    case ORTE_NOTIFIER_WARN:   return "WARNING";
+    case ORTE_NOTIFIER_NOTICE: return "NOTICE";
+    case ORTE_NOTIFIER_INFO:   return "INFO";
+    case ORTE_NOTIFIER_DEBUG:  return "DEBUG";
+    default: return "UNKNOWN";
     }
 }
 

@@ -12,6 +12,8 @@
  * Copyright (c) 2010-2012 Los Alamos National Security, LLC.
  *                         All rights reserved.
  * Copyright (c) 2014      Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2016 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -171,7 +173,6 @@ int orte_util_comm_report_event(orte_comm_event_t ev)
             ORTE_ERROR_LOG(ORTE_ERROR);
             OBJ_RELEASE(buf);
             return ORTE_ERROR;
-            break;
     }
 
    /* define a max time to wait for send to complete */

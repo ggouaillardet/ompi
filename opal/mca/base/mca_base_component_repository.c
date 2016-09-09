@@ -261,8 +261,9 @@ int mca_base_component_repository_get_components (mca_base_framework_t *framewor
 #if OPAL_HAVE_DL_SUPPORT
     return opal_hash_table_get_value_ptr (&mca_base_component_repository, framework->framework_name,
                                           strlen (framework->framework_name), (void **) framework_components);
-#endif
+#else
     return OPAL_ERR_NOT_FOUND;
+#endif
 }
 
 #if OPAL_HAVE_DL_SUPPORT

@@ -16,7 +16,7 @@
  *                         reserved.
  * Copyright (c) 2010      Oracle and/or its affiliates.  All rights reserved.
  * Copyright (c) 2014-2016 Intel, Inc. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -911,17 +911,13 @@ static char *pretty_node_state(orte_node_state_t state) {
     switch(state) {
     case ORTE_NODE_STATE_DOWN:
         return strdup("Down");
-        break;
     case ORTE_NODE_STATE_UP:
         return strdup("Up");
-        break;
     case ORTE_NODE_STATE_REBOOT:
         return strdup("Reboot");
-        break;
     case ORTE_NODE_STATE_UNKNOWN:
     default:
         return strdup("Unknown");
-        break;
     }
 }
 
