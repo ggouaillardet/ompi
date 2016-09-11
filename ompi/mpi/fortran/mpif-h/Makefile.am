@@ -25,6 +25,8 @@
 
 include $(top_srcdir)/Makefile.ompi-rules
 
+libdir = @libdir@@OMPI_FORTRAN_DIR@
+
 SUBDIRS = profile
 
 AM_CPPFLAGS = -DOMPI_BUILD_MPI_PROFILING=0 -DOMPI_COMPILING_FORTRAN_WRAPPERS=1

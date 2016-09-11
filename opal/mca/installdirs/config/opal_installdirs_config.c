@@ -51,6 +51,7 @@ const opal_installdirs_base_component_t mca_installdirs_config_component = {
         OPAL_MANDIR,
         OPAL_PKGDATADIR,
         OPAL_PKGLIBDIR,
-        OPAL_PKGINCLUDEDIR
+        OPAL_PKGINCLUDEDIR,
+        OPAL_FORTRANDIR
     }
 };

@@ -149,6 +149,7 @@ opal_install_dirs_expand_internal(const char* input, bool is_setup)
             EXPAND_STRING2(opaldatadir, pkgdatadir);
             EXPAND_STRING2(opallibdir, pkglibdir);
             EXPAND_STRING2(opalincludedir, pkgincludedir);
+            EXPAND_STRING(opalfortrandir);
         } while (changed);
     }
 

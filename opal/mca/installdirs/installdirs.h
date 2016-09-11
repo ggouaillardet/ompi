@@ -58,6 +58,7 @@ struct opal_install_dirs_t {
     char* opaldatadir;
     char* opallibdir;
     char* opalincludedir;
+    char* opalfortrandir;
 };
 typedef struct opal_install_dirs_t opal_install_dirs_t;
 
