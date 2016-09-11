@@ -15,7 +15,10 @@
 
 #include "opal_config.h"
 
+#ifdef HAVE_IEEE754_H
 #include <ieee754.h>
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -84,6 +87,7 @@ struct bit80 {
 static inline void
 opal_dt_swap_long_double(void *to_p, const void *from_p, const size_t size, size_t count, uint32_t remoteArch)
 {
+#ifdef HAVE_IEEE754_H
     size_t i;
     long double*to = (long double *) to_p;
 
@@ -115,6 +119,9 @@ opal_dt_swap_long_double(void *to_p, const void *from_p, const size_t size, size
 #endif
         }
     }
+#else
+    assert(0);
+#endif
 }
 
 /**
