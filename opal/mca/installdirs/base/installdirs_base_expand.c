@@ -28,17 +28,13 @@
     EXPAND_STRING2(name, name)
 
 #define EXPAND_STRING2(ompiname, fieldname)                             \
-    EXPAND_STRING3(ompiname, fieldname, opal_install_dirs);                  \
-    EXPAND_STRING3(ompiname, x##fieldname, opal_install_xdirs)
-
-#define EXPAND_STRING3(ompiname, fieldname, dirs)                       \
     do {                                                                \
         if (NULL != (start_pos = strstr(retval, "${" #fieldname "}"))) { \
             tmp = retval;                                               \
             *start_pos = '\0';                                          \
             end_pos = start_pos + strlen("${" #fieldname "}");          \
             asprintf(&retval, "%s%s%s", tmp,                            \
-                     dirs.ompiname + destdir_offset,                    \
+                     opal_install_dirs.ompiname + destdir_offset,       \
                      end_pos);                                          \
             free(tmp);                                                  \
             changed = true;                                             \
@@ -47,7 +43,7 @@
             *start_pos = '\0';                                          \
             end_pos = start_pos + strlen("@{" #fieldname "}");          \
             asprintf(&retval, "%s%s%s", tmp,                            \
-                     dirs.ompiname + destdir_offset,                    \
+                     opal_install_dirs.ompiname + destdir_offset,       \
                      end_pos);                                          \
             free(tmp);                                                  \
             changed = true;                                             \

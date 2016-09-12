@@ -22,7 +22,6 @@
 #include "opal/mca/installdirs/base/static-components.h"
 
 opal_install_dirs_t opal_install_dirs = {0};
-opal_install_dirs_t opal_install_xdirs = {0};
 
 #define CONDITIONAL_COPY(target, origin, field)                 \
     do {                                                        \
