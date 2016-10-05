@@ -126,6 +126,7 @@ int opal_event_init(void)
 int opal_event_finalize(void)
 {
     event_config_free(config);
+    libevent_global_shutdown();
     return OPAL_SUCCESS;
 }
 
