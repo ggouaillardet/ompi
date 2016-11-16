@@ -85,6 +85,10 @@ typedef struct ompi_datatype_t ompi_datatype_t;
 
 OMPI_DECLSPEC OBJ_CLASS_DECLARATION(ompi_datatype_t);
 
+typedef ompi_datatype_t ompi_temp_datatype_t;
+
+OMPI_DECLSPEC OBJ_CLASS_DECLARATION(ompi_temp_datatype_t);
+
 /**
  * Padded struct to maintain back compatibiltiy.
  * See opal/communicator/communicator.h comments with struct opal_communicator_t
@@ -120,6 +124,7 @@ OMPI_DECLSPEC int32_t ompi_datatype_default_convertors_fini( void );
 
 OMPI_DECLSPEC void ompi_datatype_dump (const ompi_datatype_t* pData);
 OMPI_DECLSPEC ompi_datatype_t* ompi_datatype_create( int32_t expectedSize );
+OMPI_DECLSPEC ompi_datatype_t* ompi_datatype_create_temporary( int32_t expectedSize );
 
 static inline int32_t
 ompi_datatype_is_committed( const ompi_datatype_t* type )
