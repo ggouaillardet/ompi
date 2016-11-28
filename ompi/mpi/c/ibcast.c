@@ -1,6 +1,6 @@
 /*
- * Copyright (c)      2012 Oak Rigde National Laboratory. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2012      Oak Rigde National Laboratory. All rights reserved.
+ * Copyright (c) 2015-2017 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -35,8 +35,24 @@ int MPI_Ibcast(void *buffer, int count, MPI_Datatype datatype,
 
     MEMCHECKER(
         memchecker_datatype(datatype);
-        memchecker_call(&opal_memchecker_base_isdefined, buffer, count, datatype);
         memchecker_comm(comm);
+        if (OMPI_COMM_IS_INTRA(comm)) {
+            if (ompi_comm_rank(comm) == root) {
+                /* check whether root's send buffer is defined. */
+                memchecker_call(&opal_memchecker_base_isdefined, buffer, count, datatype);
+            } else {
+                /* check whether receive buffer is addressable. */
+                memchecker_call(&opal_memchecker_base_isaddressable, buffer, count, datatype);
+            }
+        } else {
+            if (MPI_ROOT == root) {
+                /* check whether root's send buffer is defined. */
+                memchecker_call(&opal_memchecker_base_isdefined, buffer, count, datatype);
+            } else if (MPI_PROC_NULL != root) {
+                /* check whether receive buffer is addressable. */
+                memchecker_call(&opal_memchecker_base_isaddressable, buffer, count, datatype);
+            }
+        }
     );
 
     if (MPI_PARAM_CHECK) {

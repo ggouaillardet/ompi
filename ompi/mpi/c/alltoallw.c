@@ -13,7 +13,7 @@
  * Copyright (c) 2007      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012-2013 Los Alamos National Security, LLC.  All rights
  *                         reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
+ * Copyright (c) 2014-2017 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -50,24 +50,19 @@ int MPI_Alltoallw(const void *sendbuf, const int sendcounts[],
     int i, size, err;
 
     MEMCHECKER(
-        ptrdiff_t recv_ext;
-        ptrdiff_t send_ext;
-
         memchecker_comm(comm);
 
         size = OMPI_COMM_IS_INTER(comm)?ompi_comm_remote_size(comm):ompi_comm_size(comm);
         for ( i = 0; i < size; i++ ) {
             if (MPI_IN_PLACE != sendbuf) {
                 memchecker_datatype(sendtypes[i]);
-                ompi_datatype_type_extent(sendtypes[i], &send_ext);
                 memchecker_call(&opal_memchecker_base_isdefined,
-                                (char *)(sendbuf)+sdispls[i]*send_ext,
+                                (char *)(sendbuf)+sdispls[i],
                                 sendcounts[i], sendtypes[i]);
             }
             memchecker_datatype(recvtypes[i]);
-            ompi_datatype_type_extent(recvtypes[i], &recv_ext);
             memchecker_call(&opal_memchecker_base_isaddressable,
-                            (char *)(recvbuf)+rdispls[i]*recv_ext,
+                            (char *)(recvbuf)+rdispls[i],
                             recvcounts[i], recvtypes[i]);
         }
     );

@@ -12,7 +12,7 @@
  *                         All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC.  All rights
  *                         reserved.
- * Copyright (c) 2015      Research Organization for Information Science
+ * Copyright (c) 2015-2017 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
@@ -48,7 +48,14 @@ int MPI_Exscan(const void *sendbuf, void *recvbuf, int count,
 
     MEMCHECKER(
         memchecker_datatype(datatype);
-        memchecker_call(&opal_memchecker_base_isdefined, sendbuf, count, datatype);
+        if (0 != ompi_comm_rank(comm)) {
+            if (MPI_IN_PLACE != sendbuf) {
+                memchecker_call(&opal_memchecker_base_isdefined, sendbuf, count, datatype);
+            } else {
+                memchecker_call(&opal_memchecker_base_isdefined, recvbuf, count, datatype);
+            }
+        }
+        memchecker_call(&opal_memchecker_base_isaddressable, recvbuf, count, datatype);
         memchecker_comm(comm);
     );
 
