@@ -320,6 +320,7 @@ void FREE_tab_com_mat(com_mat_t **mat,int k)
     for ( j = 0 ; j < mat[i]->n ; j ++)
       FREE( mat[i]->comm[j] );
     FREE( mat[i]->comm );
+    FREE( mat[i] );
   }
   FREE(mat);
 }
@@ -389,6 +390,7 @@ void kpartition_build_level_topology(tree_t *cur_node, com_mat_t *com_mat, int N
   const_tab = split_constraints (constraints, nb_constraints, k, topology, depth);
 
   /* create the table of k nodes of the resulting sub-tree */
+  assert ( 0 < k);
   tab_child = (tree_t **) CALLOC (k,sizeof(tree_t*));
   for( i = 0 ; i < k ; i++){
     tab_child[i] = (tree_t *) MALLOC(sizeof(tree_t));

@@ -6,7 +6,7 @@
  * Copyright (c) 2011-2015 INRIA.  All rights reserved.
  * Copyright (c) 2012-2015 Bordeaux Poytechnic Institute
  * Copyright (c) 2015-2016 Intel, Inc.  All rights reserved.
- * Copyright (c) 2015-2016 Research Organization for Information Science
+ * Copyright (c) 2015-2017 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2016      Los Alamos National Security, LLC. All rights
  *                         reserved.
@@ -677,7 +677,11 @@ int mca_topo_treematch_dist_graph_create(mca_topo_base_module_t* topo_module,
                 fprintf(stdout,"\n");
 #endif
                 free(comm_pattern);
-                free(comm_tree);
+                if(comm_tree->constraint) {
+                    FREE_constraint_tree(comm_tree);
+                } else {
+                    free(comm_tree);
+                }
                 free(matching);
                 free(obj_mapping);
                 for(i = 0 ; i < tm_topology->nb_levels ; i++)

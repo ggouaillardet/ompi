@@ -55,6 +55,7 @@ void free_tree(tree_t *tree);
 void free_tab_double(double**tab,int N);
 void free_tab_int(int**tab,int N);
 void update_val(affinity_mat_t *aff_mat,tree_t *parent);
+void FREE_constraint_tree(tree_t *tree);
 void FREE_tree(tree_t *tree);
 void FREE_tab_double(double**,int);
 
