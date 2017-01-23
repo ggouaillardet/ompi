@@ -1,7 +1,7 @@
 /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */
 /*
  * Copyright (c) 2014-2017 Intel, Inc.  All rights reserved.
- * Copyright (c) 2014-2016 Research Organization for Information Science
+ * Copyright (c) 2014-2017 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2014      Artem Y. Polyakov <artpol84@gmail.com>.
  *                         All rights reserved.
@@ -236,6 +236,24 @@ static void evhandler_reg_callbk(pmix_status_t status,
     *active = status;
 }
 
+static void _destruct_my_server_fn(int sd, short args, void *cbdata)
+{
+    bool *active = (bool *)cbdata;
+    PMIX_DESTRUCT(&pmix_client_globals.myserver);
+    *active = false;
+}
+
+
+static void pmix_destruct_my_server(void)
+{
+    pmix_event_t ev;
+    volatile bool active = true;
+    event_assign(&ev, pmix_globals.evbase, -1,
+                 EV_WRITE, _destruct_my_server_fn, (void *)&active);
+    event_active(&ev, EV_WRITE, 1);
+    PMIX_WAIT_FOR_COMPLETION(active);
+}
+
 PMIX_EXPORT pmix_status_t PMIx_Init(pmix_proc_t *proc,
                                     pmix_info_t info[], size_t ninfo)
 {
@@ -458,7 +476,15 @@ PMIX_EXPORT pmix_status_t PMIx_Finalize(const pmix_info_t info[], size_t ninfo)
                              "pmix:client finalize sync received");
     }
 
-    PMIX_DESTRUCT(&pmix_client_globals.myserver);
+    pmix_destruct_my_server();
+
+#if defined(PMIX_ENABLE_DSTORE) && (PMIX_ENABLE_DSTORE == 1)
+    if (0 > (rc = pmix_dstore_nspace_del(pmix_globals.myid.nspace))) {
+        PMIX_ERROR_LOG(rc);
+        return rc;
+    }
+#endif
+
     pmix_rte_finalize();
 
     PMIX_LIST_DESTRUCT(&pmix_client_globals.pending_requests);
