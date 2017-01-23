@@ -10,6 +10,8 @@
  *                         University of Stuttgart.  All rights reserved.
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
+ * Copyright (c) 2017      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -196,6 +198,31 @@ static inline void opal_pointer_array_remove_all(opal_pointer_array_t *array)
     array->lowest_free = 0;
     array->number_free = array->size;
     for(i=0; i<array->size; i++) {
+        array->addr[i] = NULL;
+    }
+    OPAL_THREAD_UNLOCK(&array->lock);
+}
+
+/**
+ * Empty the array and release the elements.
+ *
+ * @param array Pointer to array (IN)
+ *
+ */
+static inline void opal_pointer_array_release_all(opal_pointer_array_t *array)
+{
+    int i;
+    if( array->number_free == array->size )
+        return;  /* nothing to do here this time (the array is already empty) */
+
+    OPAL_THREAD_LOCK(&array->lock);
+    array->lowest_free = 0;
+    array->number_free = array->size;
+    for(i=0; i<array->size; i++) {
+        if(NULL != array->addr[i]) {
+            opal_object_t * object = (opal_object_t *)array->addr[i];
+            OBJ_RELEASE(object);
+        }
         array->addr[i] = NULL;
     }
     OPAL_THREAD_UNLOCK(&array->lock);
