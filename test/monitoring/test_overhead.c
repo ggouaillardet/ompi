@@ -105,7 +105,6 @@ static inline void op_send(double*res, void*sbuf, int size, int tagno, void*rbuf
 }
 
 static inline void op_send_pingpong(double*res, void*sbuf, int size, int tagno, void*rbuf) {
-    MPI_Request request;
     struct timespec start, end;
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -184,11 +183,11 @@ static inline void op_get(double*res, void*rbuf, int size, int tagno, void*sbuf)
     *res = timing_delay(&start, &end);
 }
 
-static inline void do_bench(int size, void*sbuf, double*results,
+static inline void do_bench(int size, char*sbuf, double*results,
                             void(*op)(double*, void*, int, int, void*)) {
     int iter;
     int tagno = 201;
-    void*rbuf = sbuf ? sbuf + size : NULL;
+    char*rbuf = sbuf ? sbuf + size : NULL;
 
     if(op == op_put || op == op_get){
 	win = MPI_WIN_NULL;
@@ -209,7 +208,7 @@ static inline void do_bench(int size, void*sbuf, double*results,
 int main(int argc, char* argv[])
 {
     int size, iter, nop;
-    void*sbuf = NULL;
+    char*sbuf = NULL;
     double results[NB_ITER];
     void(*op)(double*, void*, int, int, void*);
     char name[255];
@@ -255,7 +254,7 @@ int main(int argc, char* argv[])
         for(size = 0; size < MAX_SIZE; size = ((int)(size * 1.4) > size) ? (size * 1.4) : (size + 1)) {
             /* Init buffers */
             if( 0 != size ) {
-                sbuf = realloc(sbuf, (size_world + 1) * size); /* sbuf + alltoall recv buf */
+                sbuf = (char *)realloc(sbuf, (size_world + 1) * size); /* sbuf + alltoall recv buf */
             }        
 
             do_bench(size, sbuf, results, op);

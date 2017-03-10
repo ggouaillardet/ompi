@@ -384,6 +384,9 @@ int write_mat(char * filename, uint64_t * mat, unsigned int dim)
 #include "ompi/mpi/fortran/base/constants.h"
 #include "ompi/mpi/fortran/base/fint_2_int.h"
 
+void monitoring_prof_mpi_init_f2c( MPI_Fint * );
+void monitoring_prof_mpi_finalize_f2c( MPI_Fint * );
+
 void monitoring_prof_mpi_init_f2c( MPI_Fint *ierr ) { 
     int c_ierr;
     int argc = 0;
@@ -401,7 +404,6 @@ void monitoring_prof_mpi_finalize_f2c( MPI_Fint *ierr ) {
 }
 
 #if OPAL_HAVE_WEAK_SYMBOLS
-#warning weak
 #pragma weak MPI_INIT = monitoring_prof_mpi_init_f2c
 #pragma weak mpi_init = monitoring_prof_mpi_init_f2c
 #pragma weak mpi_init_ = monitoring_prof_mpi_init_f2c
