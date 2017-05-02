@@ -216,8 +216,13 @@ int32_t ompi_datatype_create_darray(int size,
     }
 
     /* Build up array */
+    displs[0] = st_offsets[start_loop];
     for (i = start_loop; i != end_loop; i += step) {
         int nprocs, tmp_rank;
+
+        /* Update the lower bound of the local type */
+        tmp_size *= gsize_array[i - step];
+        displs[0] += tmp_size * st_offsets[i];
 
         switch(distrib_array[i]) {
         case MPI_DISTRIBUTE_BLOCK:
