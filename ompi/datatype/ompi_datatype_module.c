@@ -384,8 +384,7 @@ opal_pointer_array_t ompi_datatype_f_to_c_table = {{0}};
         (PDST)->super.opt_desc = (PSRC)->super.opt_desc;                             \
         (PDST)->packed_description = (PSRC)->packed_description;                     \
         (PSRC)->packed_description = NULL;                                           \
-        memcpy( (PDST)->super.ptypes, (PSRC)->super.ptypes,                          \
-                OPAL_DATATYPE_MAX_PREDEFINED * sizeof(uint32_t) );                   \
+        opal_datatype_compute_ptypes(&(PDST)->super); \
     } while(0)
 
 #define DECLARE_MPI2_COMPOSED_STRUCT_DDT( PDATA, MPIDDT, MPIDDTNAME, type1, type2, MPIType1, MPIType2, FLAGS) \
