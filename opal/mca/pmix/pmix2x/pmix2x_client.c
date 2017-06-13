@@ -487,6 +487,7 @@ static void val_cbfunc(pmix_status_t status,
     opal_value_t val, *v=NULL;
 
     OPAL_ACQUIRE_OBJECT(op);
+    OBJ_CONSTRUCT(&val, opal_value_t);
     rc = pmix2x_convert_opalrc(status);
     if (PMIX_SUCCESS == status && NULL != kv) {
         rc = pmix2x_value_unload(&val, kv);
@@ -496,6 +497,7 @@ static void val_cbfunc(pmix_status_t status,
     if (NULL != op->valcbfunc) {
         op->valcbfunc(rc, v, op->cbdata);
     }
+    OBJ_DESTRUCT(&val);
     OBJ_RELEASE(op);
 }
 
