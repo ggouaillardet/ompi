@@ -32,6 +32,8 @@
 #include "ompi/mca/pml/pml.h"
 #include "ompi/communicator/communicator.h"
 #include "ompi/request/request.h"
+#include "ompi/mca/cid/cid.h"
+#include "ompi/mca/cid/base/base.h"
 #include "ompi/memchecker.h"
 
 #if OMPI_BUILD_MPI_PROFILING
@@ -198,15 +200,15 @@ int MPI_Intercomm_create(MPI_Comm local_comm, int local_leader,
     new_group_pointer = MPI_GROUP_NULL;
 
     /* Determine context id. It is identical to f_2_c_handle */
-    rc = ompi_comm_nextcid (newcomp, local_comm, bridge_comm, &lleader,
-                            &rleader, false, OMPI_COMM_CID_INTRA_BRIDGE);
+    rc = ompi_cid.nextcid (newcomp, local_comm, bridge_comm, &lleader,
+                           &rleader, false, OMPI_COMM_CID_INTRA_BRIDGE);
     if ( MPI_SUCCESS != rc ) {
         goto err_exit;
     }
 
     /* activate comm and init coll-module */
-    rc = ompi_comm_activate (&newcomp, local_comm, bridge_comm, &lleader, &rleader,
-                             false, OMPI_COMM_CID_INTRA_BRIDGE);
+    rc = ompi_cid.activate (&newcomp, local_comm, bridge_comm, &lleader, &rleader,
+                            false, OMPI_COMM_CID_INTRA_BRIDGE);
     if ( MPI_SUCCESS != rc ) {
         goto err_exit;
     }

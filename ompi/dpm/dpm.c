@@ -46,6 +46,8 @@
 #include "opal/mca/pmix/pmix.h"
 
 #include "ompi/communicator/communicator.h"
+#include "ompi/mca/cid/cid.h"
+#include "ompi/mca/cid/base/base.h"
 #include "ompi/group/group.h"
 #include "ompi/proc/proc.h"
 #include "ompi/mca/pml/pml.h"
@@ -475,25 +477,25 @@ int ompi_dpm_connect_accept(ompi_communicator_t *comm, int root,
     new_group_pointer = MPI_GROUP_NULL;
 
     /* allocate comm_cid */
-    rc = ompi_comm_nextcid ( newcomp,                   /* new communicator */
+    rc = ompi_cid.nextcid ( newcomp,                   /* new communicator */
+                            comm,                      /* old communicator */
+                            NULL,                      /* bridge comm */
+                            &root,                     /* local leader */
+                            (void*)port_string,        /* rendezvous point */
+                            send_first,                /* send or recv first */
+                            OMPI_COMM_CID_INTRA_PMIX); /* mode */
+    if (OMPI_SUCCESS != rc) {
+        goto exit;
+    }
+
+    /* activate comm and init coll-component */
+    rc = ompi_cid.activate ( &newcomp,                  /* new communicator */
                              comm,                      /* old communicator */
                              NULL,                      /* bridge comm */
                              &root,                     /* local leader */
                              (void*)port_string,        /* rendezvous point */
                              send_first,                /* send or recv first */
                              OMPI_COMM_CID_INTRA_PMIX); /* mode */
-    if (OMPI_SUCCESS != rc) {
-        goto exit;
-    }
-
-    /* activate comm and init coll-component */
-    rc = ompi_comm_activate ( &newcomp,                  /* new communicator */
-                              comm,                      /* old communicator */
-                              NULL,                      /* bridge comm */
-                              &root,                     /* local leader */
-                              (void*)port_string,        /* rendezvous point */
-                              send_first,                /* send or recv first */
-                              OMPI_COMM_CID_INTRA_PMIX); /* mode */
     if (OMPI_SUCCESS != rc) {
         goto exit;
     }

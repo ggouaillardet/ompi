@@ -1,4 +1,3 @@
-# -*- makefile -*-
 #
 # Copyright (c) 2004-2005 The Trustees of Indiana University and Indiana
 #                         University Research and Technology
@@ -10,11 +9,7 @@
 #                         University of Stuttgart.  All rights reserved.
 # Copyright (c) 2004-2005 The Regents of the University of California.
 #                         All rights reserved.
-# Copyright (c) 2013-2017 Los Alamos National Security, LLC. All rights
-#                         reserved.
-# Copyright (c) 2014      Research Organization for Information Science
-#                         and Technology (RIST). All rights reserved.
-# Copyright (c) 2016      IBM Corporation.  All rights reserved.
+# Copyright (c) 2010-2015 Cisco Systems, Inc.  All rights reserved.
 # $COPYRIGHT$
 #
 # Additional copyrights may follow
@@ -22,14 +17,22 @@
 # $HEADER$
 #
 
-# This makefile.am does not stand on its own - it is included from ompi/Makefile.am
+# main library setup
+noinst_LTLIBRARIES = libmca_cid.la
+libmca_cid_la_SOURCES =
 
-headers += \
-        communicator/communicator.h \
-	communicator/comm_request.h
+# local files
+headers = cid.h
+libmca_cid_la_SOURCES += $(headers) $(nodist_headers)
 
-lib@OMPI_LIBMPI_NAME@_la_SOURCES += \
-        communicator/comm_init.c \
-	communicator/comm.c \
-	communicator/comm_request.c
+# Conditionally install the header files
+if WANT_INSTALL_HEADERS
+ompidir = $(ompiincludedir)/$(subdir)
+nobase_ompi_HEADERS = $(headers)
+nobase_nodist_ompi_HEADERS = $(nodist_headers)
+endif
 
+include base/Makefile.am
+
+distclean-local:
+	rm -f base/static-components.h
