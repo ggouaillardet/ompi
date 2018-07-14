@@ -9,7 +9,7 @@
  *
  */
 
-void mpiext_pcollreq_c_dummy(void);
+void mpiext_pcollreq_mpifh_dummy(void);
 
-void mpiext_pcollreq_c_dummy() {
+void mpiext_pcollreq_mpifh_dummy() {
 }
