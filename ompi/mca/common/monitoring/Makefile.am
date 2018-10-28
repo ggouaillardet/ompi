@@ -40,6 +40,13 @@ endif # OPAL_INSTALL_BINARIES
 
 else # MCA_BUILD_ompi_common_monitoring_DSO
 noinst_LTLIBRARIES += $(component_noinst)
+
+all-local: $(component_install)
+	$(OMPI_V_LN_SCOMP) rm -f "$(component_install)"; \
+	$(LN_S) "$(component_noinst)" "$(component_install)"
+
+clean-local:
+	rm -f "$(component_install)"
 endif # MCA_BUILD_ompi_common_monitoring_DSO
 
 libmca_common_monitoring_la_SOURCES = $(headers) $(sources)
@@ -58,13 +65,3 @@ OMPI_V_LN_SCOMP = $(ompi__v_LN_SCOMP_$V)
 ompi__v_LN_SCOMP_ = $(ompi__v_LN_SCOMP_$AM_DEFAULT_VERBOSITY)
 ompi__v_LN_SCOMP_0 = @echo "  LN_S    " `basename $(component_install)`;
 
-all-local:
-	$(OMPI_V_LN_SCOMP) if test -z "$(lib_LTLIBRARIES)"; then \
-	  rm -f "$(component_install)"; \
-	  $(LN_S) "$(component_noinst)" "$(component_install)"; \
-	fi
-
-clean-local:
-	if test -z "$(lib_LTLIBRARIES)"; then \
-	  rm -f "$(component_install)"; \
-	fi

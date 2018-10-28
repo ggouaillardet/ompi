@@ -33,6 +33,13 @@ if MCA_BUILD_pmix_common_dstore_DSO
 lib_LTLIBRARIES += $(comp_inst)
 else
 noinst_LTLIBRARIES += $(comp_noinst)
+
+all-local: $(comp_inst)
+	rm -f "$(comp_inst)"; \
+	$(LN_S) "$(comp_noinst)" "$(comp_inst)"
+
+clean-local:
+	rm -f "$(comp_inst)"
 endif
 
 libmca_common_dstore_la_SOURCES = $(headers) $(sources)
@@ -46,13 +53,3 @@ pmixdir = $(pmixincludedir)/$(subdir)
 pmix_HEADERS = $(headers)
 endif
 
-all-local:
-	if test -z "$(lib_LTLIBRARIES)"; then \
-		rm -f "$(comp_inst)"; \
-		$(LN_S) "$(comp_noinst)" "$(comp_inst)"; \
-	fi
-
-clean-local:
-	if test -z "$(lib_LTLIBRARIES)"; then \
-		rm -f "$(comp_inst)"; \
-	fi

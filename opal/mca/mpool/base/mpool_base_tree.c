@@ -27,6 +27,10 @@
 
 #include "opal_config.h"
 
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 #include "opal/mca/mca.h"
 #include "opal/util/show_help.h"
 #include "opal/util/proc.h"

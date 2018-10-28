@@ -72,6 +72,13 @@ ompidir = $(ompiincludedir)/ompi/mca/common/ompio
 ompi_HEADERS = $(headers)
 else
 ompidir = $(includedir)
+
+all-local: $(comp_inst)
+	$(OMPI_V_LN_SCOMP) rm -f "$(comp_inst)"; \
+	$(LN_S) "$(comp_noinst)" "$(comp_inst)"
+
+clean-local:
+	rm -f "$(comp_inst)"
 endif
 
 if OPAL_cuda_support
@@ -87,13 +94,3 @@ OMPI_V_LN_SCOMP = $(ompi__v_LN_SCOMP_$V)
 ompi__v_LN_SCOMP_ = $(ompi__v_LN_SCOMP_$AM_DEFAULT_VERBOSITY)
 ompi__v_LN_SCOMP_0 = @echo "  LN_S    " `basename $(comp_inst)`;
 
-all-local:
-	$(OMPI_V_LN_SCOMP) if test -z "$(lib_LTLIBRARIES)"; then \
-	  rm -f "$(comp_inst)"; \
-	  $(LN_S) "$(comp_noinst)" "$(comp_inst)"; \
-	fi
-
-clean-local:
-	if test -z "$(lib_LTLIBRARIES)"; then \
-	  rm -f "$(comp_inst)"; \
-	fi
