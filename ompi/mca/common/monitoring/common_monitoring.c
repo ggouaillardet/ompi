@@ -5,8 +5,8 @@
  *                         reserved.
  * Copyright (c) 2013-2017 Inria.  All rights reserved.
  * Copyright (c) 2015      Bull SAS.  All rights reserved.
- * Copyright (c) 2016-2017 Research Organization for Information Science
- *                         and Technology (RIST). All rights reserved.
+ * Copyright (c) 2016-2019 Research Organization for Information Science
+ *                         and Technology (RIST).  All rights reserved.
  * Copyright (c) 2017-2018 Los Alamos National Security, LLC. All rights
  *                         reserved.
  * Copyright (c) 2018      Amazon.com, Inc. or its affiliates.  All Rights reserved.
@@ -230,8 +230,16 @@ int mca_common_monitoring_init( void )
 
 void mca_common_monitoring_finalize( void )
 {
-    if( ! mca_common_monitoring_enabled || /* Don't release if not last */
-        0 < opal_atomic_sub_fetch_32(&mca_common_monitoring_hold, 1) ) return;
+    if( ! mca_common_monitoring_enabled ) {
+        if( NULL != mca_common_monitoring_current_filename ) {
+            free(mca_common_monitoring_current_filename);
+            mca_common_monitoring_current_filename = NULL;
+        }
+        return;
+    } else if ( 0 < opal_atomic_sub_fetch_32(&mca_common_monitoring_hold, 1) ) {
+        /* Don't release if not last */
+        return;
+    }
     
     OPAL_MONITORING_PRINT_INFO("common_component_finish");
     /* Dump monitoring informations */
