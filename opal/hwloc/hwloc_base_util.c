@@ -343,10 +343,11 @@ int opal_hwloc_base_get_topology(void)
     opal_output_verbose(1, opal_hwloc_base_output,
                         "hwloc:base[%s:%d] getting topology XML string",
                         __FILE__, __LINE__);
-#if HWLOC_API_VERSION >= 0x20000
+    rc = OPAL_ERROR;
+#if defined(PMIX_HWLOC_XML_V2) && HWLOC_API_VERSION >= 0x20000
     OPAL_MODEX_RECV_VALUE_IMMEDIATE(rc, PMIX_HWLOC_XML_V2,
                                     &wildcard_rank, &val, OPAL_STRING);
-#else
+#elif defined (PMIX_HWLOC_XML_V1)
     OPAL_MODEX_RECV_VALUE_IMMEDIATE(rc, PMIX_HWLOC_XML_V1,
                                     &wildcard_rank, &val, OPAL_STRING);
 #endif
