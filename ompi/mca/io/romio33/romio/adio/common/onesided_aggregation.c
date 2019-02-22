@@ -34,7 +34,7 @@ ADIO_Offset *stripeWriteOffsets, *stripeWriteLens;
 int amountOfStripedDataExpected;        /* used to determine holes in this segment thereby requiring a rmw */
 /* Since ADIOI_OneSidedWriteAggregation can be called multiple times now only flatten the buffer once */
 /* for optimal performance so persist these two variables through multiple calls */
-MPI_Aint bufTypeExtent_global;
+MPI_Aint lb, bufTypeExtent_global;
 ADIOI_Flatlist_node *flatBuf_global;
 /* These three variables track the state of the source buffer advancement through multiple calls */
 int lastDataTypeExtent;
@@ -294,7 +294,7 @@ void ADIOI_OneSidedWriteAggregation(ADIO_File fd,
         /* Flatten the non-contiguous source datatype and set the extent. */
         if ((stripe_parms.stripeSize == 0) || stripe_parms.firstStripedWriteCall) {
             flatBuf_global = ADIOI_Flatten_and_find(datatype);
-            MPI_Type_extent(datatype, &bufTypeExtent_global);
+            MPI_Type_get_extent(datatype, &lb, &bufTypeExtent_global);
         }
 #ifdef onesidedtrace
         printf("flatBuf_global->count is %d bufTypeExtent_global is %d\n", flatBuf_global->count,
@@ -1639,7 +1639,7 @@ void ADIOI_OneSidedReadAggregation(ADIO_File fd,
      */
     int bufTypeIsContig;
 
-    MPI_Aint bufTypeExtent;
+    MPI_Aint lb, bufTypeExtent;
     ADIOI_Flatlist_node *flatBuf = NULL;
     ADIOI_Datatype_iscontig(datatype, &bufTypeIsContig);
 
@@ -1647,7 +1647,7 @@ void ADIOI_OneSidedReadAggregation(ADIO_File fd,
         /* Flatten the non-contiguous source datatype.
          */
         flatBuf = ADIOI_Flatten_and_find(datatype);
-        MPI_Type_extent(datatype, &bufTypeExtent);
+        MPI_Type_get_extent(datatype, &lb, &bufTypeExtent);
 #ifdef onesidedtrace
         printf("flatBuf->count is %d bufTypeExtent is %d\n", flatBuf->count, bufTypeExtent);
         for (i = 0; i < flatBuf->count; i++)

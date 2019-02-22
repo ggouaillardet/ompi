@@ -221,7 +221,7 @@ void ADIOI_Create_fr_simpletype(int size, int nprocs_for_coll, MPI_Datatype * si
     old_types[0] = MPI_BYTE;
     old_types[1] = MPI_UB;
 
-    MPI_Type_struct(count, blocklens, indices, old_types, simpletype);
+    MPI_Type_create_struct(count, blocklens, indices, old_types, simpletype);
 
     MPI_Type_commit(simpletype);
 }
