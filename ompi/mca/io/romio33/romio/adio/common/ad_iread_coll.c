@@ -1318,4 +1318,4 @@ static int ADIOI_GEN_irc_wait_fn(int count, void **array_of_states,
     return errcode;
 }
 
-+#endif /* HAVE_MPI_GREQUEST_EXTENSIONS */
+#endif /* HAVE_MPI_GREQUEST_EXTENSIONS */

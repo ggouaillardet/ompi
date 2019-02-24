@@ -36,7 +36,8 @@
 #define ROMIO_THREAD_CS_ENTER()
 #define ROMIO_THREAD_CS_EXIT()
 #define ROMIO_THREAD_CS_YIELD()
-#define MPIO_DATATYPE_ISCOMMITTED(dtype_, err_) do {} while (0)
+#define MPIO_DATATYPE_ISCOMMITTED(dtype_, err_) do { err_ = MPI_SUCCESS;} while (0)
+#define MPIR_Get_node_id(comm, rank, id) *id = rank, 0
 #endif /* ROMIO_INSIDE_MPICH */
 
 /* info is a linked list of these structures */
