@@ -3,9 +3,9 @@
 #include "common_ucx.h"
 #include "common_ucx_wpool.h"
 #include "common_ucx_wpool_int.h"
-#include "opal/mca/base/mca_base_var.h"
-#include "opal/mca/base/mca_base_framework.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/mca.h"
+#include "opal/mca/base/base.h"
+#include "opal/pmix/pmix-internal.h"
 #include "opal/memoryhooks/memory.h"
 
 #include <ucm/api/ucm.h>

@@ -120,6 +120,7 @@ static int opal_timer_linux_find_freq(void)
 
 #if OPAL_HAVE_SYS_TIMER_GET_FREQ
     opal_timer_linux_freq = opal_sys_timer_get_freq();
+#endif
 
     if (0 == opal_timer_linux_freq) {
         /* first, look for a timebase field.  probably only on PPC,

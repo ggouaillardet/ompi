@@ -154,7 +154,7 @@ void opal_common_ucx_mca_proc_added(void)
 
 OPAL_DECLSPEC int opal_common_ucx_mca_pmix_fence_nb(int *fenced)
 {
-    return opal_pmix.fence_nb(NULL, 0, opal_common_ucx_mca_fence_complete_cb, (void *)fenced);
+    return opal_pmix_fence_nb(NULL, 0, opal_common_ucx_mca_fence_complete_cb, (void *)fenced);
 }
 
 OPAL_DECLSPEC int opal_common_ucx_mca_pmix_fence(ucp_worker_h worker)
