@@ -684,6 +684,10 @@ pmix_status_t pmix_value_unload(pmix_value_t *kv, void **data, size_t *sz);
     (0 == strncmp((a)->key, (b), PMIX_MAX_KEYLEN))
 #endif
 
+#ifndef PMIX_JOB_TERM_STATUS
+#define PMIX_JOB_TERM_STATUS "pmix.job.term.status"
+#endif
+
 /**
  * Provide a macro for accessing a base function that exchanges
  * data values between two procs using the PMIx Publish/Lookup
