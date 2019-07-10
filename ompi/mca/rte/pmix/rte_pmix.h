@@ -4,8 +4,8 @@
  *                         All rights reserved.
  * Copyright (c) 2013-2018 Intel, Inc. All rights reserved.
  * Copyright (c) 2014      Cisco Systems, Inc.  All rights reserved.
- * Copyright (c) 2014-2016 Research Organization for Information Science
- *                         and Technology (RIST). All rights reserved.
+ * Copyright (c) 2014-2019 Research Organization for Information Science
+ *                         and Technology (RIST).  All rights reserved.
  * Copyright (c) 2015      Intel, Inc. All rights reserved.
  * Copyright (c) 2016-2017 IBM Corporation. All rights reserved.
  * Copyright (c) 2018      Triad National Security, LLC. All rights
@@ -132,7 +132,6 @@ OMPI_DECLSPEC void __opal_attribute_noreturn__
 OMPI_DECLSPEC void ompi_rte_abort_peers(opal_process_name_t *procs,
                                         int32_t num_procs,
                                         int error_code);
-#define OMPI_ERROR_LOG OPAL_ERROR_LOG
 
 /* Init and finalize operations */
 OMPI_DECLSPEC int ompi_rte_init(int *argc, char ***argv);
@@ -142,6 +141,9 @@ OMPI_DECLSPEC void ompi_rte_wait_for_debugger(void);
 /* check dynamics support */
 OMPI_DECLSPEC bool ompi_rte_connect_accept_support(const char *port);
 
+/* error logging */
+OMPI_DECLSPEC void ompi_rte_log(int error_code, char *filename, int line);
+#define OMPI_ERROR_LOG(rc) ompi_rte_log(rc, __FILE__, __LINE__)
 END_C_DECLS
 
 #endif /* MCA_OMPI_RTE_PMIX_H */

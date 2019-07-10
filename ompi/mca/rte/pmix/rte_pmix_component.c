@@ -4,6 +4,8 @@
  * Copyright (c) 2014-2017 Intel, Inc. All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
+ * Copyright (c) 2019      Research Organization for Information Science
+ *                         and Technology (RIST).  All rights reserved.
  *
  * $COPYRIGHT$
  *
@@ -74,4 +76,18 @@ static int rte_pmix_open(void)
 static int rte_pmix_close(void)
 {
     return OMPI_SUCCESS;
+}
+
+void ompi_rte_log(int error_code, char *filename, int line)
+{
+    const char *errstring = opal_strerror(error_code);
+
+    if (NULL == errstring) {
+        /* if the error is silent, say nothing */
+        return;
+    }
+
+    opal_output(0, "%s ORTE_ERROR_LOG: %s in file %s at line %d",
+                OMPI_NAME_PRINT(OMPI_PROC_MY_NAME),
+                errstring, filename, line);
 }
