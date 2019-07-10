@@ -15,8 +15,8 @@
 #                         All rights reserved.
 # Copyright (c) 2014      Artem Polyakov <artpol84@gmail.com>
 # Copyright (c) 2016      IBM Corporation.  All rights reserved.
-# Copyright (c) 2017      Research Organization for Information Science
-#                         and Technology (RIST). All rights reserved.
+# Copyright (c) 2017-2019 Research Organization for Information Science
+#                         and Technology (RIST).  All rights reserved.
 #
 # $COPYRIGHT$
 #
@@ -75,9 +75,6 @@ mpisync_SOURCES = \
         sync.c
 
 mpisync_LDADD = $(top_builddir)/ompi/lib@OMPI_LIBMPI_NAME@.la
-if OMPI_RTE_ORTE
-mpisync_LDADD +=  $(top_builddir)/orte/lib@ORTE_LIB_PREFIX@open-rte.la
-endif
 mpisync_LDADD += $(top_builddir)/opal/lib@OPAL_LIB_PREFIX@open-pal.la
 
 clean-local:
