@@ -11,7 +11,7 @@
  *                         All rights reserved.
  * Copyright (c) 2011-2012 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2015-2019 Research Organization for Information Science
- *                         and Technology (RIST). All rights reserved.
+ *                         and Technology (RIST).  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
