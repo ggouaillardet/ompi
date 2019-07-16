@@ -74,7 +74,7 @@ void ompi_iallgather_f(char *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
     int ierr_c;
     MPI_Comm c_comm;
     MPI_Request c_req;
-    MPI_Datatype c_sendtype, c_recvtype;
+    MPI_Datatype c_sendtype = NULL, c_recvtype = NULL;
 
     c_comm = PMPI_Comm_f2c(*comm);
     if (!OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {

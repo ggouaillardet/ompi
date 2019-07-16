@@ -74,10 +74,11 @@ void ompi_gather_f(char *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
 {
     int c_root, c_ierr;
     MPI_Comm c_comm;
-    MPI_Datatype c_sendtype, c_recvtype;
+    MPI_Datatype c_sendtype = NULL, c_recvtype = NULL;
 
     c_comm = PMPI_Comm_f2c(*comm);
     c_root = OMPI_FINT_2_INT(*root);
+    OMPI_COND_STATEMENT(int size = OMPI_COMM_IS_INTER(c_comm)?ompi_comm_remote_size(c_comm):ompi_comm_size(c_comm));
     if (OMPI_COMM_IS_INTER(c_comm)) {
         if (MPI_ROOT == c_root) {
             c_recvtype = PMPI_Type_f2c(*recvtype);

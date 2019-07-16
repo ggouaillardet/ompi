@@ -23,6 +23,7 @@
 
 #include "ompi/mpi/fortran/mpif-h/bindings.h"
 #include "ompi/mpi/fortran/base/constants.h"
+#include "ompi/communicator/communicator.h"
 
 #if OMPI_BUILD_MPI_PROFILING
 #if OPAL_HAVE_WEAK_SYMBOLS
@@ -72,18 +73,30 @@ void ompi_igather_f(char *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
                     MPI_Fint *root, MPI_Fint *comm, MPI_Fint *request,
                     MPI_Fint *ierr)
 {
-    int c_ierr;
+    int c_root, c_ierr;
     MPI_Comm c_comm;
-    MPI_Datatype c_sendtype, c_recvtype;
+    MPI_Datatype c_sendtype = NULL, c_recvtype = NULL;
     MPI_Request c_request;
 
     c_comm = PMPI_Comm_f2c(*comm);
-    if (!OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
-        c_sendtype = PMPI_Type_f2c(*sendtype);
+    c_root = OMPI_FINT_2_INT(*root);
+    OMPI_COND_STATEMENT(int size = OMPI_COMM_IS_INTER(c_comm)?ompi_comm_remote_size(c_comm):ompi_comm_size(c_comm));
+    if (OMPI_COMM_IS_INTER(c_comm)) {
+        if (MPI_ROOT == c_root) {
+            c_recvtype = PMPI_Type_f2c(*recvtype);
+        } else if (MPI_PROC_NULL != c_root) {
+            c_sendtype = PMPI_Type_f2c(*sendtype);
+        }
+    } else {
+        if (!OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
+            c_sendtype = PMPI_Type_f2c(*sendtype);
+        }
+        if (ompi_comm_rank(c_comm) == c_root) {
+            c_recvtype = PMPI_Type_f2c(*recvtype);
+        }
+        sendbuf = (char *) OMPI_F2C_IN_PLACE(sendbuf);
     }
-    c_recvtype = PMPI_Type_f2c(*recvtype);
 
-    sendbuf = (char *) OMPI_F2C_IN_PLACE(sendbuf);
     sendbuf = (char *) OMPI_F2C_BOTTOM(sendbuf);
     recvbuf = (char *) OMPI_F2C_BOTTOM(recvbuf);
 
