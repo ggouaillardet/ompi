@@ -74,12 +74,12 @@ void ompi_allgatherv_f(char *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
 {
     MPI_Comm c_comm;
     MPI_Datatype c_sendtype, c_recvtype;
-    int size, ierr_c;
+    int ierr_c;
     OMPI_ARRAY_NAME_DECL(recvcounts);
     OMPI_ARRAY_NAME_DECL(displs);
 
     c_comm = PMPI_Comm_f2c(*comm);
-    size = OMPI_COMM_IS_INTER(c_comm)?ompi_comm_remote_size(c_comm):ompi_comm_size(c_comm);
+    OMPI_COND_STATEMENT(int size = OMPI_COMM_IS_INTER(c_comm)?ompi_comm_remote_size(c_comm):ompi_comm_size(c_comm));
 
     if (!OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
         c_sendtype = PMPI_Type_f2c(*sendtype);

@@ -76,14 +76,14 @@ void ompi_ialltoallv_f(char *sendbuf, MPI_Fint *sendcounts, MPI_Fint *sdispls,
     MPI_Comm c_comm;
     MPI_Datatype c_sendtype, c_recvtype;
     MPI_Request c_request;
-    int size, c_ierr;
+    int c_ierr;
     OMPI_ARRAY_NAME_DECL(sendcounts);
     OMPI_ARRAY_NAME_DECL(sdispls);
     OMPI_ARRAY_NAME_DECL(recvcounts);
     OMPI_ARRAY_NAME_DECL(rdispls);
 
     c_comm = PMPI_Comm_f2c(*comm);
-    size = OMPI_COMM_IS_INTER(c_comm)?ompi_comm_remote_size(c_comm):ompi_comm_size(c_comm);
+    OMPI_COND_STATEMENT(int size = OMPI_COMM_IS_INTER(c_comm)?ompi_comm_remote_size(c_comm):ompi_comm_size(c_comm));
 
     if (!OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
         c_sendtype = PMPI_Type_f2c(*sendtype);
