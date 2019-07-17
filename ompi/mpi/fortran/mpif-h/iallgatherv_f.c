@@ -74,24 +74,29 @@ void ompi_iallgatherv_f(char *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
                         MPI_Fint *ierr)
 {
     MPI_Comm c_comm;
-    MPI_Datatype c_sendtype, c_recvtype;
+    MPI_Datatype c_sendtype = NULL, c_recvtype;
     MPI_Request c_request;
     int ierr_c;
+    OMPI_COND_STATEMENT(int size);
     OMPI_ARRAY_NAME_DECL(recvcounts);
     OMPI_ARRAY_NAME_DECL(displs);
 
     c_comm = PMPI_Comm_f2c(*comm);
-    OMPI_COND_STATEMENT(int size = OMPI_COMM_IS_INTER(c_comm)?ompi_comm_remote_size(c_comm):ompi_comm_size(c_comm));
-
-    if (!OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
-        c_sendtype = PMPI_Type_f2c(*sendtype);
+    if (OMPI_COMM_IS_INTER(c_comm)) {
+        OMPI_COND_STATEMENT(size = ompi_comm_remote_size(c_comm));
+    } else {
+        OMPI_COND_STATEMENT(size = ompi_comm_size(c_comm));
+        if (OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
+            sendbuf = MPI_IN_PLACE;
+        } else {
+            c_sendtype = PMPI_Type_f2c(*sendtype);
+        }
     }
     c_recvtype = PMPI_Type_f2c(*recvtype);
 
     OMPI_ARRAY_FINT_2_INT(recvcounts, size);
     OMPI_ARRAY_FINT_2_INT(displs, size);
 
-    sendbuf = (char *) OMPI_F2C_IN_PLACE(sendbuf);
     sendbuf = (char *) OMPI_F2C_BOTTOM(sendbuf);
     recvbuf = (char *) OMPI_F2C_BOTTOM(recvbuf);
 

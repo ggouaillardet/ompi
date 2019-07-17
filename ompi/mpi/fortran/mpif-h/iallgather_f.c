@@ -23,6 +23,7 @@
 
 #include "ompi/mpi/fortran/mpif-h/bindings.h"
 #include "ompi/mpi/fortran/base/constants.h"
+#include "ompi/communicator/communicator.h"
 
 #if OMPI_BUILD_MPI_PROFILING
 #if OPAL_HAVE_WEAK_SYMBOLS
@@ -77,12 +78,15 @@ void ompi_iallgather_f(char *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
     MPI_Datatype c_sendtype = NULL, c_recvtype = NULL;
 
     c_comm = PMPI_Comm_f2c(*comm);
-    if (!OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
-        c_sendtype = PMPI_Type_f2c(*sendtype);
+    if (!OMPI_COMM_IS_INTER(c_comm)) {
+        if (OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
+            sendbuf = MPI_IN_PLACE;
+        } else {
+            c_sendtype = PMPI_Type_f2c(*sendtype);
+        }
     }
     c_recvtype = PMPI_Type_f2c(*recvtype);
 
-    sendbuf = (char *) OMPI_F2C_IN_PLACE(sendbuf);
     sendbuf = (char *) OMPI_F2C_BOTTOM(sendbuf);
     recvbuf = (char *) OMPI_F2C_BOTTOM(recvbuf);
 

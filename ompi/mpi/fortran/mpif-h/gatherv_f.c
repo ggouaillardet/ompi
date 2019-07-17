@@ -83,26 +83,27 @@ void ompi_gatherv_f(char *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
     c_root = OMPI_FINT_2_INT(*root);
     if (OMPI_COMM_IS_INTER(c_comm)) {
         if (MPI_ROOT == c_root) {
+            OMPI_COND_STATEMENT(int size = ompi_comm_remote_size(c_comm));
             c_recvtype = PMPI_Type_f2c(*recvtype);
             OMPI_ARRAY_FINT_2_INT(recvcounts, size);
             OMPI_ARRAY_FINT_2_INT(displs, size);
         } else if (MPI_PROC_NULL != c_root) {
             c_sendtype = PMPI_Type_f2c(*sendtype);
-
         }
     } else {
-        if (!OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
+        if (OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
+            sendbuf = MPI_IN_PLACE;
+        } else {
             c_sendtype = PMPI_Type_f2c(*sendtype);
         }
         if (ompi_comm_rank(c_comm) == c_root) {
+            OMPI_COND_STATEMENT(int size = ompi_comm_size(c_comm));
             c_recvtype = PMPI_Type_f2c(*recvtype);
             OMPI_ARRAY_FINT_2_INT(recvcounts, size);
             OMPI_ARRAY_FINT_2_INT(displs, size);
         }
-        sendbuf = (char *) OMPI_F2C_IN_PLACE(sendbuf);
     }
 
-    sendbuf = (char *) OMPI_F2C_IN_PLACE(sendbuf);
     sendbuf = (char *) OMPI_F2C_BOTTOM(sendbuf);
     recvbuf = (char *) OMPI_F2C_BOTTOM(recvbuf);
 

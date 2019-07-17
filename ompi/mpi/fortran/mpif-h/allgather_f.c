@@ -77,11 +77,12 @@ void ompi_allgather_f(char *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
     MPI_Datatype c_sendtype = NULL, c_recvtype;
 
     c_comm = PMPI_Comm_f2c(*comm);
-    if (!OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
-        c_sendtype = PMPI_Type_f2c(*sendtype);
-    }
     if (!OMPI_COMM_IS_INTER(c_comm)) {
-        sendbuf = (char *) OMPI_F2C_IN_PLACE(sendbuf);
+        if (OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
+            sendbuf = MPI_IN_PLACE;
+        } else {
+            c_sendtype = PMPI_Type_f2c(*sendtype);
+        }
     }
     c_recvtype = PMPI_Type_f2c(*recvtype);
 

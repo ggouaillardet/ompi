@@ -78,7 +78,6 @@ void ompi_gather_f(char *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
 
     c_comm = PMPI_Comm_f2c(*comm);
     c_root = OMPI_FINT_2_INT(*root);
-    OMPI_COND_STATEMENT(int size = OMPI_COMM_IS_INTER(c_comm)?ompi_comm_remote_size(c_comm):ompi_comm_size(c_comm));
     if (OMPI_COMM_IS_INTER(c_comm)) {
         if (MPI_ROOT == c_root) {
             c_recvtype = PMPI_Type_f2c(*recvtype);
@@ -86,13 +85,14 @@ void ompi_gather_f(char *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
             c_sendtype = PMPI_Type_f2c(*sendtype);
         }
     } else {
-        if (!OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
+        if (OMPI_IS_FORTRAN_IN_PLACE(sendbuf)) {
+            sendbuf = MPI_IN_PLACE;
+        } else {
             c_sendtype = PMPI_Type_f2c(*sendtype);
         }
         if (ompi_comm_rank(c_comm) == c_root) {
             c_recvtype = PMPI_Type_f2c(*recvtype);
         }
-        sendbuf = (char *) OMPI_F2C_IN_PLACE(sendbuf);
     }
 
     sendbuf = (char *) OMPI_F2C_BOTTOM(sendbuf);
