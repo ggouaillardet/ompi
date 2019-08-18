@@ -3,8 +3,8 @@
 ! Copyright (c) 2009-2015 Cisco Systems, Inc.  All rights reserved.
 ! Copyright (c) 2009-2012 Los Alamos National Security, LLC.
 !                         All rights reserved.
-! Copyright (c) 2015-2018 Research Organization for Information Science
-!                         and Technology (RIST). All rights reserved.
+! Copyright (c) 2015-2019 Research Organization for Information Science
+!                         and Technology (RIST).  All rights reserved.
 ! Copyright (c) 2018      FUJITSU LIMITED.  All rights reserved.
 ! $COPYRIGHT$
 !
@@ -19,6 +19,7 @@ module mpi_f08_types
    use, intrinsic :: ISO_C_BINDING
 
    include "mpif-config.h"
+   include "mpi-f08-subarrays-config.h"
    include "mpif-constants.h"
    include "mpif-io-constants.h"
 

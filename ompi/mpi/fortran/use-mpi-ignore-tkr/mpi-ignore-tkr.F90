@@ -11,7 +11,7 @@
 ! Copyright (c) 2004-2005 The Regents of the University of California.
 !                         All rights reserved.
 ! Copyright (c) 2006-2014 Cisco Systems, Inc.  All rights reserved.
-! Copyright (c) 2017      Research Organization for Information Science
+! Copyright (c) 2017-2019 Research Organization for Information Science
 !                         and Technology (RIST). All rights reserved.
 ! $COPYRIGHT$
 !
@@ -25,6 +25,7 @@
 module mpi
 
   include "mpif-config.h"
+  include "mpif-subarrays-config.h"
   include "mpif-constants.h"
   include "mpif-handles.h"
   include "mpif-io-constants.h"

@@ -11,8 +11,8 @@
 #                         All rights reserved.
 # Copyright (c) 2006-2015 Cisco Systems, Inc.  All rights reserved.
 # Copyright (c) 2009-2011 Oak Ridge National Labs.  All rights reserved.
-# Copyright (c) 2014-2015 Research Organization for Information Science
-#                         and Technology (RIST). All rights reserved.
+# Copyright (c) 2014-2019 Research Organization for Information Science
+#                         and Technology (RIST).  All rights reserved.
 # Copyright (c) 2018      FUJITSU LIMITED.  All rights reserved.
 # $COPYRIGHT$
 #
@@ -41,7 +41,8 @@ include_HEADERS += \
         mpif-handles.h \
         mpif-io-constants.h \
         mpif-io-handles.h \
-        mpif-sentinels.h
+        mpif-sentinels.h \
+        mpif-subarrays-config.h
 
 endif
 
