@@ -41,14 +41,17 @@ module mpi
 
 ! The ignore-TKR version of the MPI interfaces
 
-  include "ompi/mpi/fortran/use-mpi-ignore-tkr/mpi-ignore-tkr-interfaces.h"
-  include "ompi/mpi/fortran/use-mpi-ignore-tkr/mpi-ignore-tkr-file-interfaces.h"
+# include "ompi/mpi/fortran/use-mpi-ignore-tkr/mpi-ignore-tkr-interfaces.h"
+# include "ompi/mpi/fortran/use-mpi-ignore-tkr/pmpi-ignore-tkr-interfaces.h"
+# include "ompi/mpi/fortran/use-mpi-ignore-tkr/mpi-ignore-tkr-file-interfaces.h"
+# include "ompi/mpi/fortran/use-mpi-ignore-tkr/pmpi-ignore-tkr-file-interfaces.h"
 #if !defined(OMPI_ENABLE_MPI1_COMPAT)
 
 #error "Remove MPI-1 compat code"
 
 #elif OMPI_ENABLE_MPI1_COMPAT
-  include "ompi/mpi/fortran/use-mpi-ignore-tkr/mpi-ignore-tkr-removed-interfaces.h"
+# include "ompi/mpi/fortran/use-mpi-ignore-tkr/mpi-ignore-tkr-removed-interfaces.h"
+# include "ompi/mpi/fortran/use-mpi-ignore-tkr/pmpi-ignore-tkr-removed-interfaces.h"
 #endif
 
   include 'mpi-ignore-tkr-sizeof.h'

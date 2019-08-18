@@ -1,8 +1,8 @@
 # -*- makefile -*-
 #
 # Copyright (c) 2006-2015 Cisco Systems, Inc.  All rights reserved.
-# Copyright (c) 2015-2018 Research Organization for Information Science
-#                         and Technology (RIST). All rights reserved.
+# Copyright (c) 2015-2019 Research Organization for Information Science
+#                         and Technology (RIST).  All rights reserved.
 # Copyright (c) 2016      IBM Corporation.  All rights reserved.
 #
 # Copyright (c) 2018      FUJITSU LIMITED.  All rights reserved.
@@ -27,20 +27,30 @@ AM_FCFLAGS = -I$(top_builddir)/ompi/include -I$(top_srcdir)/ompi/include \
 lib_LTLIBRARIES = lib@OMPI_LIBMPI_NAME@_usempi_ignore_tkr.la
 
 mpi-ignore-tkr-interfaces.h: mpi-ignore-tkr-interfaces.h.in
+pmpi-ignore-tkr-interfaces.h: mpi-ignore-tkr-interfaces.h
 mpi-ignore-tkr-file-interfaces.h: mpi-ignore-tkr-file-interfaces.h.in
+pmpi-ignore-tkr-file-interfaces.h: mpi-ignore-tkr-file-interfaces.h
 mpi-ignore-tkr-removed-interfaces.h: mpi-ignore-tkr-removed-interfaces.h.in
+pmpi-ignore-tkr-removed-interfaces.h: mpi-ignore-tkr-removed-interfaces.h
 
 mpi-ignore-tkr.lo: $(top_srcdir)/ompi/mpi/fortran/base/attr-fn-int-callback-interfaces.h
 mpi-ignore-tkr.lo: $(top_srcdir)/ompi/mpi/fortran/base/conversion-fn-null-int-interface.h
 mpi-ignore-tkr.lo: mpi-ignore-tkr-interfaces.h
+mpi-ignore-tkr.lo: pmpi-ignore-tkr-interfaces.h
 mpi-ignore-tkr.lo: mpi-ignore-tkr-file-interfaces.h
+mpi-ignore-tkr.lo: pmpi-ignore-tkr-file-interfaces.h
 mpi-ignore-tkr.lo: mpi-ignore-tkr-removed-interfaces.h
+mpi-ignore-tkr.lo: pmpi-ignore-tkr-removed-interfaces.h
 mpi-ignore-tkr.lo: mpi-ignore-tkr-sizeof.h
 mpi-ignore-tkr.lo: mpi-ignore-tkr-sizeof.f90
 mpi-ignore-tkr.lo: mpi-ignore-tkr.F90
 
 lib@OMPI_LIBMPI_NAME@_usempi_ignore_tkr_la_SOURCES = \
-        mpi-ignore-tkr.F90
+        mpi-ignore-tkr.F90 \
+        pmpi-ignore-tkr-interfaces.h \
+        pmpi-ignore-tkr-file-interfaces.h \
+        pmpi-ignore-tkr-removed-interfaces.h
+
 nodist_lib@OMPI_LIBMPI_NAME@_usempi_ignore_tkr_la_SOURCES = \
         mpi-ignore-tkr-interfaces.h \
         mpi-ignore-tkr-file-interfaces.h \
