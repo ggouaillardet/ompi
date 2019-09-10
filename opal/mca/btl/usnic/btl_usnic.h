@@ -34,7 +34,7 @@
 #include "opal/util/alfg.h"
 #include "opal/class/opal_hash_table.h"
 #include "opal/class/opal_hash_table.h"
-#include "opal/mca/event/event.h"
+#include "opal/event/event-internal.h"
 
 #include "opal/mca/btl/btl.h"
 #include "opal/mca/btl/base/btl_base_error.h"
