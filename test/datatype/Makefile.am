@@ -96,7 +96,7 @@ unpack_hetero_LDFLAGS = $(OMPI_PKG_CONFIG_LDFLAGS)
 unpack_hetero_LDADD = \
         $(top_builddir)/opal/lib@OPAL_LIB_PREFIX@open-pal.la
 
-reduce_local_SOURCES = Reduce_local_float.c
+reduce_local_SOURCES = reduce_local.c
 reduce_local_LDFLAGS = $(OMPI_PKG_CONFIG_LDFLAGS)
 reduce_local_LDADD = \
         $(top_builddir)/ompi/lib@OMPI_LIBMPI_NAME@.la \
