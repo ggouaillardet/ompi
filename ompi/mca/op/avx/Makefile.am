@@ -18,8 +18,8 @@
 # First, list all .h and .c sources.  It is necessary to list all .h
 # files so that they will be picked up in the distribution tarball.
 
-sources = op_avx_component.c op_avx_functions.c \
-	op_avx_functions.h op_avx.h
+sources = op_avx_component.c op_avx.h
+sources_extended = op_avx_functions.c op+avx_functions.h
 
 # Open MPI components can be compiled two ways:
 #
@@ -37,12 +37,12 @@ sources = op_avx_component.c op_avx_functions.c \
 # MCA_BUILD_ompi_<framework>_<component>_DSO AM_CONDITIONAL to indicate
 # which way this component should be built.
 
+component_noinst = liblocal_ops.la
 if MCA_BUILD_ompi_op_avx_DSO
-component_noinst =
 component_install = mca_op_avx.la
 else
 component_install =
-component_noinst = libmca_op_avx.la
+component_noinst += libmca_op_avx.la
 endif
 
 # Specific information for DSO builds.
@@ -53,8 +53,9 @@ endif
 mcacomponentdir = $(ompilibdir)
 mcacomponent_LTLIBRARIES = $(component_install)
 mca_op_avx_la_SOURCES = $(sources)
-mca_op_avx_la_CFLAGS = @op_avx_CPPFLAGS@
+mca_op_avx_la_LIBADD = liblocal_ops.la
 mca_op_avx_la_LDFLAGS = -module -avoid-version
+
 
 # Specific information for static builds.
 #
@@ -63,6 +64,12 @@ mca_op_avx_la_LDFLAGS = -module -avoid-version
 
 noinst_LTLIBRARIES = $(component_noinst)
 libmca_op_avx_la_SOURCES = $(sources)
-libmca_op_avx_la_CFLAGS = @op_avx_CPPFLAGS@
+libmca_op_avx_la_LIBADD = liblocal_ops.la
 libmca_op_avx_la_LDFLAGS = -module -avoid-version
+
+# In case we need additional flags to compile a MPI_Op with
+# full support for the hardware capabilities, we better build
+# the required files as an independent library that we pull in.
+liblocal_ops_la_SOURCES = $(sources_extended)
+liblocal_ops_la_CFLAGS  = @op_avx_CPPFLAGS@
 

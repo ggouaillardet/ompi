@@ -42,11 +42,19 @@ static int avx_component_register(void);
 
 #include <immintrin.h>
 
-static int has_intel_AVX512f_features(void)
+static uint32_t has_intel_AVX_features(void)
 {
-    const unsigned long avx512_features = _FEATURE_AVX512F;
+    uint32_t flags = 0;
 
-    return _may_i_use_cpu_feature( avx512_features );
+    flags |= _may_i_use_cpu_feature(_FEATURE_AVX512F)  ? OMPI_OP_AVX_HAS_AVX512F_FLAG   : 0;
+    flags |= _may_i_use_cpu_feature(_FEATURE_AVX512BW) ? OMPI_OP_AVX_HAS_AVX512FBW_FLAG : 0;
+    flags |= _may_i_use_cpu_feature(_FEATURE_AVX2)     ? OMPI_OP_AVX_HAS_AVX2_FLAG      : 0;
+    flags |= _may_i_use_cpu_feature(_FEATURE_AVX)      ? OMPI_OP_AVX_HAS_AVX_FLAG       : 0;
+    flags |= _may_i_use_cpu_feature(_FEATURE_SSE4_1)   ? OMPI_OP_AVX_HAS_SSE4_1_FLAG    : 0;
+    flags |= _may_i_use_cpu_feature(_FEATURE_SSE3)     ? OMPI_OP_AVX_HAS_SSE3_FLAG      : 0;
+    flags |= _may_i_use_cpu_feature(_FEATURE_SSE2)     ? OMPI_OP_AVX_HAS_SSE2_FLAG      : 0;
+    flags |= _may_i_use_cpu_feature(_FEATURE_SSE)      ? OMPI_OP_AVX_HAS_SSE_FLAG       : 0;
+    return flags;
 }
 #else /* non-Intel compiler */
 #include <stdint.h>
@@ -60,35 +68,49 @@ static void run_cpuid(uint32_t eax, uint32_t ecx, uint32_t* abcd)
 #if defined(_MSC_VER)
     __cpuidex(abcd, eax, ecx);
 #else
-    uint32_t ebx, edx;
+    uint32_t ebx = 0, edx = 0;
 #if defined( __i386__ ) && defined ( __PIC__ )
     /* in case of PIC under 32-bit EBX cannot be clobbered */
     __asm__ ( "movl %%ebx, %%edi \n\t cpuid \n\t xchgl %%ebx, %%edi" : "=D" (ebx),
-	      "+a" (eax), "=c" (ecx), "=d" (edx) );
 #else
-    __asm__ ( "cpuid" : "=b" (ebx),
-	      "+a" (eax), "+c" (ecx), "=d" (edx) );
+    __asm__ ( "cpuid" : "+b" (ebx),
 #endif  /* defined( __i386__ ) && defined ( __PIC__ ) */
-    abcd[0] = eax; abcd[1] = ebx; abcd[3] = ecx; abcd[3] = edx;
+              "+a" (eax), "+c" (ecx), "=d" (edx) );
+    abcd[0] = eax; abcd[1] = ebx; abcd[2] = ecx; abcd[3] = edx;
 #endif
 }
 
-static int has_intel_AVX512f_features(void)
+static uint32_t has_intel_AVX_features(void)
 {
-  uint32_t abcd[4];
-  //uint32_t avx2_mask = (1 << 5);  // AVX2
-  uint32_t avx2f_mask = (1 << 16);  // AVX2F
+    /* From https://en.wikipedia.org/wiki/CPUID#EAX=1:_Processor_Info_and_Feature_Bits */
+    const uint32_t avx512f_mask   = (1U << 16);  // AVX512F   (EAX = 7, ECX = 0) : EBX
+    const uint32_t avx512_bw_mask = (1U << 30);  // AVX512BW  (EAX = 7, ECX = 0) : EBX
+    const uint32_t avx2_mask      = (1U << 5);   // AVX2      (EAX = 7, ECX = 0) : EBX
+    const uint32_t avx_mask       = (1U << 28);  // AVX       (EAX = 1, ECX = 0) : ECX
+    const uint32_t sse4_1_mask    = (1U << 19);  // SSE4.1    (EAX = 1, ECX = 0) : ECX
+    const uint32_t sse3_mask      = (1U << 0);   // SSE3      (EAX = 1, ECX = 0) : ECX
+    const uint32_t sse2_mask      = (1U << 26);  // SSE2      (EAX = 1, ECX = 0) : EDX
+    const uint32_t sse_mask       = (1U << 15);  // SSE       (EAX = 1, ECX = 0) : EDX
+    uint32_t flags = 0, abcd[4];
 
+    run_cpuid( 1, 0, abcd );
+    flags |= (abcd[2] & avx_mask)       ? OMPI_OP_AVX_HAS_AVX_FLAG      : 0;
+    flags |= (abcd[2] & sse4_1_mask)    ? OMPI_OP_AVX_HAS_SSE4_1_FLAG   : 0;
+    flags |= (abcd[2] & sse3_mask)      ? OMPI_OP_AVX_HAS_SSE3_FLAG     : 0;
+    flags |= (abcd[3] & sse2_mask)      ? OMPI_OP_AVX_HAS_SSE2_FLAG     : 0;
+    flags |= (abcd[3] & sse_mask)       ? OMPI_OP_AVX_HAS_SSE_FLAG      : 0;
 #if defined(__APPLE__)
-  uint32_t osxsave_mask = (1 << 27);  // OSX.
-  run_cpuid( 1, 0, abcd );
-  // OS supports extended processor state management ?
-  if ( (abcd[2] & osxsave_mask) != osxsave_mask )
-    return 0;
+    uint32_t fma_movbe_osxsave_mask = ((1U << 12) | (1U << 22) | (1U << 27));  /* FMA(12) + MOVBE (22) OSXSAVE (27) */
+    // OS supports extended processor state management ?
+    if ( (abcd[2] & fma_movbe_osxsave_mask) != fma_movbe_osxsave_mask )
+        return 0;
 #endif  /* defined(__APPLE__) */
 
-  run_cpuid( 7, 0, abcd );
-  return ((abcd[1] & avx2f_mask) == avx2f_mask);
+    run_cpuid( 7, 0, abcd );
+    flags |= (abcd[1] & avx512f_mask)   ? OMPI_OP_AVX_HAS_AVX512F_FLAG  : 0;
+    flags |= (abcd[1] & avx512_bw_mask) ? OMPI_OP_AVX_HAS_AVX512BW_FLAG : 0;
+    flags |= (abcd[1] & avx2_mask)      ? OMPI_OP_AVX_HAS_AVX2_FLAG     : 0;
+    return flags;
 }
 #endif /* non-Intel compiler */
 
@@ -119,16 +141,14 @@ ompi_op_avx_component_t mca_op_avx_component = {
  */
 static int avx_component_open(void)
 {
-    /* A first level check to see if avx is even available in this
-       process.  E.g., you may want to do a first-order check to see
-       if hardware is available.  If so, return OMPI_SUCCESS.  If not,
-       return anything other than OMPI_SUCCESS and the component will
-       silently be ignored.
-
-       Note that if this function returns non-OMPI_SUCCESS, then this
-       component won't even be shown in ompi_info output (which is
-       probably not what you want).
-    */
+    mca_op_avx_component.flags = has_intel_AVX_features();
+    /* A first level check to see what level of AVX is available on the
+     * hardware.
+     *
+     * Note that if this function returns non-OMPI_SUCCESS, then this
+     * component won't even be shown in ompi_info output (which is
+     * probably not what you want).
+     */
     return OMPI_SUCCESS;
 }
 
@@ -153,26 +173,36 @@ static int avx_component_close(void)
 static int
 avx_component_register(void)
 {
-    mca_op_avx_component.double_supported = true;
+    int32_t requested_flags;
+    requested_flags = mca_op_avx_component.flags = has_intel_AVX_features();
     (void) mca_base_component_var_register(&mca_op_avx_component.super.opc_version,
-                                           "double_supported",
-                                           "Whether the double precision data types are supported or not",
-                                           MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
+                                           "support",
+                                           "Level of SSE/MMX/AVX support to be used (combination of processor capabilities as follow SSE 0x01, SSE2 0x02, SSE3 0x04, SSE4.1 0x08, AVX 0x010, AVX2 0x020, AVX512F 0x100, AVX512BW 0x200) capped by the local architecture capabilities",
+                                           MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
                                            OPAL_INFO_LVL_9,
-                                           MCA_BASE_VAR_SCOPE_READONLY,
-                                           &mca_op_avx_component.double_supported);
-
+                                           MCA_BASE_VAR_SCOPE_LOCAL,
+                                           &mca_op_avx_component.flags);
+    mca_op_avx_component.flags &= requested_flags;
     return OMPI_SUCCESS;
 }
+#define OMPI_OP_AVX_HAS_AVX512BW_FLAG  0x00000200
+#define OMPI_OP_AVX_HAS_AVX512F_FLAG   0x00000100
+#define OMPI_OP_AVX_HAS_AVX2_FLAG      0x00000020
+#define OMPI_OP_AVX_HAS_AVX_FLAG       0x00000010
+#define OMPI_OP_AVX_HAS_SSE4_1_FLAG    0x00000008
+#define OMPI_OP_AVX_HAS_SSE3_FLAG      0x00000004
+#define OMPI_OP_AVX_HAS_SSE2_FLAG      0x00000002
+#define OMPI_OP_AVX_HAS_SSE_FLAG       0x00000001
+
 
 /*
  * Query whether this component wants to be used in this process.
  */
 static int
 avx_component_init_query(bool enable_progress_threads,
-			 bool enable_mpi_thread_multiple)
+                         bool enable_mpi_thread_multiple)
 {
-    if( !has_intel_AVX512f_features() )
+    if( 0 == mca_op_avx_component.flags )
         return OMPI_ERR_NOT_SUPPORTED;
     return OMPI_SUCCESS;
 }
@@ -202,10 +232,10 @@ avx_component_op_query(struct ompi_op_t *op, int *priority)
     case OMPI_OP_BASE_FORTRAN_BXOR:
         module = OBJ_NEW(ompi_op_base_module_t);
         for (int i = 0; i < OMPI_OP_BASE_TYPE_MAX; ++i) {
-	    module->opm_fns[i] = ompi_op_avx_functions[op->o_f_to_c_index][i];
-	    OBJ_RETAIN(module);
+            module->opm_fns[i] = ompi_op_avx_functions[op->o_f_to_c_index][i];
+            OBJ_RETAIN(module);
             module->opm_3buff_fns[i] = ompi_op_avx_3buff_functions[op->o_f_to_c_index][i];
-	    OBJ_RETAIN(module);
+            OBJ_RETAIN(module);
         }
         break;
     case OMPI_OP_BASE_FORTRAN_LAND:
