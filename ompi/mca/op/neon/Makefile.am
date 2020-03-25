@@ -1,0 +1,77 @@
+#
+# Copyright (c) 2019-2020 The University of Tennessee and The University
+#                         of Tennessee Research Foundation.  All rights
+#                         reserved.
+# Copyright (c) 2020      Research Organization for Information Science
+#                         and Technology (RIST).  All rights reserved.
+# $COPYRIGHT$
+#
+# Additional copyrights may follow
+#
+# $HEADER$
+#
+
+# This component provide support for the NEON instructions
+# available in recent versions of ARMv8 processors.
+#
+# See https://github.com/open-mpi/ompi/wiki/devel-CreateComponent
+# for more details on how to make Open MPI components.
+
+# First, list all .h and .c sources.  It is necessary to list all .h
+# files so that they will be picked up in the distribution tarball.
+
+sources = op_neon_component.c op_neon.h
+sources_extended = op_neon_functions.c op_neon_functions.h
+
+# Open MPI components can be compiled two ways:
+#
+# 1. As a standalone dynamic shared object (DSO), sometimes called a
+# dynamically loadable library (DLL).
+#
+# 2. As a static library that is slurped up into the upper-level
+# libmpi library (regardless of whether libmpi is a static or dynamic
+# library).  This is called a "Libtool convenience library".
+#
+# The component needs to create an output library in this top-level
+# component directory, and named either mca_<type>_<name>.la (for DSO
+# builds) or libmca_<type>_<name>.la (for static builds).  The OMPI
+# build system will have set the
+# MCA_BUILD_ompi_<framework>_<component>_DSO AM_CONDITIONAL to indicate
+# which way this component should be built.
+
+component_noinst = liblocal_ops.la
+if MCA_BUILD_ompi_op_neon_DSO
+component_install = mca_op_neon.la
+else
+component_install =
+component_noinst += libmca_op_neon.la
+endif
+
+# Specific information for DSO builds.
+#
+# The DSO should install itself in $(ompilibdir) (by default,
+# $prefix/lib/openmpi).
+
+mcacomponentdir = $(ompilibdir)
+mcacomponent_LTLIBRARIES = $(component_install)
+mca_op_neon_la_SOURCES = $(sources)
+mca_op_neon_la_LIBADD = liblocal_ops.la
+mca_op_neon_la_LDFLAGS = -module -avoid-version
+
+
+# Specific information for static builds.
+#
+# Note that we *must* "noinst"; the upper-layer Makefile.am's will
+# slurp in the resulting .la library into libmpi.
+
+noinst_LTLIBRARIES = $(component_noinst)
+libmca_op_neon_la_SOURCES = $(sources)
+libmca_op_neon_la_LIBADD = liblocal_ops.la
+libmca_op_neon_la_LDFLAGS = -module -avoid-version
+
+# In case we need additional flags to compile a MPI_Op with
+# full support for the hardware capabilities, we better build
+# the required files as an independent library that we pull in.
+liblocal_ops_la_SOURCES = $(sources_extended)
+liblocal_ops_la_CFLAGS  =
+
