@@ -2,6 +2,8 @@
 # Copyright (c) 2019-2020 The University of Tennessee and The University
 #                         of Tennessee Research Foundation.  All rights
 #                         reserved.
+# Copyright (c) 2020      Research Organization for Information Science
+#                         and Technology (RIST).  All rights reserved.
 # $COPYRIGHT$
 #
 # Additional copyrights may follow
@@ -19,7 +21,7 @@
 # files so that they will be picked up in the distribution tarball.
 
 sources = op_avx_component.c op_avx.h
-sources_extended = op_avx_functions.c op+avx_functions.h
+sources_extended = op_avx_functions.c op_avx_functions.h
 
 # Open MPI components can be compiled two ways:
 #
