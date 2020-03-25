@@ -96,7 +96,7 @@ int main(int argc, char **argv)
             }
             break;
         case 'o':
-            for( i = 0; NULL == array_of_ops[i].name; i++ ) {
+            for( i = 0; NULL != array_of_ops[i].name; i++ ) {
                 if( 0 == strcmp(array_of_ops[i].name, optarg) ) {
                     op = optarg;
                     break;
