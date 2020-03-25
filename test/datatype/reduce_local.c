@@ -3,6 +3,8 @@
  * Copyright (c) 2019-2020 The University of Tennessee and The University
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
+ * Copyright (c) 2020      Research Organization for Information Science
+ *                         and Technology (RIST).  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -96,7 +98,7 @@ int main(int argc, char **argv)
             }
             break;
         case 'o':
-            for( i = 0; NULL == array_of_ops[i].name; i++ ) {
+            for( i = 0; NULL != array_of_ops[i].name; i++ ) {
                 if( 0 == strcmp(array_of_ops[i].name, optarg) ) {
                     op = optarg;
                     break;
@@ -121,7 +123,7 @@ int main(int argc, char **argv)
                     " -u <number> : upper number of elements\n"
                     " -t [i,u,f,d] : type of the elements to apply the operations on\n"
                     " -o <op> : comma separated list of operations to execute among\n"
-                    "           sum, min, man, prod, bor, bxor, band\n"
+                    "           sum, min, max, prod, bor, bxor, band\n"
                     " -h: this help message\n", argv[0]);
             break;
         }
