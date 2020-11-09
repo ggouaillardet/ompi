@@ -5,7 +5,7 @@
 # Copyright (c) 2013      Mellanox Technologies, Inc.
 #                         All rights reserved.
 # Copyright (c) 2013-2020 Intel, Inc.  All rights reserved.
-# Copyright (c) 2015-2019 Research Organization for Information Science
+# Copyright (c) 2015-2020 Research Organization for Information Science
 #                         and Technology (RIST).  All rights reserved.
 # Copyright (c) 2015-2020 IBM Corporation.  All rights reserved.
 # Copyright (c) 2020      Amazon.com, Inc. or its affiliates.
@@ -1372,6 +1372,7 @@ verbose "\n$step. Running template-generating scripts\n\n";
 
 my @scripts;
 push(@scripts, "ompi/include/mpif-values.pl");
+push(@scripts, "ompi/mpi/pythonization/generate_bindings.py");
 
 foreach my $s (@scripts) {
     verbose "=== $s\n";

@@ -10,7 +10,7 @@
 # Copyright (c) 2004-2005 The Regents of the University of California.
 #                         All rights reserved.
 # Copyright (c) 2006-2018 Cisco Systems, Inc.  All rights reserved.
-# Copyright (c) 2015      Research Organization for Information Science
+# Copyright (c) 2015-2020 Research Organization for Information Science
 #                         and Technology (RIST). All rights reserved.
 # $COPYRIGHT$
 #
@@ -20,6 +20,8 @@
 #
 
 EXTRA_DIST = \
-        mpi/fortran/configure-fortran-output-bottom.h
+        mpi/fortran/configure-fortran-output-bottom.h \
+        mpi/pythonization/apis.json \
+        mpi/pythonization/generate_bindings.py
 
 dist_ompidata_DATA += mpi/help-mpi-api.txt
