@@ -44,8 +44,8 @@ AM_FCFLAGS = -I$(top_srcdir)/ompi/mpi/fortran/use-mpi-f08/mod \
              -I$(top_srcdir)/ompi/include \
              $(OMPI_FC_MODULE_FLAG)$(top_builddir)/ompi/mpi/fortran/use-mpi \
              $(OMPI_FC_MODULE_FLAG)$(top_builddir)/ompi/$(OMPI_FORTRAN_USEMPI_DIR) \
-             $(OMPI_FC_MODULE_FLAG)../mod \
-             $(OMPI_FC_MODULE_FLAG)../bindings \
+             $(OMPI_FC_MODULE_FLAG)$(top_builddir)/ompi/mpi/fortran/use-mpi-f08/mod \
+             $(OMPI_FC_MODULE_FLAG)$(top_builddir)/ompi/mpi/fortran/use-mpi-f08/bindings \
              -I$(top_srcdir) -I$(top_builddir) $(FCFLAGS_f90) \
              -DOMPI_BUILD_MPI_PROFILING=1
 
@@ -149,7 +149,6 @@ pmpi_api_files = \
         pwin_get_name_f08.F90 \
         pwin_set_name_f08.F90 \
         pwin_test_f08.F90 \
-        pwin_wait_f08.F90 \
         \
         $(pmpi_py_api_files)
 
@@ -180,10 +179,3 @@ MAINTAINERCLEANFILES = $(nodist_libmpi_usempif08_pmpi_la_SOURCES)
 
 endif
 
-# Don't want these targets in here
-
-tags-recursive:
-tags:
-TAGS:
-GTAGS:
-ID:

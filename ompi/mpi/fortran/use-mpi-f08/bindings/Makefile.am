@@ -50,10 +50,13 @@ module_sentinel_file = \
 
 noinst_LTLIBRARIES = $(module_sentinel_file)
 
+noinst_HEADERS = mpi-f-py-interfaces-bind.h
+
 # f08 support modules
 
 libforce_usempif08_internal_bindings_to_be_built_la_SOURCES = \
         mpi-f-interfaces-bind.h \
+        mpi-f-py-interfaces-bind.h \
         ompi-mpifh-bindings.F90
 
 #
@@ -61,7 +64,7 @@ libforce_usempif08_internal_bindings_to_be_built_la_SOURCES = \
 # manually here.  Bummer!
 #
 
-ompi-mpifh-bindings.lo: mpi-f-interfaces-bind.h
+ompi-mpifh-bindings.lo: mpi-f-interfaces-bind.h mpi-f-py-interfaces-bind.h
 
 distclean-local:
 	rm -f *.mod
