@@ -23,6 +23,12 @@ class Kind:
         self.name = name
         self.ftype = ftype
 
+    def get_fhtype(self, param):
+        return "MPI_Fint *"
+
+    def get_fhtrail(self, param):
+        return None
+
     def get_ftype(self, param):
         return self.ftype
 
@@ -137,6 +143,13 @@ class KindProcedure(KindF08):
     def get_intent(self, param):
         return ""
 
+class KindLogical(Kind):
+    def __init__(self):
+        Kind.__init__(self, 'LOGICAL', 'LOGICAL')
+
+    def get_fhtype(self, param):
+        return "ompi_fortran_logical_t *"
+
 class KindCBuffer(KindF08Noval):
     def __init__(self, name, f08type):
         KindF08Noval.__init__(self, name, f08type)
@@ -167,6 +180,9 @@ class KindBuffer(Kind):
     def f08define(self, param):
         return "OMPI_FORTRAN_IGNORE_TKR_TYPE %s%s%s:: %s" % (self.get_intent(param), self.get_asynchronous(param), self.get_optional(param), param["name"])
 
+    def get_fhtype(self, param):
+        return "char *"
+
 class KindAddress(KindF08Noval):
     def __init__(self, name):
         KindF08Noval.__init__(self, name, 'INTEGER(KIND=MPI_ADDRESS_KIND)')
@@ -181,6 +197,9 @@ class KindAddress(KindF08Noval):
     def get_used(self, param):
         return "MPI_ADDRESS_KIND"
 
+    def get_fhtype(self, param):
+        return "MPI_Aint *"
+
 class KindF08Status(KindF08Noval):
     def __init__(self):
         KindF08Noval.__init__(self, "F08_STATUS", "MPI_Status")
@@ -191,10 +210,17 @@ class KindF08Status(KindF08Noval):
     def fheader(self, param):
         return self.f08header(param)
 
+class KindOffset(KindAddress):
+    def __init__(self):
+        KindAddress.__init__(self, "OFFSET")
+
+    def get_fhtype(self, param):
+        return "MPI_Offset *"
+
 class KindStatus(KindF08Status):
     def __init__(self):
         KindF08Noval.__init__(self, "STATUS", "MPI_Status")
-
+ 
     def get_intent(self, param):
         if "f08_intent" in param["suppress"].split():
             return ""
@@ -246,6 +272,12 @@ class KindString(Kind):
             return "CHARACTER(LEN=*)"
         else:
             return "CHARACTER(LEN=%s)" % (param["length"])
+
+    def get_fhtype(self, param):
+        return "char *"
+
+    def get_fhtrail(self, param):
+        return "int %s_len" % (param["name"])
 
 class KindStringArray(Kind):
     def __init__(self):
@@ -316,13 +348,13 @@ _kinds = [
     Kind('KEYVAL', 'INTEGER'),
     KindAddress('LOCATION_SMALL'),
     Kind('LOCK_TYPE', 'INTEGER'),
-    Kind('LOGICAL', 'LOGICAL'),
+    KindLogical(),
     Kind('LOGICAL_BOOLEAN', 'LOGICAL'),
     Kind('MATH', 'INTEGER'),
     KindF08('MESSAGE', 'MPI_Message'),
     Kind('NUM_BYTES_NNI_SMALL', 'INTEGER'),
     Kind('NUM_DIMS', 'INTEGER'),
-    KindAddress('OFFSET'),
+    KindOffset(),
     KindF08('OPERATION', 'MPI_Op'),
     Kind('ORDER', 'INTEGER'),
     Kind('PROCESS_GRID_SIZE', 'INTEGER'),
@@ -426,6 +458,27 @@ def generate_header2(binding, file):
   if binding["return_kind"] == "ERROR_CODE":
       file.write("subroutine o%s_f(%s) &\n    BIND(C,name=\"o%s_f\")\n%send subroutine o%s_f\n\n" %(name, wrapped_params, name, body, name))
     
+def generate_header3(binding, file):
+  using = {}
+  params = []
+  params2 = []
+  name = binding["name"]
+  body = "PN2(void, %s, %s, %s, \\\n    (" % ( name, name.lower(), name.upper())
+  for param in binding["parameters"]:
+    if param["kind"] == "VARARGS" or "f08_parameter" in param["suppress"].split():
+        continue
+
+    kind = kinds[param["kind"]]
+    params.append(kind.get_fhtype(name) + param["name"])
+    trail = kind.get_fhtrail(param)
+    if trail is not None:
+        params2.append(trail)
+
+  wrap = textwrap.TextWrapper(width=80,subsequent_indent="%%-%ds" % (5) % " ",placeholder=' \\')
+  wrapped_params= ' \\\n'.join(wrap.wrap(text=', '.join(params + params2)))
+
+  file.write(body + wrapped_params + "));\n")
+
 def generate_binding(name, binding):
   header = False
   using = {}
@@ -541,6 +594,7 @@ manual_bindings = [
     "mpi_alltoallw",
     "mpi_cart_create",
     "mpi_cart_get",
+    "mpi_comm_get_attr",
     "mpi_cart_map",
     "mpi_cart_sub",
     "mpi_close_port",
@@ -624,13 +678,75 @@ manual_bindings = [
 
 manual_mpifh_bindings = [
     "mpi_buffer_detach",
+    "mpi_cart_create",
+    "mpi_cart_get",
+    "mpi_cart_map",
+    "mpi_cart_sub",
+    "mpi_close_port",
+    "mpi_comm_accept",
+    "mpi_comm_connect",
+    "mpi_comm_create_errhandler",
+    "mpi_comm_create_keyval",
+    "mpi_comm_get_attr",
+    "mpi_comm_get_name",
+    "mpi_comm_set_name",
 ]
+
+manual_pn2_bindings = [
+    "mpi_buffer_detach",
+    "mpi_add_error_string",
+    "mpi_aint_add",
+    "mpi_aint_diff",
+    "mpi_alloc_mem",
+    "mpi_comm_create_errhandler",
+    "mpi_comm_create_keyval",
+    "mpi_comm_spawn",
+    "mpi_comm_spawn_multiple",
+    "mpi_comm_test_inter",
+    "mpi_dist_graph_neighbors_count",
+    "mpi_errhandler_create",
+    "mpi_file_create_errhandler",
+    "mpi_file_get_atomicity",
+    "mpi_get_elements_x",
+    "mpi_grequest_start",
+    "mpi_group_range_excl",
+    "mpi_group_range_incl",
+    "mpi_alltoallw",
+    "mpi_ialltoallw",
+    "mpi_neighbor_alltoallw",
+    "mpi_ineighbor_alltoallw",
+    "mpi_keyval_create",
+    "mpi_op_create",
+    "mpi_pcontrol",
+    "mpi_register_datarep",
+    "mpi_status_f082f",
+    "mpi_status_f2f08",
+    "mpi_status_set_cancelled",
+    "mpi_status_set_elements_x",
+    "mpi_type_create_keyval",
+    "mpi_type_get_extent_x",
+    "mpi_type_get_true_extent_x",
+    "mpi_type_size_x",
+    "mpi_win_allocate",
+    "mpi_win_allocate_cptr",
+    "mpi_win_allocate_shared",
+    "mpi_win_allocate_shared_cptr",
+    "mpi_win_create_errhandler",
+    "mpi_win_create_keyval",
+    "mpi_win_shared_query",
+    "mpi_win_shared_query_cptr",
+    "mpi_wtick",
+    "mpi_wtime"
+]
+
 
 files = []
 file = open("ompi/mpi/fortran/use-mpi-f08/mod/mpi-f08-py-interfaces.h.in", "w")
 file.write("!do not edit\n\n")
 f = open("ompi/mpi/fortran/use-mpi-f08/bindings/mpi-f-py-interfaces-bind.h", "w")
 f.write("!do not edit\n\n")
+f2 = open("ompi/mpi/fortran/mpif-h/prototypes_mpi-py.h", "w")
+f2.write("/* do not edit */\n\n")
 for name,binding in bindings.items():
   if name not in manual_prototypes:
     if binding["attributes"]["f08_expressible"] and binding["attributes"]["predefined_function"] is None and not binding["attributes"]["callback"]:
@@ -640,9 +756,12 @@ for name,binding in bindings.items():
         files.append("%s_f08.F90" % (name[4:]))
         if name not in manual_mpifh_bindings:
           generate_header2(binding, f)
+      if name not in manual_pn2_bindings:
+        generate_header3(binding, f2)
 
 file.close()
 f.close()
+f2.close()
 
 file = open("ompi/mpi/fortran/use-mpi-f08/mpi-f08-interfaces.mk", "w")
 file.write("# do not edit\nmpi_py_api_files = \\\n        ")

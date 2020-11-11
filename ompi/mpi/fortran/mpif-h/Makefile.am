@@ -112,6 +112,8 @@ nodist_libmpi_mpifh_sizeof_la_SOURCES = sizeof_f.f90
 lib@OMPI_LIBMPI_NAME@_mpifh_la_LIBADD += libmpi_mpifh_sizeof.la
 endif
 
+noinst_HEADERS = prototypes_mpi-py.h
+
 sizeof_pl = $(top_srcdir)/ompi/mpi/fortran/base/gen-mpi-sizeof.pl
 
 sizeof_f.f90: $(top_builddir)/config.status
