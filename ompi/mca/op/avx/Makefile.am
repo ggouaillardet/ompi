@@ -21,7 +21,7 @@
 # files so that they will be picked up in the distribution tarball.
 
 sources = op_avx_component.c op_avx.h
-sources_extended = op_avx_functions.c
+EXTRA_DIST = op_avx_functions.c
 
 # Open MPI components can be compiled two ways:
 #
@@ -46,7 +46,7 @@ sources_extended = op_avx_functions.c
 specialized_op_libs =
 if MCA_BUILD_ompi_op_has_avx_support
 specialized_op_libs += liblocal_ops_avx.la
-liblocal_ops_avx_la_SOURCES = $(sources_extended)
+nodist_liblocal_ops_avx_la_SOURCES = liblocal_ops_avx.c
 liblocal_ops_avx_la_CFLAGS = @MCA_BUILD_OP_AVX_FLAGS@
 liblocal_ops_avx_la_CPPFLAGS = -DGENERATE_AVX_CODE
 if MCA_BUILD_ompi_op_has_sse3_support
@@ -58,13 +58,13 @@ endif
 endif
 if MCA_BUILD_ompi_op_has_avx2_support
 specialized_op_libs += liblocal_ops_avx2.la
-liblocal_ops_avx2_la_SOURCES = $(sources_extended)
+nodist_liblocal_ops_avx2_la_SOURCES = liblocal_ops_avx2.c
 liblocal_ops_avx2_la_CFLAGS = @MCA_BUILD_OP_AVX2_FLAGS@
 liblocal_ops_avx2_la_CPPFLAGS = -DGENERATE_SSE3_CODE -DGENERATE_SSE41_CODE -DGENERATE_AVX_CODE -DGENERATE_AVX2_CODE
 endif
 if MCA_BUILD_ompi_op_has_avx512_support
 specialized_op_libs += liblocal_ops_avx512.la
-liblocal_ops_avx512_la_SOURCES = $(sources_extended)
+nodist_liblocal_ops_avx512_la_SOURCES = liblocal_ops_avx512.c
 liblocal_ops_avx512_la_CFLAGS = @MCA_BUILD_OP_AVX512_FLAGS@
 liblocal_ops_avx512_la_CPPFLAGS = -DGENERATE_SSE3_CODE -DGENERATE_SSE41_CODE -DGENERATE_AVX_CODE -DGENERATE_AVX2_CODE -DGENERATE_AVX512_CODE
 endif
@@ -99,3 +99,8 @@ libmca_op_avx_la_SOURCES = $(sources)
 libmca_op_avx_la_LIBADD = $(specialized_op_libs)
 libmca_op_avx_la_LDFLAGS = -module -avoid-version
 
+local_sources = liblocal_ops_avx.c liblocal_ops_avx2.c liblocal_ops_avx512.c
+$(local_sources):
+	$(OMPI_V_LN_S) if test ! -r $@ ; then \
+		$(LN_S) $(top_srcdir)/ompi/mca/op/avx/op_avx_functions.c $@ ; \
+	fi
