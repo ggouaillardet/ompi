@@ -51,7 +51,7 @@ AC_DEFUN([MCA_ompi_op_avx_CONFIG],[
            AS_IF([test $op_avx512_support -eq 0],
                  [AC_MSG_CHECKING([for AVX512 support (with -march=skylake-avx512)])
                   op_avx_cflags_save="$CFLAGS"
-                  CFLAGS="$CFLAGS -march=skylake-avx512"
+                  CFLAGS="-march=skylake-avx512 $CFLAGS"
                   AC_LINK_IFELSE(
                       [AC_LANG_PROGRAM([[#include <immintrin.h>]],
                                        [[
@@ -119,7 +119,7 @@ AC_DEFUN([MCA_ompi_op_avx_CONFIG],[
            AS_IF([test $op_avx2_support -eq 0],
                [AC_MSG_CHECKING([for AVX2 support (with -mavx2)])
                 op_avx_cflags_save="$CFLAGS"
-                CFLAGS="$CFLAGS -mavx2"
+                CFLAGS="-mavx2 $CFLAGS"
                 AC_LINK_IFELSE(
                     [AC_LANG_PROGRAM([[#include <immintrin.h>]],
                             [[
@@ -204,7 +204,7 @@ AC_DEFUN([MCA_ompi_op_avx_CONFIG],[
            AS_IF([test $op_avx_support -eq 0 || test $op_sse41_support -eq 0 || test $op_sse3_support -eq 0],
                [AC_MSG_CHECKING([for AVX support (with -mavx)])
                 op_avx_cflags_save="$CFLAGS"
-                CFLAGS="$CFLAGS -mavx"
+                CFLAGS="-mavx $CFLAGS"
                 AC_LINK_IFELSE(
                     [AC_LANG_PROGRAM([[#include <immintrin.h>]],
                             [[
