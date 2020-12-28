@@ -24,16 +24,42 @@
 #include "ompi/mca/op/avx/op_avx.h"
 
 #include <immintrin.h>
-
+/**
+ * The following logic is necessary to cope with distro maintainer's desire to change the compilation
+ * flags after the configure step, leading to inconsistencies between what OMPI has detected and what
+ * code can be generated during make. If we detect that the current code generation architecture has
+ * been changed from our own setting and cannot generate the code we need (AVX512, AVX2) we fall back
+ * to a lesser support (AVX512 -> AVX2, AVX2 -> AVX, AVX -> error out).
+ */
 #if defined(GENERATE_AVX512_CODE)
-#define PREPEND _avx512
-#elif defined(GENERATE_AVX2_CODE)
-#define PREPEND _avx2
-#elif defined(GENERATE_AVX_CODE)
-#define PREPEND _avx
-#else
-#error This file should not be compiled in this conditions
-#endif
+#  if defined(__AVX512BW__) && defined(__AVX512F__) && defined(__AVX512VL__)
+#    define PREPEND _avx512
+#  else
+#    undef GENERATE_AVX512_CODE
+#  endif  /* defined(__AVX512BW__) && defined(__AVX512F__) && defined(__AVX512VL__) */
+#endif  /* defined(GENERATE_AVX512_CODE) */
+
+#if !defined(PREPEND) && defined(GENERATE_AVX2_CODE)
+#  if defined(__AVX2__)
+#    define PREPEND _avx2
+#  else
+#    undef GENERATE_AVX2_CODE
+#  endif  /* defined(__AVX2__) */
+#endif  /* !defined(PREPEND) && defined(GENERATE_AVX2_CODE) */
+
+#if !defined(PREPEND) && defined(GENERATE_AVX_CODE)
+#  if defined(__AVX__)
+#    define PREPEND _avx
+#  endif
+#endif  /* !defined(PREPEND) && defined(GENERATE_AVX_CODE) */
+
+#if !defined(PREPEND)
+#  if OMPI_MCA_OP_HAVE_AVX512 || OMPI_MCA_OP_HAVE_AVX2
+#    error The configure step has detected possible support for AVX512 and/or AVX2 but the compiler flags during make are too restrictive. Please disable the AVX component by adding --enable-mca-no-build=op-avx to your configure step.
+#  else
+#    error This file should not be compiled in this conditions. Please provide the config.log file to the OMPI developers.
+#  endif  /* OMPI_MCA_OP_HAVE_AVX512 || OMPI_MCA_OP_HAVE_AVX2 */
+#endif  /* !defined(PREPEND) */
 
 /*
  * Concatenate preprocessor tokens A and B without expanding macro definitions
