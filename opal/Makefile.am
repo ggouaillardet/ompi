@@ -48,7 +48,8 @@ libopen_pal_core_la_SOURCES =
 libopen_pal_core_la_LIBADD = \
         mca/base/libmca_base.la \
         util/libopalutil_core.la \
-	$(MCA_opal_FRAMEWORK_CORE_LIBS)
+        $(MCA_opal_FRAMEWORK_CORE_LIBS) \
+        $(opal_pmix_LIBS)
 libopen_pal_core_la_DEPENDENCIES = \
         mca/base/libmca_base.la \
         util/libopalutil_core.la \
@@ -59,7 +60,8 @@ lib@OPAL_LIB_NAME@_la_LIBADD = \
 	libopen-pal_core.la \
         datatype/libdatatype.la \
         util/libopalutil.la \
-	$(MCA_opal_FRAMEWORK_LIBS)
+	$(MCA_opal_FRAMEWORK_LIBS) \
+	$(opal_pmix_LIBS)
 lib@OPAL_LIB_NAME@_la_DEPENDENCIES = \
 	libopen-pal_core.la \
         datatype/libdatatype.la \
